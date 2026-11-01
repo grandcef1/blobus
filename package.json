@@ -11,8 +11,11 @@
   },
   "dependencies": {
     "@blobatar/react": "^2.7.0",
+    "@radix-ui/react-slot": "^1.5.0",
     "@tailwindcss/vite": "^4.3.3",
     "blobatar": "^2.7.0",
+    "class-variance-authority": "^0.7.1",
+    "clsx": "^2.1.1",
     "cn": "^0.5.1",
     "framer-motion": "^14.9.0",
     "lucide-react": "^1.66.0",
@@ -20,6 +23,7 @@
     "react": "^19.3.1",
     "react-dom": "^19.3.1",
     "react-router-dom": "^7.18.5",
+    "tailwind-merge": "^3.7.0",
     "zustand": "^5.0.16"
   },
   "devDependencies": {

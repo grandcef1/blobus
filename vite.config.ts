@@ -4,13 +4,10 @@ import tailwindcss from '@tailwindcss/vite';
 import path from 'node:path';
 
 export default defineConfig({
-  plugins: [
-    react(),
-    tailwindcss(), // <-- Плагин Tailwind v4
-  ],
+  plugins: [react(), tailwindcss()],
   resolve: {
     alias: {
-      '@': path.resolve(__dirname, './src'), // <-- Алиас для удобных импортов
+      '@': path.resolve(__dirname, './src'),
     },
   },
 });

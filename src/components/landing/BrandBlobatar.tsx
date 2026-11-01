@@ -1,0 +1,43 @@
+import { useEffect } from "react";
+import { Blobatar } from "@blobatar/react";
+import { useGaze } from "@blobatar/react/gaze";
+
+export interface BrandBlobatarProps {
+    className?: string;
+}
+
+const BRAND_TRAITS: Record<string, number | number[]> = {
+    shape: 0.35,
+    "body.r": 0.456,
+    "body.ratio": 0,
+    "body.n": 0.999,
+    "eye.rx": 0.969,
+    "eye.ratio": 0.164,
+    "eye.n": 0.232,
+    "eye.gap": 0.306,
+    "eye.lean": 0.437,
+    "gaze.x": 0.725,
+    "gaze.y": 0.378,
+    tone: [0.1, 0.28],
+    hue: 0.808,
+};
+
+export function BrandBlobatar({ className }: BrandBlobatarProps) {
+    const { ref, lookAt } = useGaze({ travel: 4 });
+
+    // Заставляем глаза следить за курсором — ровно один раз при монтировании.
+    useEffect(() => {
+        lookAt("pointer");
+    }, [lookAt]);
+
+    return (
+        <div className={`w-200 h-200 ${className ?? ""}`}>
+            <Blobatar
+                ref={ref}
+                animate="always" // Обязательно для работы gaze
+                name="gabriel80"
+                traits={BRAND_TRAITS}
+            />
+        </div>
+    );
+}

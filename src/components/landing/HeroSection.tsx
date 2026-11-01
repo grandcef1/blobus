@@ -35,16 +35,16 @@ const blobatarVariants = fadeInUp(0.4);
 
 export function HeroSection() {
     return (
-        <section className="min-h-screen bg-white">
+        <section className="min-h-screen bg-zinc-950">
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
                 className="grid grid-cols-1 items-center gap-12 mx-auto max-w-6xl px-6 min-h-screen md:grid-cols-2"
             >
-                <div className="flex flex-col justify-center gap-6">
+                <div className="flex flex-col justify-center gap-8">
                     <motion.div variants={badgeVariants}>
-                        <span className="inline-flex items-center gap-2 rounded-full bg-blue-50 text-blue-600 px-3 py-1 text-sm">
+                        <span className="inline-flex items-center gap-2 rounded-full bg-zinc-100 text-zinc-600 px-3 py-1 text-sm">
                             <Sparkles className="size-4" aria-hidden="true" />
                             Новый способ учить английский
                         </span>
@@ -52,28 +52,37 @@ export function HeroSection() {
 
                     <motion.h1
                         variants={titleVariants}
-                        className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-600 to-purple-600 bg-clip-text text-transparent"
+                        className="text-4xl md:text-6xl font-bold bg-gradient-to-r from-blue-400 to-purple-400 bg-clip-text text-transparent"
                     >
                         Учи английский с ИИ-репетитором
                     </motion.h1>
 
                     <motion.p
                         variants={subtitleVariants}
-                        className="text-lg md:text-xl text-gray-600 max-w-xl"
+                        className="text-lg md:text-xl text-zinc-500 max-w-xl"
                     >
                         Персональные уроки, разговорная практика и подготовка к
                         собеседованиям — всё в одном месте
                     </motion.p>
 
                     <motion.div variants={actionsVariants} className="flex flex-wrap gap-4">
-                        <Button size="lg">Начать бесплатно</Button>
-                        <Button variant="outline" size="lg">
+                        <Button
+                            size="lg"
+                            className="rounded-full shadow-none bg-zinc-900 text-white hover:bg-zinc-700"
+                        >
+                            Начать бесплатно
+                        </Button>
+                        <Button
+                            variant="outline"
+                            size="lg"
+                            className="rounded-full shadow-none border-zinc-300 text-zinc-700 hover:bg-zinc-50"
+                        >
                             <Play aria-hidden="true" />
                             Смотреть демо
                         </Button>
                     </motion.div>
 
-                    <p className="text-sm text-gray-500">
+                    <p className="text-sm text-zinc-400">
                         ✓ Бесплатно 7 дней · ✓ Без карты · ✓ Отмена в любой момент
                     </p>
                 </div>

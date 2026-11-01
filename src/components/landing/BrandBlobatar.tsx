@@ -23,7 +23,7 @@ const BRAND_TRAITS: Record<string, number | number[]> = {
 };
 
 export function BrandBlobatar({ className }: BrandBlobatarProps) {
-    const { ref, lookAt } = useGaze({ travel: 4 });
+    const { ref, lookAt } = useGaze({ travel: 15 });
 
     // Заставляем глаза следить за курсором — ровно один раз при монтировании.
     useEffect(() => {

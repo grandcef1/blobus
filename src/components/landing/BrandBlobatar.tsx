@@ -34,7 +34,7 @@ export function BrandBlobatar({ className }: BrandBlobatarProps) {
         <div className={`w-200 h-200 ${className ?? ""}`}>
             <Blobatar
                 ref={ref}
-                animate="always" // Обязательно для работы gaze
+                animate="always"
                 name="gabriel80"
                 traits={BRAND_TRAITS}
             />

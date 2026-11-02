@@ -21,13 +21,14 @@ const NAV_LINKS = [
 
 export function Header() {
     return (
+        // ARCHITECT: цвет текста изменён на #f0f0f5 для гармонии с Blobatar.
         // ARCHITECT: фиксированная панель h-16, полупрозрачный чёрный с blur, тонкая светлая граница
         <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-white/10 bg-black/80 backdrop-blur-md">
             <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
                 {/* Логотип */}
                 <a
                     href="#top"
-                    className="font-bold text-xl text-[#fffce1] hover:text-white"
+                    className="font-bold text-xl text-[#f0f0f5] hover:text-white"
                 >
                     Blobus
                 </a>
@@ -41,7 +42,7 @@ export function Header() {
                         <a
                             key={link.href}
                             href={link.href}
-                            className="text-sm text-[#fffce1]/70 transition-colors hover:text-white"
+                            className="text-sm text-[#f0f0f5]/70 transition-colors hover:text-white"
                         >
                             {link.label}
                         </a>
@@ -52,11 +53,11 @@ export function Header() {
                 <div className="hidden items-center gap-3 md:flex">
                     <Button
                         variant="outline"
-                        className="rounded-full shadow-none border border-[#fffce1]/30 bg-transparent text-[#fffce1] hover:bg-[#fffce1]/10 hover:text-white"
+                        className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-white"
                     >
                         Войти
                     </Button>
-                    <Button className="rounded-full shadow-none bg-[#fffce1] text-black hover:bg-white">
+                    <Button className="rounded-full shadow-none bg-[#f0f0f5] text-black hover:bg-white">
                         Начать
                     </Button>
                 </div>
@@ -68,7 +69,7 @@ export function Header() {
                             variant="ghost"
                             size="icon"
                             aria-label="Открыть меню"
-                            className="text-[#fffce1] hover:bg-white/10 hover:text-white md:hidden"
+                            className="text-[#f0f0f5] hover:bg-white/10 hover:text-white md:hidden"
                         >
                             <Menu aria-hidden="true" />
                         </Button>
@@ -97,7 +98,7 @@ export function Header() {
                         </nav>
 
                         <div className="mt-auto flex flex-col gap-3 p-6">
-                            <Button className="w-full rounded-full bg-black text-[#fffce1] shadow-none hover:bg-zinc-800">
+                            <Button className="w-full rounded-full bg-black text-[#f0f0f5] shadow-none hover:bg-zinc-800">
                                 Начать
                             </Button>
                             <Button

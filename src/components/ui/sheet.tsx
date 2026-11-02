@@ -80,8 +80,8 @@ function SheetContent({ className, children, side = "right", ...props }: SheetCo
             <SheetPrimitive.Content
                 data-slot="sheet-content"
                 className={cn(
-                    // ARCHITECT: фон панели — #fffce1, текст — чёрный (инверсия основной палитры), без градиентов
-                    "fixed z-50 flex flex-col gap-4 bg-[#fffce1] text-black shadow-lg transition ease-in-out",
+                    // ARCHITECT: фон панели — #f0f0f5, текст — чёрный (инверсия основной палитры), без градиентов
+                    "fixed z-50 flex flex-col gap-4 bg-[#f0f0f5] text-black shadow-lg transition ease-in-out",
                     sideStyles[side],
                     className,
                 )}

@@ -1,9 +1,13 @@
+// src/pages/Landing.tsx
+// ARCHITECT: добавлен импорт PricingSection. Порядок: Hero -> Features -> HowItWorks -> Pricing.
+
 import { useEffect } from "react";
 
 import { Header } from "@/components/landing/Header";
 import { HeroSection } from "@/components/landing/HeroSection";
-import { HowItWorksSection } from "@/components/landing/how-it-works/HowItWorksSection";
 import { FeaturesSection } from "@/components/landing/FeaturesSection";
+import { HowItWorksSection } from "@/components/landing/how-it-works/HowItWorksSection";
+import { PricingSection } from "@/components/landing/pricing/PricingSection";
 
 function useSmoothAnchorScroll(): void {
     useEffect(() => {
@@ -38,6 +42,7 @@ export function Landing() {
                 <HeroSection />
                 <FeaturesSection />
                 <HowItWorksSection />
+                <PricingSection />
             </main>
         </>
     );

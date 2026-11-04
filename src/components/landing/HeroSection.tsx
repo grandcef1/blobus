@@ -48,7 +48,7 @@ const BENEFITS: readonly BenefitItem[] = [
 
 export function HeroSection() {
     return (
-        <section className="w-full bg-black pt-[10px]">
+        <section className="w-full bg-black pt-[0px]">
             <motion.div
                 variants={containerVariants}
                 initial="hidden"

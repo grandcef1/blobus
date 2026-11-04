@@ -2,7 +2,7 @@ import type { ReactNode } from "react";
 
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
-import { Languages, Volume2, Check } from "lucide-react";
+import { Languages, Volume2 } from "lucide-react";
 
 import { ChatBlobatar } from "@/components/landing/ChatBlobatar";
 import { MiniBlobatar } from "@/components/landing/MiniBlobatar";
@@ -88,7 +88,7 @@ function FeatureCard({
           scale-[1.01] для премиальности. Hover-scale живёт на внутреннем слое: внешний
           motion.div управляет transform:y — два трансформа на одном элементе конфликтовали бы. */}
             <motion.div
-                className="h-full rounded-3xl bg-white/[0.02] backdrop-blur-xl border border-white/5 transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-white/15 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.03)] group-hover:scale-[1.01] overflow-hidden"
+                className="h-full rounded-3xl bg-white/[0.02] backdrop-blur-xl border border-white/5 transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-white/15 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.03)] group-hover:scale-[1.01]"
                 whileTap={{ scale: 0.99 }}
             >
                 <div className="flex h-full flex-col p-6 md:p-8">
@@ -200,28 +200,52 @@ const MINI_BLOBATARS: MiniBlobatarConfig[] = [
     },
 ];
 
-// ARCHITECT: бесшовный marquee без пустого пространства справа: ОДИН трек содержит
-// ДВА идеальных дубликата набора ([...MINI_BLOBATARS, ...MINI_BLOBATARS]) и едет
-// x: 0% → -50% (ровно одна копия набора). В конце анимации second copy занимает место
-// первой — позиции элементов идентичны стартовым ⇒ ни разрыва, ни скачка.
-// Синхронная копия (ariaHidden) стоит вплотную и движется с той же скоростью.
+// ARCHITECT: Контейнер с 3 дубликатами для анимации туда-обратно.
+// Три идентичных набора стоят в ряд. Анимация двигает их влево на 300% (ширина 3 контейнеров),
+// затем разворачивается и двигает вправо на 300% с той же скоростью.
+// mode: "reverse" обеспечивает плавный разворот без скачков.
 function MarqueeSet({ ariaHidden }: { ariaHidden?: boolean }) {
     return (
         <motion.div
             className="flex shrink-0 gap-8"
             aria-hidden={ariaHidden}
             initial={{ x: 0 }}
-            animate={{ x: ["0%", "-50%"] }}
-            transition={{
-                duration: 20,
-                repeat: Infinity,
-                repeatType: "loop",
+            animate={{ x: "-300%" }}
+            transition={{ 
+                duration: 40, 
+                repeat: Infinity, 
                 ease: "linear",
+                repeatType: "reverse" // ARCHITECT: плавный разворот в конце без скачка
             }}
         >
-            {[...MINI_BLOBATARS, ...MINI_BLOBATARS].map((blob, index) => (
+            {/* Первый дубликат */}
+            {MINI_BLOBATARS.map((blob, index) => (
                 <div
-                    key={`${blob.name}-${ariaHidden ? "copy" : "orig"}-${index}`}
+                    key={`set1-${blob.name}-${index}`}
+                    className="flex w-20 shrink-0 flex-col items-center gap-3"
+                >
+                    <MiniBlobatar name={blob.name} traits={blob.traits} />
+                    <span className="whitespace-nowrap text-xs font-medium text-[#f0f0f5]/60">
+                        {blob.name}
+                    </span>
+                </div>
+            ))}
+            {/* Второй дубликат */}
+            {MINI_BLOBATARS.map((blob, index) => (
+                <div
+                    key={`set2-${blob.name}-${index}`}
+                    className="flex w-20 shrink-0 flex-col items-center gap-3"
+                >
+                    <MiniBlobatar name={blob.name} traits={blob.traits} />
+                    <span className="whitespace-nowrap text-xs font-medium text-[#f0f0f5]/60">
+                        {blob.name}
+                    </span>
+                </div>
+            ))}
+            {/* Третий дубликат */}
+            {MINI_BLOBATARS.map((blob, index) => (
+                <div
+                    key={`set3-${blob.name}-${index}`}
                     className="flex w-20 shrink-0 flex-col items-center gap-3"
                 >
                     <MiniBlobatar name={blob.name} traits={blob.traits} />
@@ -237,9 +261,11 @@ function MarqueeSet({ ariaHidden }: { ariaHidden?: boolean }) {
 function BlobatarMarquee() {
     return (
         <div className="relative w-full overflow-hidden py-2">
-            {/* ARCHITECT: Оставляем только ОДИН MarqueeSet. 
-                Внутри него массив уже удвоен, и анимация от -50% работает идеально бесшовно. */}
-            <MarqueeSet />
+            <div className="flex">
+                <MarqueeSet />
+                {/* Второй набор для плавности — скрывается от скринридеров */}
+                <MarqueeSet ariaHidden />
+            </div>
         </div>
     );
 }
@@ -280,20 +306,16 @@ function ProgressSteps() {
                             transition={{ duration: 0.3, delay: index * 0.15, ease: "easeOut" }}
                         >
                             {/* Галочка для первых трёх пройденных шагов (0, 1, 2) */}
-                            {index < 5 && (
-                                <motion.div
-                                    initial={{ scale: 0, opacity: 0 }}
-                                    animate={{ scale: 1, opacity: 1 }}
-                                    transition={{
-                                        delay: 0.8 + index * 0.2,
-                                        type: "spring",
-                                        stiffness: 500,
-                                        damping: 30
-                                    }}
-                                    className="flex h-3 w-3 items-center justify-center"
+                            {index < 3 && (
+                                <motion.span
+                                    initial={{ scale: 0 }}
+                                    whileInView={{ scale: 1 }}
+                                    viewport={{ once: true, amount: 0.3 }}
+                                    transition={{ delay: index * 0.15 + 0.2 }}
+                                    className="text-[8px] font-bold text-black"
                                 >
-                                    <Check className="h-2.5 w-2.5 text-black" strokeWidth={3} />
-                                </motion.div>
+                                    ✓
+                                </motion.span>
                             )}
                         </motion.div>
                         <span className="whitespace-nowrap text-[10px] text-[#f0f0f5]/60">
@@ -327,10 +349,10 @@ function ModeShowcase() {
                     className="relative flex flex-col justify-between rounded-2xl border border-white/10 bg-white/[0.03] p-4 backdrop-blur-sm"
                 >
                     {mode.badge && (
+                        // ARCHITECT: бейдж центрирован над карточкой (-top-3 left-1/2 -translate-x-1/2),
+                        // фон bg-white/10, рамка border-white/20, пульсирующая точка-индикатор.
                         <motion.div
-                            // ARCHITECT: left-[38%] идеально центрирует бейдж над текстом "Interview Prep", 
-                            // игнорируя общую ширину карточки. Убрали лишний style={{ transform... }}
-                            className="absolute -center-3 left-[55%] flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 backdrop-blur-sm"
+                            className="absolute -top-3 left-1/2 flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 backdrop-blur-sm"
                             initial={{ opacity: 0, y: -5 }}
                             whileInView={{ opacity: 1, y: 0 }}
                             viewport={{ once: true }}
@@ -359,7 +381,8 @@ const CHAT_MESSAGES = [
     { author: "user", text: "I go to cinema with my friends." },
     {
         author: "bot",
-        text: "Nice! Correct form: “I went to the cinema.” Let’s practice the Past Simple.",
+        // ARCHITECT: исправлен синтаксис строки (использованы обратные кавычки для избежания конфликта с внутренними двойными кавычками)
+        text: `Nice! Correct form: "I went to the cinema." Let's practice the Past Simple.`,
     },
 ] as const;
 
@@ -375,46 +398,44 @@ function ChatPreview() {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true, amount: 0.4 }}
                         transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 + index * 0.5 }}
-                        // ARCHITECT: убрали relative отсюда, оставили чистый flex для выравнивания
                         className={`flex items-end gap-2 ${message.author === "user" ? "self-end flex-row-reverse" : "self-start"
                             }`}
                     >
-                        {/* ARCHITECT: relative добавлен СЮДА. Теперь иконки позиционируются 
-            строго относительно размеров самого пузыря, а не всей flex-строки */}
                         <div
-                            className={`relative max-w-[90%] rounded-2xl ${message.author === "user"
-                                    ? "rounded-br-md bg-[#f0f0f5] px-4 py-2.5 text-sm text-black"
-                                    : "rounded-bl-md bg-white/10 px-4 py-2.5 text-sm text-[#f0f0f5]"
-                                }`}
+                            className={
+                                message.author === "user"
+                                    ? "max-w-[90%] rounded-2xl rounded-br-md bg-[#f0f0f5] px-4 py-2.5 text-sm text-black"
+                                    // ARCHITECT: добавлен break-normal для предотвращения странных разрывов слов и лишних пробелов
+                                    : "max-w-[90%] rounded-2xl rounded-bl-md bg-white/10 px-4 py-2.5 text-sm text-[#f0f0f5] break-normal"
+                            }
                         >
                             {message.text}
-
-                            {/* ARCHITECT: иконки внутри relative-пузыря. 
-                top-1/2 + -translate-y-1/2 = строгий вертикальный центр пузыря.
-                translate-x-full + pl-2 = сдвиг вправо на ширину иконок + зазор 8px */}
-                            {message.author === "bot" && (
-                                <div className="absolute right-0 top-1/2 -translate-y-1/2 translate-x-full flex flex-col gap-1 pl-2">
-                                    <motion.button
-                                        type="button"
-                                        className="rounded-full bg-white/5 p-2 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        aria-label="Прослушать"
-                                    >
-                                        <Volume2 className="size-4" aria-hidden="true" />
-                                    </motion.button>
-                                    <motion.button
-                                        type="button"
-                                        className="rounded-full bg-white/5 p-2 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        aria-label="Перевести"
-                                    >
-                                        <Languages className="size-4" aria-hidden="true" />
-                                    </motion.button>
-                                </div>
-                            )}
                         </div>
+
+                        {/* ARCHITECT: кнопки действий бота (озвучка + перевод) — внутри того же
+                motion.div, что и пузырь: появляются строго синхронно с сообщением */}
+                        {message.author === "bot" && (
+                            <div className="flex flex-col gap-1">
+                                <motion.button
+                                    type="button"
+                                    className="rounded-full bg-white/5 p-2 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    aria-label="Прослушать"
+                                >
+                                    <Volume2 className="size-4" aria-hidden="true" />
+                                </motion.button>
+                                <motion.button
+                                    type="button"
+                                    className="rounded-full bg-white/5 p-2 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
+                                    whileHover={{ scale: 1.1 }}
+                                    whileTap={{ scale: 0.95 }}
+                                    aria-label="Перевести"
+                                >
+                                    <Languages className="size-4" aria-hidden="true" />
+                                </motion.button>
+                            </div>
+                        )}
                     </motion.div>
                 ))}
 
@@ -450,8 +471,10 @@ function ChatPreview() {
                 transition={{ delay: 0.5, duration: 0.8 }}
                 className="flex shrink-0 items-center justify-center"
             >
-                {/* ARCHITECT: scale-150 удалён — размер увеличен в самом ChatBlobatar (w-80 h-80) */}
-                <ChatBlobatar className="scale-215 translate-x-22" />
+                {/* ARCHITECT: scale-150 — блобатар крупнее, но контейнер сохраняет layout-размер */}
+                <div className="scale-150">
+                    <ChatBlobatar />
+                </div>
             </motion.div>
         </div>
     );

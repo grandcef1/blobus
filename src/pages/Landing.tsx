@@ -2,6 +2,7 @@ import { useEffect } from "react";
 
 import { Header } from "@/components/landing/Header";
 import { HeroSection } from "@/components/landing/HeroSection";
+import { FeaturesSection } from "@/components/landing/FeaturesSection";
 
 // ARCHITECT: плавный скролл к якорям без правки index.css — перехватываем клики по ссылкам вида "#id".
 function useSmoothAnchorScroll(): void {
@@ -48,6 +49,8 @@ export function Landing() {
           верхний отступ перенесён внутрь HeroSection (pt-[56px]); здесь padding убран, чтобы не было двойных отступов. */}
             <main className="min-h-dvh bg-black">
                 <HeroSection />
+                {/* ARCHITECT: секция фич подключена под hero; id="features" внутри — якорь из Header-навигации */}
+                <FeaturesSection />
             </main>
         </>
     );

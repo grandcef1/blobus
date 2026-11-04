@@ -1,7 +1,7 @@
 // src/components/landing/HeroSection.tsx
 import { motion } from "framer-motion";
 import type { TargetAndTransition, Variants } from "framer-motion";
-import { Play, Sparkles } from "lucide-react";
+import { Check, Play, Zap } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
@@ -33,7 +33,18 @@ const badgeVariants = fadeInUp(0);
 const titleVariants = fadeInUp(0.1);
 const subtitleVariants = fadeInUp(0.2);
 const actionsVariants = fadeInUp(0.3);
+const benefitsVariants = fadeInUp(0.4);
 const blobatarVariants = fadeInUp(0.4);
+
+interface BenefitItem {
+    label: string;
+}
+
+const BENEFITS: readonly BenefitItem[] = [
+    { label: "Бесплатно 7 дней" },
+    { label: "Без привязки карты" },
+    { label: "Отмена в любой момент" },
+];
 
 export function HeroSection() {
     return (
@@ -46,8 +57,8 @@ export function HeroSection() {
             >
                 <div className="flex flex-col justify-center gap-8">
                     <motion.div variants={badgeVariants}>
-                        <span className="inline-flex items-center gap-2 rounded-full bg-white/10 text-[#f0f0f5] px-3 py-1 text-sm">
-                            <Sparkles className="size-4" aria-hidden="true" />
+                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 text-[#f0f0f5] px-3 py-1 text-sm">
+                            <Zap className="size-3.5 fill-[#f0f0f5]/20 text-[#f0f0f5]" aria-hidden="true" />
                             Новый способ учить английский
                         </span>
                     </motion.div>
@@ -76,14 +87,25 @@ export function HeroSection() {
                             size="lg"
                             className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-[#f0f0f5]"
                         >
-                            <Play aria-hidden="true" />
+                            <Play className="mr-2 size-4" aria-hidden="true" />
                             Смотреть демо
                         </Button>
                     </motion.div>
 
-                    <p className="text-sm text-[#f0f0f5]/40">
-                        ✓ Бесплатно 7 дней · ✓ Без карты · ✓ Отмена в любой момент
-                    </p>
+                    <motion.div
+                        variants={benefitsVariants}
+                        className="flex items-center gap-3 pt-2"
+                    >
+                        {BENEFITS.map((benefit) => (
+                            <div
+                                key={benefit.label}
+                                className="flex items-center gap-1.5 text-xs text-[#f0f0f5]/50"
+                            >
+                                <Check className="size-3 text-[#f0f0f5]/60" aria-hidden="true" />
+                                <span className="whitespace-nowrap">{benefit.label}</span>
+                            </div>
+                        ))}
+                    </motion.div>
                 </div>
 
                 <motion.div variants={blobatarVariants}>

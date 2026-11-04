@@ -13,7 +13,9 @@ export interface MiniBlobatarProps {
 export function MiniBlobatar({ name, traits }: MiniBlobatarProps) {
     return (
         <motion.div
-            className="flex w-16 h-16 items-center justify-center"
+            // ARCHITECT: размер обёртки w-16 h-16 → w-20 h-20 по ТЗ marquee;
+            // компонент используется только в бегущей строке FeaturesSection.
+            className="flex w-20 h-20 items-center justify-center"
             // ARCHITECT: анимация «дыхания» масштабом; трек-взгляд не подключается
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}

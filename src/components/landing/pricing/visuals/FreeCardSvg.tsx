@@ -1,45 +1,44 @@
 // src/components/landing/pricing/visuals/FreeCardSvg.tsx
-// ARCHITECT: минималистичная SVG-декорация для Free карточки.
-// ARCHITECT: абстрактный символ "открытых возможностей" — три плавающие точки с мягким свечением.
+// ARCHITECT: минималистичный открытый замок — символ доступности и бесплатного входа.
+// ARCHITECT: анимация: дужка замка приподнимается и опускается (открытие/закрытие).
 
 import { motion } from "framer-motion";
 
 export function FreeCardSvg() {
     return (
-        <svg viewBox="0 0 120 120" className="size-24 md:size-32" aria-hidden="true">
-            {/* Центральная точка с пульсацией */}
-            <motion.circle
-                cx="60" cy="60" r="8"
-                fill="#f0f0f5"
-                animate={{ scale: [1, 1.1, 1], opacity: [0.6, 0.9, 0.6] }}
-                transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
-                style={{ originX: "60px", originY: "60px" }}
+        <svg viewBox="0 0 120 120" className="size-20 md:size-24" aria-hidden="true">
+            {/* ARCHITECT: дужка замка — анимируется открытие/закрытие */}
+            <motion.path
+                d="M 40 55 L 40 40 C 40 28, 48 20, 60 20 C 72 20, 80 28, 80 40 L 80 55"
+                fill="none"
+                stroke="#f0f0f5"
+                strokeWidth="3"
+                strokeLinecap="round"
+                animate={{ 
+                    d: [
+                        "M 40 55 L 40 40 C 40 28, 48 20, 60 20 C 72 20, 80 28, 80 40 L 80 55",
+                        "M 40 55 L 40 35 C 40 23, 48 15, 60 15 C 72 15, 80 23, 80 35 L 80 45",
+                        "M 40 55 L 40 40 C 40 28, 48 20, 60 20 C 72 20, 80 28, 80 40 L 80 55",
+                    ]
+                }}
+                transition={{ duration: 4, repeat: Infinity, ease: "easeInOut" }}
             />
             
-            {/* Орбитальные точки */}
-            <motion.circle
-                cx="60" cy="20" r="3"
-                fill="#f0f0f5"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 15, repeat: Infinity, ease: "linear" }}
-                style={{ originX: "60px", originY: "60px" }}
-                className="opacity-60"
+            {/* ARCHITECT: корпус замка */}
+            <rect
+                x="35" y="55" width="50" height="40" rx="6"
+                fill="none"
+                stroke="#f0f0f5"
+                strokeWidth="3"
+                className="opacity-80"
             />
+            
+            {/* ARCHITECT: замочная скважина — пульсирует */}
             <motion.circle
-                cx="100" cy="60" r="3"
+                cx="60" cy="75" r="4"
                 fill="#f0f0f5"
-                animate={{ rotate: -360 }}
-                transition={{ duration: 18, repeat: Infinity, ease: "linear" }}
-                style={{ originX: "60px", originY: "60px" }}
-                className="opacity-40"
-            />
-            <motion.circle
-                cx="60" cy="100" r="3"
-                fill="#f0f0f5"
-                animate={{ rotate: 360 }}
-                transition={{ duration: 20, repeat: Infinity, ease: "linear" }}
-                style={{ originX: "60px", originY: "60px" }}
-                className="opacity-30"
+                animate={{ opacity: [0.4, 0.9, 0.4] }}
+                transition={{ duration: 2.5, repeat: Infinity, ease: "easeInOut" }}
             />
         </svg>
     );

@@ -1,8 +1,8 @@
 // src/components/landing/pricing/PricingToggle.tsx
-// ARCHITECT: переключатель месяц/год с анимированным бейджем "Save 20%".
-// ARCHITECT: бейдж появляется только при выборе "year" с плавной анимацией scale + fade.
+// ARCHITECT: компактный toggle месяц/год в стиле "pill", размещенный над карточками.
+// ARCHITECT: активный элемент подсвечивается белым, что выглядит дороже и профессиональнее.
 
-import { motion, AnimatePresence } from "framer-motion";
+import { motion } from "framer-motion";
 import type { BillingPeriod } from "./data";
 
 interface PricingToggleProps {
@@ -12,44 +12,39 @@ interface PricingToggleProps {
 
 export function PricingToggle({ billingPeriod, onPeriodChange }: PricingToggleProps) {
     return (
-        <div className="flex items-center gap-4">
-            <span className={`text-sm transition-colors duration-300 ${billingPeriod === "month" ? "text-[#f0f0f5]" : "text-[#f0f0f5]/40"}`}>
-                Месяц
-            </span>
-
-            {/* ARCHITECT: кастомный toggle с анимированным ползунком (spring physics) */}
+        <div className="flex items-center justify-center gap-1 rounded-full border border-white/10 bg-white/[0.02] p-1 backdrop-blur-sm">
             <button
                 type="button"
-                onClick={() => onPeriodChange(billingPeriod === "month" ? "year" : "month")}
-                className="relative h-6 w-11 rounded-full bg-white/10 transition-colors hover:bg-white/15"
-                aria-label="Переключить период оплаты"
-                aria-pressed={billingPeriod === "year"}
+                onClick={() => onPeriodChange("month")}
+                className={`rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-300 ${
+                    billingPeriod === "month" 
+                        ? "bg-[#f0f0f5] text-black" 
+                        : "text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
+                }`}
             >
-                <motion.div
-                    className="absolute top-0.5 left-0.5 h-5 w-5 rounded-full bg-[#f0f0f5]"
-                    animate={{ x: billingPeriod === "month" ? 0 : 20 }}
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                />
+                Месяц
             </button>
 
-            <span className={`text-sm transition-colors duration-300 ${billingPeriod === "year" ? "text-[#f0f0f5]" : "text-[#f0f0f5]/40"}`}>
+            <button
+                type="button"
+                onClick={() => onPeriodChange("year")}
+                className={`relative flex items-center gap-2 rounded-full px-4 py-1.5 text-sm font-medium transition-all duration-300 ${
+                    billingPeriod === "year" 
+                        ? "bg-[#f0f0f5] text-black" 
+                        : "text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
+                }`}
+            >
                 Год
-            </span>
-
-            {/* ARCHITECT: бейдж "Save 20%" появляется только при выборе года */}
-            <AnimatePresence>
                 {billingPeriod === "year" && (
                     <motion.span
-                        initial={{ opacity: 0, scale: 0.8 }}
-                        animate={{ opacity: 1, scale: 1 }}
-                        exit={{ opacity: 0, scale: 0.8 }}
-                        transition={{ duration: 0.3, ease: "easeOut" }}
-                        className="rounded-full border border-white/20 bg-white/5 px-2.5 py-0.5 text-xs font-medium text-[#f0f0f5]/80"
+                        initial={{ scale: 0 }}
+                        animate={{ scale: 1 }}
+                        className="rounded-full bg-black/10 px-1.5 py-0.5 text-[10px] font-bold"
                     >
-                        Save 20%
+                        −20%
                     </motion.span>
                 )}
-            </AnimatePresence>
+            </button>
         </div>
     );
 }

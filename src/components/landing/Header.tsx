@@ -11,7 +11,7 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 
-// ARCHITECT: единый источник навигации — якоря для плавного скролла (scroll-behavior задаётся глобально).
+// ARCHITECT: единый источник навигации — якоря для плавного скролла.
 const NAV_LINKS = [
     { label: "Возможности", href: "#features" },
     { label: "Как работает", href: "#how-it-works" },
@@ -21,14 +21,15 @@ const NAV_LINKS = [
 
 export function Header() {
     return (
-        // ARCHITECT: цвет текста изменён на #f0f0f5 для гармонии с Blobatar.
         // ARCHITECT: фиксированная панель h-16, полупрозрачный чёрный с blur, тонкая светлая граница
         <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-white/10 bg-black/80 backdrop-blur-md">
             <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
-                {/* Логотип */}
+                
+                {/* ARCHITECT: Логотип теперь ведет на корневой путь "/", что перезагружает/возвращает на главную. */}
                 <a
-                    href="#top"
-                    className="font-bold text-xl text-[#f0f0f5] hover:text-white"
+                    href="/"
+                    className="font-bold text-xl text-[#f0f0f5] hover:text-white transition-colors"
+                    aria-label="Перейти на главную страницу"
                 >
                     Blobus
                 </a>

@@ -1,6 +1,9 @@
-// src/components/landing/MiniBlobatar.tsx
 import { Blobatar } from "@blobatar/react";
 import { motion } from "framer-motion";
+
+// ARCHITECT: MiniBlobatar — легковесная миниатюра Blobatar для бегущей строки Features.
+// Не переиспользует BrandBlobatar и НЕ использует useGaze — в marquee слежение за
+// курсором не нужно; остаётся только встроенное «дыхание» + дополнительный пульс обёртки.
 
 export interface MiniBlobatarProps {
     name: string;
@@ -10,7 +13,8 @@ export interface MiniBlobatarProps {
 export function MiniBlobatar({ name, traits }: MiniBlobatarProps) {
     return (
         <motion.div
-            className="w-16 h-16 flex items-center justify-center"
+            className="flex w-16 h-16 items-center justify-center"
+            // ARCHITECT: анимация «дыхания» масштабом; трек-взгляд не подключается
             animate={{ scale: [1, 1.05, 1] }}
             transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
         >
@@ -18,7 +22,7 @@ export function MiniBlobatar({ name, traits }: MiniBlobatarProps) {
                 animate="always"
                 name={name.toLowerCase()}
                 traits={traits}
-            // ARCHITECT: не передаём useGaze — в миниатюре слежение за курсором не нужно
+            // Важно: не передаём ref/useGaze — без трекинга курсора в миниатюре
             />
         </motion.div>
     );

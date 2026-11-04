@@ -1,9 +1,8 @@
-import { Blobatar } from "@blobatar/react";
+// ARCHITECT: ChatBlobatar — увеличенный Blobatar для превью чата.
+// Статично смотрит строго влево на сообщения (gaze.x = 0).
 
-// ARCHITECT: ChatBlobatar — «тихий» Blobatar для превью чата в FeaturesSection.
-// Копия BrandBlobatar БЕЗ useGaze / lookAt("pointer") — миниатюра не следит за курсором,
-// а статично смотрит влево (на сообщения чата) через трейты gaze.x/gaze.y
-// (0 = взгляд влево, 0.5 = по центру, 1 = вправо).
+import { Blobatar } from '@blobatar/react';
+ // ARCHITECT: Обязательно для работы параметров gaze
 
 export interface ChatBlobatarProps {
     className?: string;
@@ -19,8 +18,8 @@ const CHAT_TRAITS: Record<string, number | number[]> = {
     "eye.n": 0.232,
     "eye.gap": 0.306,
     "eye.lean": 0.437,
-    // ARCHITECT: смотрит немного влево (на чат) и чуть вниз
-    "gaze.x": 0.2, // 0 = влево, 0.5 = центр, 1 = вправо
+    // ARCHITECT: 0 = строго влево (на чат), 0.5 = центр, 1 = вправо
+    "gaze.x": 0,   
     "gaze.y": 0.4,
     tone: [0.1, 0.28],
     hue: 0.808,
@@ -28,8 +27,13 @@ const CHAT_TRAITS: Record<string, number | number[]> = {
 
 export function ChatBlobatar({ className }: ChatBlobatarProps) {
     return (
-        <div className={`w-64 h-64 ${className ?? ""}`}>
-            <Blobatar animate="always" name="gabriel80" traits={CHAT_TRAITS} />
+        // ARCHITECT: w-80 h-80 = 320px. Достаточно крупно, чтобы было видно детали лица.
+        <div className={`w-80 h-80 ${className ?? ""}`}>
+            <Blobatar 
+                animate="always" 
+                name="gabriel80" 
+                traits={CHAT_TRAITS} 
+            />
         </div>
     );
 }

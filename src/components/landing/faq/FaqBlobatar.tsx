@@ -2,9 +2,11 @@
 // ARCHITECT: Специальный BloBatar для секции FAQ.
 // ARCHITECT: Использует имя "gabriel80" для идентичности с Hero/ChatPreview.
 // ARCHITECT: "eye.ratio": 0 делает глаза прищуренными, "gaze.x": 0 заставляет смотреть строго влево.
-// ARCHITECT: Использует arbitrary values (md:w-[32rem]) для достижения действительно крупного размера.
+// ARCHITECT: Размер и позиционирование задаёт родитель (FaqCard) — здесь только заполнение контейнера.
 
 import { Blobatar } from '@blobatar/react';
+
+import { cn } from "@/lib/utils";
 
 export interface FaqBlobatarProps {
     readonly className?: string;
@@ -28,11 +30,11 @@ const FAQ_TRAITS: Record<string, number | number[]> = {
 
 export function FaqBlobatar({ className }: FaqBlobatarProps) {
     return (
-        <div className={`relative w-64 h-64 translate-x-4 md:w-[34rem] md:h-[34rem] ${className ?? ""}`}>
-            <Blobatar 
-                animate="always" 
-                name="gabriel80" 
-                traits={FAQ_TRAITS} 
+        <div className={cn("relative h-full w-full", className)}>
+            <Blobatar
+                animate="always"
+                name="gabriel80"
+                traits={FAQ_TRAITS}
             />
         </div>
     );

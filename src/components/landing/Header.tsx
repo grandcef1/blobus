@@ -23,7 +23,7 @@ export function Header() {
     return (
         // ARCHITECT: фиксированная панель h-16, полупрозрачный чёрный с blur, тонкая светлая граница
         <header className="fixed top-0 left-0 right-0 z-50 h-16 border-b border-white/10 bg-black/80 backdrop-blur-md">
-            <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-6">
+            <div className="mx-auto flex h-full max-w-6xl items-center justify-between px-4 sm:px-6 lg:px-8">
                 
                 {/* ARCHITECT: Логотип теперь ведет на корневой путь "/", что перезагружает/возвращает на главную. */}
                 <a

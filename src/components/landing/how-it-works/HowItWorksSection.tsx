@@ -53,7 +53,7 @@ const itemVariants: Variants = {
 export function HowItWorksSection() {
     return (
         <section id="how-it-works" className="relative w-full bg-black py-24 md:py-32">
-            <div className="mx-auto max-w-6xl px-6">
+            <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
                 {/* ARCHITECT: отступ уменьшен для более плотной и премиальной композиции */}
                 <motion.header
                     initial={{ opacity: 0, y: 24 }}

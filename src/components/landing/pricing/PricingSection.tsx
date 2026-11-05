@@ -14,7 +14,7 @@ export function PricingSection() {
 
     return (
         <section id="pricing" className="relative w-full bg-black py-24 md:py-32">
-            <div className="mx-auto max-w-5xl px-6">
+            <div className="mx-auto max-w-5xl px-4 sm:px-6 lg:px-8">
                 <motion.header
                     initial={{ opacity: 0, y: 24 }}
                     whileInView={{ opacity: 1, y: 0 }}

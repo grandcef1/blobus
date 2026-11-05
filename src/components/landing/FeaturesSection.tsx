@@ -480,30 +480,48 @@ const CHAT_MESSAGES: ChatMessage[] = [
     {
         author: "bot",
         text: "Tell me about your weekend.",
-        widthClass: "max-w-[220px] text-lg",
+        widthClass: "",
     },
     {
         author: "user",
         text: "I go to cinema with my friends.",
-        widthClass: "max-w-[90%]",
+        widthClass: "",
     },
     {
         author: "bot",
         // ARCHITECT: обратные кавычки (backticks) — внутри строки есть двойные кавычки
         // и апостроф, обычные двойные кавычки сломают парсинг.
         text: `Nice! Correct form: "I went to the cinema." Let's practice the Past Simple.`,
-        widthClass: "max-w-[90%]",
+        widthClass: "",
     },
 ];
 
 function ChatPreview() {
     return (
-        // ARCHITECT: overflow-hidden ЗДЕСЬ НЕ нужен — он обрезал бы scale-215 блобатар
-        // по границе контентной области. Клиппинг живёт на уровне всей карточки
-        // (проп clip у FeatureCard), поэтому контейнер чата остаётся «прозрачным».
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-12">
-            {/* Левая часть: сообщения */}
-            <div className="flex flex-1 flex-col gap-4">
+        // ARCHITECT: адаптивное окно чата. Blobatar интегрирован как плавающий аватар
+        // в шапке (без scale/translate-хаков, которые выталкивали его за экран на мобильных).
+        <div className="mx-auto flex w-full min-w-0 max-w-2xl flex-col overflow-hidden rounded-2xl border border-white/10 bg-black/40">
+            {/* Шапка чата с аватаром ИИ-репетитора */}
+            <div className="flex items-center gap-3 border-b border-white/10 px-4 py-3">
+                <motion.div
+                    className="relative size-10 shrink-0 rounded-full border border-white/10 bg-white/[0.06] p-0.5 md:size-12"
+                    animate={{ y: [0, -3, 0] }}
+                    transition={{ duration: 3, repeat: Infinity, ease: "easeInOut" }}
+                >
+                    <ChatBlobatar />
+                    <span
+                        className="absolute right-0 bottom-0 size-2.5 rounded-full border-2 border-black bg-emerald-400"
+                        aria-hidden="true"
+                    />
+                </motion.div>
+                <div className="flex min-w-0 flex-col">
+                    <span className="truncate text-base font-medium text-[#f0f0f5]">Blobus AI</span>
+                    <span className="truncate text-xs text-[#f0f0f5]/50">в сети · репетитор английского</span>
+                </div>
+            </div>
+
+            {/* Лента сообщений */}
+            <div className="flex min-w-0 flex-col gap-4 p-4 md:p-6">
                 {CHAT_MESSAGES.map((message, index) => (
                     <motion.div
                         key={index}
@@ -511,30 +529,25 @@ function ChatPreview() {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true, amount: 0.4 }}
                         transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 + index * 0.5 }}
-                        className={`flex items-end gap-2 ${message.author === "user" ? "self-end flex-row-reverse" : "self-start"
+                        className={`flex min-w-0 max-w-[85%] flex-col gap-1.5 md:max-w-[75%] ${message.author === "user" ? "self-end items-end" : "self-start items-start"
                             }`}
                     >
                         <div
                             className={
                                 message.author === "user"
-                                    // ARCHITECT: базовый кегль пузырей возвращён к text-sm (14px) —
-                                    // прежний «идеальный» вид без утяжеления текста.
-                                    ? `rounded-2xl rounded-br-md bg-[#f0f0f5] px-4 py-2.5 text-sm text-black ${message.widthClass}`
-                                    : `rounded-2xl rounded-bl-md bg-white/10 px-4 py-2.5 text-sm text-[#f0f0f5] break-normal ${message.widthClass}`
+                                    ? "rounded-2xl rounded-br-md bg-[#f0f0f5] px-4 py-2.5 text-base text-black break-words [overflow-wrap:anywhere] md:text-sm"
+                                    : "rounded-2xl rounded-bl-md bg-white/10 px-4 py-2.5 text-base text-[#f0f0f5] break-words [overflow-wrap:anywhere] md:text-sm"
                             }
                         >
                             {message.text}
                         </div>
 
-                        {/* ARCHITECT: кнопки действий бота (озвучка + перевод) — внутри того же
-                motion.div, что и пузырь: появляются строго синхронно с сообщением.
-                flex-col + items-end прижимает иконки к правому краю пузыря. */}
+                        {/* ARCHITECT: кнопки действий бота — под пузырём, тач-зона 44×44px */}
                         {message.author === "bot" && (
-                            <div className="flex flex-col items-end gap-1">
+                            <div className="flex items-center gap-1">
                                 <motion.button
                                     type="button"
-                                    className="rounded-full bg-white/5 p-2 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
-                                    whileHover={{ scale: 1.1 }}
+                                    className="flex size-11 items-center justify-center rounded-full bg-white/5 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
                                     whileTap={{ scale: 0.95 }}
                                     aria-label="Прослушать"
                                 >
@@ -542,8 +555,7 @@ function ChatPreview() {
                                 </motion.button>
                                 <motion.button
                                     type="button"
-                                    className="rounded-full bg-white/5 p-2 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
-                                    whileHover={{ scale: 1.1 }}
+                                    className="flex size-11 items-center justify-center rounded-full bg-white/5 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
                                     whileTap={{ scale: 0.95 }}
                                     aria-label="Перевести"
                                 >
@@ -573,25 +585,10 @@ function ChatPreview() {
                     ))}
                 </motion.div>
 
-                <p className="mt-4 text-xs text-[#f0f0f5]/40">
+                <p className="mt-2 text-xs text-[#f0f0f5]/40">
                     Воспроизведение голосом и перевод
                 </p>
             </div>
-
-            {/* Правая часть: ChatBlobatar — без gaze tracking, статично смотрит влево на чат */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.5, duration: 0.8 }}
-                // ARCHITECT: pl-4 смещает блобатар правее; scale-215 сохранён из твоей правки;
-                // вылезание за пределы карточки гасит overflow-hidden на уровне карточки.
-                className="flex shrink-0 items-center justify-center pl-4"
-            >
-                <div className="scale-220 translate-x-18 translate-y-3">
-                    <ChatBlobatar />
-                </div>
-            </motion.div>
         </div>
     );
 }

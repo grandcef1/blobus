@@ -39,7 +39,7 @@ export function Landing() {
     return (
         <>
             <Header />
-            <main className="min-h-dvh bg-black">
+            <main className="min-h-dvh w-full max-w-full overflow-x-hidden bg-black">
                 <HeroSection />
                 <FeaturesSection />
                 <HowItWorksSection />

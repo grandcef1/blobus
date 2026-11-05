@@ -51,7 +51,7 @@ export function TypewriterHeading() {
         // ARCHITECT: 
         // 1. md:text-4xl (вместо 5xl) — критически важно, чтобы текст влезал в колонку на ноутбуках.
         // 2. whitespace-nowrap на втором div — железобетонный запрет на разрыв строки внутри фразы.
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-[#f0f0f5] leading-tight tracking-tight">
+        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance text-[#f0f0f5] leading-tight tracking-tight">
             
             <div className="min-h-[1.2em]">
                 {text1}

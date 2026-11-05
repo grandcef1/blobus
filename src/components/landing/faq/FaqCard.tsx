@@ -23,13 +23,15 @@ export function FaqCard({ item, index, onClick }: FaqCardProps) {
             transition={{ duration: 0.5, delay: index * 0.08, ease: "easeOut" }}
             className={item.featured ? "md:col-span-2" : ""}
         >
-            <motion.div
+            <motion.button
+                type="button"
                 onClick={onClick}
                 whileHover={{ y: -4, scale: 1.01 }}
                 transition={{ type: "spring", stiffness: 400, damping: 30 }}
                 // ARCHITECT: Фиксированная высота гарантирует, что все карточки в ряду будут абсолютно одинаковыми.
                 // ARCHITECT: overflow-hidden критически важен для обрезки Блобатара по правому краю.
-                className="group relative cursor-pointer overflow-hidden rounded-2xl bg-white/[0.03] p-6 md:p-8 backdrop-blur-sm transition-all duration-300 hover:bg-white/[0.06] h-[220px] md:h-[200px]"
+                // ARCHITECT: <button> — карточка открывает модалку, поэтому должна быть доступна с клавиатуры.
+                className="group relative block w-full cursor-pointer overflow-hidden rounded-2xl bg-white/[0.03] p-5 text-left backdrop-blur-sm transition-all duration-300 hover:bg-white/[0.06] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/40 sm:p-6 md:p-8 h-[220px] md:h-[200px]"
             >
                 {/* ARCHITECT: Фоновое свечение при hover */}
                 <div 
@@ -38,9 +40,9 @@ export function FaqCard({ item, index, onClick }: FaqCardProps) {
                     aria-hidden="true"
                 />
 
-                <div className="relative z-10 flex flex-col md:flex-row md:items-center gap-6 h-full">
-                    {/* ARCHITECT: Текстовый контент (всегда слева) */}
-                    <div className="flex-1 flex flex-col justify-center">
+                <div className="relative z-10 flex h-full flex-row items-center gap-4 md:gap-6">
+                    {/* ARCHITECT: Текстовый контент (всегда слева); min-w-0 разрешает перенос/обрезку */}
+                    <div className="flex min-w-0 flex-1 flex-col justify-center">
                         <div className="flex items-center gap-2 mb-2">
                             {item.featured ? (
                                 <Globe className="size-4 text-[#f0f0f5]/60" aria-hidden="true" />
@@ -70,15 +72,16 @@ export function FaqCard({ item, index, onClick }: FaqCardProps) {
                         </div>
                     </div>
 
-                    {/* ARCHITECT: Блобатар для featured-карточки. 
-                        Позиционирован абсолютно справа, крупный, обрезается границей карточки. */}
+                    {/* ARCHITECT: Блобатар для featured-карточки — виден на ВСЕХ устройствах.
+                        Мобильные: компактный аватар в потоке справа от текста (shrink-0, не давит текст).
+                        md+: крупный, абсолютно справа, обрезается границей карточки (overflow-hidden). */}
                     {item.featured && (
-                        <div className="hidden md:block absolute right-0 top-1/2 -translate-y-1/2 translate-x-1/4 pointer-events-none">
+                        <div className="pointer-events-none relative size-20 shrink-0 sm:size-24 md:absolute md:top-1/2 md:right-0 md:size-[34rem] md:translate-x-1/4 md:-translate-y-1/2">
                             <FaqBlobatar />
                         </div>
                     )}
                 </div>
-            </motion.div>
+            </motion.button>
         </motion.div>
     );
 }

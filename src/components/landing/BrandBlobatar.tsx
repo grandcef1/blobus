@@ -2,6 +2,8 @@ import { useEffect } from "react";
 import { Blobatar } from "@blobatar/react";
 import { useGaze } from "@blobatar/react/gaze";
 
+import { cn } from "@/lib/utils";
+
 export interface BrandBlobatarProps {
     className?: string;
 }
@@ -31,7 +33,14 @@ export function BrandBlobatar({ className }: BrandBlobatarProps) {
     }, [lookAt]);
 
     return (
-        <div className={`w-200 h-200 ${className ?? ""}`}>
+        // ARCHITECT: пропорциональное масштабирование вместо фиксированных 800px (w-200),
+        // которые и были главным источником горизонтального скролла на мобильных.
+        <div
+            className={cn(
+                "aspect-square w-64 max-w-full shrink-0 sm:w-72 md:w-80 lg:w-96 xl:w-[28rem]",
+                className,
+            )}
+        >
             <Blobatar
                 ref={ref}
                 animate="always"

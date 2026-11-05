@@ -50,7 +50,7 @@ interface FeatureCardProps {
     className?: string;
     delay: number;
     // ARCHITECT: clip=true вешает overflow-hidden на ВСЮ карточку (внутренний rounded-слой),
-    // чтобы масштабированный контент (scale-215 у ChatBlobatar) обрезался границами
+    // чтобы масштабированный контент (scale-220 у ChatBlobatar) обрезался границами
     // карточки, а не границами контентной области. Только для карточки чата.
     clip?: boolean;
 }
@@ -412,8 +412,6 @@ function ProgressSteps() {
 
 // ─── Карточка 3: режимы обучения ───────────────────────────────────────────────
 
-// ─── Карточка 3: режимы обучения ───────────────────────────────────────────────
-
 const MODES = [
     { id: "interview", label: "Interview Prep", hint: "Собеседование", badge: "Popular" },
     { id: "general", label: "General English", hint: "Общее изучение", badge: null },
@@ -466,10 +464,8 @@ function ModeShowcase() {
 // ─── Карточка 4: превью живого чата ────────────────────────────────────────────
 
 // ARCHITECT: widthClass — персональный ограничитель ширины/кегль каждого пузыря.
-// Вынесен в данные, чтобы НЕ держать два конфликтующих max-w на одном элементе:
-// базовые классы пузыря без max-w, ширина приходит только из widthClass.
-// Первое сообщение: text-lg (увеличенный кегль по ТЗ) + max-w-[220px] — при 18px
-// max-content фразы ≈ 232px > 220px ⇒ естественный перенос на две строки.
+// Первое сообщение: text-lg + max-w-[220px] — при 18px max-content фразы ≈ 232px > 220px
+// ⇒ естественный перенос на две строки.
 interface ChatMessage {
     author: "bot" | "user";
     text: string;
@@ -498,12 +494,11 @@ const CHAT_MESSAGES: ChatMessage[] = [
 
 function ChatPreview() {
     return (
-        // ARCHITECT: overflow-hidden ЗДЕСЬ НЕ нужен — он обрезал бы scale-215 блобатар
-        // по границе контентной области. Клиппинг живёт на уровне всей карточки
-        // (проп clip у FeatureCard), поэтому контейнер чата остаётся «прозрачным».
-        <div className="mx-auto flex w-full max-w-6xl items-center justify-center gap-12">
+        // ARCHITECT: мобильные — колонка (сообщения, затем аватар по центру);
+        // md+ — строка: сообщения слева, огромный ChatBlobatar справа, обрезается карточкой (clip).
+        <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col items-center justify-center gap-6 md:flex-row md:gap-12">
             {/* Левая часть: сообщения */}
-            <div className="flex flex-1 flex-col gap-4">
+            <div className="flex min-w-0 w-full flex-1 flex-col gap-4">
                 {CHAT_MESSAGES.map((message, index) => (
                     <motion.div
                         key={index}
@@ -511,29 +506,24 @@ function ChatPreview() {
                         whileInView={{ opacity: 1, x: 0 }}
                         viewport={{ once: true, amount: 0.4 }}
                         transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 + index * 0.5 }}
-                        className={`flex items-end gap-2 ${message.author === "user" ? "self-end flex-row-reverse" : "self-start"
-                            }`}
+                        className={`flex min-w-0 max-w-full items-end gap-2 ${message.author === "user" ? "self-end flex-row-reverse" : "self-start"}`}
                     >
                         <div
-                            className={
+                            className={`min-w-0 break-words rounded-2xl px-4 py-2.5 text-sm [overflow-wrap:anywhere] ${
                                 message.author === "user"
-                                    // ARCHITECT: базовый кегль пузырей возвращён к text-sm (14px) —
-                                    // прежний «идеальный» вид без утяжеления текста.
-                                    ? `rounded-2xl rounded-br-md bg-[#f0f0f5] px-4 py-2.5 text-sm text-black ${message.widthClass}`
-                                    : `rounded-2xl rounded-bl-md bg-white/10 px-4 py-2.5 text-sm text-[#f0f0f5] break-normal ${message.widthClass}`
-                            }
+                                    ? "rounded-br-md bg-[#f0f0f5] text-black"
+                                    : "rounded-bl-md bg-white/10 text-[#f0f0f5]"
+                            } ${message.widthClass}`}
                         >
                             {message.text}
                         </div>
 
-                        {/* ARCHITECT: кнопки действий бота (озвучка + перевод) — внутри того же
-                motion.div, что и пузырь: появляются строго синхронно с сообщением.
-                flex-col + items-end прижимает иконки к правому краю пузыря. */}
+                        {/* ARCHITECT: кнопки действий бота — тач-зона 44×44px, справа от пузыря */}
                         {message.author === "bot" && (
-                            <div className="flex flex-col items-end gap-1">
+                            <div className="flex shrink-0 flex-col items-end gap-1">
                                 <motion.button
                                     type="button"
-                                    className="rounded-full bg-white/5 p-2 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
+                                    className="flex size-11 items-center justify-center rounded-full bg-white/5 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.95 }}
                                     aria-label="Прослушать"
@@ -542,7 +532,7 @@ function ChatPreview() {
                                 </motion.button>
                                 <motion.button
                                     type="button"
-                                    className="rounded-full bg-white/5 p-2 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
+                                    className="flex size-11 items-center justify-center rounded-full bg-white/5 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
                                     whileHover={{ scale: 1.1 }}
                                     whileTap={{ scale: 0.95 }}
                                     aria-label="Перевести"
@@ -578,17 +568,15 @@ function ChatPreview() {
                 </p>
             </div>
 
-            {/* Правая часть: ChatBlobatar — без gaze tracking, статично смотрит влево на чат */}
+            {/* Правая часть: ChatBlobatar — на мобильных 160px по центру, на md+ 320px с масштабом (как в оригинале) */}
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
                 viewport={{ once: true }}
                 transition={{ delay: 0.5, duration: 0.8 }}
-                // ARCHITECT: pl-4 смещает блобатар правее; scale-215 сохранён из твоей правки;
-                // вылезание за пределы карточки гасит overflow-hidden на уровне карточки.
-                className="flex shrink-0 items-center justify-center pl-4"
+                className="flex w-full shrink-0 items-center justify-center md:w-auto md:pl-4"
             >
-                <div className="scale-220 translate-x-18 translate-y-3">
+                <div className="h-40 w-40 md:h-80 md:w-80 md:scale-220 md:translate-x-18 md:translate-y-3">
                     <ChatBlobatar />
                 </div>
             </motion.div>
@@ -654,7 +642,7 @@ export function FeaturesSection() {
                             delay={feature.delay}
                             className={feature.span}
                             // ARCHITECT: клиппинг по границам карточки только для чата —
-                            // scale-215 блобатар обрезается краями карточки, а не контента.
+                            // scale-220 блобатар обрезается краями карточки, а не контента.
                             clip={feature.id === "chat"}
                             description={feature.id === "assessment" ? undefined : feature.description}
                         >

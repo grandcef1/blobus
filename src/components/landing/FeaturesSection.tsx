@@ -28,7 +28,7 @@ const FEATURES = [
     {
         id: "modes",
         title: "Режимы обучения",
-        description: "Подготовка к собеседованию или общее изучение",
+        description: "От грамматики до собеседования — переключайтесь в любой момент",
         span: "md:col-span-1", // Ряд 2, правая часть (идеально заполняет ряд)
         delay: 0.3,
     },
@@ -349,61 +349,118 @@ function BlobatarMarquee() {
     );
 }
 
-// ─── Карточка 2: прогресс-бар адаптивного теста ────────────────────────────────
+// ARCHITECT: онбординг 10 минут, из них тест 7 мин — доминирующая длительность
+// сигнализирует основательную адаптивную диагностику. Сумма = 10, сходится с заголовком.
+const STEPS = [
+    { label: "Знакомство", duration: "1 мин" },
+    { label: "Тест", duration: "7 мин" },
+    { label: "Цели", duration: "1 мин" },
+    { label: "Расписание", duration: "1 мин" },
+    { label: "Урок", duration: "сразу" },
+] as const;
 
-const STEPS = ["Знакомство", "Тест", "Цели", "Расписание", "Урок"] as const;
+// ARCHITECT: единая точка настройки таймингов таймлайна (сек).
+const NODE_DELAY_BASE = 0.2;
+const STEP_INTERVAL = 0.5;
+
+interface StepNodeProps {
+    index: number;
+}
+
+// ARCHITECT: анимируется ТОЛЬКО цвет, без transform — иначе Framer Motion
+// перезаписал бы позиционирование узла во flex-колонке.
+function StepNode({ index }: StepNodeProps) {
+    const delay = NODE_DELAY_BASE + index * STEP_INTERVAL;
+
+    return (
+        <motion.div
+            className="flex h-5 w-5 shrink-0 items-center justify-center rounded-full border-2"
+            initial={{ backgroundColor: "rgba(255,255,255,0.08)", borderColor: "rgba(255,255,255,0.2)" }}
+            whileInView={{ backgroundColor: "#f0f0f5", borderColor: "#f0f0f5" }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.3, delay }}
+        >
+            <motion.span
+                initial={{ scale: 0 }}
+                whileInView={{ scale: 1 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{ delay: delay + 0.2, duration: 0.25, ease: "easeOut" }}
+                className="text-[9px] font-bold text-black"
+                aria-hidden="true"
+            >
+                ✓
+            </motion.span>
+        </motion.div>
+    );
+}
+
+interface StepSegmentProps {
+    index: number;
+}
+
+// ARCHITECT: сегмент-разделитель между узлами. flex-1 + min-h-4 — сегменты
+// растягиваются на всю высоту карточки: мёртвого пространства внизу нет.
+function StepSegment({ index }: StepSegmentProps) {
+    return (
+        <div
+            className="relative my-1.5 min-h-4 w-0.5 flex-1 overflow-hidden rounded-full bg-white/10"
+            aria-hidden="true"
+        >
+            <motion.div
+                className="absolute inset-0 origin-top bg-gradient-to-b from-[#f0f0f5]/40 to-[#f0f0f5]"
+                initial={{ scaleY: 0 }}
+                whileInView={{ scaleY: 1 }}
+                viewport={{ once: true, amount: 0.3 }}
+                transition={{
+                    duration: 0.35,
+                    delay: NODE_DELAY_BASE + index * STEP_INTERVAL + 0.25,
+                    ease: "easeInOut",
+                }}
+            />
+        </div>
+    );
+}
+
+interface StepRowProps {
+    label: string;
+    duration: string;
+}
+
+// ARCHITECT: строка шага = подпись слева + пунктирный лидер + время справа
+// (редакционный паттерн «оглавления») — правая зона карточки заполнена смыслом.
+function StepRow({ label, duration }: StepRowProps) {
+    return (
+        <div className="flex h-5 flex-1 items-center self-start">
+            <span className="text-sm leading-5 text-[#f0f0f5]/70">{label}</span>
+            <span
+                className="mx-3 flex-1 border-b border-dotted border-white/10"
+                aria-hidden="true"
+            />
+            <span className="text-xs tabular-nums whitespace-nowrap text-[#f0f0f5]/40">
+                {duration}
+            </span>
+        </div>
+    );
+}
 
 function ProgressSteps() {
     return (
-        <div className="py-6">
-            <ol className="relative flex items-center justify-between px-4">
-                {/* Фоновая линия: h-1.5, rounded-full, отступы left-4/right-4 */}
-                <div
-                    className="absolute top-1/2 right-4 left-4 h-1.5 -translate-y-1/2 rounded-full bg-white/10"
-                    aria-hidden="true"
-                />
-                {/* Активная линия: заполнение scaleX 0→1 слева направо */}
-                <motion.div
-                    className="absolute top-1/2 right-4 left-4 h-1.5 origin-left -translate-y-1/2 rounded-full bg-gradient-to-r from-[#f0f0f5]/50 to-[#f0f0f5]"
-                    aria-hidden="true"
-                    initial={{ scaleX: 0 }}
-                    whileInView={{ scaleX: 1 }}
-                    viewport={{ once: true, amount: 0.3 }}
-                    transition={{ duration: 2, ease: "easeInOut" }}
-                />
-                {STEPS.map((step, index) => (
-                    <li key={step} className="relative z-10 flex flex-col items-center gap-2">
-                        {/* ARCHITECT: кружок — анимируется ТОЛЬКО цвет (background/borderColor), без
-                transform: Framer Motion перезаписал бы inline-transform'ом Tailwind
-                -translate-y-1/2 у линии. amount: 0.3 — галочки гарантированно загораются. */}
-                        <motion.div
-                            className="flex h-4 w-4 items-center justify-center rounded-full border-2 bg-white/10"
-                            style={{ borderColor: "rgba(255,255,255,0.2)" }}
-                            initial={{ backgroundColor: "rgba(255,255,255,0.1)", borderColor: "rgba(255,255,255,0.2)" }}
-                            whileInView={{ backgroundColor: "#f0f0f5", borderColor: "#f0f0f5" }}
-                            viewport={{ once: true, amount: 0.3 }}
-                            transition={{ duration: 0.3, delay: index * 0.15, ease: "easeOut" }}
-                        >
-                            {/* Галочка для пройденных шагов */}
-                            {index < 5 && (
-                                <motion.span
-                                    initial={{ scale: 0 }}
-                                    whileInView={{ scale: 1 }}
-                                    viewport={{ once: true, amount: 0.3 }}
-                                    transition={{ delay: index * 0.25 + 0.2 }}
-                                    className="text-[8px] font-bold text-black"
-                                >
-                                    ✓
-                                </motion.span>
-                            )}
-                        </motion.div>
-                        <span className="whitespace-nowrap text-[10px] text-[#f0f0f5]/60">
-                            {step}
-                        </span>
-                    </li>
-                ))}
+        <div className="flex h-full flex-col">
+            <ol aria-label="Шаги онбординга" className="flex flex-1 flex-col">
+                {STEPS.map((step, index) => {
+                    const isLast = index === STEPS.length - 1;
+                    return (
+                        <li key={step.label} className={`flex gap-3.5 ${isLast ? "" : "flex-1"}`}>
+                            <div className="flex flex-col items-center">
+                                <StepNode index={index} />
+                                {!isLast && <StepSegment index={index} />}
+                            </div>
+                            <StepRow label={step.label} duration={step.duration} />
+                        </li>
+                    );
+                })}
             </ol>
-            <p className="mt-6 text-center text-sm text-[#f0f0f5]/60">
+            <p className="mt-6 text-sm text-[#f0f0f5]/60">
                 Адаптивный тест определит ваш уровень A1-C1
             </p>
         </div>
@@ -412,52 +469,77 @@ function ProgressSteps() {
 
 // ─── Карточка 3: режимы обучения ───────────────────────────────────────────────
 
+// ARCHITECT: четыре режима — продуктовые тексты лендинга обещают четыре сценария.
+// Порядок: popular-режим первым (визуальная иерархия), далее по частоте использования.
 const MODES = [
     { id: "interview", label: "Interview Prep", hint: "Собеседование", badge: "Popular" },
+    { id: "speaking", label: "Speaking Practice", hint: "Разговорная практика", badge: null },
+    { id: "grammar", label: "Grammar Focus", hint: "Грамматика", badge: null },
     { id: "general", label: "General English", hint: "Общее изучение", badge: null },
 ] as const;
 
+type Mode = (typeof MODES)[number];
+
+interface ModeTileProps {
+    mode: Mode;
+    index: number;
+}
+
+function ModeTile({ mode, index }: ModeTileProps) {
+    const isPopular = mode.badge !== null;
+
+    return (
+        <motion.li
+            initial={{ opacity: 0, y: 12 }}
+            whileInView={{ opacity: 1, y: 0 }}
+            viewport={{ once: true, amount: 0.3 }}
+            transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 + index * 0.08 }}
+            // ARCHITECT: popular-тайл чуть светлее — иерархия без цвета.
+            // Hover меняет ТОЛЬКО border/background: transform не трогаем,
+            // чтобы не конфликтовать с hover-scale родительской FeatureCard.
+            className={`flex flex-col justify-between gap-3 rounded-2xl border px-4 py-3.5 backdrop-blur-sm transition-colors duration-300 ${
+                isPopular
+                    ? "border-white/20 bg-white/[0.06] hover:border-white/30"
+                    : "border-white/10 bg-white/[0.03] hover:border-white/20 hover:bg-white/[0.05]"
+            }`}
+        >
+            <div className="flex items-start justify-between gap-2">
+                <span className="text-sm font-semibold leading-snug text-[#f0f0f5]">
+                    {mode.label}
+                </span>
+                {mode.badge && (
+                    <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1">
+                        <span
+                            className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#f0f0f5]"
+                            aria-hidden="true"
+                        />
+                        <span className="whitespace-nowrap text-[9px] font-medium text-[#f0f0f5]">
+                            {mode.badge}
+                        </span>
+                    </span>
+                )}
+            </div>
+            <div className="flex items-end justify-between gap-2">
+                <span className="text-xs text-[#f0f0f5]/50">{mode.hint}</span>
+                {/* ARCHITECT: бледный индекс — редакционная деталь, связывает
+                четыре тайла в упорядоченный набор без нового цвета. */}
+                <span className="text-[10px] tabular-nums text-[#f0f0f5]/25" aria-hidden="true">
+                    {String(index + 1).padStart(2, "0")}
+                </span>
+            </div>
+        </motion.li>
+    );
+}
+
 function ModeShowcase() {
     return (
-        // ARCHITECT: grid-cols-2 ⇒ две карточки строго одинаковой высоты;
-        // flex-col justify-between прижимает hint к низу карточки.
-        <div className="grid h-full grid-cols-2 gap-3">
-            {MODES.map((mode) => (
-                <div
-                    key={mode.id}
-                    // ARCHITECT: рамка/фон мини-карточки возвращены к исходной формуле
-                    // (border-white/10 + bg-white/[0.03] + backdrop-blur-sm + rounded-2xl),
-                    // но высота уменьшена: вертикальный паддинг py-3 вместо p-4 и без
-                    // прежних mt-1/mb-2 у label — карточка компактная, без «воздуха» по краям.
-                    className="relative flex flex-col justify-between gap-2 rounded-2xl border border-white/10 bg-white/[0.03] px-4 py-3 backdrop-blur-sm"
-                >
-                    {/* ARCHITECT: label и бейдж в одном flex-ряду (бейдж в потоке, не absolute) —
-                позиция сохранена из одобренной версии: сразу справа от надписи. */}
-                    <div className="flex items-center gap-2">
-                        <span className="text-sm font-semibold text-[#f0f0f5]">
-                            {mode.label}
-                        </span>
-                        {mode.badge && (
-                            <motion.span
-                                className="flex items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1 backdrop-blur-sm"
-                                initial={{ opacity: 0, x: -5 }}
-                                whileInView={{ opacity: 1, x: 0 }}
-                                viewport={{ once: true }}
-                                transition={{ delay: 0.5, duration: 0.4 }}
-                            >
-                                <span className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#f0f0f5]" />
-                                <span className="whitespace-nowrap text-[9px] font-medium text-[#f0f0f5]">
-                                    {mode.badge}
-                                </span>
-                            </motion.span>
-                        )}
-                    </div>
-                    {/* ARCHITECT: подсказка снизу восстановлена по ТЗ — формулировки
-                «Собеседование» и «Общее изучение» взяты из данных MODES. */}
-                    <div className="text-xs text-[#f0f0f5]/50">{mode.hint}</div>
-                </div>
+        // ARCHITECT: 2×2 на sm+ — четыре тайла помещаются в полукарточку без тесноты;
+        // ниже sm — колонка. ul/li — семантика списка для скринридеров.
+        <ul aria-label="Режимы обучения" className="grid h-full grid-cols-1 gap-3 sm:grid-cols-2">
+            {MODES.map((mode, index) => (
+                <ModeTile key={mode.id} mode={mode} index={index} />
             ))}
-        </div>
+        </ul>
     );
 }
 

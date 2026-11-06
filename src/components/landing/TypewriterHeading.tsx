@@ -12,8 +12,8 @@ const Cursor = () => (
 );
 
 export function TypewriterHeading() {
-    const line1 = "Учи английский";
-    const line2 = "с ИИ-репетитором";
+    const line1 = "Учи английский с";
+    const line2 = "ИИ-репетитором";
 
     const [text1, setText1] = useState("");
     const [text2, setText2] = useState("");

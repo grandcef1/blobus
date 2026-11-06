@@ -1,7 +1,7 @@
 // src/components/landing/HeroSection.tsx
 import { motion } from "framer-motion";
 import type { TargetAndTransition, Variants } from "framer-motion";
-import { Check, Play, Zap } from "lucide-react";
+import { Check, Play, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
@@ -48,21 +48,36 @@ const BENEFITS: readonly BenefitItem[] = [
 
 export function HeroSection() {
     return (
-        // ARCHITECT: flex-col-reverse — на мобильных Blobatar сверху, текст снизу;
-        // с md: — текст слева, Blobatar справа. overflow-hidden страхует от вылета декора.
-        <section className="relative w-full max-w-full overflow-hidden bg-black px-4 pt-24 pb-16 sm:px-6 md:pt-32 md:pb-24 lg:px-8">
+        // ARCHITECT: центрирование контента в видимой области на верхней позиции
+        // скролла. min-h = вьюпорт минус высота хедера (72px — ЕДИНСТВЕННАЯ
+        // константа для подстройки, если хедер другой высоты).
+        // Асимметрия pt >> pb смещает оптический центр вниз: контент не уползает
+        // к хедеру и не оставляет пустоту под собой. pt-28/32 — воздух от хедера.
+        <section className="relative flex min-h-[calc(100dvh-72px)] w-full items-center bg-black pt-32 pb-20 md:pt-40 md:pb-29">
             <motion.div
                 variants={containerVariants}
                 initial="hidden"
                 animate="visible"
-                className="mx-auto flex w-full max-w-6xl flex-col-reverse items-center justify-between gap-8 md:flex-row md:gap-12"
+                className="grid grid-cols-1 items-center gap-12 mx-auto max-w-6xl px-6 md:grid-cols-[1.05fr_0.95fr] lg:grid-cols-[1.15fr_0.85fr]"
             >
-                <div className="flex w-full min-w-0 flex-col items-center justify-center gap-6 text-center md:w-1/2 md:items-start md:gap-8 md:text-left">
+                {/* ARCHITECT: прогрессивный левый паддинг на md/lg отвязывает текстовый
+                    блок от левой кромки контейнера Features — hero дышит
+                    самостоятельнее, не выглядит прижатым влево. */}
+                <div className="flex flex-col justify-center gap-8 md:pl-8 lg:pl-14">
+                    {/* ARCHITECT: компактная пилюля-бейдж: иконка Sparkles спереди,
+                        текст следом. Кегль 11px + трекинг — редакционная строка,
+                        а не плашка. Hover: рамка светлеет, иконка слегка поворачивается. */}
                     <motion.div variants={badgeVariants}>
-                        <span className="inline-flex items-center gap-1.5 rounded-full bg-white/10 text-[#f0f0f5] px-3 py-1 text-sm">
-                            <Zap className="size-3.5 fill-[#f0f0f5]/20 text-[#f0f0f5]" aria-hidden="true" />
+                        <a
+                            href="#features"
+                            className="group inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] tracking-[0.14em] text-[#f0f0f5]/70 uppercase transition-colors duration-300 hover:border-white/25 hover:bg-white/[0.07] hover:text-[#f0f0f5]"
+                        >
+                            <Sparkles
+                                className="size-3.5 text-[#f0f0f5]/80 transition-transform duration-300 group-hover:rotate-12"
+                                aria-hidden="true"
+                            />
                             Новый способ учить английский
-                        </span>
+                        </a>
                     </motion.div>
 
                     <motion.div variants={titleVariants}>
@@ -71,26 +86,23 @@ export function HeroSection() {
 
                     <motion.p
                         variants={subtitleVariants}
-                        className="max-w-xl text-base text-pretty text-[#f0f0f5]/60 sm:text-lg md:text-xl"
+                        className="text-lg md:text-xl text-[#f0f0f5]/60 max-w-xl"
                     >
                         Персональные уроки, разговорная практика и подготовка к
                         собеседованиям — всё в одном месте
                     </motion.p>
 
-                    <motion.div
-                        variants={actionsVariants}
-                        className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-4"
-                    >
+                    <motion.div variants={actionsVariants} className="flex flex-wrap gap-4">
                         <Button
                             size="lg"
-                            className="h-12 w-full rounded-full bg-[#f0f0f5] px-6 text-base text-black shadow-none hover:bg-white sm:w-auto"
+                            className="rounded-full shadow-none bg-[#f0f0f5] text-black hover:bg-white"
                         >
                             Начать бесплатно
                         </Button>
                         <Button
                             variant="outline"
                             size="lg"
-                            className="h-12 w-full rounded-full border border-[#f0f0f5]/30 bg-transparent px-6 text-base text-[#f0f0f5] shadow-none hover:bg-[#f0f0f5]/10 hover:text-[#f0f0f5] sm:w-auto"
+                            className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-[#f0f0f5]"
                         >
                             <Play className="mr-2 size-4" aria-hidden="true" />
                             Смотреть демо
@@ -99,25 +111,26 @@ export function HeroSection() {
 
                     <motion.div
                         variants={benefitsVariants}
-                        className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-1 md:justify-start"
+                        className="flex items-center gap-3 pt-2"
                     >
                         {BENEFITS.map((benefit) => (
                             <div
                                 key={benefit.label}
-                                className="flex items-center gap-1.5 text-sm text-[#f0f0f5]/50"
+                                className="flex items-center gap-1.5 text-xs text-[#f0f0f5]/50"
                             >
-                                <Check className="size-3.5 shrink-0 text-[#f0f0f5]/60" aria-hidden="true" />
+                                <Check className="size-3 text-[#f0f0f5]/60" aria-hidden="true" />
                                 <span className="whitespace-nowrap">{benefit.label}</span>
                             </div>
                         ))}
                     </motion.div>
                 </div>
 
-                <motion.div
-                    variants={blobatarVariants}
-                    className="flex w-full shrink-0 justify-center md:w-1/2 md:justify-end"
-                >
-                    <BrandBlobatar />
+                {/* ARCHITECT: масштаб через обёртку-transform — паттерн принят в проекте
+                    (ChatPreview), не трогаем внутренности BrandBlobatar и gaze tracking. */}
+                <motion.div variants={blobatarVariants}>
+                    <div className="scale-110 sm:scale-125 lg:scale-150">
+                        <BrandBlobatar className="mx-auto" />
+                    </div>
                 </motion.div>
             </motion.div>
         </section>

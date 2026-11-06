@@ -48,21 +48,19 @@ export function TypewriterHeading() {
     }, [phase, line1, line2]);
 
     return (
-        // ARCHITECT: 
-        // 1. md:text-4xl (вместо 5xl) — критически важно, чтобы текст влезал в колонку на ноутбуках.
-        // 2. whitespace-nowrap на втором div — железобетонный запрет на разрыв строки внутри фразы.
-        <h1 className="text-3xl md:text-4xl lg:text-5xl font-bold text-balance text-[#f0f0f5] leading-tight tracking-tight">
-            
+        // ARCHITECT: кегль усилен на xl до 6xl (60px) — иерархия против блобатара.
+        // leading-[1.08] — плотный, редакционный. whitespace-nowrap на второй
+        // строке сохранён: CLS при typewriter недопустим.
+        <h1 className="text-4xl font-bold leading-[1.08] tracking-tight text-[#f0f0f5] lg:text-5xl xl:text-6xl">
             <div className="min-h-[1.2em]">
                 {text1}
                 {phase === 1 && <Cursor />}
             </div>
-            
+
             <div className="min-h-[1.2em] whitespace-nowrap">
                 {text2}
                 {phase === 2 && <Cursor />}
             </div>
-
         </h1>
     );
 }

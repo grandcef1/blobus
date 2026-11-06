@@ -8,35 +8,33 @@ import { Languages, Volume2 } from "lucide-react";
 import { ChatBlobatar } from "@/components/landing/ChatBlobatar";
 import { MiniBlobatar } from "@/components/landing/MiniBlobatar";
 
-// ARCHITECT: палитра секции — та же монохромная тема, что и в Hero (#f0f0f5 на чёрном).
-
 const FEATURES = [
     {
         id: "personalization",
         title: "Персонализация под вас",
         description: "Выберите репетитора с подходящим характером и голосом",
-        span: "md:col-span-2", // Ряд 1: широкий блок с бегущей строкой
+        span: "md:col-span-2",
         delay: 0.1,
     },
     {
         id: "assessment",
         title: "5 минут до старта",
         description: "Адаптивный тест определит ваш уровень A1-C1",
-        span: "md:col-span-1", // Ряд 2, левая часть
+        span: "md:col-span-1",
         delay: 0.2,
     },
     {
         id: "modes",
         title: "Режимы обучения",
         description: "От грамматики до собеседования — переключайтесь в любой момент",
-        span: "md:col-span-1", // Ряд 2, правая часть (идеально заполняет ряд)
+        span: "md:col-span-1",
         delay: 0.3,
     },
     {
         id: "chat",
         title: "Живое общение с ИИ",
         description: "Мгновенная коррекция ошибок и объяснение правил",
-        span: "md:col-span-2", // Ряд 3: широкий блок с чатом
+        span: "md:col-span-2",
         delay: 0.4,
     },
 ] as const;
@@ -49,9 +47,6 @@ interface FeatureCardProps {
     description?: string;
     className?: string;
     delay: number;
-    // ARCHITECT: clip=true вешает overflow-hidden на ВСЮ карточку (внутренний rounded-слой),
-    // чтобы масштабированный контент (scale-220 у ChatBlobatar) обрезался границами
-    // карточки, а не границами контентной области. Только для карточки чата.
     clip?: boolean;
 }
 
@@ -62,8 +57,6 @@ const containerVariants: Variants = {
     },
 };
 
-// ARCHITECT: карточка появляется по входу во viewport (whileInView) + once:true —
-// один раз при скролле, без повторных перезапусков.
 const cardVariants: Variants = {
     hidden: { opacity: 0, y: 24 },
     visible: {
@@ -82,18 +75,11 @@ function FeatureCard({
     clip,
 }: FeatureCardProps) {
     return (
-        // ARCHITECT: span-классы (md:col-span-2 / md:col-span-1) остаются на grid-item'е — внешнем
-        // motion.div, который анимирует opacity+translate-y через Framer Motion.
         <motion.div
             variants={cardVariants}
             transition={{ delay }}
             className={`group h-full rounded-3xl ${className ?? ""}`}
         >
-            {/* ARCHITECT: гибрид минимализма и blur: backdrop-blur-xl, мягкие границы
-          border-white/5 → border-white/15 на hover, лёгкое свечение, минимальный
-          scale-[1.01] для премиальности. Hover-scale живёт на внутреннем слое: внешний
-          motion.div управляет transform:y — два трансформа на одном элементе конфликтовали бы.
-          clip добавляет overflow-hidden именно сюда — по границам карточки. */}
             <motion.div
                 className={`h-full rounded-3xl bg-white/[0.02] backdrop-blur-xl border border-white/5 transition-all duration-500 group-hover:bg-white/[0.04] group-hover:border-white/15 group-hover:shadow-[0_0_40px_rgba(255,255,255,0.03)] group-hover:scale-[1.01] ${clip ? "overflow-hidden" : ""}`}
                 whileTap={{ scale: 0.99 }}
@@ -102,7 +88,6 @@ function FeatureCard({
                     <h3 className="text-lg font-semibold text-[#f0f0f5] mb-4 md:text-xl">
                         {title}
                     </h3>
-                    {/* ARCHITECT: flex-1 прижимает описание к низу карточки — блоки выравниваются */}
                     <div className="flex-1">{children}</div>
                     {description && (
                         <p className="mt-6 text-sm leading-relaxed text-[#f0f0f5]/60">
@@ -115,161 +100,26 @@ function FeatureCard({
     );
 }
 
-// ─── Карточка 1: бегущая строка мини-блобатаров ────────────────────────────────
-
 interface MiniBlobatarConfig {
     name: string;
     traits: Record<string, number | number[]>;
 }
 
-// ARCHITECT: типы трейтов — явный Record<string, number | number[]>, без `as const`:
-// readonly-кортежи (tone) и union из разных наборов ключей ("body.ratio"?: undefined)
-// несовместимы с пропсом traits MiniBlobatar (исправлен TS2322).
 const MINI_BLOBATARS: MiniBlobatarConfig[] = [
-    {
-        name: "Мия",
-        traits: {
-            shape: 0.8,
-            hue: 0.92, // розовый
-            tone: [0.6, 0.9],
-            "eye.gap": 0.4,
-            "eye.rx": 0.7,
-            "eye.lean": 0.2,
-            "body.r": 0.3,
-            "body.n": 0.6,
-        },
-    },
-    {
-        name: "Оскар",
-        traits: {
-            shape: 0.2,
-            hue: 0.55, // бирюзовый
-            tone: [0.3, 0.6],
-            "eye.gap": 0.25,
-            "eye.rx": 1.2,
-            "eye.lean": 0.6,
-            "body.r": 0.7,
-            "body.n": 1.3,
-        },
-    },
-    {
-        name: "Луна",
-        traits: {
-            shape: 0.65,
-            hue: 0.72, // фиолетовый
-            tone: [0.4, 0.7],
-            "eye.gap": 0.35,
-            "eye.rx": 0.9,
-            "eye.lean": 0.3,
-            "body.r": 0.4,
-            "body.ratio": 0.2,
-        },
-    },
-    {
-        name: "Макс",
-        traits: {
-            shape: 0.15,
-            hue: 0.08, // красный
-            tone: [0.5, 0.85],
-            "eye.gap": 0.5,
-            "eye.rx": 1.1,
-            "eye.lean": 0.1,
-            "body.r": 0.8,
-            "body.n": 1.5,
-        },
-    },
-    {
-        name: "Алекс",
-        traits: {
-            shape: 0.45,
-            hue: 0.33, // зелёный
-            tone: [0.25, 0.55],
-            "eye.gap": 0.28,
-            "eye.rx": 0.85,
-            "eye.lean": 0.45,
-            "body.r": 0.5,
-            "body.n": 0.9,
-        },
-    },
-    {
-        name: "Зои",
-        traits: {
-            shape: 0.9,
-            hue: 0.15, // оранжевый
-            tone: [0.55, 0.9],
-            "eye.gap": 0.42,
-            "eye.rx": 0.65,
-            "eye.lean": 0.25,
-            "body.r": 0.25,
-            "body.ratio": -0.1,
-        },
-    },
-    // ARCHITECT: расширено с 6 до 10 элементов по ТЗ — ширина одного дубликата
-    // (10*96px + 9*32px = 1248px) заведомо больше ширины видимой области карточки
-    // на любом десктопе ⇒ пустых зон в marquee не бывает ни в одном кадре цикла.
-    {
-        name: "Нова",
-        traits: {
-            shape: 0.55,
-            hue: 0.45,
-            tone: [0.5, 0.8],
-            "eye.gap": 0.32,
-            "eye.rx": 0.95,
-            "eye.lean": 0.35,
-            "body.r": 0.45,
-            "body.n": 1.0,
-        },
-    },
-    {
-        name: "Кай",
-        traits: {
-            shape: 0.35,
-            hue: 0.62,
-            tone: [0.35, 0.65],
-            "eye.gap": 0.38,
-            "eye.rx": 1.05,
-            "eye.lean": 0.42,
-            "body.r": 0.55,
-            "body.n": 1.1,
-        },
-    },
-    {
-        name: "Лира",
-        traits: {
-            shape: 0.75,
-            hue: 0.82,
-            tone: [0.45, 0.75],
-            "eye.gap": 0.45,
-            "eye.rx": 0.75,
-            "eye.lean": 0.28,
-            "body.r": 0.35,
-            "body.ratio": 0.15,
-        },
-    },
-    {
-        name: "Орион",
-        traits: {
-            shape: 0.25,
-            hue: 0.18,
-            tone: [0.4, 0.7],
-            "eye.gap": 0.48,
-            "eye.rx": 1.15,
-            "eye.lean": 0.15,
-            "body.r": 0.65,
-            "body.n": 1.4,
-        },
-    },
+    { name: "Мия", traits: { shape: 0.8, hue: 0.92, tone: [0.6, 0.9], "eye.gap": 0.4, "eye.rx": 0.7, "eye.lean": 0.2, "body.r": 0.3, "body.n": 0.6 } },
+    { name: "Оскар", traits: { shape: 0.2, hue: 0.55, tone: [0.3, 0.6], "eye.gap": 0.25, "eye.rx": 1.2, "eye.lean": 0.6, "body.r": 0.7, "body.n": 1.3 } },
+    { name: "Луна", traits: { shape: 0.65, hue: 0.72, tone: [0.4, 0.7], "eye.gap": 0.35, "eye.rx": 0.9, "eye.lean": 0.3, "body.r": 0.4, "body.ratio": 0.2 } },
+    { name: "Макс", traits: { shape: 0.15, hue: 0.08, tone: [0.5, 0.85], "eye.gap": 0.5, "eye.rx": 1.1, "eye.lean": 0.1, "body.r": 0.8, "body.n": 1.5 } },
+    { name: "Алекс", traits: { shape: 0.45, hue: 0.33, tone: [0.25, 0.55], "eye.gap": 0.28, "eye.rx": 0.85, "eye.lean": 0.45, "body.r": 0.5, "body.n": 0.9 } },
+    { name: "Зои", traits: { shape: 0.9, hue: 0.15, tone: [0.55, 0.9], "eye.gap": 0.42, "eye.rx": 0.65, "eye.lean": 0.25, "body.r": 0.25, "body.ratio": -0.1 } },
+    { name: "Нова", traits: { shape: 0.55, hue: 0.45, tone: [0.5, 0.8], "eye.gap": 0.32, "eye.rx": 0.95, "eye.lean": 0.35, "body.r": 0.45, "body.n": 1.0 } },
+    { name: "Кай", traits: { shape: 0.35, hue: 0.62, tone: [0.35, 0.65], "eye.gap": 0.38, "eye.rx": 1.05, "eye.lean": 0.42, "body.r": 0.55, "body.n": 1.1 } },
+    { name: "Лира", traits: { shape: 0.75, hue: 0.82, tone: [0.45, 0.75], "eye.gap": 0.45, "eye.rx": 0.75, "eye.lean": 0.28, "body.r": 0.35, "body.ratio": 0.15 } },
+    { name: "Орион", traits: { shape: 0.25, hue: 0.18, tone: [0.4, 0.7], "eye.gap": 0.48, "eye.rx": 1.15, "eye.lean": 0.15, "body.r": 0.65, "body.n": 1.4 } },
 ];
 
-// ARCHITECT: единственная точка настройки скорости marquee (px/сек).
 const MARQUEE_SPEED_PX_PER_SEC = 50;
 
-// ARCHITECT: ping-pong через triangle wave вместо процентных keyframes и repeatType:"reverse".
-// distance = trackWidth − viewportWidth — ровно тот путь, при котором правый край
-// последнего (третьего) дубликата доходит до правого края видимой области.
-// useAnimationFrame + triangle wave дают строго линейную ОДИНАКОВУЮ скорость в обе
-// стороны, мгновенный разворот только в крайних точках и корректный ресайз без
-// перезапуска анимации (rAF-цикл не прерывается).
 function usePingPongX(
     viewportRef: RefObject<HTMLDivElement | null>,
     trackRef: RefObject<HTMLDivElement | null>,
@@ -283,8 +133,6 @@ function usePingPongX(
         const track = trackRef.current;
         if (!viewport || !track) return;
 
-        // ARCHITECT: пересчёт distance при любом изменении геометрии (ресайз окна,
-        // смена шрифта, ленивая загрузка) — анимация подстраивается без скачков.
         const measure = (): void => {
             const next = Math.max(0, track.scrollWidth - viewport.clientWidth);
             setDistance(next);
@@ -299,11 +147,9 @@ function usePingPongX(
 
     useAnimationFrame((t) => {
         if (distance <= 0) {
-            // Трек не длиннее видимой области — не двигаем вовсе.
             xMotion.set(0);
             return;
         }
-        // Период полного цикла «туда-обратно»: 2 * distance / speed (в мс).
         const periodMs = ((2 * distance) / speedPxPerSec) * 1000;
         const phase = (t % periodMs) / periodMs;
         const triangle = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
@@ -313,9 +159,6 @@ function usePingPongX(
     return xMotion;
 }
 
-// ARCHITECT: ОДИН трек с ТРЕМЯ одинаковыми дубликатами набора в flex-ряде.
-// Ширина одного дубликата = 10*96px(w-24) + 9*32px(gap-8) = 1248px > ширины карточки ⇒
-// ни в одном кадре цикла нет пустой зоны слева или справа от блобатаров.
 function BlobatarMarquee() {
     const viewportRef = useRef<HTMLDivElement>(null);
     const trackRef = useRef<HTMLDivElement>(null);
@@ -333,8 +176,6 @@ function BlobatarMarquee() {
                         <div
                             key={`${blob.name}-${copy}-${index}`}
                             className="flex w-24 shrink-0 flex-col items-center gap-3"
-                            // ARCHITECT: первый дубликат доступен скринридерам, второй и
-                            // третий — декоративная проекция цикла (aria-hidden).
                             aria-hidden={copy > 0 ? true : undefined}
                         >
                             <MiniBlobatar name={blob.name} traits={blob.traits} />
@@ -349,8 +190,6 @@ function BlobatarMarquee() {
     );
 }
 
-// ARCHITECT: онбординг 10 минут, из них тест 7 мин — доминирующая длительность
-// сигнализирует основательную адаптивную диагностику. Сумма = 10, сходится с заголовком.
 const STEPS = [
     { label: "Знакомство", duration: "1 мин" },
     { label: "Тест", duration: "7 мин" },
@@ -359,7 +198,6 @@ const STEPS = [
     { label: "Урок", duration: "сразу" },
 ] as const;
 
-// ARCHITECT: единая точка настройки таймингов таймлайна (сек).
 const NODE_DELAY_BASE = 0.2;
 const STEP_INTERVAL = 0.5;
 
@@ -367,8 +205,6 @@ interface StepNodeProps {
     index: number;
 }
 
-// ARCHITECT: анимируется ТОЛЬКО цвет, без transform — иначе Framer Motion
-// перезаписал бы позиционирование узла во flex-колонке.
 function StepNode({ index }: StepNodeProps) {
     const delay = NODE_DELAY_BASE + index * STEP_INTERVAL;
 
@@ -398,8 +234,6 @@ interface StepSegmentProps {
     index: number;
 }
 
-// ARCHITECT: сегмент-разделитель между узлами. flex-1 + min-h-4 — сегменты
-// растягиваются на всю высоту карточки: мёртвого пространства внизу нет.
 function StepSegment({ index }: StepSegmentProps) {
     return (
         <div
@@ -426,8 +260,6 @@ interface StepRowProps {
     duration: string;
 }
 
-// ARCHITECT: строка шага = подпись слева + пунктирный лидер + время справа
-// (редакционный паттерн «оглавления») — правая зона карточки заполнена смыслом.
 function StepRow({ label, duration }: StepRowProps) {
     return (
         <div className="flex h-5 flex-1 items-center self-start">
@@ -467,10 +299,6 @@ function ProgressSteps() {
     );
 }
 
-// ─── Карточка 3: режимы обучения ───────────────────────────────────────────────
-
-// ARCHITECT: четыре режима — продуктовые тексты лендинга обещают четыре сценария.
-// Порядок: popular-режим первым (визуальная иерархия), далее по частоте использования.
 const MODES = [
     { id: "interview", label: "Interview Prep", hint: "Собеседование", badge: "Popular" },
     { id: "speaking", label: "Speaking Practice", hint: "Разговорная практика", badge: null },
@@ -494,9 +322,6 @@ function ModeTile({ mode, index }: ModeTileProps) {
             whileInView={{ opacity: 1, y: 0 }}
             viewport={{ once: true, amount: 0.3 }}
             transition={{ duration: 0.4, ease: "easeOut", delay: 0.15 + index * 0.08 }}
-            // ARCHITECT: popular-тайл чуть светлее — иерархия без цвета.
-            // Hover меняет ТОЛЬКО border/background: transform не трогаем,
-            // чтобы не конфликтовать с hover-scale родительской FeatureCard.
             className={`flex flex-col justify-between gap-3 rounded-2xl border px-4 py-3.5 backdrop-blur-sm transition-colors duration-300 ${
                 isPopular
                     ? "border-white/20 bg-white/[0.06] hover:border-white/30"
@@ -521,8 +346,6 @@ function ModeTile({ mode, index }: ModeTileProps) {
             </div>
             <div className="flex items-end justify-between gap-2">
                 <span className="text-xs text-[#f0f0f5]/50">{mode.hint}</span>
-                {/* ARCHITECT: бледный индекс — редакционная деталь, связывает
-                четыре тайла в упорядоченный набор без нового цвета. */}
                 <span className="text-[10px] tabular-nums text-[#f0f0f5]/25" aria-hidden="true">
                     {String(index + 1).padStart(2, "0")}
                 </span>
@@ -533,8 +356,6 @@ function ModeTile({ mode, index }: ModeTileProps) {
 
 function ModeShowcase() {
     return (
-        // ARCHITECT: 2×2 на sm+ — четыре тайла помещаются в полукарточку без тесноты;
-        // ниже sm — колонка. ul/li — семантика списка для скринридеров.
         <ul aria-label="Режимы обучения" className="grid h-full grid-cols-1 gap-3 sm:grid-cols-2">
             {MODES.map((mode, index) => (
                 <ModeTile key={mode.id} mode={mode} index={index} />
@@ -543,11 +364,6 @@ function ModeShowcase() {
     );
 }
 
-// ─── Карточка 4: превью живого чата ────────────────────────────────────────────
-
-// ARCHITECT: widthClass — персональный ограничитель ширины/кегль каждого пузыря.
-// Первое сообщение: text-lg + max-w-[220px] — при 18px max-content фразы ≈ 232px > 220px
-// ⇒ естественный перенос на две строки.
 interface ChatMessage {
     author: "bot" | "user";
     text: string;
@@ -567,8 +383,6 @@ const CHAT_MESSAGES: ChatMessage[] = [
     },
     {
         author: "bot",
-        // ARCHITECT: обратные кавычки (backticks) — внутри строки есть двойные кавычки
-        // и апостроф, обычные двойные кавычки сломают парсинг.
         text: `Nice! Correct form: "I went to the cinema." Let's practice the Past Simple.`,
         widthClass: "max-w-[90%]",
     },
@@ -576,10 +390,7 @@ const CHAT_MESSAGES: ChatMessage[] = [
 
 function ChatPreview() {
     return (
-        // ARCHITECT: мобильные — колонка (сообщения, затем аватар по центру);
-        // md+ — строка: сообщения слева, огромный ChatBlobatar справа, обрезается карточкой (clip).
         <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col items-center justify-center gap-6 md:flex-row md:gap-12">
-            {/* Левая часть: сообщения */}
             <div className="flex min-w-0 w-full flex-1 flex-col gap-4">
                 {CHAT_MESSAGES.map((message, index) => (
                     <motion.div
@@ -590,43 +401,47 @@ function ChatPreview() {
                         transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 + index * 0.5 }}
                         className={`flex min-w-0 max-w-full items-end gap-2 ${message.author === "user" ? "self-end flex-row-reverse" : "self-start"}`}
                     >
+                        {/* ARCHITECT: relative + pb-8 для бота создают пространство внутри пузыря 
+                           для кнопок действий справа снизу. */}
                         <div
-                            className={`min-w-0 break-words rounded-2xl px-4 py-2.5 text-sm [overflow-wrap:anywhere] ${
+                            className={`relative min-w-0 break-words rounded-2xl px-4 py-3 text-sm [overflow-wrap:anywhere] ${
                                 message.author === "user"
                                     ? "rounded-br-md bg-[#f0f0f5] text-black"
                                     : "rounded-bl-md bg-white/10 text-[#f0f0f5]"
                             } ${message.widthClass}`}
                         >
-                            {message.text}
-                        </div>
-
-                        {/* ARCHITECT: кнопки действий бота — тач-зона 44×44px, справа от пузыря */}
-                        {message.author === "bot" && (
-                            <div className="flex shrink-0 flex-col items-end gap-1">
-                                <motion.button
-                                    type="button"
-                                    className="flex size-11 items-center justify-center rounded-full bg-white/5 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    aria-label="Прослушать"
-                                >
-                                    <Volume2 className="size-4" aria-hidden="true" />
-                                </motion.button>
-                                <motion.button
-                                    type="button"
-                                    className="flex size-11 items-center justify-center rounded-full bg-white/5 text-[#f0f0f5]/40 transition-colors hover:bg-white/10 hover:text-[#f0f0f5]"
-                                    whileHover={{ scale: 1.1 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    aria-label="Перевести"
-                                >
-                                    <Languages className="size-4" aria-hidden="true" />
-                                </motion.button>
+                            <div className={message.author === "bot" ? "pb-8 pr-2" : ""}>
+                                {message.text}
                             </div>
-                        )}
+
+                            {/* ARCHITECT: Кнопки действий перенесены внутрь пузыря, справа снизу. 
+                               Размер уменьшен до size-7 (кнопка) и size-3.5 (иконка) для элегантности. */}
+                            {message.author === "bot" && (
+                                <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1.5">
+                                    <motion.button
+                                        type="button"
+                                        className="flex size-7 items-center justify-center rounded-full bg-black/10 text-[#f0f0f5]/60 transition-colors hover:bg-black/20 hover:text-[#f0f0f5]"
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        aria-label="Прослушать"
+                                    >
+                                        <Volume2 className="size-3.5" aria-hidden="true" />
+                                    </motion.button>
+                                    <motion.button
+                                        type="button"
+                                        className="flex size-7 items-center justify-center rounded-full bg-black/10 text-[#f0f0f5]/60 transition-colors hover:bg-black/20 hover:text-[#f0f0f5]"
+                                        whileHover={{ scale: 1.1 }}
+                                        whileTap={{ scale: 0.95 }}
+                                        aria-label="Перевести"
+                                    >
+                                        <Languages className="size-3.5" aria-hidden="true" />
+                                    </motion.button>
+                                </div>
+                            )}
+                        </div>
                     </motion.div>
                 ))}
 
-                {/* Индикатор печати */}
                 <motion.div
                     initial={{ opacity: 0 }}
                     whileInView={{ opacity: 1 }}
@@ -650,7 +465,6 @@ function ChatPreview() {
                 </p>
             </div>
 
-            {/* Правая часть: ChatBlobatar — на мобильных 160px по центру, на md+ 320px с масштабом (как в оригинале) */}
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -658,15 +472,13 @@ function ChatPreview() {
                 transition={{ delay: 0.5, duration: 0.8 }}
                 className="flex w-full shrink-0 items-center justify-center md:w-auto md:pl-4"
             >
-                <div className="h-40 w-40 md:h-80 md:w-80 md:scale-220 md:translate-x-18 md:translate-y-3">
+                <div className="h-40 w-40 md:h-80 md:w-80 md:scale-240 md:translate-x-18 md:translate-y-3">
                     <ChatBlobatar />
                 </div>
             </motion.div>
         </div>
     );
 }
-
-// ─── Диспетчер контента карточек ───────────────────────────────────────────────
 
 function FeatureContent({ id }: { id: FeatureId }) {
     switch (id) {
@@ -681,12 +493,9 @@ function FeatureContent({ id }: { id: FeatureId }) {
     }
 }
 
-// ─── Секция ────────────────────────────────────────────────────────────────────
-
 export function FeaturesSection() {
     return (
         <section id="features" className="relative w-full overflow-hidden bg-black py-24">
-            {/* Радиальный градиент для глубины */}
             <div
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_top,_var(--tw-gradient-stops))] from-white/[0.03] via-black to-black"
                 aria-hidden="true"
@@ -708,8 +517,6 @@ export function FeaturesSection() {
                     </p>
                 </motion.header>
 
-                {/* ARCHITECT: сетка 2 колонки — ряд 1: широкая карточка (marquee),
-            ряд 2: две средние рядом (тест + режимы), ряд 3: широкая (чат). */}
                 <motion.div
                     variants={containerVariants}
                     initial="hidden"
@@ -723,8 +530,6 @@ export function FeaturesSection() {
                             title={feature.title}
                             delay={feature.delay}
                             className={feature.span}
-                            // ARCHITECT: клиппинг по границам карточки только для чата —
-                            // scale-220 блобатар обрезается краями карточки, а не контента.
                             clip={feature.id === "chat"}
                             description={feature.id === "assessment" ? undefined : feature.description}
                         >

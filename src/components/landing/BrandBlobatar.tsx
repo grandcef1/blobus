@@ -33,14 +33,10 @@ export function BrandBlobatar({ className }: BrandBlobatarProps) {
     }, [lookAt]);
 
     return (
-        // ARCHITECT: пропорциональное масштабирование вместо фиксированных 800px (w-200),
-        // которые и были главным источником горизонтального скролла на мобильных.
-        <div
-            className={cn(
-                "aspect-square w-64 max-w-full shrink-0 sm:w-72 md:w-80 lg:w-96 xl:w-[28rem]",
-                className,
-            )}
-        >
+        // ARCHITECT: убрали фиксированную ladder-ширину и max-w-full.
+        // Размер полностью определяется вызывающим через className
+        // (cn + tailwind-merge). Внутренности (traits, gaze) не тронуты.
+        <div className={cn("aspect-square w-64 shrink-0 sm:w-80", className)}>
             <Blobatar
                 ref={ref}
                 animate="always"

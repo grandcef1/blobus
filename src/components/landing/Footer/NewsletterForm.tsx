@@ -76,6 +76,11 @@ export function NewsletterForm() {
 
     return (
         <form onSubmit={handleSubmit} noValidate className="w-full max-w-md">
+            {/* ARCHITECT (RESPONSIVE FIX): ранее инпут имел flex-1 внутри flex-col —
+                flex-basis:0% по ГЛАВНОЙ оси (вертикали) перебивал h-11, и поле
+                схлопывалось до высоты контента на mobile. Теперь flex-1 включается
+                только с sm: (row-направление), а на mobile высота жёстко h-12 (48px —
+                комфортный touch-target). Кнопка синхронно h-12. */}
             <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                     type="email"
@@ -86,7 +91,7 @@ export function NewsletterForm() {
                     aria-label="Электронная почта для рассылки"
                     aria-invalid={hasError}
                     aria-describedby="newsletter-hint"
-                    className={`h-11 flex-1 rounded-lg border bg-transparent px-4 text-base transition-colors duration-200 placeholder:text-zinc-600 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:text-sm ${hasError
+                    className={`h-12 min-h-12 w-full rounded-lg border bg-transparent px-4 text-base transition-colors duration-200 placeholder:text-zinc-600 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:flex-1 sm:text-sm ${hasError
                             ? 'border-red-400/40 text-white focus:border-red-400/60'
                             : 'border-zinc-800 text-white focus:border-zinc-500'
                         }`}
@@ -100,7 +105,7 @@ export function NewsletterForm() {
                         animate={{ opacity: 1, scale: 1 }}
                         exit={{ opacity: 0, scale: 0.97 }}
                         transition={{ duration: 0.15 }}
-                        className="flex h-11 items-center justify-center gap-1.5 rounded-lg bg-white px-5 text-sm font-medium text-black transition-colors duration-200 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
+                        className="flex h-12 min-h-12 shrink-0 items-center justify-center gap-1.5 rounded-lg bg-white px-5 text-sm font-medium text-black transition-colors duration-200 hover:bg-zinc-200 disabled:cursor-not-allowed disabled:opacity-60 sm:w-auto"
                     >
                         {isSuccess ? (
                             <>

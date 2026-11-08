@@ -401,7 +401,7 @@ function ChatPreview() {
                         transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 + index * 0.5 }}
                         className={`flex min-w-0 max-w-full items-end gap-2 ${message.author === "user" ? "self-end flex-row-reverse" : "self-start"}`}
                     >
-                        {/* ARCHITECT: relative + pb-8 для бота создают пространство внутри пузыря 
+                        {/* ARCHITECT: relative + pb-8 для бота создают пространство внутри пузыря
                            для кнопок действий справа снизу. */}
                         <div
                             className={`relative min-w-0 break-words rounded-2xl px-4 py-3 text-sm [overflow-wrap:anywhere] ${
@@ -414,7 +414,7 @@ function ChatPreview() {
                                 {message.text}
                             </div>
 
-                            {/* ARCHITECT: Кнопки действий перенесены внутрь пузыря, справа снизу. 
+                            {/* ARCHITECT: Кнопки действий перенесены внутрь пузыря, справа снизу.
                                Размер уменьшен до size-7 (кнопка) и size-3.5 (иконка) для элегантности. */}
                             {message.author === "bot" && (
                                 <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1.5">
@@ -465,6 +465,11 @@ function ChatPreview() {
                 </p>
             </div>
 
+            {/* ARCHITECT (RESPONSIVE FIX): на mobile блобатар превью был 160px (h-40 w-40) —
+                визуально терялся внутри широкой карточки. Теперь h-60 w-60 (240px) на mobile
+                и h-72 w-72 (288px) на sm — заметный якорь карточки; в контент карточки
+                (≈310px на 390px-вьюпорте) помещается без клипа.
+                Десктопные md:h-80 md:w-80 md:scale-240 md:translate-* НЕ тронуты. */}
             <motion.div
                 initial={{ opacity: 0, scale: 0.9 }}
                 whileInView={{ opacity: 1, scale: 1 }}
@@ -472,7 +477,7 @@ function ChatPreview() {
                 transition={{ delay: 0.5, duration: 0.8 }}
                 className="flex w-full shrink-0 items-center justify-center md:w-auto md:pl-4"
             >
-                <div className="h-40 w-40 md:h-80 md:w-80 md:scale-240 md:translate-x-18 md:translate-y-3">
+                <div className="h-60 w-60 sm:h-72 sm:w-72 md:h-80 md:w-80 md:scale-240 md:translate-x-18 md:translate-y-3">
                     <ChatBlobatar />
                 </div>
             </motion.div>

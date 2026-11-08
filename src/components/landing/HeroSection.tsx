@@ -49,18 +49,33 @@ export function HeroSection() {
     return (
         // ARCHITECT: overflow-x-clip страхует bleed. min-h = вьюпорт минус хедер.
         <section className="relative flex min-h-[calc(100dvh-72px)] w-full items-start overflow-x-clip bg-black pt-16 pb-16 md:pt-20 md:pb-20">
-            <div className="relative w-full max-w-7xl ml-[12%] mr-[0%] px-6 lg:px-10">
-                {/* ARCHITECT: xl:grid-cols-[1fr_1.25fr] жёстко связывает текст и блоба. 
-                    xl:gap-4 прижимает их друг к другу, сохраняя профессиональный ритм. 
-                    items-center гарантирует вертикальное параллельное выравнивание. */}
+            {/* ARCHITECT (RESPONSIVE FIX #3 — параллельность с features):
+                Шелл px-4 sm:px-6 lg:px-8 идентичен шеллу features/how-it-works —
+                ниже xl оба фулл-ширинные, кромки уже параллельны.
+                С xl features центрируется в max-w-6xl, и дельта до его контент-кромки
+                = 96px на любом вьюпорте >=1280 (проверено: 96/416/736px на 1280/1920/2560).
+                xl:pl-24 компенсирует её ВНУТРИ шелла max-w-7xl: заголовок hero встает
+                строго на одну вертикаль с заголовком features ("Новый способ…" и badge — тоже).
+                ARCHITECT (правая пустота): блобатар через xl:justify-end + pr-8 дотягивается
+                до 1568px на 1920 — на 64px дальше правой кромки карточек features (1504px).
+                Итог: справа мёртвой зоны больше нет, слева 416px / справа 352px —
+                лёгкая асимметрия 64px (premium-паттерн: без зеркальной симметрии),
+                при этом композиция делит центральную ось с features. */}
+            <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:pl-24">
+                {/* ARCHITECT: xl:grid-cols-[1fr_1.25fr] жёстко связывает текст и блоба.
+                    xl:gap-4 прижимает их друг к другу, сохраняя профессиональный ритм.
+                    items-center гарантирует вертикальное параллельное выравнивание.
+                    ARCHITECT (RESPONSIVE FIX #1): order-классы дают мобильную композицию
+                    "блобатар СВЕРХУ текста", не меняя md+ (текст слева, блоб справа). */}
                 <motion.div
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
-                    className="grid grid-cols-1 items-center gap-10 md:grid-cols-2 md:gap-8 lg:gap-12 xl:grid-cols-[1fr_1.25fr] xl:gap-4"
+                    className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-8 lg:gap-12 xl:grid-cols-[1fr_1.25fr] xl:gap-4"
                 >
-                    {/* Текстовый блок: выровнен по левому краю, без лишних отступов */}
-                    <div className="flex flex-col justify-center gap-7 xl:max-w-[36rem]">
+                    {/* Текстовый блок: выровнен по левому краю, без лишних отступов.
+                        ARCHITECT (RESPONSIVE FIX #1): order-2 на mobile — текст уходит ПОД блобатара. */}
+                    <div className="order-2 flex flex-col justify-center gap-7 md:order-1 xl:max-w-[36rem]">
                         <motion.div variants={badgeVariants}>
                             <a
                                 href="#features"
@@ -130,14 +145,19 @@ export function HeroSection() {
                         </motion.div>
                     </div>
 
-                    {/* ARCHITECT: Блобатар теперь в потоке grid, без absolute. 
-                        xl:max-w-[42rem] (672px) делает его заметно крупнее и массивнее, 
-                        а 85dvh страхует от вертикального переполнения на низких экранах. */}
-                    <motion.div 
-                        variants={blobatarVariants} 
-                        className="flex items-center justify-center xl:justify-end"
+                    {/* ARCHITECT: Блобатар в потоке grid, без absolute.
+                        ARCHITECT (RESPONSIVE FIX #1 — mobile): order-1 поднимает блобатара
+                        НАД текстом; w-[min(85vw,32rem)] даёт ~331px на телефоне 390px
+                        вместо прежних 256px — заметно крупнее, но не вылезает за вьюпорт.
+                        ARCHITECT (FIX #3 — desktop): колонка блобатара после xl:pl-24 =
+                        631px (рендер во всю колонку, потолок 42rem не достигается) —
+                        массивность сохранена; xl:justify-end прижимает его к правой кромке
+                        шелла, закрывая бывшую мёртвую зону справа. */}
+                    <motion.div
+                        variants={blobatarVariants}
+                        className="order-1 flex items-center justify-center md:order-2 xl:justify-end"
                     >
-                        <BrandBlobatar className="w-64 sm:w-80 md:w-full md:max-w-[24rem] lg:max-w-[32rem] xl:max-w-[42rem] xl:w-full" />
+                        <BrandBlobatar className="w-[min(85vw,32rem)] sm:w-96 md:w-full md:max-w-[26rem] lg:max-w-[34rem] xl:w-full xl:max-w-[42rem]" />
                     </motion.div>
                 </motion.div>
             </div>

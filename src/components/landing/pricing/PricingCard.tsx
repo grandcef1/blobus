@@ -8,6 +8,7 @@ import { FEATURES } from "./data";
 import { FeatureTable } from "./FeatureTable";
 import { FreeCardSvg } from "./visuals/FreeCardSvg";
 import { ProCardSvg } from "./visuals/ProCardSvg";
+import { useNavigate } from 'react-router-dom';
 
 interface PricingCardProps {
     readonly plan: PricingPlan;
@@ -15,6 +16,12 @@ interface PricingCardProps {
 }
 
 export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
+    const navigate = useNavigate();
+
+    const handleCTA = () => {
+        // ARCHITECT: Обе CTA ведут на онбординг
+        navigate('/onboarding');
+    };
     const price = billingPeriod === "month" ? plan.monthlyPrice : plan.yearlyPrice;
     const period = billingPeriod === "month" ? "/мес" : "/год";
     const Visual = plan.id === "pro" ? ProCardSvg : FreeCardSvg;
@@ -66,7 +73,7 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
 
                 {/* ARCHITECT: контейнер карточки с overflow-hidden для обрезки вращающегося градиента */}
                 <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-black p-8">
-                    
+
                     {/* ARCHITECT: бесконечный плавный анимированный border (только для Pro).
                         Градиент математически симметричен (0% и 100% идентичны, пик на 50%).
                         При вращении на 360deg с linear easing стык абсолютно невидим. */}
@@ -84,7 +91,7 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                             aria-hidden="true"
                         />
                     )}
-                    
+
                     {/* ARCHITECT: внутренний черный слой, перекрывающий центр градиента. 
                         Оставляет видимым только тонкий край (1.5px), создавая эффект идеальной светящейся рамки. */}
                     <div className="absolute inset-[1.5px] rounded-2xl bg-black z-10" />
@@ -125,11 +132,11 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                         <div className="mt-auto flex flex-col items-center gap-2">
                             <button
                                 type="button"
-                                className={`w-full rounded-full px-6 py-3 text-sm font-medium transition-all duration-300 ${
-                                    plan.highlighted
+                                onClick={handleCTA}
+                                className={`w-full rounded-full px-6 py-3 text-sm font-medium transition-all duration-300 ${plan.highlighted
                                         ? "bg-[#f0f0f5] text-black hover:bg-white hover:shadow-[0_0_30px_rgba(240,240,245,0.4)]"
                                         : "border border-white/20 bg-transparent text-[#f0f0f5] hover:border-white/40 hover:bg-white/5"
-                                }`}
+                                    }`}
                             >
                                 {plan.cta}
                             </button>

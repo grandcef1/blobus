@@ -1,7 +1,31 @@
-import { Landing } from "@/pages/Landing";
+import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
+import { Landing } from '@/pages/Landing';
+import { Onboarding } from '@/pages/Onboarding';
+import { AppLayout } from '@/pages/AppLayout';
+import { ChatPage } from '@/pages/dashboard/ChatPage';
+import { ProfilePage } from '@/pages/dashboard/ProfilePage';
+import { SettingsPage } from '@/pages/dashboard/SettingsPage';
+import { BillingPage } from '@/pages/dashboard/BillingPage';
+import { AdminPage } from '@/pages/dashboard/AdminPage';
 
 function App() {
-  return <Landing />;
+  return (
+    <BrowserRouter>
+      <Routes>
+        <Route path="/" element={<Landing />} />
+        <Route path="/onboarding" element={<Onboarding />} />
+        <Route path="/app" element={<AppLayout />}>
+          <Route index element={<Navigate to="chat" replace />} />
+          <Route path="chat" element={<ChatPage />} />
+          <Route path="chat/:sessionId" element={<ChatPage />} />
+          <Route path="profile" element={<ProfilePage />} />
+          <Route path="settings" element={<SettingsPage />} />
+          <Route path="billing" element={<BillingPage />} />
+          <Route path="admin" element={<AdminPage />} />
+        </Route>
+      </Routes>
+    </BrowserRouter>
+  );
 }
 
 export default App;

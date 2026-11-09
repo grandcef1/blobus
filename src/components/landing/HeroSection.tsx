@@ -5,6 +5,7 @@ import { Check, Play, Sparkles } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
 import { TypewriterHeading } from "@/components/landing/TypewriterHeading";
+import { useNavigate } from 'react-router-dom';
 
 const containerVariants: Variants = {
     hidden: {},
@@ -46,7 +47,18 @@ const BENEFITS: readonly BenefitItem[] = [
 ];
 
 export function HeroSection() {
+    const navigate = useNavigate();
+
+    const handleGetStarted = () => {
+        navigate('/onboarding');
+    };
+
+    const handleWatchDemo = () => {
+        // ARCHITECT: Временно скроллим к секции features
+        document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
+    };
     return (
+
         // ARCHITECT: overflow-x-clip страхует bleed. min-h = вьюпорт минус хедер.
         <section className="relative flex min-h-[calc(100dvh-72px)] w-full items-start overflow-x-clip bg-black pt-16 pb-16 md:pt-20 md:pb-20">
             {/* ARCHITECT (RESPONSIVE FIX #3 — параллельность с features):
@@ -107,6 +119,7 @@ export function HeroSection() {
                         >
                             <Button
                                 size="lg"
+                                onClick={handleGetStarted}
                                 className="rounded-full shadow-none bg-[#f0f0f5] text-black hover:bg-white"
                             >
                                 Начать бесплатно
@@ -114,6 +127,7 @@ export function HeroSection() {
                             <Button
                                 variant="outline"
                                 size="lg"
+                                onClick={handleWatchDemo}
                                 className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-[#f0f0f5]"
                             >
                                 <Play

@@ -1,4 +1,4 @@
-// ARCHITECT: Выбор режима обучения
+// ARCHITECT: Выбор режима обучения — переведён на русский
 
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check, Briefcase, MessageCircle, BookOpen, Globe } from 'lucide-react';
@@ -31,11 +31,11 @@ export function ModeSelectionStep({
         <div>
             <div className="mb-10 text-center">
                 <h2 className="mb-3 text-3xl font-bold text-[#f0f0f5]">
-                    What would you like to focus on?
+                    На чём хочешь сосредоточиться?
                 </h2>
                 <p className="mx-auto max-w-md text-[#f0f0f5]/50">
-                    You can always switch or add more modes later. Let's start with your
-                    main goal.
+                    Ты всегда можешь переключиться или добавить другие режимы позже.
+                    Давай начнём с твоей главной цели.
                 </p>
             </div>
 
@@ -97,7 +97,7 @@ export function ModeSelectionStep({
                     className="flex items-center gap-2 text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
                 >
                     <ArrowLeft className="size-4" />
-                    Back
+                    Назад
                 </Button>
 
                 <Button
@@ -110,7 +110,7 @@ export function ModeSelectionStep({
                             : 'bg-white/10 text-[#f0f0f5]/30 cursor-not-allowed'
                     )}
                 >
-                    Continue
+                    Продолжить
                     <ArrowRight className="size-4" />
                 </Button>
             </div>

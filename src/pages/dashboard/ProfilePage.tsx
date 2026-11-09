@@ -1,6 +1,5 @@
-// ARCHITECT: Страница профиля пользователя с детальной статистикой
-
-// ARCHITECT: Страница профиля пользователя с детальной статистикой
+// ARCHITECT: Страница профиля пользователя с детальной статистикой.
+// Переведена на русский язык.
 
 import { motion } from 'framer-motion';
 import { User, Mail, Calendar, Award, BookOpen, TrendingUp } from 'lucide-react';
@@ -14,7 +13,7 @@ export function ProfilePage() {
     return (
         <div className="min-h-screen bg-black p-6 md:p-8">
             <div className="mx-auto max-w-5xl">
-                {/* Profile Header */}
+                {/* Шапка профиля */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -24,7 +23,7 @@ export function ProfilePage() {
                         <User className="size-12 text-[#f0f0f5]/60" />
                     </div>
                     <div>
-                        <h1 className="text-3xl font-bold text-[#f0f0f5]">Alex Developer</h1>
+                        <h1 className="text-3xl font-bold text-[#f0f0f5]">Алекс Разработчик</h1>
                         <div className="mt-2 flex items-center gap-4 text-sm text-[#f0f0f5]/50">
                             <span className="flex items-center gap-1">
                                 <Mail className="size-4" />
@@ -32,19 +31,19 @@ export function ProfilePage() {
                             </span>
                             <span className="flex items-center gap-1">
                                 <Calendar className="size-4" />
-                                Joined Nov 2026
+                                Регистрация: ноябрь 2026
                             </span>
                         </div>
                     </div>
                 </motion.div>
 
-                {/* Stats Overview */}
+                {/* Обзор статистики */}
                 <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-3">
                     <div className="rounded-2xl border border-white/10 bg-white/[0.02] p-6">
                         <div className="flex items-center gap-3">
                             <TrendingUp className="size-8 text-purple-400" />
                             <div>
-                                <p className="text-sm text-[#f0f0f5]/50">Current Level</p>
+                                <p className="text-sm text-[#f0f0f5]/50">Текущий уровень</p>
                                 <p className="text-2xl font-bold text-[#f0f0f5]">{progress.currentLevel}</p>
                             </div>
                         </div>
@@ -53,7 +52,7 @@ export function ProfilePage() {
                         <div className="flex items-center gap-3">
                             <Award className="size-8 text-amber-400" />
                             <div>
-                                <p className="text-sm text-[#f0f0f5]/50">Achievements</p>
+                                <p className="text-sm text-[#f0f0f5]/50">Достижения</p>
                                 <p className="text-2xl font-bold text-[#f0f0f5]">
                                     {progress.achievements.filter((a) => a.unlockedAt).length}
                                 </p>
@@ -64,7 +63,7 @@ export function ProfilePage() {
                         <div className="flex items-center gap-3">
                             <BookOpen className="size-8 text-teal-400" />
                             <div>
-                                <p className="text-sm text-[#f0f0f5]/50">Total Words</p>
+                                <p className="text-sm text-[#f0f0f5]/50">Всего слов</p>
                                 <p className="text-2xl font-bold text-[#f0f0f5]">
                                     {Object.values(progress.modeProgress).reduce(
                                         (sum, mode) => sum + mode.wordsLearned,
@@ -76,7 +75,7 @@ export function ProfilePage() {
                     </div>
                 </div>
 
-                {/* Learning Modes */}
+                {/* Режимы обучения */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -84,7 +83,7 @@ export function ProfilePage() {
                     className="mb-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6"
                 >
                     <h2 className="mb-6 text-xl font-semibold text-[#f0f0f5]">
-                        Learning Progress by Mode
+                        Прогресс по режимам обучения
                     </h2>
 
                     <div className="space-y-6">
@@ -107,7 +106,7 @@ export function ProfilePage() {
                                                 </h3>
                                             </div>
                                             <span className="text-sm text-[#f0f0f5]/50">
-                                                Level {modeData.level} · {modeData.progress}%
+                                                Уровень {modeData.level} · {modeData.progress}%
                                             </span>
                                         </div>
 
@@ -122,18 +121,18 @@ export function ProfilePage() {
 
                                         <div className="grid grid-cols-2 gap-4 text-sm">
                                             <div>
-                                                <p className="text-[#f0f0f5]/40">Lessons completed</p>
+                                                <p className="text-[#f0f0f5]/40">Уроков завершено</p>
                                                 <p className="font-medium text-[#f0f0f5]">{modeData.completedLessons}</p>
                                             </div>
                                             <div>
-                                                <p className="text-[#f0f0f5]/40">Words learned</p>
+                                                <p className="text-[#f0f0f5]/40">Слов выучено</p>
                                                 <p className="font-medium text-[#f0f0f5]">{modeData.wordsLearned}</p>
                                             </div>
                                         </div>
 
                                         <div className="grid grid-cols-2 gap-4">
                                             <div>
-                                                <p className="mb-2 text-xs font-medium text-emerald-400">Strengths</p>
+                                                <p className="mb-2 text-xs font-medium text-emerald-400">Сильные стороны</p>
                                                 <ul className="space-y-1 text-xs text-[#f0f0f5]/60">
                                                     {modeData.strengths.map((strength, i) => (
                                                         <li key={i}>• {strength}</li>
@@ -141,7 +140,7 @@ export function ProfilePage() {
                                                 </ul>
                                             </div>
                                             <div>
-                                                <p className="mb-2 text-xs font-medium text-rose-400">Areas to improve</p>
+                                                <p className="mb-2 text-xs font-medium text-rose-400">Что улучшить</p>
                                                 <ul className="space-y-1 text-xs text-[#f0f0f5]/60">
                                                     {modeData.weaknesses.map((weakness, i) => (
                                                         <li key={i}>• {weakness}</li>

@@ -1,4 +1,5 @@
     // ARCHITECT: Мок-данные для статистики и прогресса
+    // Переведены: достижения, сильные/слабые стороны, темы уроков
 
     import type { UserProgress, VocabularyWord, LessonHistory } from '../../types/progress';
 
@@ -19,8 +20,8 @@
         completedLessons: 8,
         wordsLearned: 56,
         lastActivityAt: now - 3600000,
-        strengths: ['Behavioral Questions', 'Professional Vocabulary'],
-        weaknesses: ['Negotiation Phrases', 'Salary Discussion'],
+        strengths: ['Поведенческие вопросы', 'Профессиональная лексика'],
+        weaknesses: ['Фразы для переговоров', 'Обсуждение зарплаты'],
         },
         speaking: {
         modeId: 'speaking',
@@ -29,8 +30,8 @@
         completedLessons: 12,
         wordsLearned: 89,
         lastActivityAt: now - 7200000,
-        strengths: ['Casual Conversations', 'Travel Phrases'],
-        weaknesses: ['Idioms', 'Phrasal Verbs'],
+        strengths: ['Непринуждённые разговоры', 'Фразы для путешествий'],
+        weaknesses: ['Идиомы', 'Фразовые глаголы'],
         },
         grammar: {
         modeId: 'grammar',
@@ -39,8 +40,8 @@
         completedLessons: 6,
         wordsLearned: 34,
         lastActivityAt: now - day * 2,
-        strengths: ['Present Tenses', 'Articles'],
-        weaknesses: ['Conditionals', 'Passive Voice'],
+        strengths: ['Настоящее время', 'Артикли'],
+        weaknesses: ['Условные предложения', 'Пассивный залог'],
         },
         general: {
         modeId: 'general',
@@ -49,8 +50,8 @@
         completedLessons: 4,
         wordsLearned: 28,
         lastActivityAt: now - day * 3,
-        strengths: ['Basic Greetings', 'Numbers'],
-        weaknesses: ['Past Perfect', 'Reported Speech'],
+        strengths: ['Базовые приветствия', 'Числа'],
+        weaknesses: ['Прошедшее совершенное время', 'Косвенная речь'],
         },
     },
     weeklyActivity: [
@@ -65,8 +66,8 @@
     achievements: [
         {
         id: 'first_lesson',
-        name: 'First Steps',
-        description: 'Complete your first lesson',
+        name: 'Первые шаги',
+        description: 'Заверши свой первый урок',
         icon: 'Award',
         unlockedAt: now - day * 10,
         progress: 100,
@@ -75,8 +76,8 @@
         },
         {
         id: 'streak_7',
-        name: 'Week Warrior',
-        description: 'Study for 7 days in a row',
+        name: 'Недельный воин',
+        description: 'Учись 7 дней подряд',
         icon: 'Flame',
         unlockedAt: now - day,
         progress: 100,
@@ -85,8 +86,8 @@
         },
         {
         id: 'vocabulary_50',
-        name: 'Word Collector',
-        description: 'Learn 50 new words',
+        name: 'Собиратель слов',
+        description: 'Выучи 50 новых слов',
         icon: 'BookOpen',
         progress: 78,
         target: 50,
@@ -94,8 +95,8 @@
         },
         {
         id: 'perfect_score',
-        name: 'Perfectionist',
-        description: 'Get 100% on 5 quizzes',
+        name: 'Перфекционист',
+        description: 'Получи 100% в 5 викторинах',
         icon: 'Star',
         progress: 60,
         target: 5,
@@ -192,33 +193,33 @@
         id: 'lesson_1',
         sessionId: 'session_interview_1',
         modeId: 'interview',
-        topic: 'Behavioral Questions',
+        topic: 'Поведенческие вопросы',
         completedAt: now - 3600000,
         duration: 25,
         score: 85,
         wordsLearned: ['word_1', 'word_2', 'word_4'],
-        grammarTopics: ['Past Simple'],
+        grammarTopics: ['Прошедшее простое время'],
     },
     {
         id: 'lesson_2',
         sessionId: 'session_speaking_1',
         modeId: 'speaking',
-        topic: 'Weekend Plans',
+        topic: 'Планы на выходные',
         completedAt: now - 7200000,
         duration: 20,
         score: 78,
         wordsLearned: ['word_3'],
-        grammarTopics: ['Future Plans'],
+        grammarTopics: ['Планы на будущее'],
     },
     {
         id: 'lesson_3',
         sessionId: 'session_interview_1',
         modeId: 'interview',
-        topic: 'Professional Introduction',
+        topic: 'Профессиональное представление',
         completedAt: now - day,
         duration: 30,
         score: 92,
         wordsLearned: ['word_5'],
-        grammarTopics: ['Present Perfect'],
+        grammarTopics: ['Настоящее совершенное время'],
     },
     ];

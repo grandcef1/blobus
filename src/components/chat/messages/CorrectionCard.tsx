@@ -1,10 +1,11 @@
-// ARCHITECT: Карточка грамматической коррекции с подсветкой ошибок
+// ARCHITECT: Карточка грамматической коррекции — переведена на русский
+// Визуальные статусы: Мелкая / Средняя / Важная ошибка
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { AlertCircle, CheckCircle2, ChevronDown, BookOpen, Lightbulb } from 'lucide-react';
 import type { EnhancedMessage, GrammarCorrection } from '@/types/session';
-import { MessageBubble } from './MessageBubble';  // ← ПЕРЕНЕСЁН ВВЕРХ
+import { MessageBubble } from './MessageBubble';
 import { cn } from '@/lib/utils';
 
 interface CorrectionCardProps {
@@ -17,19 +18,19 @@ const SEVERITY_STYLES = {
         border: 'border-emerald-500/20',
         bg: 'bg-emerald-500/[0.06]',
         badge: 'bg-emerald-500/15 text-emerald-400',
-        label: 'Minor',
+        label: 'Мелкая',
     },
     moderate: {
         border: 'border-amber-500/20',
         bg: 'bg-amber-500/[0.06]',
         badge: 'bg-amber-500/15 text-amber-400',
-        label: 'Moderate',
+        label: 'Средняя',
     },
     major: {
         border: 'border-rose-500/20',
         bg: 'bg-rose-500/[0.06]',
         badge: 'bg-rose-500/15 text-rose-400',
-        label: 'Important',
+        label: 'Важная',
     },
 } as const;
 
@@ -51,12 +52,12 @@ export function CorrectionCard({ message, correction }: CorrectionCardProps) {
                     severityStyle.bg
                 )}
             >
-                {/* Header */}
+                {/* Шапка */}
                 <div className="flex items-center justify-between px-4 py-3">
                     <div className="flex items-center gap-2">
                         <AlertCircle className="size-4 text-[#f0f0f5]/60" />
                         <span className="text-sm font-medium text-[#f0f0f5]">
-                            Grammar Check
+                            Проверка грамматики
                         </span>
                         <span
                             className={cn(
@@ -70,6 +71,7 @@ export function CorrectionCard({ message, correction }: CorrectionCardProps) {
 
                     <button
                         onClick={() => setShowDetails(!showDetails)}
+                        aria-label={showDetails ? 'Свернуть детали' : 'Развернуть детали'}
                         className="flex size-6 items-center justify-center rounded-md text-[#f0f0f5]/40 transition-colors hover:bg-white/[0.08] hover:text-[#f0f0f5]"
                     >
                         <ChevronDown
@@ -81,24 +83,24 @@ export function CorrectionCard({ message, correction }: CorrectionCardProps) {
                     </button>
                 </div>
 
-                {/* Original vs Corrected */}
+                {/* Оригинал → Исправлено */}
                 <div className="space-y-3 px-4 pb-4">
-                    {/* Original */}
+                    {/* Оригинал */}
                     <div className="rounded-xl bg-black/20 p-3">
                         <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-[#f0f0f5]/30">
-                            Your message
+                            Твоё сообщение
                         </p>
                         <p className="text-sm leading-relaxed text-[#f0f0f5]/50 line-through decoration-rose-400/40">
                             {correction.originalText}
                         </p>
                     </div>
 
-                    {/* Corrected */}
+                    {/* Исправлено */}
                     <div className="flex items-start gap-2 rounded-xl bg-black/20 p-3">
                         <CheckCircle2 className="mt-0.5 size-4 shrink-0 text-emerald-400" />
                         <div>
                             <p className="mb-1 text-[10px] font-medium uppercase tracking-wider text-[#f0f0f5]/30">
-                                Corrected
+                                Исправлено
                             </p>
                             <p
                                 className="text-sm leading-relaxed text-[#f0f0f5]"
@@ -112,7 +114,7 @@ export function CorrectionCard({ message, correction }: CorrectionCardProps) {
                         </div>
                     </div>
 
-                    {/* Expandable details */}
+                    {/* Разворачиваемые детали */}
                     <motion.div
                         initial={false}
                         animate={{ height: showDetails ? 'auto' : 0 }}
@@ -121,7 +123,7 @@ export function CorrectionCard({ message, correction }: CorrectionCardProps) {
                     >
                         {showDetails && (
                             <div className="space-y-3 pt-2">
-                                {/* Explanation */}
+                                {/* Объяснение */}
                                 <div className="flex items-start gap-2 rounded-xl bg-black/20 p-3">
                                     <BookOpen className="mt-0.5 size-4 shrink-0 text-[#f0f0f5]/50" />
                                     <div>
@@ -134,13 +136,13 @@ export function CorrectionCard({ message, correction }: CorrectionCardProps) {
                                     </div>
                                 </div>
 
-                                {/* Examples */}
+                                {/* Примеры */}
                                 {correction.examples.length > 0 && (
                                     <div className="flex items-start gap-2 rounded-xl bg-black/20 p-3">
                                         <Lightbulb className="mt-0.5 size-4 shrink-0 text-amber-400/60" />
                                         <div className="min-w-0">
                                             <p className="mb-2 text-[10px] font-medium uppercase tracking-wider text-[#f0f0f5]/30">
-                                                Examples
+                                                Примеры
                                             </p>
                                             <ul className="space-y-1.5">
                                                 {correction.examples.map((example, index) => (
@@ -167,4 +169,3 @@ export function CorrectionCard({ message, correction }: CorrectionCardProps) {
         </div>
     );
 }
-

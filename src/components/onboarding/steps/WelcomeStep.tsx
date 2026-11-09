@@ -1,4 +1,4 @@
-// ARCHITECT: Приветственный шаг онбординга
+// ARCHITECT: Приветственный шаг онбординга — переведён на русский
 
 import { motion } from 'framer-motion';
 import { ArrowRight, Sparkles } from 'lucide-react';
@@ -28,23 +28,23 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
             >
                 <div className="mb-4 inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-4 py-1.5 text-xs tracking-wide text-[#f0f0f5]/70">
                     <Sparkles className="size-3.5" />
-                    <span>10 minutes to start</span>
+                    <span>10 минут до старта</span>
                 </div>
 
                 <h1 className="mb-4 text-4xl font-bold tracking-tight text-[#f0f0f5] md:text-5xl">
-                    Welcome to Blobus
+                    Добро пожаловать в Blobus
                 </h1>
 
                 <p className="mx-auto mb-10 max-w-md text-lg leading-relaxed text-[#f0f0f5]/60">
-                    Your personal AI English tutor. Let's set everything up so you can
-                    start learning right away.
+                    Твой персональный ИИ-репетитор английского. Давай всё настроим, чтобы
+                    ты мог сразу начать учиться.
                 </p>
 
                 <Button
                     onClick={onNext}
                     className="group inline-flex items-center gap-2 rounded-full bg-[#f0f0f5] px-8 py-3 text-base font-medium text-black transition-transform hover:scale-[1.02]"
                 >
-                    Let's Begin
+                    Начать
                     <ArrowRight className="size-4 transition-transform group-hover:translate-x-1" />
                 </Button>
             </motion.div>

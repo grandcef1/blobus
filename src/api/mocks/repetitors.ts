@@ -1,45 +1,46 @@
     // ARCHITECT: Мок-данные для ИИ-репетиторов
+    // Переведены на русский для русскоязычной аудитории
 
     import type { Repetitor, LearningModeConfig } from '../../types/onboarding';
 
     export const MOCK_REPETITORS: Repetitor[] = [
     {
         id: 'aria',
-        name: 'Aria',
-        personality: 'Encouraging and patient, perfect for beginners',
-        backstory: 'Aria spent 5 years teaching English in Tokyo before joining Blobus. She believes every mistake is a stepping stone to fluency.',
+        name: 'Ария',
+        personality: 'Поддерживающая и терпеливая, идеальна для начинающих',
+        backstory: 'Ария 5 лет преподавала английский в Токио, прежде чем присоединиться к Blobus. Она верит, что каждая ошибка — это шаг к свободному владению языком.',
         voiceAccent: 'american',
-        avatarColor: '#8B5CF6', // purple
+        avatarColor: '#8B5CF6', // фиолетовый
         specialties: ['speaking', 'grammar'],
         teachingStyle: 'encouraging',
     },
     {
         id: 'max',
-        name: 'Max',
-        personality: 'Professional and results-driven',
-        backstory: 'Former tech recruiter at Google, Max knows exactly what interviewers look for. He\'ll prepare you for any English interview.',
+        name: 'Макс',
+        personality: 'Профессиональный и ориентированный на результат',
+        backstory: 'Бывший рекрутер в Google, Макс знает, что именно ищут интервьюеры. Он подготовит тебя к любому собеседованию на английском.',
         voiceAccent: 'british',
-        avatarColor: '#3B82F6', // blue
+        avatarColor: '#3B82F6', // синий
         specialties: ['interview', 'general'],
         teachingStyle: 'professional',
     },
     {
         id: 'sophia',
-        name: 'Sophia',
-        personality: 'Casual and fun-loving',
-        backstory: 'Sophia is a travel blogger who\'s visited 47 countries. She makes learning feel like chatting with a friend at a coffee shop.',
+        name: 'София',
+        personality: 'Непринуждённая и весёлая',
+        backstory: 'София — тревел-блогер, посетившая 47 стран. С ней обучение похоже на разговор с другом в кофейне.',
         voiceAccent: 'australian',
-        avatarColor: '#10B981', // green
+        avatarColor: '#10B981', // зелёный
         specialties: ['speaking', 'general'],
         teachingStyle: 'casual',
     },
     {
         id: 'oliver',
-        name: 'Oliver',
-        personality: 'Structured and detail-oriented',
-        backstory: 'Cambridge graduate with a linguistics degree. Oliver breaks down complex grammar into simple, memorable patterns.',
+        name: 'Оливер',
+        personality: 'Структурированный и внимательный к деталям',
+        backstory: 'Выпускник Кембриджа со степенью по лингвистике. Оливер разбирает сложную грамматику на простые запоминающиеся паттерны.',
         voiceAccent: 'british',
-        avatarColor: '#F59E0B', // amber
+        avatarColor: '#F59E0B', // янтарный
         specialties: ['grammar', 'interview'],
         teachingStyle: 'structured',
     },
@@ -48,29 +49,29 @@
     export const MOCK_LEARNING_MODES: LearningModeConfig[] = [
     {
         id: 'interview',
-        label: 'Interview Preparation',
-        description: 'Practice common interview questions and professional vocabulary',
+        label: 'Подготовка к собеседованиям',
+        description: 'Практика типичных вопросов на собеседовании и профессиональная лексика',
         icon: 'Briefcase',
         recommendedRepetitors: ['max', 'oliver'],
     },
     {
         id: 'speaking',
-        label: 'Speaking Practice',
-        description: 'Improve fluency through natural conversations',
+        label: 'Разговорная практика',
+        description: 'Улучшение беглости речи через естественные диалоги',
         icon: 'MessageCircle',
         recommendedRepetitors: ['aria', 'sophia'],
     },
     {
         id: 'grammar',
-        label: 'Grammar Focus',
-        description: 'Master English grammar with structured lessons',
+        label: 'Грамматика',
+        description: 'Освой английскую грамматику через структурированные уроки',
         icon: 'BookOpen',
         recommendedRepetitors: ['oliver', 'aria'],
     },
     {
         id: 'general',
-        label: 'General English',
-        description: 'Everyday English for travel and casual conversations',
+        label: 'Общий английский',
+        description: 'Повседневный английский для путешествий и общения',
         icon: 'Globe',
         recommendedRepetitors: ['sophia', 'max'],
     },

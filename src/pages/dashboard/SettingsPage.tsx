@@ -1,4 +1,5 @@
-// ARCHITECT: Страница настроек пользователя
+// ARCHITECT: Страница настроек пользователя.
+// Полностью переведена на русский. Значение языка по умолчанию — 'ru'.
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -16,25 +17,26 @@ export function SettingsPage() {
     const [preferences, setPreferences] = useState({
         theme: 'dark',
         soundEffects: true,
-        language: 'en',
+        language: 'ru',
         autoCorrection: true,
     });
 
     return (
         <div className="min-h-screen bg-black p-6 md:p-8">
             <div className="mx-auto max-w-3xl">
+                {/* Шапка */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-8"
                 >
-                    <h1 className="text-3xl font-bold text-[#f0f0f5]">Settings</h1>
+                    <h1 className="text-3xl font-bold text-[#f0f0f5]">Настройки</h1>
                     <p className="mt-1 text-[#f0f0f5]/50">
-                        Manage your preferences and notifications
+                        Управляй своими предпочтениями и уведомлениями
                     </p>
                 </motion.div>
 
-                {/* Notifications */}
+                {/* Уведомления */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -43,37 +45,37 @@ export function SettingsPage() {
                 >
                     <div className="mb-6 flex items-center gap-3">
                         <Bell className="size-6 text-[#f0f0f5]/60" />
-                        <h2 className="text-xl font-semibold text-[#f0f0f5]">Notifications</h2>
+                        <h2 className="text-xl font-semibold text-[#f0f0f5]">Уведомления</h2>
                     </div>
 
                     <div className="space-y-4">
                         <SettingToggle
-                            label="Daily reminders"
-                            description="Get reminded to practice every day"
+                            label="Ежедневные напоминания"
+                            description="Получай напоминание заниматься каждый день"
                             checked={notifications.dailyReminder}
                             onChange={(checked) =>
                                 setNotifications({ ...notifications, dailyReminder: checked })
                             }
                         />
                         <SettingToggle
-                            label="Weekly progress reports"
-                            description="Receive a summary of your weekly progress"
+                            label="Еженедельные отчёты"
+                            description="Получай сводку своего прогресса за неделю"
                             checked={notifications.weeklyProgress}
                             onChange={(checked) =>
                                 setNotifications({ ...notifications, weeklyProgress: checked })
                             }
                         />
                         <SettingToggle
-                            label="New features"
-                            description="Be notified when we launch new features"
+                            label="Новые функции"
+                            description="Узнавай первым о запуске новых возможностей"
                             checked={notifications.newFeatures}
                             onChange={(checked) =>
                                 setNotifications({ ...notifications, newFeatures: checked })
                             }
                         />
                         <SettingToggle
-                            label="Marketing emails"
-                            description="Receive tips and promotional offers"
+                            label="Маркетинговые письма"
+                            description="Получай советы и специальные предложения"
                             checked={notifications.marketingEmails}
                             onChange={(checked) =>
                                 setNotifications({ ...notifications, marketingEmails: checked })
@@ -82,7 +84,7 @@ export function SettingsPage() {
                     </div>
                 </motion.div>
 
-                {/* Preferences */}
+                {/* Предпочтения */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -91,32 +93,35 @@ export function SettingsPage() {
                 >
                     <div className="mb-6 flex items-center gap-3">
                         <Moon className="size-6 text-[#f0f0f5]/60" />
-                        <h2 className="text-xl font-semibold text-[#f0f0f5]">Preferences</h2>
+                        <h2 className="text-xl font-semibold text-[#f0f0f5]">Предпочтения</h2>
                     </div>
 
                     <div className="space-y-4">
+                        {/* Тема */}
                         <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
                             <div className="flex items-center gap-3">
                                 <Moon className="size-5 text-[#f0f0f5]/50" />
                                 <div>
-                                    <p className="font-medium text-[#f0f0f5]">Theme</p>
-                                    <p className="text-sm text-[#f0f0f5]/40">Choose your preferred theme</p>
+                                    <p className="font-medium text-[#f0f0f5]">Тема</p>
+                                    <p className="text-sm text-[#f0f0f5]/40">Выбери предпочитаемую тему</p>
                                 </div>
                             </div>
                             <select
                                 value={preferences.theme}
                                 onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
+                                aria-label="Выбор темы"
                                 className="rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-[#f0f0f5] focus:outline-none focus:ring-2 focus:ring-white/20"
                             >
-                                <option value="dark">Dark</option>
-                                <option value="light">Light</option>
-                                <option value="system">System</option>
+                                <option value="dark">Тёмная</option>
+                                <option value="light">Светлая</option>
+                                <option value="system">Системная</option>
                             </select>
                         </div>
 
+                        {/* Звуковые эффекты */}
                         <SettingToggle
-                            label="Sound effects"
-                            description="Play sounds for notifications and interactions"
+                            label="Звуковые эффекты"
+                            description="Воспроизводить звуки при уведомлениях и действиях"
                             icon={Volume2}
                             checked={preferences.soundEffects}
                             onChange={(checked) =>
@@ -124,28 +129,31 @@ export function SettingsPage() {
                             }
                         />
 
+                        {/* Язык */}
                         <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
                             <div className="flex items-center gap-3">
                                 <Globe className="size-5 text-[#f0f0f5]/50" />
                                 <div>
-                                    <p className="font-medium text-[#f0f0f5]">Language</p>
-                                    <p className="text-sm text-[#f0f0f5]/40">Interface language</p>
+                                    <p className="font-medium text-[#f0f0f5]">Язык</p>
+                                    <p className="text-sm text-[#f0f0f5]/40">Язык интерфейса</p>
                                 </div>
                             </div>
                             <select
                                 value={preferences.language}
                                 onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
+                                aria-label="Выбор языка"
                                 className="rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-[#f0f0f5] focus:outline-none focus:ring-2 focus:ring-white/20"
                             >
-                                <option value="en">English</option>
                                 <option value="ru">Русский</option>
+                                <option value="en">English</option>
                                 <option value="es">Español</option>
                             </select>
                         </div>
 
+                        {/* Автокоррекция */}
                         <SettingToggle
-                            label="Auto-correction"
-                            description="Automatically correct grammar mistakes in chat"
+                            label="Автокоррекция"
+                            description="Автоматически исправлять грамматические ошибки в чате"
                             icon={Shield}
                             checked={preferences.autoCorrection}
                             onChange={(checked) =>
@@ -159,7 +167,7 @@ export function SettingsPage() {
     );
 }
 
-// Toggle Component
+// Компонент переключателя настройки
 interface SettingToggleProps {
     label: string;
     description: string;
@@ -185,7 +193,11 @@ function SettingToggle({
                 </div>
             </div>
             <button
+                type="button"
                 onClick={() => onChange(!checked)}
+                role="switch"
+                aria-checked={checked}
+                aria-label={label}
                 className={cn(
                     'relative h-6 w-11 rounded-full transition-colors',
                     checked ? 'bg-[#f0f0f5]' : 'bg-white/10'

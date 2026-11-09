@@ -1,4 +1,5 @@
-// ARCHITECT: Интерактивная карточка квиза с вариантами ответа
+// ARCHITECT: Интерактивная карточка квиза — переведена на русский
+// Состояния: выбор → результат → объяснение → повтор
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -46,21 +47,24 @@ export function QuizCard({ quiz }: QuizCardProps) {
     return (
         <div className="flex justify-start">
             <div className="w-full max-w-[92%] overflow-hidden rounded-2xl border border-indigo-500/20 bg-indigo-500/[0.05] md:max-w-[80%]">
+                {/* Шапка */}
                 <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
                     <HelpCircle className="size-4 text-indigo-400" />
-                    <span className="text-sm font-medium text-[#f0f0f5]">Quiz Time</span>
+                    <span className="text-sm font-medium text-[#f0f0f5]">Викторина</span>
                     {quiz.timeLimit && (
                         <span className="ml-auto rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-[#f0f0f5]/50">
-                            {quiz.timeLimit}s
+                            {quiz.timeLimit} сек
                         </span>
                     )}
                 </div>
 
                 <div className="p-4">
+                    {/* Вопрос */}
                     <p className="mb-4 text-sm font-medium leading-relaxed text-[#f0f0f5]">
                         {quiz.question}
                     </p>
 
+                    {/* Варианты ответа */}
                     <div className="space-y-2">
                         {quiz.options.map((option, index) => (
                             <motion.button
@@ -75,6 +79,7 @@ export function QuizCard({ quiz }: QuizCardProps) {
                                     getOptionStyle(option)
                                 )}
                             >
+                                {/* Буква варианта */}
                                 <span
                                     className={cn(
                                         'flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold',
@@ -85,13 +90,14 @@ export function QuizCard({ quiz }: QuizCardProps) {
                                                 : 'bg-white/10 text-[#f0f0f5]/60'
                                     )}
                                 >
-                                    {option.text.charAt(0).toUpperCase()}
+                                    {['А', 'Б', 'В', 'Г'][index] ?? option.text.charAt(0).toUpperCase()}
                                 </span>
 
                                 <span className="flex-1 text-sm text-[#f0f0f5]">
                                     {option.text}
                                 </span>
 
+                                {/* Иконка результата */}
                                 <AnimatePresence>
                                     {showResult && option.isCorrect && (
                                         <motion.span
@@ -116,6 +122,7 @@ export function QuizCard({ quiz }: QuizCardProps) {
                         ))}
                     </div>
 
+                    {/* Объяснение после ответа */}
                     <AnimatePresence>
                         {showResult && (
                             <motion.div
@@ -135,7 +142,7 @@ export function QuizCard({ quiz }: QuizCardProps) {
                                             className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-[#f0f0f5]/50 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]"
                                         >
                                             <RotateCcw className="size-3" />
-                                            Retry
+                                            Заново
                                         </button>
                                     </div>
                                 </div>

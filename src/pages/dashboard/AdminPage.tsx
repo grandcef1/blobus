@@ -1,4 +1,5 @@
-// ARCHITECT: Админ-панель для управления пользователями и системой поддержки
+// ARCHITECT: Админ-панель для управления пользователями и системой поддержки.
+// Полностью переведена на русский язык.
 
 import { useState } from 'react';
 import { motion } from 'framer-motion';
@@ -9,7 +10,7 @@ interface User {
     id: string;
     name: string;
     email: string;
-    plan: 'free' | 'pro' | 'team';
+    plan: 'free' | 'pro';
     status: 'active' | 'suspended' | 'pending';
     lastActive: string;
     issues: number;
@@ -28,7 +29,7 @@ interface SupportTicket {
 const MOCK_USERS: User[] = [
     {
         id: 'user_1',
-        name: 'Alex Developer',
+        name: 'Алекс Разработчик',
         email: 'alex@blobus.ai',
         plan: 'pro',
         status: 'active',
@@ -37,7 +38,7 @@ const MOCK_USERS: User[] = [
     },
     {
         id: 'user_2',
-        name: 'Maria Johnson',
+        name: 'Мария Иванова',
         email: 'maria@example.com',
         plan: 'pro',
         status: 'active',
@@ -46,8 +47,8 @@ const MOCK_USERS: User[] = [
     },
     {
         id: 'user_3',
-        name: 'John Smith',
-        email: 'john@example.com',
+        name: 'Иван Смирнов',
+        email: 'ivan@example.com',
         plan: 'free',
         status: 'active',
         lastActive: '2026-11-09T18:45:00Z',
@@ -55,17 +56,17 @@ const MOCK_USERS: User[] = [
     },
     {
         id: 'user_4',
-        name: 'Sarah Williams',
+        name: 'Сара Уильямс',
         email: 'sarah@example.com',
-        plan: 'team',
+        plan: 'pro',
         status: 'active',
         lastActive: '2026-11-10T09:20:00Z',
         issues: 1,
     },
     {
         id: 'user_5',
-        name: 'David Brown',
-        email: 'david@example.com',
+        name: 'Дмитрий Козлов',
+        email: 'dmitry@example.com',
         plan: 'pro',
         status: 'suspended',
         lastActive: '2026-11-05T16:10:00Z',
@@ -77,8 +78,8 @@ const MOCK_TICKETS: SupportTicket[] = [
     {
         id: 'ticket_1',
         userId: 'user_2',
-        userName: 'Maria Johnson',
-        subject: 'Grammar correction not working',
+        userName: 'Мария Иванова',
+        subject: 'Не работает коррекция грамматики',
         priority: 'high',
         status: 'open',
         createdAt: '2026-11-10T10:30:00Z',
@@ -86,8 +87,8 @@ const MOCK_TICKETS: SupportTicket[] = [
     {
         id: 'ticket_2',
         userId: 'user_4',
-        userName: 'Sarah Williams',
-        subject: 'Cannot add team member',
+        userName: 'Сара Уильямс',
+        subject: 'Не могу добавить члена команды',
         priority: 'medium',
         status: 'in-progress',
         createdAt: '2026-11-09T15:20:00Z',
@@ -95,13 +96,26 @@ const MOCK_TICKETS: SupportTicket[] = [
     {
         id: 'ticket_3',
         userId: 'user_3',
-        userName: 'John Smith',
-        subject: 'Question about vocabulary review',
+        userName: 'Иван Смирнов',
+        subject: 'Вопрос по повторению слов',
         priority: 'low',
         status: 'resolved',
         createdAt: '2026-11-08T11:45:00Z',
     },
 ];
+
+// ARCHITECT: русифицированные подписи статусов и приоритетов
+const STATUS_LABELS: Record<SupportTicket['status'], string> = {
+    open: 'открыт',
+    'in-progress': 'в работе',
+    resolved: 'решён',
+};
+
+const USER_STATUS_LABELS: Record<User['status'], string> = {
+    active: 'активен',
+    suspended: 'заблокирован',
+    pending: 'ожидает',
+};
 
 export function AdminPage() {
     const [searchQuery, setSearchQuery] = useState('');
@@ -118,51 +132,51 @@ export function AdminPage() {
     return (
         <div className="min-h-screen bg-black p-6 md:p-8">
             <div className="mx-auto max-w-7xl">
-                {/* Header */}
+                {/* Шапка */}
                 <motion.div
                     initial={{ opacity: 0, y: -10 }}
                     animate={{ opacity: 1, y: 0 }}
                     className="mb-8"
                 >
-                    <h1 className="text-3xl font-bold text-[#f0f0f5]">Admin Dashboard</h1>
+                    <h1 className="text-3xl font-bold text-[#f0f0f5]">Панель администратора</h1>
                     <p className="mt-1 text-[#f0f0f5]/50">
-                        Manage users, support tickets, and system analytics
+                        Управление пользователями, тикетами поддержки и аналитикой
                     </p>
                 </motion.div>
 
-                {/* Stats Grid */}
+                {/* Сетка статистики */}
                 <div className="mb-8 grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
                     <StatCard
                         icon={Users}
-                        label="Total Users"
-                        value="1,247"
+                        label="Всего пользователей"
+                        value="1 247"
                         change="+12%"
                         color="blue"
                     />
                     <StatCard
                         icon={TrendingUp}
-                        label="Active Today"
+                        label="Активных сегодня"
                         value="892"
                         change="+8%"
                         color="emerald"
                     />
                     <StatCard
                         icon={MessageSquare}
-                        label="Open Tickets"
+                        label="Открытых тикетов"
                         value="23"
                         change="-5%"
                         color="amber"
                     />
                     <StatCard
                         icon={AlertCircle}
-                        label="Critical Issues"
+                        label="Критических проблем"
                         value="3"
                         change="0%"
                         color="rose"
                     />
                 </div>
 
-                {/* Support Tickets */}
+                {/* Тикеты поддержки */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -170,9 +184,9 @@ export function AdminPage() {
                     className="mb-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6"
                 >
                     <div className="mb-6 flex items-center justify-between">
-                        <h2 className="text-xl font-semibold text-[#f0f0f5]">Recent Support Tickets</h2>
+                        <h2 className="text-xl font-semibold text-[#f0f0f5]">Последние тикеты поддержки</h2>
                         <button className="text-sm text-[#f0f0f5]/60 transition-colors hover:text-[#f0f0f5]">
-                            View All
+                            Смотреть все
                         </button>
                     </div>
 
@@ -198,14 +212,14 @@ export function AdminPage() {
                                     <div>
                                         <p className="font-medium text-[#f0f0f5]">{ticket.subject}</p>
                                         <p className="text-sm text-[#f0f0f5]/50">
-                                            {ticket.userName} · {new Date(ticket.createdAt).toLocaleDateString()}
+                                            {ticket.userName} · {new Date(ticket.createdAt).toLocaleDateString('ru')}
                                         </p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-3">
                                     <span
                                         className={cn(
-                                            'rounded-full px-3 py-1 text-xs font-medium capitalize',
+                                            'rounded-full px-3 py-1 text-xs font-medium',
                                             ticket.status === 'open'
                                                 ? 'bg-rose-500/10 text-rose-400'
                                                 : ticket.status === 'in-progress'
@@ -213,10 +227,10 @@ export function AdminPage() {
                                                     : 'bg-emerald-500/10 text-emerald-400'
                                         )}
                                     >
-                                        {ticket.status}
+                                        {STATUS_LABELS[ticket.status]}
                                     </span>
                                     <button className="text-sm text-[#f0f0f5]/60 transition-colors hover:text-[#f0f0f5]">
-                                        View
+                                        Открыть
                                     </button>
                                 </div>
                             </div>
@@ -224,7 +238,7 @@ export function AdminPage() {
                     </div>
                 </motion.div>
 
-                {/* Users Management */}
+                {/* Управление пользователями */}
                 <motion.div
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
@@ -232,61 +246,62 @@ export function AdminPage() {
                     className="rounded-2xl border border-white/10 bg-white/[0.02] p-6"
                 >
                     <div className="mb-6 flex items-center justify-between">
-                        <h2 className="text-xl font-semibold text-[#f0f0f5]">User Management</h2>
+                        <h2 className="text-xl font-semibold text-[#f0f0f5]">Управление пользователями</h2>
                         <button className="rounded-full bg-[#f0f0f5] px-6 py-2 text-sm font-medium text-black transition-all hover:bg-white">
-                            Export Users
+                            Экспорт пользователей
                         </button>
                     </div>
 
-                    {/* Search & Filters */}
+                    {/* Поиск и фильтры */}
                     <div className="mb-6 flex flex-col gap-4 sm:flex-row">
                         <div className="relative flex-1">
                             <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#f0f0f5]/30" />
                             <input
                                 type="text"
-                                placeholder="Search users..."
+                                placeholder="Поиск пользователей..."
                                 value={searchQuery}
                                 onChange={(e) => setSearchQuery(e.target.value)}
+                                aria-label="Поиск пользователей"
                                 className="w-full rounded-xl border border-white/10 bg-white/[0.02] py-2.5 pl-10 pr-4 text-sm text-[#f0f0f5] placeholder:text-[#f0f0f5]/30 focus:border-white/25 focus:outline-none"
                             />
                         </div>
                         <div className="flex items-center gap-2">
-                            <Filter className="size-4 text-[#f0f0f5]/40" />
+                            <Filter className="size-4 text-[#f0f0f5]/40" aria-hidden="true" />
                             <select
                                 value={filterPlan}
                                 onChange={(e) => setFilterPlan(e.target.value)}
+                                aria-label="Фильтр по тарифу"
                                 className="rounded-xl border border-white/10 bg-white/[0.02] px-4 py-2.5 text-sm text-[#f0f0f5] focus:border-white/25 focus:outline-none"
                             >
-                                <option value="all">All Plans</option>
+                                <option value="all">Все тарифы</option>
                                 <option value="free">Free</option>
                                 <option value="pro">Pro</option>
-                                <option value="team">Team</option>
                             </select>
                         </div>
                     </div>
 
-                    {/* Users Table */}
+                    {/* Таблица пользователей */}
                     <div className="overflow-x-auto">
                         <table className="w-full">
                             <thead>
                                 <tr className="border-b border-white/10">
                                     <th className="pb-3 text-left text-xs font-medium uppercase tracking-wider text-[#f0f0f5]/40">
-                                        User
+                                        Пользователь
                                     </th>
                                     <th className="pb-3 text-left text-xs font-medium uppercase tracking-wider text-[#f0f0f5]/40">
-                                        Plan
+                                        Тариф
                                     </th>
                                     <th className="pb-3 text-left text-xs font-medium uppercase tracking-wider text-[#f0f0f5]/40">
-                                        Status
+                                        Статус
                                     </th>
                                     <th className="pb-3 text-left text-xs font-medium uppercase tracking-wider text-[#f0f0f5]/40">
-                                        Last Active
+                                        Последняя активность
                                     </th>
                                     <th className="pb-3 text-left text-xs font-medium uppercase tracking-wider text-[#f0f0f5]/40">
-                                        Issues
+                                        Проблемы
                                     </th>
                                     <th className="pb-3 text-left text-xs font-medium uppercase tracking-wider text-[#f0f0f5]/40">
-                                        Actions
+                                        Действия
                                     </th>
                                 </tr>
                             </thead>
@@ -302,12 +317,10 @@ export function AdminPage() {
                                         <td className="py-4">
                                             <span
                                                 className={cn(
-                                                    'rounded-full px-3 py-1 text-xs font-medium capitalize',
+                                                    'rounded-full px-3 py-1 text-xs font-medium uppercase',
                                                     user.plan === 'pro'
                                                         ? 'bg-purple-500/10 text-purple-400'
-                                                        : user.plan === 'team'
-                                                            ? 'bg-blue-500/10 text-blue-400'
-                                                            : 'bg-white/10 text-[#f0f0f5]/60'
+                                                        : 'bg-white/10 text-[#f0f0f5]/60'
                                                 )}
                                             >
                                                 {user.plan}
@@ -316,7 +329,7 @@ export function AdminPage() {
                                         <td className="py-4">
                                             <span
                                                 className={cn(
-                                                    'flex items-center gap-1.5 text-sm capitalize',
+                                                    'flex items-center gap-1.5 text-sm',
                                                     user.status === 'active'
                                                         ? 'text-emerald-400'
                                                         : user.status === 'suspended'
@@ -324,7 +337,7 @@ export function AdminPage() {
                                                             : 'text-amber-400'
                                                 )}
                                             >
-                                                <div
+                                                <span
                                                     className={cn(
                                                         'size-2 rounded-full',
                                                         user.status === 'active'
@@ -334,11 +347,11 @@ export function AdminPage() {
                                                                 : 'bg-amber-400'
                                                     )}
                                                 />
-                                                {user.status}
+                                                {USER_STATUS_LABELS[user.status]}
                                             </span>
                                         </td>
                                         <td className="py-4 text-sm text-[#f0f0f5]/60">
-                                            {new Date(user.lastActive).toLocaleDateString()}
+                                            {new Date(user.lastActive).toLocaleDateString('ru')}
                                         </td>
                                         <td className="py-4">
                                             <span
@@ -355,10 +368,10 @@ export function AdminPage() {
                                         <td className="py-4">
                                             <div className="flex items-center gap-2">
                                                 <button className="rounded-lg px-3 py-1.5 text-sm text-[#f0f0f5]/60 transition-colors hover:bg-white/5 hover:text-[#f0f0f5]">
-                                                    Edit
+                                                    Изменить
                                                 </button>
                                                 <button className="rounded-lg px-3 py-1.5 text-sm text-rose-400/60 transition-colors hover:bg-rose-500/10 hover:text-rose-400">
-                                                    Suspend
+                                                    Заблокировать
                                                 </button>
                                             </div>
                                         </td>
@@ -373,7 +386,7 @@ export function AdminPage() {
     );
 }
 
-// Stat Card Component
+// Карточка статистики
 interface StatCardProps {
     icon: typeof Users;
     label: string;

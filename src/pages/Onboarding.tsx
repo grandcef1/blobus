@@ -1,4 +1,5 @@
 // ARCHITECT: Мастер настройки - онбординг новых пользователей
+// Пошаговый флоу: приветствие → авторизация → репетитор → режим → расписание
 
 import { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -90,6 +91,7 @@ export function Onboarding() {
 
     return (
         <div className="flex min-h-screen flex-col bg-black">
+            {/* Прогресс-бар */}
             <div className="fixed left-0 top-0 z-50 h-1 w-full bg-white/5">
                 <motion.div
                     className="h-full bg-[#f0f0f5]"

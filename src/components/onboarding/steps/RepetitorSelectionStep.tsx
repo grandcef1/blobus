@@ -1,4 +1,4 @@
-// ARCHITECT: Выбор ИИ-репетитора (блобатара)
+// ARCHITECT: Выбор ИИ-репетитора (блобатара) — переведён на русский
 
 import { motion } from 'framer-motion';
 import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
@@ -37,11 +37,11 @@ export function RepetitorSelectionStep({
         <div>
             <div className="mb-10 text-center">
                 <h2 className="mb-3 text-3xl font-bold text-[#f0f0f5]">
-                    Choose your tutor
+                    Выбери репетитора
                 </h2>
                 <p className="mx-auto max-w-md text-[#f0f0f5]/50">
-                    Each tutor has their own personality and teaching style. Pick the one
-                    that feels right for you.
+                    У каждого репетитора свой характер и стиль преподавания. Выбери того,
+                    кто тебе по душе.
                 </p>
             </div>
 
@@ -66,7 +66,7 @@ export function RepetitorSelectionStep({
                                     : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]'
                             )}
                         >
-                            {/* Selection indicator */}
+                            {/* Индикатор выбора */}
                             {isSelected && (
                                 <motion.div
                                     initial={{ scale: 0 }}
@@ -77,7 +77,7 @@ export function RepetitorSelectionStep({
                                 </motion.div>
                             )}
 
-                            {/* Avatar placeholder - will be replaced with Blobatar */}
+                            {/* Заглушка аватара — позже заменим на Blobatar */}
                             <div
                                 className="mb-4 flex size-20 items-center justify-center rounded-full"
                                 style={{ backgroundColor: `${repetitor.avatarColor}20` }}
@@ -111,7 +111,7 @@ export function RepetitorSelectionStep({
                 })}
             </motion.div>
 
-            {/* Navigation */}
+            {/* Навигация */}
             <div className="mt-10 flex items-center justify-between">
                 <Button
                     onClick={onBack}
@@ -119,7 +119,7 @@ export function RepetitorSelectionStep({
                     className="flex items-center gap-2 text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
                 >
                     <ArrowLeft className="size-4" />
-                    Back
+                    Назад
                 </Button>
 
                 <Button
@@ -132,7 +132,7 @@ export function RepetitorSelectionStep({
                             : 'bg-white/10 text-[#f0f0f5]/30 cursor-not-allowed'
                     )}
                 >
-                    Continue
+                    Продолжить
                     <ArrowRight className="size-4" />
                 </Button>
             </div>

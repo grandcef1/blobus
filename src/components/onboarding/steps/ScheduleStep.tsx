@@ -1,4 +1,5 @@
-// ARCHITECT: Выбор расписания занятий
+// ARCHITECT: Выбор расписания занятий — переведён на русский
+// Все варианты частоты и длительности локализованы
 
 import { useState } from 'react';
 import { ArrowLeft, ArrowRight, Clock, Calendar } from 'lucide-react';
@@ -14,17 +15,17 @@ interface ScheduleStepProps {
 }
 
 const FREQUENCY_OPTIONS = [
-    { id: 'daily', label: 'Every day', description: 'Build a strong habit' },
-    { id: 'every-other-day', label: 'Every other day', description: 'Balanced pace' },
-    { id: '3-times-week', label: '3 times a week', description: 'Steady progress' },
-    { id: 'weekly', label: 'Once a week', description: 'Light practice' },
+    { id: 'daily', label: 'Каждый день', description: 'Выработай привычку' },
+    { id: 'every-other-day', label: 'Через день', description: 'Сбалансированный темп' },
+    { id: '3-times-week', label: '3 раза в неделю', description: 'Стабильный прогресс' },
+    { id: 'weekly', label: 'Раз в неделю', description: 'Лёгкая практика' },
 ] as const;
 
 const DURATION_OPTIONS = [
-    { id: 15, label: '15 min', description: 'Quick sessions' },
-    { id: 30, label: '30 min', description: 'Recommended' },
-    { id: 45, label: '45 min', description: 'Deep focus' },
-    { id: 60, label: '60 min', description: 'Intensive' },
+    { id: 15, label: '15 мин', description: 'Быстрые занятия' },
+    { id: 30, label: '30 мин', description: 'Рекомендуем' },
+    { id: 45, label: '45 мин', description: 'Глубокое погружение' },
+    { id: 60, label: '60 мин', description: 'Интенсив' },
 ] as const;
 
 export function ScheduleStep({ schedule, onUpdate, onNext, onBack }: ScheduleStepProps) {
@@ -48,18 +49,18 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack }: ScheduleSte
         <div className="mx-auto max-w-2xl">
             <div className="mb-10 text-center">
                 <h2 className="mb-3 text-3xl font-bold text-[#f0f0f5]">
-                    How often will you practice?
+                    Как часто будешь заниматься?
                 </h2>
                 <p className="text-[#f0f0f5]/50">
-                    Consistency beats intensity. Choose a pace that fits your life.
+                    Постоянство важнее интенсивности. Выбери темп, который впишется в твою жизнь.
                 </p>
             </div>
 
-            {/* Frequency Selection */}
+            {/* Выбор частоты */}
             <div className="mb-8">
                 <div className="mb-4 flex items-center gap-2 text-sm font-medium text-[#f0f0f5]/70">
                     <Calendar className="size-4" />
-                    Frequency
+                    Частота занятий
                 </div>
                 <div className="grid grid-cols-2 gap-3">
                     {FREQUENCY_OPTIONS.map((option) => (
@@ -80,11 +81,11 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack }: ScheduleSte
                 </div>
             </div>
 
-            {/* Duration Selection */}
+            {/* Выбор длительности */}
             <div className="mb-10">
                 <div className="mb-4 flex items-center gap-2 text-sm font-medium text-[#f0f0f5]/70">
                     <Clock className="size-4" />
-                    Session duration
+                    Длительность занятия
                 </div>
                 <div className="grid grid-cols-4 gap-3">
                     {DURATION_OPTIONS.map((option) => (
@@ -114,14 +115,14 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack }: ScheduleSte
                     className="flex items-center gap-2 text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
                 >
                     <ArrowLeft className="size-4" />
-                    Back
+                    Назад
                 </Button>
 
                 <Button
                     onClick={handleNext}
                     className="flex items-center gap-2 rounded-full bg-[#f0f0f5] px-8 py-3 text-black transition-transform hover:scale-[1.02]"
                 >
-                    Start Learning
+                    Начать обучение
                     <ArrowRight className="size-4" />
                 </Button>
             </div>

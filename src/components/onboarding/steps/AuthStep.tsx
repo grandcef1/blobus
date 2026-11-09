@@ -1,4 +1,5 @@
-// ARCHITECT: Шаг авторизации/регистрации
+// ARCHITECT: Шаг авторизации/регистрации — переведён на русский
+// Форма входа и регистрации с валидацией на клиенте
 
 import { useState } from 'react';
 import { Mail, Lock, User } from 'lucide-react';
@@ -23,16 +24,16 @@ export function AuthStep({ onNext }: AuthStepProps) {
         <div className="mx-auto max-w-md">
             <div className="mb-8 text-center">
                 <h2 className="mb-2 text-3xl font-bold text-[#f0f0f5]">
-                    {isLogin ? 'Welcome back' : 'Create your account'}
+                    {isLogin ? 'С возвращением' : 'Создай свой аккаунт'}
                 </h2>
                 <p className="text-[#f0f0f5]/50">
                     {isLogin
-                        ? 'Sign in to continue your learning journey'
-                        : 'Join thousands of learners improving their English'}
+                        ? 'Войди, чтобы продолжить обучение'
+                        : 'Присоединяйся к тысячам, кто улучшает свой английский'}
                 </p>
             </div>
 
-            {/* Social Login Buttons */}
+            {/* Кнопки соцсетей */}
             <div className="mb-6 space-y-3">
                 <button className="flex w-full items-center justify-center gap-3 rounded-xl border border-white/10 bg-white/[0.04] py-3 text-sm font-medium text-[#f0f0f5] transition-colors hover:bg-white/[0.08]">
                     <svg className="size-5" viewBox="0 0 24 24">
@@ -53,24 +54,24 @@ export function AuthStep({ onNext }: AuthStepProps) {
                             d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.07l3.66 2.84c.87-2.6 3.3-4.53 6.16-4.53z"
                         />
                     </svg>
-                    Continue with Google
+                    Войти через Google
                 </button>
             </div>
 
             <div className="mb-6 flex items-center gap-4">
                 <div className="h-px flex-1 bg-white/10" />
-                <span className="text-xs text-[#f0f0f5]/30">or</span>
+                <span className="text-xs text-[#f0f0f5]/30">или</span>
                 <div className="h-px flex-1 bg-white/10" />
             </div>
 
-            {/* Email/Password Form */}
+            {/* Форма с email/паролем */}
             <form onSubmit={handleSubmit} className="space-y-4">
                 {!isLogin && (
                     <div className="relative">
                         <User className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#f0f0f5]/30" />
                         <input
                             type="text"
-                            placeholder="Your name"
+                            placeholder="Твоё имя"
                             value={name}
                             onChange={(e) => setName(e.target.value)}
                             className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 text-sm text-[#f0f0f5] placeholder:text-[#f0f0f5]/30 focus:border-white/25 focus:outline-none"
@@ -82,7 +83,7 @@ export function AuthStep({ onNext }: AuthStepProps) {
                     <Mail className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#f0f0f5]/30" />
                     <input
                         type="email"
-                        placeholder="Email address"
+                        placeholder="Email"
                         value={email}
                         onChange={(e) => setEmail(e.target.value)}
                         className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 text-sm text-[#f0f0f5] placeholder:text-[#f0f0f5]/30 focus:border-white/25 focus:outline-none"
@@ -93,7 +94,7 @@ export function AuthStep({ onNext }: AuthStepProps) {
                     <Lock className="absolute left-4 top-1/2 size-4 -translate-y-1/2 text-[#f0f0f5]/30" />
                     <input
                         type="password"
-                        placeholder="Password"
+                        placeholder="Пароль"
                         value={password}
                         onChange={(e) => setPassword(e.target.value)}
                         className="w-full rounded-xl border border-white/10 bg-white/[0.04] py-3 pl-11 pr-4 text-sm text-[#f0f0f5] placeholder:text-[#f0f0f5]/30 focus:border-white/25 focus:outline-none"
@@ -104,17 +105,17 @@ export function AuthStep({ onNext }: AuthStepProps) {
                     type="submit"
                     className="w-full rounded-xl bg-[#f0f0f5] py-3 text-base font-medium text-black transition-transform hover:scale-[1.01]"
                 >
-                    {isLogin ? 'Sign In' : 'Create Account'}
+                    {isLogin ? 'Войти' : 'Создать аккаунт'}
                 </Button>
             </form>
 
             <p className="mt-6 text-center text-sm text-[#f0f0f5]/40">
-                {isLogin ? "Don't have an account?" : 'Already have an account?'}{' '}
+                {isLogin ? 'Нет аккаунта?' : 'Уже есть аккаунт?'}{' '}
                 <button
                     onClick={() => setIsLogin(!isLogin)}
                     className="text-[#f0f0f5] underline underline-offset-2 hover:text-[#f0f0f5]/80"
                 >
-                    {isLogin ? 'Sign up' : 'Sign in'}
+                    {isLogin ? 'Зарегистрируйся' : 'Войди'}
                 </button>
             </p>
         </div>

@@ -1,4 +1,5 @@
-// ARCHITECT: Главный сайдбар приложения - навигация, сессии, профиль
+// ARCHITECT: Главный сайдбар приложения — навигация, сессии, профиль.
+// Полностью переведён на русский язык.
 
 import { Link, useLocation } from 'react-router-dom';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -28,20 +29,19 @@ interface NavItem {
     label: string;
     href: string;
     icon: typeof MessageSquare;
-    badge?: number;
 }
 
+// ARCHITECT: пункты главного меню на русском
 const NAV_ITEMS: NavItem[] = [
-    { id: 'chat', label: 'Lessons', href: '/app/chat', icon: MessageSquare },
-    { id: 'profile', label: 'Profile', href: '/app/profile', icon: User },
-    { id: 'settings', label: 'Settings', href: '/app/settings', icon: Settings },
-    { id: 'billing', label: 'Billing', href: '/app/billing', icon: CreditCard },
-    { id: 'admin', label: 'Admin', href: '/app/admin', icon: Shield },
+    { id: 'chat', label: 'Уроки', href: '/app/chat', icon: MessageSquare },
+    { id: 'profile', label: 'Профиль', href: '/app/profile', icon: User },
+    { id: 'settings', label: 'Настройки', href: '/app/settings', icon: Settings },
+    { id: 'billing', label: 'Подписка', href: '/app/billing', icon: CreditCard },
+    { id: 'admin', label: 'Админ', href: '/app/admin', icon: Shield },
 ];
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
     const location = useLocation();
-   // const [hoveredSession, setHoveredSession] = useState<string | null>(null);
 
     const getRepetitor = (repetitorId: string) => {
         return MOCK_REPETITORS.find((r) => r.id === repetitorId);
@@ -57,7 +57,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 'border-r border-white/10 bg-[#0a0a0f]'
             )}
         >
-            {/* Logo */}
+            {/* Логотип */}
             <div className="flex h-16 items-center gap-3 px-4">
                 <div className="flex size-9 items-center justify-center rounded-xl bg-white/10">
                     <GraduationCap className="size-5 text-[#f0f0f5]" />
@@ -76,24 +76,25 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 </AnimatePresence>
             </div>
 
-            {/* New Session Button */}
+            {/* Кнопка нового урока */}
             <div className="px-3 pb-2">
                 <button
+                    type="button"
                     className={cn(
                         'flex w-full items-center gap-3 rounded-xl px-3 py-2.5',
                         'bg-white/[0.06] text-[#f0f0f5] transition-colors',
                         'hover:bg-white/[0.1]'
                     )}
                 >
-                    <Plus className="size-4 shrink-0" />
+                    <Plus className="size-4 shrink-0" aria-hidden="true" />
                     {!isCollapsed && (
-                        <span className="truncate text-sm font-medium">New Lesson</span>
+                        <span className="truncate text-sm font-medium">Новый урок</span>
                     )}
                 </button>
             </div>
 
-            {/* Navigation */}
-            <nav className="flex-1 overflow-y-auto px-3 py-2">
+            {/* Навигация */}
+            <nav className="flex-1 overflow-y-auto px-3 py-2" aria-label="Главная навигация">
                 <div className="space-y-1">
                     {NAV_ITEMS.map((item) => {
                         const isActive = location.pathname.startsWith(item.href);
@@ -103,6 +104,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                             <Link
                                 key={item.id}
                                 to={item.href}
+                                aria-current={isActive ? 'page' : undefined}
                                 className={cn(
                                     'group flex items-center gap-3 rounded-xl px-3 py-2.5 transition-colors',
                                     isActive
@@ -110,7 +112,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                                         : 'text-[#f0f0f5]/50 hover:bg-white/[0.04] hover:text-[#f0f0f5]/80'
                                 )}
                             >
-                                <Icon className="size-4 shrink-0" />
+                                <Icon className="size-4 shrink-0" aria-hidden="true" />
                                 {!isCollapsed && (
                                     <span className="truncate text-sm">{item.label}</span>
                                 )}
@@ -119,11 +121,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                     })}
                 </div>
 
-                {/* Sessions List */}
+                {/* Список сессий */}
                 {!isCollapsed && (
                     <div className="mt-6">
                         <p className="mb-2 px-3 text-[11px] font-medium uppercase tracking-wider text-[#f0f0f5]/30">
-                            Recent Sessions
+                            Последние уроки
                         </p>
                         <div className="space-y-0.5">
                             {MOCK_SESSIONS.map((session) => {
@@ -134,8 +136,6 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                                     <Link
                                         key={session.id}
                                         to={`/app/chat/${session.id}`}
-                                        //onMouseEnter={() => setHoveredSession(session.id)}
-                                        //onMouseLeave={() => setHoveredSession(null)}
                                         className={cn(
                                             'flex items-center gap-2.5 rounded-lg px-3 py-2 transition-colors',
                                             isActive
@@ -143,7 +143,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                                                 : 'text-[#f0f0f5]/40 hover:bg-white/[0.04] hover:text-[#f0f0f5]/70'
                                         )}
                                     >
-                                        <div
+                                        <span
                                             className="size-2 shrink-0 rounded-full"
                                             style={{ backgroundColor: repetitor?.avatarColor }}
                                         />
@@ -156,7 +156,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 )}
             </nav>
 
-            {/* User Section */}
+            {/* Профиль пользователя */}
             <div className="border-t border-white/10 p-3">
                 <div className="flex items-center gap-3 rounded-xl px-2 py-2">
                     <div className="size-8 shrink-0 overflow-hidden rounded-full bg-white/10" />
@@ -164,13 +164,17 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                         <>
                             <div className="min-w-0 flex-1">
                                 <p className="truncate text-sm font-medium text-[#f0f0f5]">
-                                    Alex Developer
+                                    Алекс Разработчик
                                 </p>
                                 <p className="truncate text-xs text-[#f0f0f5]/40">
-                                    Pro Plan
+                                    Тариф Free
                                 </p>
                             </div>
-                            <button className="rounded-lg p-1.5 text-[#f0f0f5]/30 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]/60">
+                            <button
+                                type="button"
+                                aria-label="Выйти из аккаунта"
+                                className="rounded-lg p-1.5 text-[#f0f0f5]/30 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]/60"
+                            >
                                 <LogOut className="size-4" />
                             </button>
                         </>
@@ -178,9 +182,11 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
                 </div>
             </div>
 
-            {/* Collapse Toggle */}
+            {/* Кнопка сворачивания */}
             <button
+                type="button"
                 onClick={onToggle}
+                aria-label={isCollapsed ? 'Развернуть меню' : 'Свернуть меню'}
                 className={cn(
                     'absolute -right-3 top-20 flex size-6 items-center justify-center',
                     'rounded-full border border-white/10 bg-[#0a0a0f] text-[#f0f0f5]/40',

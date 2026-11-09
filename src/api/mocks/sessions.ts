@@ -1,4 +1,5 @@
     // ARCHITECT: Мок-данные для чат-сессий
+    // Переведены на русский: заголовки, сообщения, объяснения грамматики
 
     import type { EnhancedChatSession, EnhancedMessage } from '../../types/session';
 
@@ -8,8 +9,8 @@
     {
         id: 'session_interview_1',
         userId: 'user_1',
-        title: 'Behavioral Questions Practice',
-        createdAt: now - 86400000 * 2, // 2 days ago
+        title: 'Практика поведенческих вопросов',
+        createdAt: now - 86400000 * 2, // 2 дня назад
         repetitorId: 'max',
         learningMode: 'interview',
         targetLevel: 'B2',
@@ -19,14 +20,14 @@
         wordsLearned: 28,
         streakDays: 7,
         },
-        lastActivityAt: now - 3600000, // 1 hour ago
-        tags: ['behavioral', 'STAR-method'],
+        lastActivityAt: now - 3600000, // 1 час назад
+        tags: ['поведенческие', 'STAR-метод'],
         messages: [
         {
             id: 'msg_1',
             sessionId: 'session_interview_1',
             role: 'assistant',
-            content: 'Let\'s practice behavioral questions. I\'ll ask you a common interview question, and you can respond. Ready?',
+            content: 'Давай потренируем поведенческие вопросы. Я задам тебе типичный вопрос на собеседовании, а ты ответишь. Готова?',
             timestamp: now - 7200000,
             type: 'text',
         },
@@ -34,7 +35,7 @@
             id: 'msg_2',
             sessionId: 'session_interview_1',
             role: 'user',
-            content: 'Yes, I\'m ready!',
+            content: 'Да, готова!',
             timestamp: now - 7100000,
             type: 'text',
         },
@@ -42,7 +43,7 @@
             id: 'msg_3',
             sessionId: 'session_interview_1',
             role: 'assistant',
-            content: 'Great! Here\'s your first question:\n\n**Tell me about a time when you had to deal with a difficult team member.**\n\nRemember to use the STAR method: Situation, Task, Action, Result.',
+            content: 'Отлично! Вот твой первый вопрос:\n\n**Расскажи о случае, когда тебе пришлось работать со сложным членом команды.**\n\nПомни про STAR-метод: Ситуация, Задача, Действие, Результат.',
             timestamp: now - 7000000,
             type: 'text',
         },
@@ -50,7 +51,7 @@
             id: 'msg_4',
             sessionId: 'session_interview_1',
             role: 'user',
-            content: 'Last year I work with a developer who always missed deadlines. I talked to him and we made a plan together.',
+            content: 'В прошлом году я работаю с разработчиком, который всегда пропускал дедлайны. Я поговорила с ним, и мы составили план вместе.',
             timestamp: now - 6900000,
             type: 'text',
         },
@@ -58,19 +59,19 @@
             id: 'msg_5',
             sessionId: 'session_interview_1',
             role: 'assistant',
-            content: 'Good start! Let me help you improve the grammar and structure.',
+            content: 'Хорошее начало! Давай улучшим грамматику и структуру.',
             timestamp: now - 6800000,
             type: 'correction',
             metadata: {
             correction: {
-                originalText: 'Last year I work with a developer who always missed deadlines. I talked to him and we made a plan together.',
-                correctedText: 'Last year, I **worked** with a developer who always missed deadlines. I **spoke** to him, and we **created** a plan together.',
-                explanation: 'Use Past Simple for completed actions in the past. "Worked" instead of "work", "spoke" is more professional than "talked".',
-                ruleName: 'Past Simple Tense',
+                originalText: 'В прошлом году я работаю с разработчиком, который всегда пропускал дедлайны. Я поговорила с ним, и мы составили план вместе.',
+                correctedText: 'В прошлом году я **работала** с разработчиком, который всегда пропускал дедлайны. Я **поговорила** с ним, и мы **составили** план вместе.',
+                explanation: 'Используй прошедшее время для завершённых действий в прошлом. "Работала" вместо "работаю", "поговорила" звучит профессиональнее.',
+                ruleName: 'Прошедшее простое время',
                 examples: [
-                'I **worked** on that project last month.',
-                'She **presented** her findings yesterday.',
-                'We **collaborated** with the marketing team.',
+                'Я **работала** над этим проектом в прошлом месяце.',
+                'Она **представила** свои выводы вчера.',
+                'Мы **сотрудничали** с отделом маркетинга.',
                 ],
                 severity: 'moderate',
             },
@@ -80,17 +81,17 @@
             id: 'msg_6',
             sessionId: 'session_interview_1',
             role: 'assistant',
-            content: 'Now let\'s practice vocabulary for this topic. Which word best describes resolving a conflict?',
+            content: 'Теперь давай потренируем лексику по этой теме. Какое слово лучше всего описывает разрешение конфликта?',
             timestamp: now - 6700000,
             type: 'quiz',
             metadata: {
             quiz: {
-                question: 'Choose the most professional word:',
+                question: 'Выбери наиболее профессиональное слово:',
                 options: [
-                { id: 'a', text: 'Fixed', isCorrect: false, explanation: 'Too casual for professional context' },
-                { id: 'b', text: 'Resolved', isCorrect: true, explanation: 'Professional and precise ✓' },
-                { id: 'c', text: 'Sorted out', isCorrect: false, explanation: 'Too informal for interviews' },
-                { id: 'd', text: 'Handled', isCorrect: false, explanation: 'Acceptable but less specific than "resolved"' },
+                { id: 'a', text: 'Исправил', isCorrect: false, explanation: 'Слишком неформально для профессионального контекста' },
+                { id: 'b', text: 'Разрешил', isCorrect: true, explanation: 'Профессионально и точно ✓' },
+                { id: 'c', text: 'Разобрался', isCorrect: false, explanation: 'Слишком разговорно для собеседований' },
+                { id: 'd', text: 'Справился', isCorrect: false, explanation: 'Приемлемо, но менее конкретно, чем "разрешил"' },
                 ],
                 multiSelect: false,
             },
@@ -101,8 +102,8 @@
     {
         id: 'session_speaking_1',
         userId: 'user_1',
-        title: 'Weekend Plans Conversation',
-        createdAt: now - 86400000, // 1 day ago
+        title: 'Разговор о планах на выходные',
+        createdAt: now - 86400000, // 1 день назад
         repetitorId: 'sophia',
         learningMode: 'speaking',
         targetLevel: 'B1',
@@ -112,14 +113,14 @@
         wordsLearned: 42,
         streakDays: 7,
         },
-        lastActivityAt: now - 7200000, // 2 hours ago
-        tags: ['casual', 'future-plans'],
+        lastActivityAt: now - 7200000, // 2 часа назад
+        tags: ['непринуждённый', 'планы-на-будущее'],
         messages: [
         {
             id: 'msg_1',
             sessionId: 'session_speaking_1',
             role: 'assistant',
-            content: 'Hey! 👋 What are your plans for the weekend?',
+            content: 'Привет! 👋 Какие планы на выходные?',
             timestamp: now - 86400000,
             type: 'text',
         },
@@ -127,7 +128,7 @@
             id: 'msg_2',
             sessionId: 'session_speaking_1',
             role: 'user',
-            content: 'I will go to cinema with my friends on Saturday.',
+            content: 'Я пойду в кино с друзьями в субботу.',
             timestamp: now - 86300000,
             type: 'text',
         },
@@ -135,19 +136,19 @@
             id: 'msg_3',
             sessionId: 'session_speaking_1',
             role: 'assistant',
-            content: 'Nice! Let me help you sound more natural.',
+            content: 'Классно! Давай сделаем твою фразу более естественной.',
             timestamp: now - 86200000,
             type: 'correction',
             metadata: {
             correction: {
-                originalText: 'I will go to cinema with my friends on Saturday.',
-                correctedText: 'I\'m **going to the cinema** with my friends on Saturday.',
-                explanation: 'Use "going to" for planned future events. Don\'t forget the article "the" before "cinema".',
-                ruleName: 'Future Plans',
+                originalText: 'Я пойду в кино с друзьями в субботу.',
+                correctedText: 'Я **иду в кино** с друзьями в субботу.',
+                explanation: 'Используй настоящее время для запланированных будущих событий. Не забудь артикль "the" перед "cinema".',
+                ruleName: 'Планы на будущее',
                 examples: [
-                'I\'m **going to** visit my family next week.',
-                'We\'re **going to** have dinner at 7 PM.',
-                'She\'s **going to** study for her exam.',
+                'Я **иду** навестить семью на следующей неделе.',
+                'Мы **ужинаем** в 19:00.',
+                'Она **учится** для экзамена.',
                 ],
                 severity: 'minor',
             },
@@ -157,7 +158,7 @@
             id: 'msg_4',
             sessionId: 'session_speaking_1',
             role: 'assistant',
-            content: 'Here\'s a useful word for weekend plans:',
+            content: 'Вот полезное слово для планов на выходные:',
             timestamp: now - 86100000,
             type: 'vocabulary-card',
             metadata: {

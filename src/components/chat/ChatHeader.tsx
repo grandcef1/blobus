@@ -1,4 +1,5 @@
-// ARCHITECT: Заголовок чат-сессии с информацией о репетиторе и режиме
+// ARCHITECT: Заголовок чат-сессии — переведён на русский
+// Отображает репетитора, режим, уровень и прогресс урока
 
 import { motion } from 'framer-motion';
 import { Settings2, MoreVertical, Flame } from 'lucide-react';
@@ -21,7 +22,7 @@ export function ChatHeader({ session }: ChatHeaderProps) {
             animate={{ opacity: 1, y: 0 }}
             className="flex h-16 shrink-0 items-center justify-between border-b border-white/10 bg-black/80 px-6 backdrop-blur-sm"
         >
-            {/* Left: Repetitor info */}
+            {/* Слева: инфо о репетиторе */}
             <div className="flex items-center gap-3">
                 <div
                     className="flex size-9 items-center justify-center rounded-full"
@@ -47,17 +48,17 @@ export function ChatHeader({ session }: ChatHeaderProps) {
                     </div>
                     <p className="text-xs text-[#f0f0f5]/40">
                         {repetitor?.name} · {mode?.label}
-                        {session.targetLevel && ` · Level ${session.targetLevel}`}
+                        {session.targetLevel && ` · Уровень ${session.targetLevel}`}
                     </p>
                 </div>
             </div>
 
-            {/* Right: Progress + Actions */}
+            {/* Справа: прогресс + действия */}
             <div className="flex items-center gap-3">
-                {/* Mini progress bar */}
+                {/* Мини прогресс-бар */}
                 <div className="hidden items-center gap-2 sm:flex">
                     <span className="text-[11px] text-[#f0f0f5]/40">
-                        Lesson {session.progress.completedLessons}/{session.progress.totalLessons}
+                        Урок {session.progress.completedLessons}/{session.progress.totalLessons}
                     </span>
                     <div className="h-1.5 w-24 overflow-hidden rounded-full bg-white/10">
                         <motion.div
@@ -72,6 +73,7 @@ export function ChatHeader({ session }: ChatHeaderProps) {
                 </div>
 
                 <button
+                    aria-label="Настройки сессии"
                     className={cn(
                         'flex size-8 items-center justify-center rounded-lg text-[#f0f0f5]/40',
                         'transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]/70'
@@ -81,6 +83,7 @@ export function ChatHeader({ session }: ChatHeaderProps) {
                 </button>
 
                 <button
+                    aria-label="Дополнительные действия"
                     className={cn(
                         'flex size-8 items-center justify-center rounded-lg text-[#f0f0f5]/40',
                         'transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]/70'

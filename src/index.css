@@ -1,4 +1,9 @@
 @import "tailwindcss";
+@custom-variant dark (&:where(.dark, .dark *));
+
+:root {
+    color-scheme: dark;
+}
 
 /* ARCHITECT: цвет текста изменён на #f0f0f5 для гармонии с Blobatar.
     ARCHITECT: глобальная типографика Mori + строгая чёрно-белая тема (#f0f0f5 на #000).
@@ -10,6 +15,7 @@
     font-style: normal;
     font-display: swap;
 }
+
 
 @layer base {
     *,

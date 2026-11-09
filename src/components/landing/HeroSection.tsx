@@ -41,7 +41,7 @@ interface BenefitItem {
 
 const BENEFITS: readonly BenefitItem[] = [
     { label: "Бесплатно 7 дней" },
-    { label: "Без привязки karty" },
+    { label: "Без привязки карты" },
     { label: "Отмена в любой момент" },
 ];
 

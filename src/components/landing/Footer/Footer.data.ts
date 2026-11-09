@@ -47,7 +47,7 @@
     social: [
         { label: 'Twitter', href: 'https://twitter.com/blobus_ai', external: true },
         { label: 'LinkedIn', href: 'https://linkedin.com/company/blobus', external: true },
-        { label: 'GitHub', href: 'https://github.com/blobus', external: true },
+        { label: 'GitHub', href: 'https://github.com/grandcef1/blobus', external: true },
         { label: 'Discord', href: 'https://discord.gg/blobus', external: true },
     ],
     copyright: '© 2026 Blobus. Все права защищены.',

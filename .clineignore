@@ -1,0 +1,72 @@
+# Зависимости и сборка
+node_modules/
+dist/
+build/
+.next/
+out/
+.vite/
+.cache/
+
+# Lock-файлы (огромные, не нужны для контекста)
+package-lock.json
+yarn.lock
+pnpm-lock.yaml
+bun.lockb
+
+# Переменные окружения и секреты
+.env
+.env.local
+.env.production
+
+# Git
+.git/
+.gitignore
+
+# IDE и редакторы
+.vscode/
+.idea/
+*.swp
+*.swo
+
+# ОС
+.DS_Store
+Thumbs.db
+
+# Медиа и ассеты (большие файлы)
+*.png
+*.jpg
+*.jpeg
+*.gif
+*.svg
+*.webp
+*.mp4
+*.mov
+*.avi
+*.mp3
+*.wav
+*.woff
+*.woff2
+*.ttf
+*.otf
+*.eot
+
+# Документы
+*.pdf
+*.doc
+*.docx
+
+# Картинки в public (кроме favicon если нужен)
+public/assets/
+public/images/
+public/fonts/
+
+# Тесты и coverage (если не работаешь с ними прямо сейчас)
+coverage/
+*.test.ts
+*.test.tsx
+*.spec.ts
+*.spec.tsx
+
+# Временные файлы
+*.tmp
+*.log

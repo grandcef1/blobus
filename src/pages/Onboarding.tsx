@@ -1,5 +1,7 @@
-// ARCHITECT: мастер настройки — пошаговый флоу.
-// Шаг приветствия рендерится без центрирующей рамки: ему нужна полная высота экрана.
+// ARCHITECT: мастер настройки — пошаговый флоу. Постоянные слои (фон, шторка, прогресс)
+// переехали в OnboardingShell: монтируются один раз за сессию и не перемонтируются при
+// смене шага. Шаги рендерят только свой контент, переходы анимирует AnimatePresence
+// в режиме wait — 0.4 с, easeOut.
 
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
@@ -11,6 +13,7 @@ import type {
 } from "@/types/onboarding";
 import type { BlobatarId } from "@/types/blobatar";
 import { cn } from "@/lib/utils";
+import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { WelcomeStep } from "@/components/onboarding/steps/WelcomeStep";
 import { AuthStep } from "@/components/onboarding/steps/AuthStep";
 import { RepetitorSelectionStep } from "@/components/onboarding/steps/RepetitorSelectionStep";
@@ -36,7 +39,9 @@ export function Onboarding() {
     });
 
     const currentStepIndex = STEP_ORDER.indexOf(currentStep);
-    const progress = ((currentStepIndex + 1) / STEP_ORDER.length) * 100;
+    const totalSteps = STEP_ORDER.length;
+    const stepNumber = currentStepIndex + 1;
+    const progress = (stepNumber / totalSteps) * 100;
     const isWelcome = currentStep === "welcome";
 
     const handleNext = () => {
@@ -64,7 +69,14 @@ export function Onboarding() {
             case "welcome":
                 return <WelcomeStep onNext={handleNext} />;
             case "auth":
-                return <AuthStep onNext={handleNext} onBack={handleBack} />;
+                return (
+                    <AuthStep
+                        onNext={handleNext}
+                        onBack={handleBack}
+                        step={stepNumber}
+                        totalSteps={totalSteps}
+                    />
+                );
             case "blobatar-selection":
                 return (
                     <RepetitorSelectionStep
@@ -72,6 +84,8 @@ export function Onboarding() {
                         onSelect={(id: BlobatarId) => updateData({ blobatarId: id })}
                         onNext={handleNext}
                         onBack={handleBack}
+                        step={stepNumber}
+                        totalSteps={totalSteps}
                     />
                 );
             case "mode-selection":
@@ -81,6 +95,8 @@ export function Onboarding() {
                         onSelect={(mode: LearningMode) => updateData({ learningMode: mode })}
                         onNext={handleNext}
                         onBack={handleBack}
+                        step={stepNumber}
+                        totalSteps={totalSteps}
                     />
                 );
             case "schedule":
@@ -90,6 +106,8 @@ export function Onboarding() {
                         onUpdate={(schedule: SchedulePreference) => updateData({ schedule })}
                         onNext={handleNext}
                         onBack={handleBack}
+                        step={stepNumber}
+                        totalSteps={totalSteps}
                     />
                 );
             default:
@@ -98,35 +116,19 @@ export function Onboarding() {
     };
 
     return (
-        <div className="flex min-h-screen flex-col bg-black">
-            <div className="fixed left-0 top-0 z-50 h-1 w-full bg-white/5">
+        <OnboardingShell progress={progress}>
+            <AnimatePresence mode="wait">
                 <motion.div
-                    className="h-full bg-[#f0f0f5]"
-                    initial={{ width: 0 }}
-                    animate={{ width: `${progress}%` }}
+                    key={currentStep}
+                    initial={{ opacity: 0, y: 16 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    exit={{ opacity: 0, y: -16 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
-                />
-            </div>
-
-            <div
-                className={cn(
-                    "flex flex-1 items-center justify-center",
-                    !isWelcome && "px-6 py-16"
-                )}
-            >
-                <AnimatePresence mode="wait">
-                    <motion.div
-                        key={currentStep}
-                        initial={{ opacity: 0, y: 20 }}
-                        animate={{ opacity: 1, y: 0 }}
-                        exit={{ opacity: 0, y: -20 }}
-                        transition={{ duration: 0.3 }}
-                        className={cn("w-full", !isWelcome && "max-w-4xl")}
-                    >
-                        {renderStep()}
-                    </motion.div>
-                </AnimatePresence>
-            </div>
-        </div>
+                    className={cn("w-full", !isWelcome && "mx-auto max-w-4xl px-6 py-16")}
+                >
+                    {renderStep()}
+                </motion.div>
+            </AnimatePresence>
+        </OnboardingShell>
     );
 }

@@ -7,6 +7,7 @@ import { ProfilePage } from '@/pages/dashboard/ProfilePage';
 import { SettingsPage } from '@/pages/dashboard/SettingsPage';
 import { BillingPage } from '@/pages/dashboard/BillingPage';
 import { AdminPage } from '@/pages/dashboard/AdminPage';
+import { ScrollToTopButton } from '@/components/shared/ScrollToTopButton';
 import { lazy } from "react";
 const VocabularyPage = lazy(() =>
   import("@/pages/dashboard/VocabularyPage").then((m) => ({ default: m.VocabularyPage }))
@@ -29,6 +30,8 @@ function App() {
           <Route path="/app/vocabulary" element={<VocabularyPage />} />
         </Route>
       </Routes>
+      {/* ARCHITECT: монтируется один раз в корне — работает и на лендинге, и внутри приложения */}
+      <ScrollToTopButton />
     </BrowserRouter>
   );
 }

@@ -1,13 +1,15 @@
-// ARCHITECT: первый экран. Блок с текстом и кнопкой — едва различимая
-// стеклянная панель кастомной формы «лист»: асимметричные радиусы
-// (2.5rem по диагонали, 1rem по другой) вместо скучного прямоугольника.
-// Блюр снижен до 2px — форма и тонкая граница держат контур, блюр не спорит с линиями.
-// След курсора — звёздная пыль (CursorTrail), глобус статичный.
+// ARCHITECT: первый экран. Блок с текстом и кнопкой — стеклянная панель кастомной формы
+// «лист»: асимметричные радиусы (2.5rem по диагонали, 1rem по другой) вместо скучного
+// прямоугольника. Поверхности берутся из lib/surfaces — это общий источник правды для
+// всех шагов, поэтому карточка welcome и карточки остальных шагов совпадают по токенам.
+// ARCHITECT: фон, верхняя шторка и прогресс переехали в OnboardingShell и монтируются
+// один раз на всю сессию. Здесь остаётся только контент шага и глобус.
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { CursorTrail } from "@/components/onboarding/CursorTrail";
+import { cn } from "@/lib/utils";
+import { GLASS_SURFACE, LEAF_RADIUS, EYEBROW, META_LINE, PRIMARY_BUTTON } from "@/lib/surfaces";
 import { WelcomeGlobe } from "./WelcomeGlobe";
 
 interface WelcomeStepProps {
@@ -23,15 +25,8 @@ const fadeUp = (delay: number) => ({
 export function WelcomeStep({ onNext }: WelcomeStepProps) {
     return (
         <div className="relative flex min-h-dvh w-full flex-col items-center overflow-hidden">
-            <CursorTrail />
-
-            <div
-                className="pointer-events-none absolute inset-x-0 top-0 z-10 h-2/3 bg-gradient-to-b from-black via-black/60 to-transparent"
-                aria-hidden="true"
-            />
-
             <div className="relative z-20 mx-auto flex w-full max-w-2xl flex-col items-center px-6 pt-24 text-center md:pt-28">
-                <motion.p {...fadeUp(0)} className="text-xs text-[#f0f0f5]/50">
+                <motion.p {...fadeUp(0)} className={EYEBROW}>
                     ИИ-репетитор английского
                 </motion.p>
 
@@ -44,7 +39,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
 
                 <motion.div
                     {...fadeUp(0.14)}
-                    className="mt-[21px] rounded-[2.5rem_1rem_2.5rem_1rem] border border-white/5 bg-black/20 p-6 backdrop-blur-[5px]"
+                    className={cn(GLASS_SURFACE, LEAF_RADIUS, "mt-[16px] p-6")}
                 >
                     <p className="mx-auto max-w-md text-base leading-relaxed text-[#f0f0f5]/70">
                         Репетитор подстраивается под твою цель и уровень: от повседневного
@@ -54,12 +49,12 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
                         <Button
                             type="button"
                             onClick={onNext}
-                            className="flex min-h-11 items-center gap-2 rounded-full bg-[#f0f0f5] px-6 text-sm font-medium text-black hover:bg-[#f0f0f5]/90"
+                            className={PRIMARY_BUTTON}
                         >
                             Начать
                             <ArrowRight className="size-4" />
                         </Button>
-                        <span className="text-xs text-[#f0f0f5]/50">5 шагов · около 10 минут</span>
+                        <span className={META_LINE}>5 шагов · около 10 минут</span>
                     </div>
                 </motion.div>
             </div>

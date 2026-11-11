@@ -1,15 +1,23 @@
+// ARCHITECT: Выбор цели обучения. Логика не меняется: рескин — заголовок через
+// StepHeader, плитки на общих токенах поверхностей, навигация через StepNav.
+// Сетка опций и порядок иконок остались прежними.
+
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check, Briefcase, MessageCircle, BookOpen, Globe } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { Check, Briefcase, MessageCircle, BookOpen, Globe } from "lucide-react";
+import { StepHeader } from "@/components/onboarding/StepHeader";
+import { StepNav } from "@/components/onboarding/StepNav";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import type { LearningMode } from "@/types/onboarding";
 import { cn } from "@/lib/utils";
+import { tileClasses } from "@/lib/surfaces";
 
 interface ModeSelectionStepProps {
     selectedMode: LearningMode | null;
     onSelect: (mode: LearningMode) => void;
     onNext: () => void;
     onBack: () => void;
+    step: number;
+    totalSteps: number;
 }
 
 const MODE_ICONS: Record<LearningMode, typeof Briefcase> = {
@@ -24,18 +32,18 @@ export function ModeSelectionStep({
     onSelect,
     onNext,
     onBack,
+    step,
+    totalSteps,
 }: ModeSelectionStepProps) {
     return (
         <div>
-            <div className="mb-10 text-center">
-                <h2 className="mb-3 text-3xl font-bold text-[#f0f0f5]">
-                    На чём хочешь сосредоточиться?
-                </h2>
-                <p className="mx-auto max-w-md text-[#f0f0f5]/50">
-                    Ты всегда можешь переключиться или добавить другие режимы позже.
-                    Давай начнём с твоей главной цели.
-                </p>
-            </div>
+            <StepHeader
+                eyebrow="Цель"
+                title="На чём хочешь сосредоточиться?"
+                subtitle="Ты всегда можешь переключиться или добавить другие режимы позже. Давай начнём с твоей главной цели."
+                step={step}
+                totalSteps={totalSteps}
+            />
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {MOCK_LEARNING_MODES.map((mode, index) => {
@@ -50,11 +58,9 @@ export function ModeSelectionStep({
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
                             onClick={() => onSelect(modeId)}
-                            className={cn(
-                                "relative flex items-start gap-4 rounded-2xl border p-6 text-left transition-all",
-                                isSelected
-                                    ? "border-white/40 bg-white/[0.08]"
-                                    : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
+                            className={tileClasses(
+                                isSelected,
+                                "relative flex items-start gap-4 p-6 text-left"
                             )}
                         >
                             {isSelected && (
@@ -89,30 +95,7 @@ export function ModeSelectionStep({
                 })}
             </div>
 
-            <div className="mt-10 flex items-center justify-between">
-                <Button
-                    onClick={onBack}
-                    variant="ghost"
-                    className="flex items-center gap-2 text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
-                >
-                    <ArrowLeft className="size-4" />
-                    Назад
-                </Button>
-
-                <Button
-                    onClick={onNext}
-                    disabled={!selectedMode}
-                    className={cn(
-                        "flex items-center gap-2 rounded-full px-8 py-3",
-                        selectedMode
-                            ? "bg-[#f0f0f5] text-black hover:scale-[1.02]"
-                            : "bg-white/10 text-[#f0f0f5]/30 cursor-not-allowed"
-                    )}
-                >
-                    Продолжить
-                    <ArrowRight className="size-4" />
-                </Button>
-            </div>
+            <StepNav onBack={onBack} onNext={onNext} nextLabel="Продолжить" disabled={!selectedMode} className="mt-10" />
         </div>
     );
 }

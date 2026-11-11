@@ -1,17 +1,22 @@
-// ARCHITECT: Выбор расписания занятий — переведён на русский
-// Все варианты частоты и длительности локализованы
+// ARCHITECT: Выбор расписания занятий. Логика не меняется: рескин — заголовок через
+// StepHeader, плитки частоты и длительности на общих токенах поверхностей, навигация
+// через StepNav. Сетка длительности на узких экранах 2x2 вместо 4x1: в четыре колонки
+// подписи обрезались на 390px (замерено 3 узла с переполнением), с sm снова 4x1.
 
 import { useState } from 'react';
-import { ArrowLeft, ArrowRight, Clock, Calendar } from 'lucide-react';
-import { Button } from '@/components/ui/button';
+import { Clock, Calendar } from 'lucide-react';
+import { StepHeader } from '@/components/onboarding/StepHeader';
+import { StepNav } from '@/components/onboarding/StepNav';
 import type { SchedulePreference } from '@/types/onboarding';
-import { cn } from '@/lib/utils';
+import { tileClasses } from '@/lib/surfaces';
 
 interface ScheduleStepProps {
     schedule: SchedulePreference | null;
     onUpdate: (schedule: SchedulePreference) => void;
     onNext: () => void;
     onBack: () => void;
+    step: number;
+    totalSteps: number;
 }
 
 const FREQUENCY_OPTIONS = [
@@ -28,7 +33,7 @@ const DURATION_OPTIONS = [
     { id: 60, label: '60 мин', description: 'Интенсив' },
 ] as const;
 
-export function ScheduleStep({ schedule, onUpdate, onNext, onBack }: ScheduleStepProps) {
+export function ScheduleStep({ schedule, onUpdate, onNext, onBack, step, totalSteps }: ScheduleStepProps) {
     const [frequency, setFrequency] = useState<SchedulePreference['frequency']>(
         schedule?.frequency ?? 'daily'
     );
@@ -47,14 +52,13 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack }: ScheduleSte
 
     return (
         <div className="mx-auto max-w-2xl">
-            <div className="mb-10 text-center">
-                <h2 className="mb-3 text-3xl font-bold text-[#f0f0f5]">
-                    Как часто будешь заниматься?
-                </h2>
-                <p className="text-[#f0f0f5]/50">
-                    Постоянство важнее интенсивности. Выбери темп, который впишется в твою жизнь.
-                </p>
-            </div>
+            <StepHeader
+                eyebrow="Расписание"
+                title="Как часто будешь заниматься?"
+                subtitle="Постоянство важнее интенсивности. Выбери темп, который впишется в твою жизнь."
+                step={step}
+                totalSteps={totalSteps}
+            />
 
             {/* Выбор частоты */}
             <div className="mb-8">
@@ -67,12 +71,7 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack }: ScheduleSte
                         <button
                             key={option.id}
                             onClick={() => setFrequency(option.id)}
-                            className={cn(
-                                'rounded-xl border p-4 text-left transition-all',
-                                frequency === option.id
-                                    ? 'border-white/40 bg-white/[0.08]'
-                                    : 'border-white/10 bg-white/[0.02] hover:border-white/20'
-                            )}
+                            className={tileClasses(frequency === option.id, 'p-4 text-left')}
                         >
                             <p className="font-medium text-[#f0f0f5]">{option.label}</p>
                             <p className="text-xs text-[#f0f0f5]/40">{option.description}</p>
@@ -87,17 +86,12 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack }: ScheduleSte
                     <Clock className="size-4" />
                     Длительность занятия
                 </div>
-                <div className="grid grid-cols-4 gap-3">
+                <div className="grid grid-cols-2 gap-3 sm:grid-cols-4">
                     {DURATION_OPTIONS.map((option) => (
                         <button
                             key={option.id}
                             onClick={() => setDuration(option.id)}
-                            className={cn(
-                                'rounded-xl border p-4 text-center transition-all',
-                                duration === option.id
-                                    ? 'border-white/40 bg-white/[0.08]'
-                                    : 'border-white/10 bg-white/[0.02] hover:border-white/20'
-                            )}
+                            className={tileClasses(duration === option.id, 'p-4 text-center')}
                         >
                             <p className="text-lg font-semibold text-[#f0f0f5]">
                                 {option.label}
@@ -108,24 +102,7 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack }: ScheduleSte
                 </div>
             </div>
 
-            <div className="flex items-center justify-between">
-                <Button
-                    onClick={onBack}
-                    variant="ghost"
-                    className="flex items-center gap-2 text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
-                >
-                    <ArrowLeft className="size-4" />
-                    Назад
-                </Button>
-
-                <Button
-                    onClick={handleNext}
-                    className="flex items-center gap-2 rounded-full bg-[#f0f0f5] px-8 py-3 text-black transition-transform hover:scale-[1.02]"
-                >
-                    Начать обучение
-                    <ArrowRight className="size-4" />
-                </Button>
-            </div>
+            <StepNav onBack={onBack} onNext={handleNext} nextLabel="Начать обучение" />
         </div>
     );
 }

@@ -1,8 +1,11 @@
 // ARCHITECT: поле формы с label, inline-ошибкой и слотом для суффикса (глаз пароля).
 // Ошибка связана через aria-describedby, шрифт инпута 16px — iOS не зумит фокус.
+// ARCHITECT: поверхность инпута — из lib/surfaces (стекло вместо непрозрачного
+// #141416), чтобы фон оболочки просвечивал и поле совпадало по токенам с карточками.
 
 import type { ReactNode } from "react";
 import { cn } from "@/lib/utils";
+import { INPUT_SURFACE } from "@/lib/surfaces";
 
 interface TextFieldProps {
     id: string;
@@ -48,11 +51,10 @@ export function TextField({
                     aria-invalid={error ? true : undefined}
                     aria-describedby={error ? errorId : undefined}
                     className={cn(
-                        "w-full rounded-xl bg-[#141416] px-4 py-3 text-base text-[#f0f0f5] transition-colors",
-                        "placeholder:text-[#f0f0f5]/25 focus:outline-none focus:ring-2",
+                        INPUT_SURFACE,
                         children && "pr-14",
                         error
-                            ? "ring-1 ring-rose-400/50 focus:ring-rose-400/60"
+                            ? "border-rose-400/40 ring-1 ring-rose-400/50 focus:ring-rose-400/60"
                             : "focus:ring-[#f0f0f5]/20"
                     )}
                 />

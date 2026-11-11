@@ -1,7 +1,10 @@
 // ARCHITECT: табы вход/регистрация — вынесены из AuthStep,
 // чтобы компонент не превысил лимит 150 строк после добавления Google-входа.
+// ARCHITECT: поверхность таба — из lib/surfaces (стекло вместо #141416),
+// активный таб использует общий токен заливки SELECTED_FILL.
 
 import { cn } from "@/lib/utils";
+import { GLASS_SURFACE, SELECTED_FILL } from "@/lib/surfaces";
 
 export type AuthMode = "login" | "register";
 
@@ -17,7 +20,7 @@ const TABS: { id: AuthMode; label: string }[] = [
 
 export function AuthModeTabs({ mode, onChange }: AuthModeTabsProps) {
     return (
-        <div className="mb-6 flex rounded-xl bg-[#141416] p-1" role="tablist" aria-label="Способ входа">
+        <div className={cn("mb-6 flex rounded-xl p-1", GLASS_SURFACE)} role="tablist" aria-label="Способ входа">
             {TABS.map((tab) => (
                 <button
                     key={tab.id}
@@ -28,7 +31,7 @@ export function AuthModeTabs({ mode, onChange }: AuthModeTabsProps) {
                     className={cn(
                         "min-h-11 flex-1 rounded-lg text-sm font-medium transition-colors",
                         mode === tab.id
-                            ? "bg-[#1a1a1c] text-[#f0f0f5]"
+                            ? cn(SELECTED_FILL, "text-[#f0f0f5]")
                             : "text-[#f0f0f5]/50 hover:text-[#f0f0f5]/80"
                     )}
                 >

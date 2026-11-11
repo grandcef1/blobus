@@ -1,20 +1,25 @@
-// ARCHITECT: Выбор репетитора — использует блобатары из общего источника
-// Радиогруппа с keyboard navigation (стрелки, Tab, Enter/Space)
+// ARCHITECT: Выбор репетитора — использует блобатары из общего источника.
+// Радиогруппа с keyboard navigation (стрелки, Tab, Enter/Space). Логика не меняется:
+// рескин — заголовок через StepHeader, плитки на общих токенах поверхностей, навигация
+// через StepNav. Раскладка сетки и обработка клавиш остались прежними.
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Check } from "lucide-react";
 import { Blobatar } from "@blobatar/react";
-import { Button } from "@/components/ui/button";
+import { StepHeader } from "@/components/onboarding/StepHeader";
+import { StepNav } from "@/components/onboarding/StepNav";
 import { MOCK_BLOBATARS } from "@/api/mocks/blobatars";
 import type { BlobatarId } from "@/types/blobatar";
-import { cn } from "@/lib/utils";
+import { tileClasses } from "@/lib/surfaces";
 
 interface RepetitorSelectionStepProps {
     selectedId: BlobatarId | null;
     onSelect: (id: BlobatarId) => void;
     onNext: () => void;
     onBack: () => void;
+    step: number;
+    totalSteps: number;
 }
 
 export function RepetitorSelectionStep({
@@ -22,6 +27,8 @@ export function RepetitorSelectionStep({
     onSelect,
     onNext,
     onBack,
+    step,
+    totalSteps,
 }: RepetitorSelectionStepProps) {
     const [focusedIndex, setFocusedIndex] = useState(0);
 
@@ -49,12 +56,13 @@ export function RepetitorSelectionStep({
 
     return (
         <div>
-            <div className="mb-6">
-                <h2 className="text-2xl font-bold text-[#f0f0f5]">Выбери репетитора</h2>
-                <p className="mt-1 text-sm text-[#f0f0f5]/50">
-                    У каждого свой характер и стиль преподавания
-                </p>
-            </div>
+            <StepHeader
+                eyebrow="Репетитор"
+                title="Выбери репетитора"
+                subtitle="У каждого свой характер и стиль преподавания"
+                step={step}
+                totalSteps={totalSteps}
+            />
 
             <div
                 role="radiogroup"
@@ -77,12 +85,9 @@ export function RepetitorSelectionStep({
                             initial={{ opacity: 0, y: 10 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ duration: 0.2, delay: index * 0.03 }}
-                            className={cn(
-                                "group relative flex flex-col items-center rounded-2xl border p-4 transition-colors",
-                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black",
-                                isSelected
-                                    ? "border-white/30 bg-white/[0.08]"
-                                    : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
+                            className={tileClasses(
+                                isSelected,
+                                "group relative flex flex-col items-center p-4"
                             )}
                         >
                             {isSelected && (
@@ -106,30 +111,7 @@ export function RepetitorSelectionStep({
                 })}
             </div>
 
-            <div className="mt-6 flex items-center justify-between">
-                <Button
-                    onClick={onBack}
-                    variant="ghost"
-                    className="flex items-center gap-2 text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
-                >
-                    <ArrowLeft className="size-4" />
-                    Назад
-                </Button>
-
-                <Button
-                    onClick={onNext}
-                    disabled={!selectedId}
-                    className={cn(
-                        "flex items-center gap-2 rounded-full px-6 py-2.5",
-                        selectedId
-                            ? "bg-[#f0f0f5] text-black hover:bg-[#f0f0f5]/90"
-                            : "cursor-not-allowed bg-white/10 text-[#f0f0f5]/30"
-                    )}
-                >
-                    Продолжить
-                    <ArrowRight className="size-4" />
-                </Button>
-            </div>
+            <StepNav onBack={onBack} onNext={onNext} nextLabel="Продолжить" disabled={!selectedId} />
         </div>
     );
 }

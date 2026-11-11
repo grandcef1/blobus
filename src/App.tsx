@@ -7,6 +7,10 @@ import { ProfilePage } from '@/pages/dashboard/ProfilePage';
 import { SettingsPage } from '@/pages/dashboard/SettingsPage';
 import { BillingPage } from '@/pages/dashboard/BillingPage';
 import { AdminPage } from '@/pages/dashboard/AdminPage';
+import { lazy } from "react";
+const VocabularyPage = lazy(() =>
+  import("@/pages/dashboard/VocabularyPage").then((m) => ({ default: m.VocabularyPage }))
+);
 
 function App() {
   return (
@@ -22,6 +26,7 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="admin" element={<AdminPage />} />
+          <Route path="/app/vocabulary" element={<VocabularyPage />} />
         </Route>
       </Routes>
     </BrowserRouter>

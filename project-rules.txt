@@ -1,241 +1,368 @@
-# BLOBUS PROJECT - COMPREHENSIVE DEVELOPMENT RULES
-# Senior Architect Guidelines for AI Code Generation
+BLOBUS PROJECT - DEVELOPMENT RULES
+Guidelines for AI code generation
 
-## 🎯 CORE PHILOSOPHY (MOST IMPORTANT)
-You are designing a PREMIUM, UNIQUE SaaS product. The design MUST NEVER look:
-- Template-based or generic
-- AI-generated (avoid common AI patterns: excessive gradients, random animations, boilerplate layouts)
-- Over-engineered or cluttered
+Priority of rules: this file overrides default model habits. If a task description conflicts with this file, follow this file and report the conflict.
 
-The design MUST always look:
-- Minimalist, elegant, and intentional
-- Premium and polished (every pixel matters)
-- Unique with custom design decisions
-- Professional and trustworthy
 
-## 🔒 SECURITY & DATA HANDLING (NON-NEGOTIABLE)
-1. **API Keys & Secrets**: 
-   - NEVER expose API keys (OpenAI, Supabase) on frontend
-   - Store exclusively in backend `.env` files
-   - All sensitive operations through Node.js/Express backend
+1. CORE PHILOSOPHY
 
-2. **Authentication Errors**:
-   - Use toast notifications for auth failures
-   - Auto-redirect to login after 3 seconds with message
+Blobus is a minimalist, precise SaaS product. The interface must look designed by a person with a clear taste, not generated and not assembled from a template.
 
-3. **Input Validation**:
-   - Always validate on BOTH frontend (UX) and backend (security)
-   - Use Zod schemas for type-safe validation
-   - Sanitize all user inputs
+The design must never look:
+- template-based or generic
+- AI-generated (see section 12 for the full list of signs)
+- cluttered, decorated or over-engineered
 
-4. **Error Logging**:
-   - Console.log ONLY in development mode
-   - In production: send errors to backend logging endpoint
-   - Never expose stack traces to users
+The design must always look:
+- minimalist and intentional
+- consistent: the same patterns, spacing, radii and borders everywhere
+- calm, dense enough to be useful, readable
+- professional and trustworthy
 
-##  UI/UX DESIGN PRINCIPLES
+Principle: every element must carry meaning. If removing an element changes nothing, remove it.
 
-### Visual Design:
-- **Color Palette**: Monochrome base (#f0f0f5 on black) with strategic accent colors
-- **Typography**: Clear hierarchy, generous whitespace, readable line-heights
-- **Spacing**: Use Tailwind's spacing scale consistently (no arbitrary values unless necessary)
-- **Borders**: Subtle (`border-white/5`), increase on hover (`border-white/15`)
-- **Effects**: 
-  - `backdrop-blur-xl` for glassmorphism
-  - Subtle radial gradients for depth (not flashy)
-  - Micro-interactions only (avoid excessive animations)
 
-### Loading States:
-- **Skeletons**: For page loads and large data sets (match final layout structure)
-- **Spinners/Progress**: For specific actions (file upload, form submission)
-- **Timing**: 
-  - Show skeleton immediately
-  - If loading < 300ms, skip animation (avoid flicker)
-  - Use smooth transitions (300-500ms)
+2. SECURITY AND DATA HANDLING (NON-NEGOTIABLE)
 
-### Error Handling:
-- **ALL errors via toast notifications** (use shadcn Toast component)
-- Inline validation messages for forms (below input fields)
-- Never use browser alerts or confirm dialogs
+2.1 API keys and secrets
+- Never expose API keys (OpenAI, Supabase) on the frontend.
+- Store them only in backend .env files.
+- All sensitive operations go through the Node.js/Express backend.
 
-### User Feedback:
-- Success toasts: Green accent, auto-dismiss after 3s
-- Error toasts: Red accent, auto-dismiss after 5s with retry option
-- Info toasts: Blue accent, auto-dismiss after 4s
+2.2 Authentication errors
+- Show a toast on auth failure.
+- Redirect to login after 3 seconds with a message.
 
-## 🏗️ ARCHITECTURE & CODE STRUCTURE
+2.3 Input validation
+- Validate on both frontend (UX) and backend (security).
+- Use Zod schemas for type-safe validation.
+- Sanitize all user input.
 
-### File Organization:
+2.4 Error logging
+- console.log only in development mode.
+- In production send errors to the backend logging endpoint.
+- Never show stack traces to users.
+
+
+3. UI/UX DESIGN PRINCIPLES
+
+3.1 Color
+- Monochrome base: black background, primary text #f0f0f5, secondary text with reduced opacity.
+- Accent colors are rare and strategic: main action and meaningful state only.
+- No gradients on text, buttons, cards or borders.
+- Status is shown by text and a thin marker, not by bright fills.
+
+3.2 Typography
+- Clear hierarchy built from size, weight and contrast, not from colored plates.
+- No more than 3-4 text sizes on one page.
+- Numbers and metrics use tabular-nums.
+- Readable line-height.
+- Section title: 1-2 words. Caption: one short line.
+
+3.3 Spacing (strict)
+- Use only the Tailwind spacing scale. No arbitrary values in brackets unless unavoidable and explained.
+- Inside cards: p-4 or p-5.
+- Between blocks: gap-4 or gap-6.
+- Between page sections: up to gap-8.
+- Values p-8 and above inside cards, gap-10 and above between blocks, and large vertical voids (py-16 and more) are not used on application screens (dashboard, settings, chat). They are allowed only on the landing page where the layout calls for it.
+- Application screens are working screens: key data must be visible without needless scrolling.
+- The same kind of element always has the same padding, radius and border.
+
+3.4 Borders, radii, shadows
+- Borders are subtle: border-white/5, on hover border-white/15.
+- One radius value per element type, taken from existing components.
+- Shadows are almost not used. Depth comes from layered backgrounds and borders.
+
+3.5 Effects
+- backdrop-blur is used only for overlays: modals, dropdowns, toasts.
+- Ordinary cards do not use blur.
+- One very faint radial gradient on the page background is allowed (4-6% opacity, project palette). No gradients elsewhere.
+- No glow, neon shadows, colored blurred spots or blur orbs.
+
+3.6 Icons
+- Only the icon library already used in the project, one size and one stroke weight.
+- An icon is added only where it carries meaning.
+- Emoji are forbidden everywhere (see section 12).
+
+3.7 Layout
+- Single grid, left-aligned text and data.
+- Centering is allowed only for empty states and auth screens.
+- Asymmetry is structural: columns of different width according to data importance (for example main area 2/3 and side area 1/3), not three identical cards in a row.
+- No random offsets, rotations or random delays.
+
+3.8 Loading states
+- Skeletons for page loads and large datasets. They repeat the final layout.
+- Spinners or progress for specific actions (upload, form submit).
+- If loading takes less than 300 ms, show nothing (avoid flicker).
+- Transitions 200-300 ms.
+
+3.9 Error handling
+- All errors through toast notifications (shadcn Toast).
+- Inline validation messages below form fields.
+- Never use browser alert or confirm.
+
+3.10 User feedback
+- Success toast: green accent, auto-dismiss after 3 s.
+- Error toast: red accent, auto-dismiss after 5 s with retry option.
+- Info toast: blue accent, auto-dismiss after 4 s.
+
+3.11 Interactive states
+Every interactive element has hover, focus-visible, active and disabled states. Data blocks have loading, empty and error states. Empty state is one short line, no illustration.
+
+
+4. COPY AND MICROCOPY
+
+- Neutral, short, human tone. No marketing or motivational voice.
+- No exclamation marks in interface text.
+- No cliches: "Unlock the power", "Seamless", "Supercharge", "All in one place", "Your personal ...".
+- No "Welcome back!" banners, no "Let's get started!", no "All set!".
+- No "not just X, but Y" constructions and no triple lists for rhythm.
+- Sentence case in labels. No Title Case In Every Word, no ALL CAPS for ordinary labels.
+- Interface language and terminology are taken from existing screens.
+- Mock data must look real: uneven numbers, meaningful names. No "John Doe", "Item 1", "Lorem ipsum", round numbers like 1000, 50%, 99.9%.
+
+
+5. ARCHITECTURE AND CODE STRUCTURE
+
+5.1 File organization
 src/
-├── components/
-│ ├── ui/ # Reusable UI components (Button, Input, etc.)
-│ ├── landing/ # Page-specific components
-│ ── shared/ # Cross-feature components
-── hooks/ # Custom React hooks (useCamelCase.ts)
-├── api/ # API clients and mocks
-│ ├── mocks/ # Frontend-first mock data
-│ └── client.ts # API client configuration
-├── lib/ # Utilities and helpers
-├── store/ # Zustand stores
-├── types/ # TypeScript interfaces/types
-└── pages/ # Route components
+  components/
+    ui/        reusable UI components (Button, Input, etc.)
+    landing/   landing page components
+    shared/    cross-feature components
+  hooks/       custom hooks (useCamelCase.ts)
+  api/
+    mocks/     frontend-first mock data
+    client.ts  API client configuration
+  lib/         utilities and helpers
+  store/       Zustand stores
+  types/       TypeScript interfaces and types
+  pages/       route components
 
-### Component Patterns:
-- **File naming**: `ComponentName.tsx` (PascalCase)
-- **Single responsibility**: One component per file
-- **Size limit**: Max 150 lines per component (extract if larger)
-- **Props interface**: Always define explicit `interface ComponentProps`
-- **Default exports**: Use named exports for components
+5.2 Component patterns
+- File name: ComponentName.tsx (PascalCase).
+- One component per file.
+- Maximum 150 lines per component. Extract if larger.
+- Always define an explicit interface ComponentProps.
+- Named exports for components, no default exports.
+- No component nesting deeper than 3 levels. No wrapper divs without a function.
 
-### Type Safety:
-- **NO `any`** - strictly forbidden
-- Define all types explicitly
-- Use TypeScript's strict mode features
-- Generic types for reusable components
+5.3 Type safety
+- No any. Strictly forbidden.
+- Define all types explicitly, use strict mode.
+- Generic types for reusable components.
 
-### Comments & Documentation:
-- **Detailed comments** with `// ARCHITECT:` prefix for important decisions
-- Explain WHY, not just WHAT
-- Document complex logic and edge cases
-- Include performance considerations in comments
+5.4 Shared data
+- Data used in several places (for example blobatars: images, names, order) lives in one shared module and is imported everywhere. It is never copied.
+- Names and order of blobatars are identical in every place they appear.
 
-## ⚡ PERFORMANCE & OPTIMIZATION
+5.5 Comments
+- Comments only where a decision is non-trivial. Use the prefix // ARCHITECT: and write one or two lines explaining why, not what.
+- No decorative or obvious comments such as "// Header", "// Card", "// Render".
 
-### React Optimization:
-- Use `React.memo()` for components re-rendering frequently with same props
-- `useMemo` for expensive calculations (>1ms)
-- `useCallback` for functions passed as props to memoized components
-- Lazy load routes with `React.lazy()` + `Suspense`
-- Code splitting for large components
 
-### Image & Asset Optimization:
-- Use WebP format with fallbacks
-- Lazy load images below fold
-- Specify width/height to prevent layout shift
+6. PERFORMANCE AND OPTIMIZATION
 
-### Bundle Size:
-- Tree-shake imports (import specific, not entire libraries)
-- Dynamic imports for heavy libraries
-- Monitor bundle size (alert if >500kb initial load)
+6.1 React
+- React.memo for components that re-render often with the same props.
+- useMemo for expensive calculations (more than 1 ms).
+- useCallback for functions passed to memoized components.
+- Lazy load routes with React.lazy and Suspense.
+- Code splitting for large components.
 
-##  ANIMATION GUIDELINES (Framer Motion)
+6.2 Images and assets
+- WebP with fallbacks.
+- Lazy load images below the fold.
+- Specify width and height to prevent layout shift.
 
-### Performance:
-- Use `whileInView` with `viewport={{ once: true, amount: 0.3 }}`
-- Prefer CSS transforms over position changes
-- Use `layout` prop for layout animations (automatic FLIP)
+6.3 Bundle size
+- Tree-shake imports (import specific members).
+- Dynamic imports for heavy libraries.
+- No new dependencies if the project already solves the task without them.
+- Monitor bundle size (alert if initial load exceeds 500 kb).
 
-### Transform Conflicts:
-- NEVER apply multiple transforms to same element
-- Use nested divs: outer for position, inner for scale/rotate
-- Example:
-  ```tsx
-  <motion.div animate={{ y: 20 }}>        {/* Layout transform */}
-    <motion.div animate={{ scale: 1.1 }}> {/* Visual transform */}
-      Content
-    </motion.div>
+
+7. ANIMATION GUIDELINES (Framer Motion)
+
+7.1 Philosophy
+- Only functional animation: page appearance, state change, panel expand and collapse.
+- No continuous or decorative animation: no pulsing, floating, bounce, endless shimmer.
+- No scale or lift on hover for cards.
+- No cascade appearance of every block. Stagger only for lists where order helps reading, with a fixed small delay.
+- Duration 200-300 ms. easeOut for entrances, easeInOut for continuous transitions.
+- Respect prefers-reduced-motion.
+
+7.2 Performance
+- whileInView with viewport={{ once: true, amount: 0.3 }}.
+- Prefer CSS transforms over position changes.
+- Use the layout prop for layout animations.
+
+7.3 Transform conflicts
+- Never apply several transforms to one element.
+- Use nested elements: outer for position, inner for scale or rotation.
+
+Example:
+<motion.div animate={{ y: 20 }}>
+  <motion.div animate={{ scale: 1.1 }}>
+    Content
   </motion.div>
-Animation Philosophy:
-Subtle and purposeful (avoid "animation for animation's sake")
-Duration: 200-500ms (faster for micro, slower for page transitions)
-Easing: easeOut for entrances, easeInOut for continuous
-Stagger children with staggerChildren: 0.1
-🌐 SEO & ACCESSIBILITY (CRITICAL)
-SEO Requirements:
-Semantic HTML5 tags (<header>, <main>, <section>, <article>, <footer>)
-Proper heading hierarchy (H1 → H2 → H3, no skipping)
-Meta tags for every page (title, description, OG tags)
-Structured data (JSON-LD) for key content
-Sitemap.xml and robots.txt
-Canonical URLs to prevent duplicate content
-Mobile-first responsive design (Google prioritizes mobile)
-Page speed: Target <2s load time (Core Web Vitals)
-Accessibility (a11y):
-ARIA labels for all interactive elements
-Keyboard navigation: All features accessible via Tab/Enter/Esc
-Focus management: Visible focus rings, trap focus in modals
-Screen reader support:
-aria-live regions for dynamic content (toasts, loading states)
-Descriptive link text (not "click here")
-Alt text for images (decorative images: alt="")
-Color contrast: Minimum WCAG AA (4.5:1 for text)
-Reduced motion: Respect prefers-reduced-motion
-🔧 DEVELOPMENT WORKFLOW
-Frontend-First Approach:
-Create mock data in src/api/mocks/
-Build UI with mock data
-Test interactions
-Replace mocks with real API calls
-Handle edge cases and errors
-Git Commits:
-Use Conventional Commits format: type(scope): description
-Types: feat, fix, docs, style, refactor, test, chore
-Examples:
-feat(landing): add animated blobatar to hero section
-fix(chat): resolve message alignment issue on mobile
-Only suggest commits when explicitly requested by user
-Testing:
-Write tests when explicitly requested
-Focus on critical user flows (auth, payments, core features)
-Use Vitest + React Testing Library
-📱 RESPONSIVE DESIGN
+</motion.div>
+
+
+8. SEO AND ACCESSIBILITY (CRITICAL)
+
+8.1 SEO
+- Semantic HTML5 tags: header, main, section, article, footer, nav, button.
+- Correct heading hierarchy H1, H2, H3 without skipping.
+- Meta tags for every page: title, description, OG tags.
+- JSON-LD structured data for key content.
+- sitemap.xml and robots.txt.
+- Canonical URLs.
+- Mobile-first responsive design.
+- Page load target under 2 s (Core Web Vitals).
+
+8.2 Accessibility
+- ARIA labels for all interactive elements.
+- Full keyboard access: Tab, Enter, Esc, arrow keys in groups.
+- Visible focus rings, focus trap in modals.
+- aria-live regions for dynamic content (toasts, loading states).
+- Descriptive link text, never "click here".
+- Alt text for images. Decorative images use alt="".
+- Selectable groups (for example blobatar choice) use radiogroup and radio semantics with aria-label.
+- Contrast minimum WCAG AA (4.5:1 for text).
+- Respect prefers-reduced-motion.
+
+
+9. DEVELOPMENT WORKFLOW
+
+9.1 Frontend-first
+1. Create mock data in src/api/mocks/.
+2. Build UI on mock data.
+3. Test interactions.
+4. Replace mocks with real API calls.
+5. Handle edge cases and errors.
+
+9.2 Git commits
+- Conventional Commits: type(scope): description.
+- Types: feat, fix, docs, style, refactor, test, chore.
+- Examples:
+  feat(landing): add blobatar to hero section
+  fix(chat): resolve message alignment on mobile
+- Suggest commits only when the user asks.
+
+9.3 Testing
+- Write tests only when asked.
+- Focus on critical flows (auth, payments, core features).
+- Vitest and React Testing Library.
+
+
+10. RESPONSIVE DESIGN
+
 Breakpoints:
-Mobile: 0-640px (default, mobile-first)
-Tablet: 640-1024px (md:)
-Desktop: 1024-1440px (lg:)
-Large: 1440px+ (xl:)
-Mobile Considerations:
-Touch targets: Minimum 44x44px
-Horizontal scroll: Avoid at all costs
-Font sizes: Minimum 16px (prevent iOS zoom on input focus)
-Viewport height: Use dvh for mobile browsers
-🚫 ANTI-PATTERNS (NEVER DO THIS)
-NEVER use inline styles (use Tailwind classes)
-NEVER use !important in CSS (fix specificity properly)
-NEVER nest components deeper than 3 levels
-NEVER hardcode values that should be constants
-NEVER ignore TypeScript errors or warnings
-NEVER commit code with console.log in production
-NEVER use placeholder text like "Lorem ipsum" in final code
-NEVER create "perfect" symmetrical layouts (looks AI-generated)
-✅ PREMIUM DESIGN PATTERNS (ALWAYS USE)
-Asymmetry: Slight asymmetrical layouts feel more human-designed
-White space: Generous padding/margins (don't cram content)
-Typography scale: Clear hierarchy with distinct sizes
-Custom details: Unique hover states, custom cursors, micro-interactions
-Imperfection: Slight randomness in animations (stagger delays vary)
-Depth: Layered design with shadows, blur, and z-axis
-Consistency: Same patterns repeated throughout (spacing, colors, radii)
-🎯 AI OUTPUT REQUIREMENTS
-When generating code, ALWAYS:
-File Actions: Clearly mark each file with [CREATE], [UPDATE], or [DELETE]
-Complete Code: NEVER use placeholders like // ... rest of code
-Provide FULL, copy-paste ready files
-Include all imports
-Include all types/interfaces
-Explain Changes: Brief comment explaining WHY this approach
-Error Prevention:
-Check for TypeScript compatibility
-Verify Tailwind class conflicts
-Ensure accessibility compliance
-Performance Notes: Comment if code needs optimization later
-CODE REVIEW CHECKLIST
-Before presenting code, verify:
-No TypeScript errors (strict mode)
-No any types
-All user interactions have feedback (loading, error, success)
-Mobile responsive (tested mentally)
-Accessibility (ARIA labels, keyboard nav, contrast)
-SEO (semantic HTML, meta tags)
-Performance (lazy loading, memoization where needed)
-Security (no exposed secrets, validated inputs)
-Design matches premium aesthetic (not template-like)
-🎨 UNIQUE DESIGN SIGNATURE
-To avoid "AI-generated" look, always incorporate:
-Intentional imperfection: Slight asymmetry, varied spacing
-Custom animations: Not default easing curves
-Thoughtful details: Hover states that feel "alive"
-Human touch: Content that sounds human, not corporate
-Brand personality: Every element reflects Blobus identity
-REMEMBER: You are crafting a PREMIUM product. Every line of code, every pixel, every animation should reflect quality, uniqueness, and attention to detail.
-END OF RULES - Apply these rigorously to all Blobus development.
+- Mobile: 0-640px (default, mobile-first)
+- Tablet: 640-1024px (md:)
+- Desktop: 1024-1440px (lg:)
+- Large: 1440px and above (xl:)
+
+Mobile requirements:
+- Touch targets at least 44x44px.
+- Avoid horizontal scroll.
+- Input font size at least 16px (prevents iOS zoom).
+- Use dvh for viewport height.
+- Check widths 360, 768, 1280 and 1920.
+
+
+11. ANTI-PATTERNS (NEVER DO)
+
+- Inline styles (use Tailwind classes).
+- !important.
+- Components nested deeper than 3 levels.
+- Hardcoded values that should be constants or tokens.
+- Hardcoded colors instead of project tokens.
+- Ignoring TypeScript errors or warnings.
+- console.log in production code.
+- Placeholder text such as "Lorem ipsum" in final code.
+- Changing global styles or tailwind.config without need. If unavoidable, state it and explain why.
+- Adding features, dependencies or pages that were not requested.
+
+
+12. SIGNS OF AI-GENERATED DESIGN (FORBIDDEN)
+
+Before presenting any UI, check it against this list and remove every match.
+
+Visual:
+- Emoji and smiley faces anywhere: headings, buttons, toasts, empty states, statuses, placeholders, alt text, aria-label, comments, mock data, file and section titles.
+- Gradient text, gradient buttons or borders, purple-blue and pink-purple gradients.
+- Glow, neon shadows, colored blurred spots, blur orbs.
+- Glassmorphism on ordinary cards.
+- Cards inside cards, each with its own border, shadow and radius.
+- A row of three identical cards: icon in a colored circle, title, description.
+- Colored left stripe on cards, colored badges on every element, bright status fills.
+- Hero or welcome block on a working screen, decorative illustrations.
+- Decorative animation: pulse, float, bounce, cascade of everything, hover scale.
+- Oversized radii on everything.
+- Fake asymmetry: random offsets, rotations, random animation delays.
+
+Spacing and layout:
+- Oversized padding and gaps, huge vertical voids.
+- Arbitrary spacing values (13px, 18px, 22px).
+- Centered everything.
+- Different padding, radius or border for the same kind of element.
+- Wrapper divs without a function.
+
+Text:
+- Exclamation marks, motivational and marketing tone, stock phrases (see section 4).
+- Long explanations where a word is enough.
+- Identical empty states with illustration and button.
+- Template mock data.
+
+Code:
+- Decorative or obvious comments.
+- Inline styles, magic numbers, duplicated styles.
+- div instead of button, nav, section, h1-h3. Missing labels, aria and focus.
+
+
+13. DESIGN IDENTITY
+
+Instead of imitating "uniqueness" with effects, build identity from consistency and detail:
+- A strict system: one set of spacing, radii, borders, type sizes, repeated everywhere.
+- Restraint: monochrome base, one accent used rarely.
+- Proportion: columns weighted by importance of data.
+- Precise detail: subtle border change on hover, clear focus ring, exact alignment, tabular numbers.
+- Blobatars are the brand's visual character. They are the main illustrative element, so other decoration is not needed.
+- Text sounds like a person who respects the reader's time.
+
+
+14. AI OUTPUT REQUIREMENTS
+
+When generating code, always:
+- Mark each file as [CREATE], [UPDATE] or [DELETE].
+- Provide complete, copy-paste ready files. Never use placeholders such as "// ... rest of code".
+- Include all imports, types and interfaces.
+- Briefly state why this approach was chosen.
+- Check TypeScript compatibility and Tailwind class conflicts.
+- Ensure accessibility.
+- Note performance concerns when optimization is needed later.
+- List what was removed, replaced and kept, and ask questions if information is missing instead of inventing it.
+
+
+15. CODE REVIEW CHECKLIST
+
+Answer yes or no for every item before presenting code. If any answer is no, fix it first.
+- No emoji in code, text, mock data or aria attributes.
+- No gradients, glow, decorative animation, blur on ordinary cards.
+- Spacing follows the Tailwind scale and the limits in section 3.3.
+- Colors, radii and borders come from project tokens.
+- No TypeScript errors, no any.
+- No inline styles, !important, console.log, unrequested dependencies.
+- Components are under 150 lines, one per file, named exports.
+- Every interaction has feedback: loading, error, success.
+- Loading, empty and error states exist. Focus-visible is present.
+- Mobile responsive.
+- Accessibility: ARIA, keyboard navigation, contrast, prefers-reduced-motion.
+- SEO: semantic HTML, meta tags.
+- Performance: lazy loading and memoization where needed.
+- Security: no exposed secrets, validated input.
+- The design is minimal and consistent, with none of the signs from section 12.
+
+END OF RULES

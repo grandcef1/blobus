@@ -1,11 +1,9 @@
-// ARCHITECT: Выбор режима обучения — переведён на русский
-
-import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check, Briefcase, MessageCircle, BookOpen, Globe } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { MOCK_LEARNING_MODES } from '@/api/mocks/repetitors';
-import type { LearningMode } from '@/types/onboarding';
-import { cn } from '@/lib/utils';
+import { motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, Check, Briefcase, MessageCircle, BookOpen, Globe } from "lucide-react";
+import { Button } from "@/components/ui/button";
+import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
+import type { LearningMode } from "@/types/onboarding";
+import { cn } from "@/lib/utils";
 
 interface ModeSelectionStepProps {
     selectedMode: LearningMode | null;
@@ -41,8 +39,9 @@ export function ModeSelectionStep({
 
             <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
                 {MOCK_LEARNING_MODES.map((mode, index) => {
-                    const Icon = MODE_ICONS[mode.id];
-                    const isSelected = selectedMode === mode.id;
+                    const modeId = mode.id as LearningMode;
+                    const Icon = MODE_ICONS[modeId];
+                    const isSelected = selectedMode === modeId;
 
                     return (
                         <motion.button
@@ -50,12 +49,12 @@ export function ModeSelectionStep({
                             initial={{ opacity: 0, y: 20 }}
                             animate={{ opacity: 1, y: 0 }}
                             transition={{ delay: index * 0.1 }}
-                            onClick={() => onSelect(mode.id)}
+                            onClick={() => onSelect(modeId)}
                             className={cn(
-                                'relative flex items-start gap-4 rounded-2xl border p-6 text-left transition-all',
+                                "relative flex items-start gap-4 rounded-2xl border p-6 text-left transition-all",
                                 isSelected
-                                    ? 'border-white/40 bg-white/[0.08]'
-                                    : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]'
+                                    ? "border-white/40 bg-white/[0.08]"
+                                    : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
                             )}
                         >
                             {isSelected && (
@@ -70,8 +69,8 @@ export function ModeSelectionStep({
 
                             <div
                                 className={cn(
-                                    'flex size-12 shrink-0 items-center justify-center rounded-xl',
-                                    isSelected ? 'bg-[#f0f0f5]/20' : 'bg-white/[0.06]'
+                                    "flex size-12 shrink-0 items-center justify-center rounded-xl",
+                                    isSelected ? "bg-[#f0f0f5]/20" : "bg-white/[0.06]"
                                 )}
                             >
                                 <Icon className="size-6 text-[#f0f0f5]" />
@@ -104,10 +103,10 @@ export function ModeSelectionStep({
                     onClick={onNext}
                     disabled={!selectedMode}
                     className={cn(
-                        'flex items-center gap-2 rounded-full px-8 py-3',
+                        "flex items-center gap-2 rounded-full px-8 py-3",
                         selectedMode
-                            ? 'bg-[#f0f0f5] text-black hover:scale-[1.02]'
-                            : 'bg-white/10 text-[#f0f0f5]/30 cursor-not-allowed'
+                            ? "bg-[#f0f0f5] text-black hover:scale-[1.02]"
+                            : "bg-white/10 text-[#f0f0f5]/30 cursor-not-allowed"
                     )}
                 >
                     Продолжить

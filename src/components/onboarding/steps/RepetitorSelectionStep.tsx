@@ -1,31 +1,21 @@
-// ARCHITECT: Выбор ИИ-репетитора (блобатара) — переведён на русский
+// ARCHITECT: Выбор репетитора — использует блобатары из общего источника
+// Радиогруппа с keyboard navigation (стрелки, Tab, Enter/Space)
 
-import { motion } from 'framer-motion';
-import { ArrowLeft, ArrowRight, Check } from 'lucide-react';
-import { Button } from '@/components/ui/button';
-import { MOCK_REPETITORS } from '@/api/mocks/repetitors';
-import type { RepetitorId } from '@/types/onboarding';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { ArrowLeft, ArrowRight, Check } from "lucide-react";
+import { Blobatar } from "@blobatar/react";
+import { Button } from "@/components/ui/button";
+import { MOCK_BLOBATARS } from "@/api/mocks/blobatars";
+import type { BlobatarId } from "@/types/blobatar";
+import { cn } from "@/lib/utils";
 
 interface RepetitorSelectionStepProps {
-    selectedId: RepetitorId | null;
-    onSelect: (id: RepetitorId) => void;
+    selectedId: BlobatarId | null;
+    onSelect: (id: BlobatarId) => void;
     onNext: () => void;
     onBack: () => void;
 }
-
-const containerVariants = {
-    hidden: { opacity: 0 },
-    visible: {
-        opacity: 1,
-        transition: { staggerChildren: 0.1 },
-    },
-};
-
-const cardVariants = {
-    hidden: { opacity: 0, y: 20 },
-    visible: { opacity: 1, y: 0 },
-};
 
 export function RepetitorSelectionStep({
     selectedId,
@@ -33,86 +23,90 @@ export function RepetitorSelectionStep({
     onNext,
     onBack,
 }: RepetitorSelectionStepProps) {
+    const [focusedIndex, setFocusedIndex] = useState(0);
+
+    const handleKeyDown = (e: React.KeyboardEvent) => {
+        const maxIndex = MOCK_BLOBATARS.length - 1;
+
+        switch (e.key) {
+            case "ArrowRight":
+            case "ArrowDown":
+                e.preventDefault();
+                setFocusedIndex((prev) => (prev < maxIndex ? prev + 1 : 0));
+                break;
+            case "ArrowLeft":
+            case "ArrowUp":
+                e.preventDefault();
+                setFocusedIndex((prev) => (prev > 0 ? prev - 1 : maxIndex));
+                break;
+            case "Enter":
+            case " ":
+                e.preventDefault();
+                onSelect(MOCK_BLOBATARS[focusedIndex].id as BlobatarId);
+                break;
+        }
+    };
+
     return (
         <div>
-            <div className="mb-10 text-center">
-                <h2 className="mb-3 text-3xl font-bold text-[#f0f0f5]">
-                    Выбери репетитора
-                </h2>
-                <p className="mx-auto max-w-md text-[#f0f0f5]/50">
-                    У каждого репетитора свой характер и стиль преподавания. Выбери того,
-                    кто тебе по душе.
+            <div className="mb-6">
+                <h2 className="text-2xl font-bold text-[#f0f0f5]">Выбери репетитора</h2>
+                <p className="mt-1 text-sm text-[#f0f0f5]/50">
+                    У каждого свой характер и стиль преподавания
                 </p>
             </div>
 
-            <motion.div
-                variants={containerVariants}
-                initial="hidden"
-                animate="visible"
-                className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4"
+            <div
+                role="radiogroup"
+                aria-label="Выбор репетитора"
+                onKeyDown={handleKeyDown}
+                className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5"
             >
-                {MOCK_REPETITORS.map((repetitor) => {
-                    const isSelected = selectedId === repetitor.id;
+                {MOCK_BLOBATARS.map((blobatar, index) => {
+                    const isSelected = selectedId === blobatar.id;
+                    const isFocused = focusedIndex === index;
 
                     return (
                         <motion.button
-                            key={repetitor.id}
-                            variants={cardVariants}
-                            onClick={() => onSelect(repetitor.id)}
+                            key={blobatar.id}
+                            role="radio"
+                            aria-checked={isSelected}
+                            aria-label={blobatar.name}
+                            tabIndex={isFocused ? 0 : -1}
+                            onClick={() => onSelect(blobatar.id as BlobatarId)}
+                            initial={{ opacity: 0, y: 10 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            transition={{ duration: 0.2, delay: index * 0.03 }}
                             className={cn(
-                                'group relative flex flex-col items-center rounded-2xl border p-6 text-center transition-all',
+                                "group relative flex flex-col items-center rounded-2xl border p-4 transition-colors",
+                                "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black",
                                 isSelected
-                                    ? 'border-white/40 bg-white/[0.08]'
-                                    : 'border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]'
+                                    ? "border-white/30 bg-white/[0.08]"
+                                    : "border-white/10 bg-white/[0.02] hover:border-white/20 hover:bg-white/[0.05]"
                             )}
                         >
-                            {/* Индикатор выбора */}
                             {isSelected && (
-                                <motion.div
-                                    initial={{ scale: 0 }}
-                                    animate={{ scale: 1 }}
-                                    className="absolute right-3 top-3 flex size-6 items-center justify-center rounded-full bg-[#f0f0f5]"
-                                >
-                                    <Check className="size-3.5 text-black" />
-                                </motion.div>
+                                <div className="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-[#f0f0f5]">
+                                    <Check className="size-3 text-black" strokeWidth={3} />
+                                </div>
                             )}
 
-                            {/* Заглушка аватара — позже заменим на Blobatar */}
-                            <div
-                                className="mb-4 flex size-20 items-center justify-center rounded-full"
-                                style={{ backgroundColor: `${repetitor.avatarColor}20` }}
-                            >
-                                <div
-                                    className="size-12 rounded-full"
-                                    style={{ backgroundColor: repetitor.avatarColor }}
+                            <div className="mb-3 size-20">
+                                <Blobatar
+                                    animate="always"
+                                    name={blobatar.name.toLowerCase()}
+                                    traits={blobatar.traits}
                                 />
                             </div>
 
-                            <h3 className="mb-1 text-lg font-semibold text-[#f0f0f5]">
-                                {repetitor.name}
-                            </h3>
-
-                            <p className="mb-3 text-xs text-[#f0f0f5]/50">
-                                {repetitor.personality}
-                            </p>
-
-                            <div className="flex flex-wrap justify-center gap-1">
-                                {repetitor.specialties.map((spec) => (
-                                    <span
-                                        key={spec}
-                                        className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] capitalize text-[#f0f0f5]/60"
-                                    >
-                                        {spec}
-                                    </span>
-                                ))}
-                            </div>
+                            <h3 className="text-sm font-medium text-[#f0f0f5]">{blobatar.name}</h3>
+                            <p className="mt-1 text-xs text-[#f0f0f5]/40">Описание позже</p>
                         </motion.button>
                     );
                 })}
-            </motion.div>
+            </div>
 
-            {/* Навигация */}
-            <div className="mt-10 flex items-center justify-between">
+            <div className="mt-6 flex items-center justify-between">
                 <Button
                     onClick={onBack}
                     variant="ghost"
@@ -126,10 +120,10 @@ export function RepetitorSelectionStep({
                     onClick={onNext}
                     disabled={!selectedId}
                     className={cn(
-                        'flex items-center gap-2 rounded-full px-8 py-3',
+                        "flex items-center gap-2 rounded-full px-6 py-2.5",
                         selectedId
-                            ? 'bg-[#f0f0f5] text-black hover:scale-[1.02]'
-                            : 'bg-white/10 text-[#f0f0f5]/30 cursor-not-allowed'
+                            ? "bg-[#f0f0f5] text-black hover:bg-[#f0f0f5]/90"
+                            : "cursor-not-allowed bg-white/10 text-[#f0f0f5]/30"
                     )}
                 >
                     Продолжить

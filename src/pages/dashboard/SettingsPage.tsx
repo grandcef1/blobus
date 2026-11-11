@@ -1,196 +1,158 @@
-// ARCHITECT: Страница настроек пользователя.
-// Полностью переведена на русский. Значение языка по умолчанию — 'ru'.
+// ARCHITECT: Настройки — компактные, без иконок в заголовках,
+// монохромные toggle'и
 
-import { useState } from 'react';
-import { motion } from 'framer-motion';
-import { Bell, Moon, Volume2, Globe, Shield } from 'lucide-react';
-import { cn } from '@/lib/utils';
+import { useState } from "react";
+import { motion } from "framer-motion";
+import { cn } from "@/lib/utils";
+
+interface SettingsState {
+    notifications: {
+        dailyReminder: boolean;
+        weeklyProgress: boolean;
+        newFeatures: boolean;
+        marketingEmails: boolean;
+    };
+    preferences: {
+        theme: "dark" | "light" | "system";
+        soundEffects: boolean;
+        language: "ru" | "en" | "es";
+        autoCorrection: boolean;
+    };
+}
 
 export function SettingsPage() {
-    const [notifications, setNotifications] = useState({
-        dailyReminder: true,
-        weeklyProgress: true,
-        newFeatures: false,
-        marketingEmails: false,
+    const [settings, setSettings] = useState<SettingsState>({
+        notifications: {
+            dailyReminder: true,
+            weeklyProgress: true,
+            newFeatures: false,
+            marketingEmails: false,
+        },
+        preferences: {
+            theme: "dark",
+            soundEffects: true,
+            language: "ru",
+            autoCorrection: true,
+        },
     });
 
-    const [preferences, setPreferences] = useState({
-        theme: 'dark',
-        soundEffects: true,
-        language: 'ru',
-        autoCorrection: true,
-    });
+    const updateNotification = (key: keyof SettingsState["notifications"], value: boolean) => {
+        setSettings((prev) => ({
+            ...prev,
+            notifications: { ...prev.notifications, [key]: value },
+        }));
+    };
+
+    const updatePreference = (key: keyof SettingsState["preferences"], value: string | boolean) => {
+        setSettings((prev) => ({
+            ...prev,
+            preferences: { ...prev.preferences, [key]: value },
+        }));
+    };
 
     return (
-        <div className="min-h-screen bg-black p-6 md:p-8">
-            <div className="mx-auto max-w-3xl">
-                {/* Шапка */}
-                <motion.div
-                    initial={{ opacity: 0, y: -10 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    className="mb-8"
+        <div className="min-h-screen bg-black p-4 md:p-6">
+            <div className="mx-auto max-w-2xl">
+                <motion.header
+                    initial={{ opacity: 0 }}
+                    animate={{ opacity: 1 }}
+                    transition={{ duration: 0.2 }}
+                    className="mb-5"
                 >
-                    <h1 className="text-3xl font-bold text-[#f0f0f5]">Настройки</h1>
-                    <p className="mt-1 text-[#f0f0f5]/50">
-                        Управляй своими предпочтениями и уведомлениями
-                    </p>
-                </motion.div>
+                    <h1 className="text-xl font-semibold text-[#f0f0f5]">Настройки</h1>
+                </motion.header>
 
-                {/* Уведомления */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.1 }}
-                    className="mb-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6"
-                >
-                    <div className="mb-6 flex items-center gap-3">
-                        <Bell className="size-6 text-[#f0f0f5]/60" />
-                        <h2 className="text-xl font-semibold text-[#f0f0f5]">Уведомления</h2>
-                    </div>
-
-                    <div className="space-y-4">
-                        <SettingToggle
-                            label="Ежедневные напоминания"
-                            description="Получай напоминание заниматься каждый день"
-                            checked={notifications.dailyReminder}
-                            onChange={(checked) =>
-                                setNotifications({ ...notifications, dailyReminder: checked })
-                            }
-                        />
-                        <SettingToggle
-                            label="Еженедельные отчёты"
-                            description="Получай сводку своего прогресса за неделю"
-                            checked={notifications.weeklyProgress}
-                            onChange={(checked) =>
-                                setNotifications({ ...notifications, weeklyProgress: checked })
-                            }
-                        />
-                        <SettingToggle
-                            label="Новые функции"
-                            description="Узнавай первым о запуске новых возможностей"
-                            checked={notifications.newFeatures}
-                            onChange={(checked) =>
-                                setNotifications({ ...notifications, newFeatures: checked })
-                            }
-                        />
-                        <SettingToggle
-                            label="Маркетинговые письма"
-                            description="Получай советы и специальные предложения"
-                            checked={notifications.marketingEmails}
-                            onChange={(checked) =>
-                                setNotifications({ ...notifications, marketingEmails: checked })
-                            }
-                        />
-                    </div>
-                </motion.div>
-
-                {/* Предпочтения */}
-                <motion.div
-                    initial={{ opacity: 0, y: 20 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: 0.2 }}
-                    className="mb-8 rounded-2xl border border-white/10 bg-white/[0.02] p-6"
-                >
-                    <div className="mb-6 flex items-center gap-3">
-                        <Moon className="size-6 text-[#f0f0f5]/60" />
-                        <h2 className="text-xl font-semibold text-[#f0f0f5]">Предпочтения</h2>
-                    </div>
-
-                    <div className="space-y-4">
-                        {/* Тема */}
-                        <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                            <div className="flex items-center gap-3">
-                                <Moon className="size-5 text-[#f0f0f5]/50" />
-                                <div>
-                                    <p className="font-medium text-[#f0f0f5]">Тема</p>
-                                    <p className="text-sm text-[#f0f0f5]/40">Выбери предпочитаемую тему</p>
-                                </div>
-                            </div>
-                            <select
-                                value={preferences.theme}
-                                onChange={(e) => setPreferences({ ...preferences, theme: e.target.value })}
-                                aria-label="Выбор темы"
-                                className="rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-[#f0f0f5] focus:outline-none focus:ring-2 focus:ring-white/20"
-                            >
-                                <option value="dark">Тёмная</option>
-                                <option value="light">Светлая</option>
-                                <option value="system">Системная</option>
-                            </select>
+                <div className="space-y-4">
+                    <div className="rounded-2xl bg-[#111113] p-5">
+                        <h2 className="mb-4 text-base font-medium text-[#f0f0f5]/80">
+                            Уведомления
+                        </h2>
+                        <div className="space-y-2">
+                            <SettingToggle
+                                label="Ежедневные напоминания"
+                                description="Напоминание заниматься каждый день"
+                                checked={settings.notifications.dailyReminder}
+                                onChange={(checked) => updateNotification("dailyReminder", checked)}
+                            />
+                            <SettingToggle
+                                label="Еженедельные отчёты"
+                                description="Сводка прогресса за неделю"
+                                checked={settings.notifications.weeklyProgress}
+                                onChange={(checked) => updateNotification("weeklyProgress", checked)}
+                            />
+                            <SettingToggle
+                                label="Новые функции"
+                                description="Уведомления о запуске возможностей"
+                                checked={settings.notifications.newFeatures}
+                                onChange={(checked) => updateNotification("newFeatures", checked)}
+                            />
+                            <SettingToggle
+                                label="Маркетинговые письма"
+                                description="Советы и специальные предложения"
+                                checked={settings.notifications.marketingEmails}
+                                onChange={(checked) => updateNotification("marketingEmails", checked)}
+                            />
                         </div>
-
-                        {/* Звуковые эффекты */}
-                        <SettingToggle
-                            label="Звуковые эффекты"
-                            description="Воспроизводить звуки при уведомлениях и действиях"
-                            icon={Volume2}
-                            checked={preferences.soundEffects}
-                            onChange={(checked) =>
-                                setPreferences({ ...preferences, soundEffects: checked })
-                            }
-                        />
-
-                        {/* Язык */}
-                        <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
-                            <div className="flex items-center gap-3">
-                                <Globe className="size-5 text-[#f0f0f5]/50" />
-                                <div>
-                                    <p className="font-medium text-[#f0f0f5]">Язык</p>
-                                    <p className="text-sm text-[#f0f0f5]/40">Язык интерфейса</p>
-                                </div>
-                            </div>
-                            <select
-                                value={preferences.language}
-                                onChange={(e) => setPreferences({ ...preferences, language: e.target.value })}
-                                aria-label="Выбор языка"
-                                className="rounded-lg border border-white/10 bg-black px-3 py-2 text-sm text-[#f0f0f5] focus:outline-none focus:ring-2 focus:ring-white/20"
-                            >
-                                <option value="ru">Русский</option>
-                                <option value="en">English</option>
-                                <option value="es">Español</option>
-                            </select>
-                        </div>
-
-                        {/* Автокоррекция */}
-                        <SettingToggle
-                            label="Автокоррекция"
-                            description="Автоматически исправлять грамматические ошибки в чате"
-                            icon={Shield}
-                            checked={preferences.autoCorrection}
-                            onChange={(checked) =>
-                                setPreferences({ ...preferences, autoCorrection: checked })
-                            }
-                        />
                     </div>
-                </motion.div>
+
+                    <div className="rounded-2xl bg-[#111113] p-5">
+                        <h2 className="mb-4 text-base font-medium text-[#f0f0f5]/80">
+                            Предпочтения
+                        </h2>
+                        <div className="space-y-2">
+                            <SettingSelect
+                                label="Тема"
+                                value={settings.preferences.theme}
+                                onChange={(value) => updatePreference("theme", value)}
+                                options={[
+                                    { value: "dark", label: "Тёмная" },
+                                    { value: "light", label: "Светлая" },
+                                    { value: "system", label: "Системная" },
+                                ]}
+                            />
+                            <SettingToggle
+                                label="Звуковые эффекты"
+                                description="Звуки при уведомлениях и действиях"
+                                checked={settings.preferences.soundEffects}
+                                onChange={(checked) => updatePreference("soundEffects", checked)}
+                            />
+                            <SettingSelect
+                                label="Язык"
+                                value={settings.preferences.language}
+                                onChange={(value) => updatePreference("language", value)}
+                                options={[
+                                    { value: "ru", label: "Русский" },
+                                    { value: "en", label: "English" },
+                                    { value: "es", label: "Español" },
+                                ]}
+                            />
+                            <SettingToggle
+                                label="Автокоррекция"
+                                description="Исправлять ошибки в чате автоматически"
+                                checked={settings.preferences.autoCorrection}
+                                onChange={(checked) => updatePreference("autoCorrection", checked)}
+                            />
+                        </div>
+                    </div>
+                </div>
             </div>
         </div>
     );
 }
 
-// Компонент переключателя настройки
 interface SettingToggleProps {
     label: string;
     description: string;
-    icon?: typeof Bell;
     checked: boolean;
     onChange: (checked: boolean) => void;
 }
 
-function SettingToggle({
-    label,
-    description,
-    icon: Icon,
-    checked,
-    onChange,
-}: SettingToggleProps) {
+function SettingToggle({ label, description, checked, onChange }: SettingToggleProps) {
     return (
-        <div className="flex items-center justify-between rounded-xl border border-white/5 bg-white/[0.02] p-4">
-            <div className="flex items-center gap-3">
-                {Icon && <Icon className="size-5 text-[#f0f0f5]/50" />}
-                <div>
-                    <p className="font-medium text-[#f0f0f5]">{label}</p>
-                    <p className="text-sm text-[#f0f0f5]/40">{description}</p>
-                </div>
+        <div className="flex items-center justify-between rounded-xl bg-[#141416] px-4 py-3">
+            <div className="min-w-0 flex-1">
+                <p className="text-sm font-medium text-[#f0f0f5]">{label}</p>
+                <p className="mt-0.5 text-xs text-[#f0f0f5]/40">{description}</p>
             </div>
             <button
                 type="button"
@@ -199,19 +161,46 @@ function SettingToggle({
                 aria-checked={checked}
                 aria-label={label}
                 className={cn(
-                    'relative h-6 w-11 rounded-full transition-colors',
-                    checked ? 'bg-[#f0f0f5]' : 'bg-white/10'
+                    "relative ml-4 h-5 w-9 shrink-0 rounded-full transition-colors",
+                    checked ? "bg-[#f0f0f5]" : "bg-[#1a1a1c]"
                 )}
             >
                 <motion.div
                     layout
-                    transition={{ type: 'spring', stiffness: 500, damping: 30 }}
+                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
                     className={cn(
-                        'absolute top-0.5 size-5 rounded-full bg-black',
-                        checked ? 'left-[22px]' : 'left-0.5'
+                        "absolute top-0.5 size-4 rounded-full",
+                        checked ? "left-[18px] bg-black" : "left-0.5 bg-[#f0f0f5]/60"
                     )}
                 />
             </button>
+        </div>
+    );
+}
+
+interface SettingSelectProps {
+    label: string;
+    value: string;
+    onChange: (value: string) => void;
+    options: { value: string; label: string }[];
+}
+
+function SettingSelect({ label, value, onChange, options }: SettingSelectProps) {
+    return (
+        <div className="flex items-center justify-between rounded-xl bg-[#141416] px-4 py-3">
+            <p className="text-sm font-medium text-[#f0f0f5]">{label}</p>
+            <select
+                value={value}
+                onChange={(e) => onChange(e.target.value)}
+                aria-label={label}
+                className="rounded-lg bg-[#1a1a1c] px-3 py-1.5 text-sm text-[#f0f0f5] focus:outline-none focus:ring-1 focus:ring-[#f0f0f5]/20"
+            >
+                {options.map((option) => (
+                    <option key={option.value} value={option.value}>
+                        {option.label}
+                    </option>
+                ))}
+            </select>
         </div>
     );
 }

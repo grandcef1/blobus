@@ -1,78 +1,103 @@
-    // ARCHITECT: Мок-данные для ИИ-репетиторов
-    // Переведены на русский для русскоязычной аудитории
+    // ARCHITECT: Моки репетиторов — теперь используют данные из MOCK_BLOBATARS
+    // Этот файл остаётся для обратной совместимости, но данные берутся из блобатаров
 
-    import type { Repetitor, LearningModeConfig } from '../../types/onboarding';
+    import { MOCK_BLOBATARS } from "./blobatars";
+    import type { BlobatarId } from "@/types/blobatar";
+    import type { LearningMode } from "@/types/onboarding";
 
-    export const MOCK_REPETITORS: Repetitor[] = [
-    {
-        id: 'aria',
-        name: 'Ария',
-        personality: 'Поддерживающая и терпеливая, идеальна для начинающих',
-        backstory: 'Ария 5 лет преподавала английский в Токио, прежде чем присоединиться к Blobus. Она верит, что каждая ошибка — это шаг к свободному владению языком.',
-        voiceAccent: 'american',
-        avatarColor: '#8B5CF6', // фиолетовый
-        specialties: ['speaking', 'grammar'],
-        teachingStyle: 'encouraging',
-    },
-    {
-        id: 'max',
-        name: 'Макс',
-        personality: 'Профессиональный и ориентированный на результат',
-        backstory: 'Бывший рекрутер в Google, Макс знает, что именно ищут интервьюеры. Он подготовит тебя к любому собеседованию на английском.',
-        voiceAccent: 'british',
-        avatarColor: '#3B82F6', // синий
-        specialties: ['interview', 'general'],
-        teachingStyle: 'professional',
-    },
-    {
-        id: 'sophia',
-        name: 'София',
-        personality: 'Непринуждённая и весёлая',
-        backstory: 'София — тревел-блогер, посетившая 47 стран. С ней обучение похоже на разговор с другом в кофейне.',
-        voiceAccent: 'australian',
-        avatarColor: '#10B981', // зелёный
-        specialties: ['speaking', 'general'],
-        teachingStyle: 'casual',
-    },
-    {
-        id: 'oliver',
-        name: 'Оливер',
-        personality: 'Структурированный и внимательный к деталям',
-        backstory: 'Выпускник Кембриджа со степенью по лингвистике. Оливер разбирает сложную грамматику на простые запоминающиеся паттерны.',
-        voiceAccent: 'british',
-        avatarColor: '#F59E0B', // янтарный
-        specialties: ['grammar', 'interview'],
-        teachingStyle: 'structured',
-    },
+    export interface Repetitor {
+    id: BlobatarId;
+    name: string;
+    personality: string;
+    backstory: string;
+    voiceAccent: "british" | "american" | "australian";
+    specialties: LearningMode[];
+    teachingStyle: "encouraging" | "structured" | "casual" | "professional";
+    }
+
+    // ARCHITECT: Заглушки для обратной совместимости
+    // В реальном приложении эти данные должны приходить с бэкенда
+    export const MOCK_REPETITORS: Repetitor[] = MOCK_BLOBATARS.map((blobatar, index) => {
+    const personalities = [
+        "Поддерживающая и терпеливая",
+        "Профессиональный и ориентированный на результат",
+        "Непринуждённая и весёлая",
+        "Структурированный и внимательный к деталям",
+        "Энергичная и мотивирующая",
+        "Спокойная и вдумчивая",
+        "Творческая и нестандартная",
+        "Практичная и прикладная",
+        "Дружелюбная и открытая",
+        "Аналитическая и точная",
     ];
 
-    export const MOCK_LEARNING_MODES: LearningModeConfig[] = [
+    const accents: Array<"british" | "american" | "australian"> = [
+        "american",
+        "british",
+        "australian",
+        "american",
+        "british",
+        "american",
+        "australian",
+        "british",
+        "american",
+        "australian",
+    ];
+
+    const styles: Array<"encouraging" | "structured" | "casual" | "professional"> = [
+        "encouraging",
+        "professional",
+        "casual",
+        "structured",
+        "encouraging",
+        "structured",
+        "casual",
+        "professional",
+        "encouraging",
+        "structured",
+    ];
+
+    const allModes: LearningMode[] = ["interview", "speaking", "grammar", "general"];
+    const specialties = allModes.slice(0, 2 + (index % 2));
+
+    return {
+        id: blobatar.id as BlobatarId,
+        name: blobatar.name,
+        personality: personalities[index],
+        backstory: "",
+        voiceAccent: accents[index],
+        specialties,
+        teachingStyle: styles[index],
+    };
+    });
+
+    export const MOCK_LEARNING_MODES = [
     {
-        id: 'interview',
-        label: 'Подготовка к собеседованиям',
-        description: 'Практика типичных вопросов на собеседовании и профессиональная лексика',
-        icon: 'Briefcase',
-        recommendedRepetitors: ['max', 'oliver'],
+        id: "interview",
+        label: "Подготовка к собеседованиям",
+        description: "Практика типичных вопросов на собеседовании и профессиональная лексика",
+        icon: "Briefcase",
+        recommendedRepetitors: ["max", "orion"],
     },
     {
-        id: 'speaking',
-        label: 'Разговорная практика',
-        description: 'Улучшение беглости речи через естественные диалоги',
-        icon: 'MessageCircle',
-        recommendedRepetitors: ['aria', 'sophia'],
+        id: "speaking",
+        label: "Разговорная практика",
+        description: "Улучшение беглости речи через естественные диалоги",
+        icon: "MessageCircle",
+        recommendedRepetitors: ["miya", "alex"],
     },
     {
-        id: 'grammar',
-        label: 'Грамматика',
-        description: 'Освой английскую грамматику через структурированные уроки',
-        icon: 'BookOpen',
-        recommendedRepetitors: ['oliver', 'aria'],
+        id: "grammar",
+        label: "Грамматика",
+        description: "Освой английскую грамматику через структурированные уроки",
+        icon: "BookOpen",
+        recommendedRepetitors: ["oscar", "lira"],
     },
     {
-        id: 'general',
-        label: 'Общий английский',
-        description: 'Повседневный английский для путешествий и общения',
-        icon: 'Globe',
-        recommendedRepetitors: ['sophia', 'max'],
+        id: "general",
+        label: "Общий английский",
+        description: "Повседневный английский для путешествий и общения",
+        icon: "Globe",
+        recommendedRepetitors: ["luna", "nova"],
     },
     ];

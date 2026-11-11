@@ -1,5 +1,6 @@
 // ARCHITECT: Sheet — мобильное меню на Radix Dialog (пакет radix-ui уже в зависимостях,
-// новых пакетов не добавляем). API повторяет shadcn/ui Sheet, стили — строго чёрно-белая тема.
+// новых пакетов не добавляем). API повторяет shadcn/ui Sheet, стили — тёмная поверхность
+// проекта: панель на ступень светлее фона (#141416 против #0d0d0d), светлый текст.
 import * as React from "react";
 import { Dialog as SheetPrimitive } from "radix-ui";
 import { X } from "lucide-react";
@@ -80,15 +81,17 @@ function SheetContent({ className, children, side = "right", ...props }: SheetCo
             <SheetPrimitive.Content
                 data-slot="sheet-content"
                 className={cn(
-                    // ARCHITECT: фон панели — #f0f0f5, текст — чёрный (инверсия основной палитры), без градиентов
-                    "fixed z-50 flex flex-col gap-4 bg-[#f0f0f5] text-black shadow-lg transition ease-in-out",
+                    // ARCHITECT: панель — приподнятая тёмная поверхность #141416 на фоне #0d0d0d:
+                    // тонкая граница и блюр дают глубину вместо тени, светлый текст стоит по
+                    // умолчанию, поэтому меню лендинга не нужно перекрашивать классами.
+                    "fixed z-50 flex flex-col gap-4 border-white/5 bg-[#141416] text-[#f0f0f5] backdrop-blur-xl transition ease-in-out",
                     sideStyles[side],
                     className,
                 )}
                 {...props}
             >
                 {children}
-                <SheetPrimitive.Close className="absolute top-4 right-4 rounded-sm opacity-70 transition-opacity hover:opacity-100 focus-visible:ring-2 focus-visible:ring-black/40 focus-visible:outline-none disabled:pointer-events-none">
+                <SheetPrimitive.Close className="absolute top-4 right-4 rounded-sm text-[#f0f0f5]/70 transition-colors hover:text-[#f0f0f5] focus-visible:ring-2 focus-visible:ring-[#f0f0f5]/60 focus-visible:outline-none disabled:pointer-events-none">
                     <X className="size-5" aria-hidden="true" />
                     <span className="sr-only">Закрыть</span>
                 </SheetPrimitive.Close>
@@ -114,7 +117,7 @@ function SheetTitle({
     return (
         <SheetPrimitive.Title
             data-slot="sheet-title"
-            className={cn("font-bold text-black", className)}
+            className={cn("font-bold text-[#f0f0f5]", className)}
             {...props}
         />
     );
@@ -127,7 +130,7 @@ function SheetDescription({
     return (
         <SheetPrimitive.Description
             data-slot="sheet-description"
-            className={cn("text-sm text-black/60", className)}
+            className={cn("text-sm text-[#f0f0f5]/60", className)}
             {...props}
         />
     );

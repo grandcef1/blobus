@@ -1,5 +1,8 @@
-// ARCHITECT: Поле ввода сообщения — переведено на русский
-// Быстрые промпты локализованы для русскоязычных пользователей
+// ARCHITECT: Поле ввода сообщения. Отправка вынесена наружу через onSend: компонент не знает
+// про хранилище, поэтому его легко переиспользовать, а заглушка отправки живёт в api/chat.
+// ARCHITECT: textarea text-base на телефоне — 16px отключает автозум iOS при фокусе, с md
+// возвращаются прежние 14px; кнопки 44px на телефоне и 40px с md; подсказка про Enter скрыта
+// на телефоне — там нет Enter. Нижний отступ учитывает env(safe-area-inset-bottom).
 
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
@@ -8,6 +11,7 @@ import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
     disabled?: boolean;
+    onSend?: (text: string) => void;
 }
 
 // ARCHITECT: быстрые промпты на русском — контекстные подсказки для учеников
@@ -18,15 +22,19 @@ const QUICK_PROMPTS = [
     'Проверь меня по теме',
 ];
 
-export function ChatInput({ disabled = false }: ChatInputProps) {
+const ACTION_BUTTON = 'flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] md:size-10';
+const MUTED_ACTION = 'text-[#f0f0f5]/30 hover:bg-white/[0.06] hover:text-[#f0f0f5]/60';
+
+export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
     const [message, setMessage] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
     const textareaRef = useRef<HTMLTextAreaElement>(null);
 
     const handleSubmit = () => {
-        if (!message.trim() || disabled) return;
-        console.log('Отправка сообщения:', message);
+        const text = message.trim();
+        if (!text || disabled) return;
+        onSend?.(text);
         setMessage('');
     };
 
@@ -45,9 +53,8 @@ export function ChatInput({ disabled = false }: ChatInputProps) {
     }, [message]);
 
     return (
-        <div className="shrink-0 border-t border-white/10 bg-black/80 px-4 py-4 backdrop-blur-sm md:px-6">
-            <div className="mx-auto max-w-3xl">
-                {/* Быстрые промпты */}
+        <div className="shrink-0 border-t border-white/10 bg-black/80 px-3 pb-[env(safe-area-inset-bottom)] backdrop-blur-sm md:px-6">
+            <div className="mx-auto max-w-3xl py-3 md:py-4">
                 <AnimatePresence>
                     {isFocused && !message && (
                         <motion.div
@@ -60,13 +67,9 @@ export function ChatInput({ disabled = false }: ChatInputProps) {
                                 <button
                                     key={prompt}
                                     onClick={() => setMessage(prompt)}
-                                    className={cn(
-                                        'flex items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04]',
-                                        'px-3 py-1.5 text-xs text-[#f0f0f5]/50 transition-colors',
-                                        'hover:border-white/25 hover:bg-white/[0.08] hover:text-[#f0f0f5]/80'
-                                    )}
+                                    className="flex min-h-11 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 text-xs text-[#f0f0f5]/50 transition-colors hover:border-white/25 hover:bg-white/[0.08] hover:text-[#f0f0f5]/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] md:min-h-0 md:py-1.5"
                                 >
-                                    <Sparkles className="size-3" />
+                                    <Sparkles className="size-3" aria-hidden="true" />
                                     {prompt}
                                 </button>
                             ))}
@@ -74,20 +77,14 @@ export function ChatInput({ disabled = false }: ChatInputProps) {
                     )}
                 </AnimatePresence>
 
-                {/* Контейнер ввода */}
                 <div
                     className={cn(
                         'flex items-end gap-2 rounded-2xl border transition-colors',
-                        isFocused
-                            ? 'border-white/25 bg-white/[0.06]'
-                            : 'border-white/10 bg-white/[0.03]'
+                        isFocused ? 'border-white/25 bg-white/[0.06]' : 'border-white/10 bg-white/[0.03]'
                     )}
                 >
-                    <button
-                        aria-label="Прикрепить файл"
-                        className="flex size-10 shrink-0 items-center justify-center rounded-xl text-[#f0f0f5]/30 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]/60"
-                    >
-                        <Paperclip className="size-4" />
+                    <button aria-label="Прикрепить файл" className={cn(ACTION_BUTTON, MUTED_ACTION)}>
+                        <Paperclip className="size-4" aria-hidden="true" />
                     </button>
 
                     <textarea
@@ -102,7 +99,7 @@ export function ChatInput({ disabled = false }: ChatInputProps) {
                         rows={1}
                         aria-label="Поле ввода сообщения"
                         className={cn(
-                            'max-h-[150px] flex-1 resize-none bg-transparent py-2.5 text-sm text-[#f0f0f5]',
+                            'max-h-[150px] flex-1 resize-none bg-transparent py-2.5 text-base text-[#f0f0f5] md:text-sm',
                             'placeholder:text-[#f0f0f5]/25 focus:outline-none',
                             disabled && 'opacity-50'
                         )}
@@ -112,14 +109,9 @@ export function ChatInput({ disabled = false }: ChatInputProps) {
                     <button
                         onClick={() => setIsRecording(!isRecording)}
                         aria-label={isRecording ? 'Остановить запись' : 'Начать запись'}
-                        className={cn(
-                            'flex size-10 shrink-0 items-center justify-center rounded-xl transition-colors',
-                            isRecording
-                                ? 'bg-rose-500/20 text-rose-400'
-                                : 'text-[#f0f0f5]/30 hover:bg-white/[0.06] hover:text-[#f0f0f5]/60'
-                        )}
+                        className={cn(ACTION_BUTTON, isRecording ? 'bg-[#f0f0f5]/15 text-[#f0f0f5]' : MUTED_ACTION)}
                     >
-                        <Mic className={cn('size-4', isRecording && 'animate-pulse')} />
+                        <Mic className={cn('size-4', isRecording && 'animate-pulse')} aria-hidden="true" />
                     </button>
 
                     <button
@@ -127,20 +119,21 @@ export function ChatInput({ disabled = false }: ChatInputProps) {
                         disabled={!message.trim() || disabled}
                         aria-label="Отправить сообщение"
                         className={cn(
-                            'flex size-10 shrink-0 items-center justify-center rounded-xl transition-all',
+                            ACTION_BUTTON,
                             message.trim()
-                                ? 'bg-[#f0f0f5] text-black hover:scale-105'
-                                : 'bg-white/[0.06] text-[#f0f0f5]/20 cursor-not-allowed'
+                                ? 'bg-[#f0f0f5] text-black hover:bg-[#f0f0f5]/90'
+                                : 'cursor-not-allowed bg-white/[0.06] text-[#f0f0f5]/20'
                         )}
                     >
-                        <Send className="size-4" />
+                        <Send className="size-4" aria-hidden="true" />
                     </button>
                 </div>
 
-                <p className="mt-2 text-center text-[10px] text-[#f0f0f5]/20">
+                <p className="mt-2 hidden text-center text-[10px] text-[#f0f0f5]/20 md:block">
                     Enter — отправить, Shift+Enter — новая строка
                 </p>
             </div>
         </div>
     );
 }
+

@@ -105,12 +105,15 @@ export function HeroSection() {
                             <TypewriterHeading />
                         </motion.div>
 
+                        {/* ARCHITECT: подводка — одно короткое утверждение вместо перечня из трёх
+                            пунктов. Размер на ступень ниже заголовка, ограничение по мере строки
+                            и text-balance держат её двумя спокойными строками без обрывков. */}
                         <motion.p
                             variants={subtitleVariants}
-                            className="max-w-[48ch] text-balance text-lg leading-relaxed text-[#f0f0f5]/60 md:text-xl md:leading-relaxed"
+                            className="max-w-xl text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:text-lg"
                         >
-                            Персональные уроки, разговорная практика и подготовка к
-                            собеседованиям — всё в одном месте
+                            Персональные уроки и разговорная практика с ИИ-репетитором. Подготовка
+                            к собеседованиям — в живом диалоге.
                         </motion.p>
 
                         <motion.div

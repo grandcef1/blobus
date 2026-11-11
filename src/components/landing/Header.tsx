@@ -108,7 +108,7 @@ export function Header() {
                                 <SheetClose asChild key={link.href}>
                                     <a
                                         href={link.href}
-                                        className="rounded-md px-2 py-2 text-base text-black/80 transition-colors hover:bg-black/5 hover:text-black"
+                                        className="rounded-xl px-3 py-2.5 text-base text-[#f0f0f5]/80 transition-colors hover:bg-white/5 hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]/60"
                                     >
                                         {link.label}
                                     </a>
@@ -116,17 +116,19 @@ export function Header() {
                             ))}
                         </nav>
 
+                        {/* ARCHITECT: кнопки внутри тёмной панели — тёмные варианты: primary как
+                            в шапке (светлая пилюля), secondary — стеклянный ghost с border-white/20. */}
                         <div className="mt-auto flex flex-col gap-3 p-6">
                             <Button
                                 onClick={handleGetStarted}
-                                className="w-full rounded-full bg-black text-[#f0f0f5] shadow-none hover:bg-zinc-800"
+                                className="w-full rounded-full bg-[#f0f0f5] text-black shadow-none hover:bg-white"
                             >
                                 Начать
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={handleLogin}
-                                className="w-full rounded-full border-black/30 bg-transparent text-black shadow-none hover:bg-black/5 hover:text-black"
+                                className="w-full rounded-full border border-white/20 bg-transparent text-[#f0f0f5] shadow-none hover:bg-white/5 hover:text-white"
                             >
                                 Войти
                             </Button>

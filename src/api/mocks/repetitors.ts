@@ -74,8 +74,8 @@
     export const MOCK_LEARNING_MODES = [
     {
         id: "interview",
-        label: "Подготовка к собеседованиям",
-        description: "Практика типичных вопросов на собеседовании и профессиональная лексика",
+        label: "Собеседование",
+        description: "Практика типичных вопросов на собеседовании и тренировка профессиональной лексики",
         icon: "Briefcase",
         recommendedRepetitors: ["max", "orion"],
     },

@@ -1,17 +1,16 @@
-// ARCHITECT: мастер настройки — пошаговый флоу. Постоянные слои (фон, шторка, прогресс)
-// переехали в OnboardingShell: монтируются один раз за сессию и не перемонтируются при
-// смене шага. Шаги рендерят только свой контент, переходы анимирует AnimatePresence
-// в режиме wait — 0.4 с, easeOut.
+// ARCHITECT: мастер настройки — пошаговый флоу. Постоянные слои (фон, шторка, прогресс) живут
+// в OnboardingShell: монтируются один раз за сессию и не перемонтируются при смене шага.
+// ARCHITECT: у мастера два режима: полный (welcome, auth, репетитор, режим, расписание) и
+// session — только репетитор и режим перед новой сессией. В режиме session финал создаёт сессию
+// и открывает чат; раньше финал делал window.location.href и терял сессию при перезагрузке.
 
 import { useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import type {
-    OnboardingStep,
-    OnboardingData,
-    LearningMode,
-    SchedulePreference,
-} from "@/types/onboarding";
 import type { BlobatarId } from "@/types/blobatar";
+import type { LearningMode, OnboardingData, OnboardingStep, SchedulePreference } from "@/types/onboarding";
+import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
+import { createSession } from "@/api/sessions";
 import { cn } from "@/lib/utils";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { WelcomeStep } from "@/components/onboarding/steps/WelcomeStep";
@@ -20,16 +19,21 @@ import { RepetitorSelectionStep } from "@/components/onboarding/steps/RepetitorS
 import { ModeSelectionStep } from "@/components/onboarding/steps/ModeSelectionStep";
 import { ScheduleStep } from "@/components/onboarding/steps/ScheduleStep";
 
-const STEP_ORDER: OnboardingStep[] = [
-    "welcome",
-    "auth",
-    "blobatar-selection",
-    "mode-selection",
-    "schedule",
-];
+export type OnboardingFlow = "full" | "session";
 
-export function Onboarding() {
-    const [currentStep, setCurrentStep] = useState<OnboardingStep>("welcome");
+interface OnboardingProps {
+    flow?: OnboardingFlow;
+}
+
+const STEP_ORDERS: Record<OnboardingFlow, OnboardingStep[]> = {
+    full: ["welcome", "auth", "blobatar-selection", "mode-selection", "schedule"],
+    session: ["blobatar-selection", "mode-selection"],
+};
+
+export function Onboarding({ flow = "full" }: OnboardingProps) {
+    const navigate = useNavigate();
+    const stepOrder = STEP_ORDERS[flow];
+    const [currentStep, setCurrentStep] = useState<OnboardingStep>(stepOrder[0]);
     const [onboardingData, setOnboardingData] = useState<OnboardingData>({
         blobatarId: null,
         learningMode: null,
@@ -38,76 +42,83 @@ export function Onboarding() {
         completedSteps: [],
     });
 
-    const currentStepIndex = STEP_ORDER.indexOf(currentStep);
-    const totalSteps = STEP_ORDER.length;
+    const currentStepIndex = stepOrder.indexOf(currentStep);
     const stepNumber = currentStepIndex + 1;
+    const totalSteps = stepOrder.length;
     const progress = (stepNumber / totalSteps) * 100;
     const isWelcome = currentStep === "welcome";
 
-    const handleNext = () => {
-        const nextIndex = currentStepIndex + 1;
-        if (nextIndex < STEP_ORDER.length) {
-            setCurrentStep(STEP_ORDER[nextIndex]);
-        } else {
-            window.location.href = "/app";
-        }
+    const updateData = (updates: Partial<OnboardingData>) => {
+        setOnboardingData((previous) => ({ ...previous, ...updates }));
     };
 
+    // ARCHITECT: в режиме session отдельного шага уровня нет, поэтому уровень цели берётся из
+    // профиля — карточка сессии показывает уровень, а не пустое поле.
+    const startSession = () => {
+        if (!onboardingData.blobatarId || !onboardingData.learningMode) return;
+
+        const session = createSession({
+            repetitorId: onboardingData.blobatarId,
+            learningMode: onboardingData.learningMode,
+            targetLevel: onboardingData.englishLevel ?? MOCK_USER_PROGRESS.currentLevel,
+        });
+
+        navigate(`/app/chat/${session.id}`);
+    };
+
+    const handleNext = () => {
+        const nextIndex = currentStepIndex + 1;
+        if (nextIndex < totalSteps) {
+            setCurrentStep(stepOrder[nextIndex]);
+            return;
+        }
+
+        if (flow === "session") startSession();
+        else navigate("/app");
+    };
+
+    // ARCHITECT: «Назад» на первом шаге режима session выводит в раздел «Сессии»: экран без
+    // выхода — тупик.
     const handleBack = () => {
         const prevIndex = currentStepIndex - 1;
         if (prevIndex >= 0) {
-            setCurrentStep(STEP_ORDER[prevIndex]);
+            setCurrentStep(stepOrder[prevIndex]);
+            return;
         }
+
+        if (flow === "session") navigate("/app/sessions");
     };
 
-    const updateData = (updates: Partial<OnboardingData>) => {
-        setOnboardingData((prev) => ({ ...prev, ...updates }));
-    };
+    const stepNav = { onNext: handleNext, onBack: handleBack, step: stepNumber, totalSteps };
 
     const renderStep = () => {
         switch (currentStep) {
             case "welcome":
                 return <WelcomeStep onNext={handleNext} />;
             case "auth":
-                return (
-                    <AuthStep
-                        onNext={handleNext}
-                        onBack={handleBack}
-                        step={stepNumber}
-                        totalSteps={totalSteps}
-                    />
-                );
+                return <AuthStep {...stepNav} />;
             case "blobatar-selection":
                 return (
                     <RepetitorSelectionStep
+                        {...stepNav}
                         selectedId={onboardingData.blobatarId}
                         onSelect={(id: BlobatarId) => updateData({ blobatarId: id })}
-                        onNext={handleNext}
-                        onBack={handleBack}
-                        step={stepNumber}
-                        totalSteps={totalSteps}
                     />
                 );
             case "mode-selection":
                 return (
                     <ModeSelectionStep
+                        {...stepNav}
                         selectedMode={onboardingData.learningMode}
                         onSelect={(mode: LearningMode) => updateData({ learningMode: mode })}
-                        onNext={handleNext}
-                        onBack={handleBack}
-                        step={stepNumber}
-                        totalSteps={totalSteps}
                     />
                 );
             case "schedule":
                 return (
                     <ScheduleStep
+                        {...stepNav}
                         schedule={onboardingData.schedule}
                         onUpdate={(schedule: SchedulePreference) => updateData({ schedule })}
-                        onNext={handleNext}
-                        onBack={handleBack}
-                        step={stepNumber}
-                        totalSteps={totalSteps}
                     />
                 );
             default:

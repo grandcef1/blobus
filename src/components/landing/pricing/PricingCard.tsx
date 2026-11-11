@@ -1,5 +1,9 @@
 // src/components/landing/pricing/PricingCard.tsx
-// ARCHITECT: карточка тарифа с бесконечным плавным border и вынесенным фоновым свечением.
+// ARCHITECT: карточка тарифа без анимации рамки: вращающийся conic-gradient убран — он
+// дёргался на слабых машинах и выглядел дёшево. Pro выделяется статично: приподнятая
+// поверхность bg-white/[0.04], граница border-white/15, бейдж «Популярный» и один очень
+// слабый радиальный слой внутри карточки. Остальные тарифы спокойнее по контрасту, не по
+// движению.
 // ARCHITECT: кнопки на одном уровне через flex flex-col h-full + mt-auto.
 
 import { motion } from "framer-motion";
@@ -9,11 +13,17 @@ import { FeatureTable } from "./FeatureTable";
 import { FreeCardSvg } from "./visuals/FreeCardSvg";
 import { ProCardSvg } from "./visuals/ProCardSvg";
 import { useNavigate } from 'react-router-dom';
+import { cn } from "@/lib/utils";
 
 interface PricingCardProps {
     readonly plan: PricingPlan;
     readonly billingPeriod: BillingPeriod;
 }
+
+// ARCHITECT: две поверхности тарифов вместо ветвления классов внутри разметки.
+const PRO_SURFACE =
+    "border-white/15 bg-white/[0.04] bg-[radial-gradient(ellipse_at_50%_0%,rgba(240,240,245,0.06),transparent_65%)]";
+const QUIET_SURFACE = "border-white/10 bg-black";
 
 export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
     const navigate = useNavigate();
@@ -34,70 +44,32 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
             transition={{ duration: 0.6, ease: "easeOut" }}
             className="relative flex flex-col h-full"
         >
-            {/* ARCHITECT: единая обертка с классом 'group' для синхронного hover-эффекта */}
+            {/* ARCHITECT: обёртка карточки: hover-подъём общий для обоих тарифов, поэтому Pro
+                выделяется контрастом поверхности, а не движением. */}
             <motion.div
                 whileHover={{ y: -8 }}
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
-                className="relative flex flex-col h-full group"
+                className="relative flex flex-col h-full"
             >
-                {/* ARCHITECT: фоновое свечение для Pro-карточки.
-                    Вынесено ЗА пределы карточки (-inset-6), с огромным blur (80px).
-                    Это создает мягкую, премиальную ауру, которая усиливается при hover. */}
+                {/* ARCHITECT: бейдж «Популярный» — статичная метка тарифа: без иконки и блюра. */}
                 {plan.highlighted && (
-                    <div
-                        className="absolute -inset-6 rounded-3xl opacity-40 transition-opacity duration-700 group-hover:opacity-70"
-                        style={{
-                            background: "radial-gradient(circle at 50% 50%, rgba(240,240,245,0.2) 0%, transparent 65%)",
-                        }}
-                        aria-hidden="true"
-                    />
-                )}
-
-                {/* ARCHITECT: бейдж с текстом "Непревзойденная цена" */}
-                {plan.highlighted && (
-                    <motion.div
-                        initial={{ opacity: 0, y: -10 }}
-                        whileInView={{ opacity: 1, y: 0 }}
-                        viewport={{ once: true }}
-                        transition={{ delay: 0.3, duration: 0.4 }}
-                        className="absolute -top-4 left-1/2 z-30 -translate-x-1/2"
-                    >
-                        <span className="inline-flex items-center gap-1.5 rounded-full border border-white/20 bg-black/80 px-4 py-1.5 text-xs font-medium text-[#f0f0f5] backdrop-blur-sm shadow-lg">
-                            <svg viewBox="0 0 24 24" className="size-3.5" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round">
-                                <path d="M 12 3 L 14 9 L 20 9 L 15 13 L 17 19 L 12 15 L 7 19 L 9 13 L 4 9 L 10 9 Z" />
-                            </svg>
-                            Непревзойденная цена
+                    <div className="absolute -top-3 left-1/2 z-20 -translate-x-1/2">
+                        <span className="inline-flex items-center rounded-full border border-white/15 bg-[#141416] px-3 py-1 text-xs font-medium text-[#f0f0f5]">
+                            Популярный
                         </span>
-                    </motion.div>
+                    </div>
                 )}
 
-                {/* ARCHITECT: контейнер карточки с overflow-hidden для обрезки вращающегося градиента */}
-                <div className="relative flex h-full flex-col overflow-hidden rounded-2xl border border-white/10 bg-black p-8">
-
-                    {/* ARCHITECT: бесконечный плавный анимированный border (только для Pro).
-                        Градиент математически симметричен (0% и 100% идентичны, пик на 50%).
-                        При вращении на 360deg с linear easing стык абсолютно невидим. */}
-                    {plan.highlighted && (
-                        <motion.div
-                            className="absolute inset-0 rounded-2xl"
-                            animate={{ rotate: 360 }}
-                            transition={{ duration: 10, repeat: Infinity, ease: "linear" }}
-                            style={{
-                                background: "conic-gradient(from 0deg, transparent 0%, rgba(240,240,245,0.2) 25%, rgba(240,240,245,0.9) 50%, rgba(240,240,245,0.2) 75%, transparent 100%)",
-                                originX: "50%",
-                                originY: "50%",
-                                zIndex: 0,
-                            }}
-                            aria-hidden="true"
-                        />
+                {/* ARCHITECT: поверхность карточки. У Pro — приподнятая и слоистая: заливка
+                    white/[0.04] плюс один очень слабый радиальный слой в палитре проекта.
+                    Остальные тарифы спокойнее, чтобы Pro выделялся контрастом. */}
+                <div
+                    className={cn(
+                        "relative flex h-full flex-col overflow-hidden rounded-2xl border p-8",
+                        plan.highlighted ? PRO_SURFACE : QUIET_SURFACE
                     )}
-
-                    {/* ARCHITECT: внутренний черный слой, перекрывающий центр градиента. 
-                        Оставляет видимым только тонкий край (1.5px), создавая эффект идеальной светящейся рамки. */}
-                    <div className="absolute inset-[1.5px] rounded-2xl bg-black z-10" />
-
-                    {/* ARCHITECT: контент карточки (z-20, чтобы быть поверх рамки) */}
-                    <div className="relative z-20 flex h-full flex-col">
+                >
+                    <div className="relative flex h-full flex-col">
                         <div className="mb-6 flex justify-center">
                             <Visual />
                         </div>
@@ -133,8 +105,8 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                             <button
                                 type="button"
                                 onClick={handleCTA}
-                                className={`w-full rounded-full px-6 py-3 text-sm font-medium transition-all duration-300 ${plan.highlighted
-                                        ? "bg-[#f0f0f5] text-black hover:bg-white hover:shadow-[0_0_30px_rgba(240,240,245,0.4)]"
+                                className={`w-full rounded-full px-6 py-3 text-sm font-medium transition-colors duration-200 ${plan.highlighted
+                                        ? "bg-[#f0f0f5] text-black hover:bg-white"
                                         : "border border-white/20 bg-transparent text-[#f0f0f5] hover:border-white/40 hover:bg-white/5"
                                     }`}
                             >

@@ -3,9 +3,7 @@ import type { ReactNode, RefObject } from "react";
 
 import { motion, useAnimationFrame, useMotionValue } from "framer-motion";
 import type { MotionValue, Variants } from "framer-motion";
-import { Languages, Volume2 } from "lucide-react";
-
-import { ChatBlobatar } from "@/components/landing/ChatBlobatar";
+import { ChatPreview } from "@/components/landing/ChatPreview";
 import { MiniBlobatar } from "@/components/landing/MiniBlobatar";
 
 const FEATURES = [
@@ -361,127 +359,6 @@ function ModeShowcase() {
                 <ModeTile key={mode.id} mode={mode} index={index} />
             ))}
         </ul>
-    );
-}
-
-interface ChatMessage {
-    author: "bot" | "user";
-    text: string;
-    widthClass: string;
-}
-
-const CHAT_MESSAGES: ChatMessage[] = [
-    {
-        author: "bot",
-        text: "Tell me about your weekend.",
-        widthClass: "max-w-[220px] text-lg",
-    },
-    {
-        author: "user",
-        text: "I go to cinema with my friends.",
-        widthClass: "max-w-[90%]",
-    },
-    {
-        author: "bot",
-        text: `Nice! Correct form: "I went to the cinema." Let's practice the Past Simple.`,
-        widthClass: "max-w-[90%]",
-    },
-];
-
-function ChatPreview() {
-    return (
-        <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col items-center justify-center gap-6 md:flex-row md:gap-12">
-            <div className="flex min-w-0 w-full flex-1 flex-col gap-4">
-                {CHAT_MESSAGES.map((message, index) => (
-                    <motion.div
-                        key={index}
-                        initial={{ opacity: 0, x: message.author === "user" ? 20 : -20 }}
-                        whileInView={{ opacity: 1, x: 0 }}
-                        viewport={{ once: true, amount: 0.4 }}
-                        transition={{ duration: 0.6, ease: "easeOut", delay: 0.2 + index * 0.5 }}
-                        className={`flex min-w-0 max-w-full items-end gap-2 ${message.author === "user" ? "self-end flex-row-reverse" : "self-start"}`}
-                    >
-                        {/* ARCHITECT: relative + pb-8 для бота создают пространство внутри пузыря
-                           для кнопок действий справа снизу. */}
-                        <div
-                            className={`relative min-w-0 break-words rounded-2xl px-4 py-3 text-sm [overflow-wrap:anywhere] ${
-                                message.author === "user"
-                                    ? "rounded-br-md bg-[#f0f0f5] text-black"
-                                    : "rounded-bl-md bg-white/10 text-[#f0f0f5]"
-                            } ${message.widthClass}`}
-                        >
-                            <div className={message.author === "bot" ? "pb-8 pr-2" : ""}>
-                                {message.text}
-                            </div>
-
-                            {/* ARCHITECT: Кнопки действий перенесены внутрь пузыря, справа снизу.
-                               Размер уменьшен до size-7 (кнопка) и size-3.5 (иконка) для элегантности. */}
-                            {message.author === "bot" && (
-                                <div className="absolute bottom-1.5 right-1.5 flex items-center gap-1.5">
-                                    <motion.button
-                                        type="button"
-                                        className="flex size-7 items-center justify-center rounded-full bg-black/10 text-[#f0f0f5]/60 transition-colors hover:bg-black/20 hover:text-[#f0f0f5]"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        aria-label="Прослушать"
-                                    >
-                                        <Volume2 className="size-3.5" aria-hidden="true" />
-                                    </motion.button>
-                                    <motion.button
-                                        type="button"
-                                        className="flex size-7 items-center justify-center rounded-full bg-black/10 text-[#f0f0f5]/60 transition-colors hover:bg-black/20 hover:text-[#f0f0f5]"
-                                        whileHover={{ scale: 1.1 }}
-                                        whileTap={{ scale: 0.95 }}
-                                        aria-label="Перевести"
-                                    >
-                                        <Languages className="size-3.5" aria-hidden="true" />
-                                    </motion.button>
-                                </div>
-                            )}
-                        </div>
-                    </motion.div>
-                ))}
-
-                <motion.div
-                    initial={{ opacity: 0 }}
-                    whileInView={{ opacity: 1 }}
-                    viewport={{ once: true, amount: 0.4 }}
-                    transition={{ duration: 0.3, delay: 0.2 + CHAT_MESSAGES.length * 0.5 }}
-                    className="flex w-fit self-start items-center gap-1.5 rounded-2xl rounded-bl-md bg-white/10 px-4 py-3"
-                    aria-hidden="true"
-                >
-                    {[0, 1, 2].map((dot) => (
-                        <motion.span
-                            key={dot}
-                            className="h-1.5 w-1.5 rounded-full bg-[#f0f0f5]/60"
-                            animate={{ opacity: [0.25, 1, 0.25], y: [0, -2, 0] }}
-                            transition={{ duration: 1.2, repeat: Infinity, delay: dot * 0.2, ease: "easeInOut" }}
-                        />
-                    ))}
-                </motion.div>
-
-                <p className="mt-4 text-xs text-[#f0f0f5]/40">
-                    Воспроизведение голосом и перевод
-                </p>
-            </div>
-
-            {/* ARCHITECT (RESPONSIVE FIX): на mobile блобатар превью был 160px (h-40 w-40) —
-                визуально терялся внутри широкой карточки. Теперь h-60 w-60 (240px) на mobile
-                и h-72 w-72 (288px) на sm — заметный якорь карточки; в контент карточки
-                (≈310px на 390px-вьюпорте) помещается без клипа.
-                Десктопные md:h-80 md:w-80 md:scale-240 md:translate-* НЕ тронуты. */}
-            <motion.div
-                initial={{ opacity: 0, scale: 0.9 }}
-                whileInView={{ opacity: 1, scale: 1 }}
-                viewport={{ once: true }}
-                transition={{ delay: 0.5, duration: 0.8 }}
-                className="flex w-full shrink-0 items-center justify-center md:w-auto md:pl-4"
-            >
-                <div className="h-60 w-60 sm:h-72 sm:w-72 md:h-80 md:w-80 md:scale-240 md:translate-x-18 md:translate-y-3">
-                    <ChatBlobatar />
-                </div>
-            </motion.div>
-        </div>
     );
 }
 

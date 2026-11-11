@@ -5,6 +5,8 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail } from "lucide-react";
+import { FOCUS_RING } from "@/lib/surfaces";
+import { cn } from "@/lib/utils";
 import { FAQ_ITEMS } from "./data";
 import type { FaqItem } from "./data";
 import { FaqCard } from "./FaqCard";
@@ -49,24 +51,26 @@ export function FaqSection() {
                     transition={{ duration: 0.6, delay: 0.2, ease: "easeOut" }}
                     className="mt-20 text-center"
                 >
-                    <div className="inline-flex flex-col items-center gap-5 rounded-2xl border border-white/10 bg-white/[0.02] p-8 md:p-10 backdrop-blur-sm">
+                    <div className="mx-auto flex w-full max-w-md flex-col items-center gap-5 rounded-2xl border border-white/10 bg-white/[0.02] p-5">
                         <div className="flex items-center gap-3 text-[#f0f0f5]/80">
-                            <div className="flex items-center justify-center w-10 h-10 rounded-full bg-white/10">
+                            <div className="flex size-10 shrink-0 items-center justify-center rounded-full bg-white/10">
                                 <Mail className="size-5 text-[#f0f0f5]" aria-hidden="true" />
                             </div>
-                            <h3 className="text-xl font-semibold tracking-tight text-[#f0f0f5]">
+                            <h3 className="text-lg font-semibold tracking-tight text-[#f0f0f5] md:text-xl">
                                 Остались вопросы?
                             </h3>
                         </div>
-                        <p className="max-w-md text-sm text-[#f0f0f5]/50">
+                        <p className="max-w-sm text-sm leading-relaxed text-[#f0f0f5]/50">
                             Не нашли ответ? Напишите нам, и мы лично поможем разобраться в любом вопросе.
                         </p>
                         
                         {/* ARCHITECT: Обновленная кнопка. font-medium и tracking-wide делают текст 
                             элегантным и премиальным, убирая эффект "кричащего" жирного шрифта. */}
+                        {/* ARCHITECT: кнопка на всю ширину карточки: метка остаётся в одну строку
+                            от 320px, стрелка выровнена по центру через justify-center и gap-2. */}
                         <a
                             href="mailto:support@blobus.com"
-                            className="group inline-flex items-center gap-2 rounded-full bg-[#f0f0f5] px-8 py-3.5 text-sm font-medium tracking-wide text-black transition-all duration-300 hover:bg-white hover:shadow-[0_0_30px_rgba(240,240,245,0.4)]"
+                            className={cn("group flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#f0f0f5] px-5 text-sm font-medium tracking-wide text-black transition-colors hover:bg-white", FOCUS_RING)}
                         >
                             Написать в поддержку
                             <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />

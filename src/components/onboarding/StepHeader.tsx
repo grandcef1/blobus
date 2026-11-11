@@ -53,7 +53,7 @@ export function StepHeader({
             {subtitle && (
                 <motion.p
                     variants={ITEM}
-                    className={cn(STEP_SUBTITLE, "mt-3", isCentered && "mx-auto max-w-md")}
+                    className={cn(STEP_SUBTITLE, "mt-3", isCentered && "mx-auto max-w-2xl")}
                 >
                     {subtitle}
                 </motion.p>

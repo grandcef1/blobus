@@ -58,24 +58,24 @@ export function VocabularyPage() {
                                 transition={{ duration: 0.2, delay: index * 0.03 }}
                                 className="rounded-xl bg-[#141416] p-4 transition-colors hover:bg-[#1a1a1c]"
                             >
-                                <div className="flex items-start justify-between">
-                                    <div className="flex-1">
-                                        <div className="flex items-center gap-2">
-                                            <h3 className="text-base font-medium text-[#f0f0f5]">
+                                <div className="flex items-start justify-between gap-3">
+                                    <div className="min-w-0 flex-1">
+                                        <div className="flex min-w-0 items-center gap-2">
+                                            <h3 className="truncate text-base font-medium text-[#f0f0f5]">
                                                 {word.word}
                                             </h3>
                                             <button
                                                 aria-label={`Произнести ${word.word}`}
-                                                className="text-[#f0f0f5]/30 transition-colors hover:text-[#f0f0f5]/60"
+                                                className="shrink-0 text-[#f0f0f5]/30 transition-colors hover:text-[#f0f0f5]/60"
                                             >
                                                 <Volume2 className="size-3.5" />
                                             </button>
                                         </div>
-                                        <p className="mt-0.5 text-sm text-[#f0f0f5]/60">{word.translation}</p>
-                                        <p className="mt-1 text-xs text-[#f0f0f5]/30">{word.pronunciation}</p>
+                                        <p className="mt-0.5 truncate text-sm text-[#f0f0f5]/60">{word.translation}</p>
+                                        <p className="mt-1 truncate text-xs text-[#f0f0f5]/30">{word.pronunciation}</p>
                                     </div>
 
-                                    <div className="flex flex-col items-end gap-1">
+                                    <div className="flex shrink-0 flex-col items-end gap-1">
                                         <span className="text-xs tabular-nums text-[#f0f0f5]/40">
                                             {word.mastery}%
                                         </span>

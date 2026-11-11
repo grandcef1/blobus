@@ -64,7 +64,7 @@ export function AuthStep({ onNext, onBack, step, totalSteps }: AuthStepProps) {
     };
 
     return (
-        <div className="mx-auto w-full max-w-md">
+        <div className="mx-auto w-full max-w-xl">
             <StepHeader
                 eyebrow="Аккаунт"
                 title={mode === "register" ? "Создать аккаунт" : "Вход в аккаунт"}
@@ -80,7 +80,9 @@ export function AuthStep({ onNext, onBack, step, totalSteps }: AuthStepProps) {
             <StepCard>
                 <AuthModeTabs mode={mode} onChange={(next) => { setMode(next); setErrors({}); }} />
 
-                <form onSubmit={handleSubmit} noValidate className="space-y-4">
+                {/* ARCHITECT: форма — колонка с gap-6: поля, кнопка, разделитель и Google-вход
+                    читаются как отдельные смысловые блоки, а не как плотная лента. */}
+                <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
                 {mode === "register" && (
                     <TextField
                         id="auth-name"

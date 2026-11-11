@@ -1,5 +1,6 @@
-// ARCHITECT: Контейнер сообщений — передаёт сессию в MessageRenderer
-// чтобы рендерить блобатара у сообщений бота
+// ARCHITECT: Контейнер сообщений — передаёт сессию в MessageRenderer,
+// чтобы рендерить блобатара у сообщений бота. Отступы px-3 на телефоне вместо px-4: на 360px
+// 16px с каждой стороны съедали ширину пузыря, а не украшали его.
 
 import { useEffect, useRef } from "react";
 import type { EnhancedChatSession, EnhancedMessage } from "@/types/session";
@@ -18,7 +19,7 @@ export function ChatMessages({ messages, session }: ChatMessagesProps) {
     }, [messages.length]);
 
     return (
-        <div className="flex-1 overflow-y-auto px-4 py-6 md:px-6">
+        <div className="flex-1 overflow-y-auto px-3 py-6 md:px-6">
             <div className="mx-auto flex max-w-3xl flex-col gap-5">
                 {messages.map((message, index) => (
                     <MessageRenderer

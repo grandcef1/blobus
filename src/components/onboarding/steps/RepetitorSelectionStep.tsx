@@ -1,7 +1,7 @@
 // ARCHITECT: Выбор репетитора — использует блобатары из общего источника.
 // Радиогруппа с keyboard navigation (стрелки, Tab, Enter/Space). Логика не меняется:
 // рескин — заголовок через StepHeader, плитки на общих токенах поверхностей, навигация
-// через StepNav. Раскладка сетки и обработка клавиш остались прежними.
+// через StepNav. Контейнер max-w-3xl: пять плиток дышат и не сжимаются в узкую колонку.
 
 import { useState } from "react";
 import { motion } from "framer-motion";
@@ -55,7 +55,7 @@ export function RepetitorSelectionStep({
     };
 
     return (
-        <div>
+        <div className="mx-auto w-full max-w-3xl">
             <StepHeader
                 eyebrow="Репетитор"
                 title="Выбери репетитора"
@@ -68,7 +68,7 @@ export function RepetitorSelectionStep({
                 role="radiogroup"
                 aria-label="Выбор репетитора"
                 onKeyDown={handleKeyDown}
-                className="grid grid-cols-2 gap-4 sm:grid-cols-3 lg:grid-cols-5"
+                className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-5"
             >
                 {MOCK_BLOBATARS.map((blobatar, index) => {
                     const isSelected = selectedId === blobatar.id;
@@ -77,6 +77,7 @@ export function RepetitorSelectionStep({
                     return (
                         <motion.button
                             key={blobatar.id}
+                            type="button"
                             role="radio"
                             aria-checked={isSelected}
                             aria-label={blobatar.name}
@@ -87,12 +88,16 @@ export function RepetitorSelectionStep({
                             transition={{ duration: 0.2, delay: index * 0.03 }}
                             className={tileClasses(
                                 isSelected,
-                                "group relative flex flex-col items-center p-4"
+                                "group relative flex flex-col items-center p-5"
                             )}
                         >
                             {isSelected && (
-                                <div className="absolute right-2 top-2 flex size-5 items-center justify-center rounded-full bg-[#f0f0f5]">
-                                    <Check className="size-3 text-black" strokeWidth={3} />
+                                <div className="absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-[#f0f0f5]">
+                                    <Check
+                                        className="size-3 text-black"
+                                        strokeWidth={3}
+                                        aria-hidden="true"
+                                    />
                                 </div>
                             )}
 
@@ -104,8 +109,11 @@ export function RepetitorSelectionStep({
                                 />
                             </div>
 
-                            <h3 className="text-sm font-medium text-[#f0f0f5]">{blobatar.name}</h3>
-                            <p className="mt-1 text-xs text-[#f0f0f5]/40">Описание позже</p>
+                            {/* ARCHITECT: имя — span, а не h3: внутри <button> допустим только
+                                phrasing content, а заголовок внутри кнопки ничего не сообщает. */}
+                            <span className="block text-sm font-medium text-[#f0f0f5]">
+                                {blobatar.name}
+                            </span>
                         </motion.button>
                     );
                 })}

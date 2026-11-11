@@ -120,7 +120,7 @@
             id: 'msg_1',
             sessionId: 'session_speaking_1',
             role: 'assistant',
-            content: 'Привет! 👋 Какие планы на выходные?',
+            content: 'Привет. Какие планы на выходные?',
             timestamp: now - 86400000,
             type: 'text',
         },

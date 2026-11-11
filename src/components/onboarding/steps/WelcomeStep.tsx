@@ -34,7 +34,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
                     {...fadeUp(0.06)}
                     className="mt-3 text-4xl font-bold leading-tight tracking-tight text-[#f0f0f5] md:text-5xl"
                 >
-                    Английский в диалоге, а не по учебнику
+                    Английский в диалоге, а не в учебнике
                 </motion.h1>
 
                 <motion.div
@@ -60,7 +60,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
             </div>
 
             <div className="absolute inset-x-0 bottom-0 z-0" aria-hidden="true">
-                <WelcomeGlobe className="h-[max(30dvh,30vw)] w-full" />
+                <WelcomeGlobe className="h-[max(30svh,30vw)] w-full" />
             </div>
         </div>
     );

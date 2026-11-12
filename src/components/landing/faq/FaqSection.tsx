@@ -3,6 +3,7 @@
 // ARCHITECT: font-semibold заменен на font-medium, добавлен tracking-wide для премиального, "воздушного" вида.
 
 import { useState } from "react";
+import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail } from "lucide-react";
 import { FOCUS_RING } from "@/lib/surfaces";
@@ -68,13 +69,15 @@ export function FaqSection() {
                             элегантным и премиальным, убирая эффект "кричащего" жирного шрифта. */}
                         {/* ARCHITECT: кнопка на всю ширину карточки: метка остаётся в одну строку
                             от 320px, стрелка выровнена по центру через justify-center и gap-2. */}
-                        <a
-                            href="mailto:support@blobus.com"
+                        {/* ARCHITECT: кнопка ведёт в центр помощи, а не в почтовый клиент: mailto
+                            открывал стороннее приложение и терял контекст обращения. */}
+                        <Link
+                            to="/help"
                             className={cn("group flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#f0f0f5] px-5 text-sm font-medium tracking-wide text-black transition-colors hover:bg-white", FOCUS_RING)}
                         >
                             Написать в поддержку
                             <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
-                        </a>
+                        </Link>
                     </div>
                 </motion.div>
             </div>

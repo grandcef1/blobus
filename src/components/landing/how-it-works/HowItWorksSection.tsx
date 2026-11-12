@@ -1,39 +1,52 @@
-// ARCHITECT: секция how-it-works — тот же маршрут, что у мастера: пять пунктов и их длительность.
-// Подписи берутся из ONBOARDING_STEP_TITLES, поэтому лендинг и мастер не могут разойтись.
-// ARCHITECT: три визуальных блока прежней версии убраны вместе со старым содержимым: в продукте
-// пять шагов, и подпись «одно действие на абзац» больше не описывала мастер.
-
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
-import { Check } from "lucide-react";
-import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
+import type { ComponentType } from "react";
 
-interface ChecklistItem {
+import { GoalSvg } from "./visuals/GoalSvg";
+import { DialogueSvg } from "./visuals/DialogueSvg";
+import { GrowthSvg } from "./visuals/GrowthSvg";
+
+interface StepData {
+    readonly number: string;
     readonly title: string;
-    readonly time: string;
+    readonly description: string;
+    readonly Visual: ComponentType;
 }
 
-const CHECKLIST: readonly ChecklistItem[] = [
-    { title: ONBOARDING_STEP_TITLES.intro, time: "1 мин" },
-    { title: ONBOARDING_STEP_TITLES.assessment, time: "7 мин" },
-    { title: ONBOARDING_STEP_TITLES.goals, time: "1 мин" },
-    { title: ONBOARDING_STEP_TITLES.schedule, time: "1 мин" },
-    { title: ONBOARDING_STEP_TITLES.lesson, time: "сразу" },
-];
+const STEPS: readonly StepData[] = [
+    {
+        number: "01",
+        title: "Фокус на цели",
+        description: "Выберите трек: разговорная практика, собеседование или грамматика. ИИ мгновенно адаптирует сценарий и сложность под ваши задачи.",
+        Visual: GoalSvg,
+    },
+    {
+        number: "02",
+        title: "Естественный диалог",
+        description: "Общайтесь голосом или текстом. ИИ поддерживает контекст, мягко корректирует ошибки в реальном времени и ведёт себя как живой ментор.",
+        Visual: DialogueSvg,
+    },
+    {
+        number: "03",
+        title: "Мгновенный рост",
+        description: "Получайте детальный разбор после каждой сессии. Персональный дашборд с трекингом прогресса и работой над ошибками.",
+        Visual: GrowthSvg,
+    },
+] as const;
 
 const containerVariants: Variants = {
     hidden: {},
     visible: {
-        transition: { staggerChildren: 0.08 },
+        transition: { staggerChildren: 0.15 },
     },
 };
 
 const itemVariants: Variants = {
-    hidden: { opacity: 0, y: 16 },
+    hidden: { opacity: 0, y: 30 },
     visible: {
         opacity: 1,
         y: 0,
-        transition: { duration: 0.4, ease: "easeOut" },
+        transition: { duration: 0.6, ease: "easeOut" },
     },
 };
 
@@ -53,7 +66,7 @@ export function HowItWorksSection() {
                         Как работает Blobus
                     </h2>
                     <p className="mt-4 max-w-2xl text-base text-[#f0f0f5]/60 md:text-lg">
-                        Пять шагов от знакомства до первого урока
+                        Три простых шага от регистрации до уверенного владения языком
                     </p>
                 </motion.header>
 
@@ -62,36 +75,56 @@ export function HowItWorksSection() {
                     initial="hidden"
                     whileInView="visible"
                     viewport={{ once: true, margin: "-100px" }}
-                    className="max-w-xl rounded-3xl border border-white/5 bg-white/[0.02] p-6 md:p-8"
+                    className="flex flex-col"
                 >
-                    <h3 className="text-lg font-semibold text-[#f0f0f5] md:text-xl">
-                        10 минут до старта
-                    </h3>
+                    {STEPS.map((step, index) => {
+                        const Visual = step.Visual;
+                        const isLast = index === STEPS.length - 1;
 
-                    <ul className="mt-6 divide-y divide-white/5">
-                        {CHECKLIST.map((item) => (
-                            <motion.li
-                                key={item.title}
+                        return (
+                            <motion.div
+                                key={step.number}
                                 variants={itemVariants}
-                                className="flex items-baseline justify-between gap-4 py-3"
+                                className="group relative flex flex-col gap-8 py-10 md:flex-row md:items-center md:gap-16 md:py-16"
                             >
-                                <span className="flex items-center gap-3 text-sm text-[#f0f0f5]/80 md:text-base">
-                                    <Check
-                                        className="size-4 shrink-0 text-[#f0f0f5]/40"
+                                {!isLast && (
+                                    <div
+                                        className="absolute bottom-0 left-0 right-0 h-px bg-gradient-to-r from-transparent via-white/10 to-transparent md:left-1/2 md:right-auto md:w-1/2 md:-translate-x-1/2"
                                         aria-hidden="true"
                                     />
-                                    {item.title}
-                                </span>
-                                <span className="text-xs tabular-nums text-[#f0f0f5]/40 md:text-sm">
-                                    {item.time}
-                                </span>
-                            </motion.li>
-                        ))}
-                    </ul>
+                                )}
 
-                    <p className="mt-6 text-xs text-[#f0f0f5]/40 md:text-sm">
-                        Адаптивный тест определит ваш уровень A1–C2
-                    </p>
+                                <div className="flex flex-1 flex-col gap-3 md:gap-5">
+                                    <span className="text-sm font-medium text-white/30 transition-colors duration-300 group-hover:text-white/60">
+                                        {step.number}
+                                    </span>
+                                    <h3 className="text-2xl font-semibold text-[#f0f0f5]/80 transition-colors duration-300 group-hover:text-[#f0f0f5] md:text-3xl">
+                                        {step.title}
+                                    </h3>
+                                    <p className="max-w-md text-base leading-relaxed text-[#f0f0f5]/50 transition-colors duration-300 group-hover:text-[#f0f0f5]/70">
+                                        {step.description}
+                                    </p>
+                                </div>
+
+                                <div className="flex flex-1 items-center justify-center md:justify-end">
+                                    {/* ARCHITECT: убраны любые классы, создающие "квадрат". 
+                                        Используем чистый radial-gradient, который гарантированно 
+                                        уходит в прозрачность без артефактов и границ. */}
+                                    <div className="relative flex items-center justify-center p-4 transition-transform duration-700 ease-out group-hover:scale-105">
+                                        <div
+                                            className="absolute inset-0 transition-opacity duration-700 group-hover:opacity-100 opacity-0 pointer-events-none"
+                                            style={{
+                                                background: "radial-gradient(circle at center, rgba(240, 240, 245, 0.08) 0%, transparent 70%)",
+                                                filter: "blur(24px)",
+                                            }}
+                                            aria-hidden="true"
+                                        />
+                                        <Visual />
+                                    </div>
+                                </div>
+                            </motion.div>
+                        );
+                    })}
                 </motion.div>
             </div>
         </section>

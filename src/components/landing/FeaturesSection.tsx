@@ -6,6 +6,7 @@ import type { MotionValue, Variants } from "framer-motion";
 import { MOCK_BLOBATARS } from "@/api/mocks/blobatars";
 import { ChatPreview } from "@/components/landing/ChatPreview";
 import { MiniBlobatar } from "@/components/landing/MiniBlobatar";
+import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
 
 const FEATURES = [
     {
@@ -17,8 +18,8 @@ const FEATURES = [
     },
     {
         id: "assessment",
-        title: "5 минут до старта",
-        description: "Адаптивный тест определит ваш уровень A1-C1",
+        title: "10 минут до старта",
+        description: "Адаптивный тест определит ваш уровень A1–C2",
         span: "md:col-span-1",
         delay: 0.2,
     },
@@ -173,12 +174,14 @@ function BlobatarMarquee() {
     );
 }
 
+// ARCHITECT: подписи шагов берутся из ONBOARDING_STEP_TITLES — того же источника, что у мастера:
+// лендинг и продукт не могут разойтись по названиям. Вёрстка и тайминги не менялись.
 const STEPS = [
-    { label: "Знакомство", duration: "1 мин" },
-    { label: "Тест", duration: "7 мин" },
-    { label: "Цели", duration: "1 мин" },
-    { label: "Расписание", duration: "1 мин" },
-    { label: "Урок", duration: "сразу" },
+    { label: ONBOARDING_STEP_TITLES.intro, duration: "1 мин" },
+    { label: ONBOARDING_STEP_TITLES.assessment, duration: "7 мин" },
+    { label: ONBOARDING_STEP_TITLES.goals, duration: "1 мин" },
+    { label: ONBOARDING_STEP_TITLES.schedule, duration: "1 мин" },
+    { label: ONBOARDING_STEP_TITLES.lesson, duration: "сразу" },
 ] as const;
 
 const NODE_DELAY_BASE = 0.2;
@@ -276,7 +279,7 @@ function ProgressSteps() {
                 })}
             </ol>
             <p className="mt-6 text-sm text-[#f0f0f5]/60">
-                Адаптивный тест определит ваш уровень A1-C1
+                Адаптивный тест определит ваш уровень A1–C2
             </p>
         </div>
     );

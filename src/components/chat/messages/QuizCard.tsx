@@ -1,131 +1,103 @@
-// ARCHITECT: Квиз — блобатар слева, имя репетитора над карточкой
+// ARCHITECT: викторина — минимальная карточка: eyebrow, вопрос, опции-строки. Цветной плашки,
+// бейджа времени и буквенных кружков больше нет: цвет остался там, где он что-то значит —
+// верный и неверный ответ.
+// ARCHITECT: «Заново» показывается только после неверного ответа: при верном выбор фиксируется,
+// и разлёт конфетти срабатывает ровно один раз.
 
 import { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-import { HelpCircle, Check, X, RotateCcw } from "lucide-react";
+import { AnimatePresence, motion } from "framer-motion";
+import { RotateCcw } from "lucide-react";
 import type { EnhancedChatSession, QuizContent, QuizOption } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
-import { cn } from "@/lib/utils";
+import { ConfettiBurst } from "@/components/shared/ConfettiBurst";
+import { QuizOptionButton } from "@/components/shared/QuizOptionButton";
+import type { QuizOptionState } from "@/components/shared/QuizOptionButton";
 
 interface QuizCardProps {
     quiz?: QuizContent;
     session: EnhancedChatSession;
 }
 
+const LETTERS = ["А", "Б", "В", "Г"];
+const AUTHOR_NAME = "mb-1 text-xs font-medium text-[#f0f0f5]/60";
+
 export function QuizCard({ quiz, session }: QuizCardProps) {
-    const [selectedOption, setSelectedOption] = useState<string | null>(null);
-    const [showResult, setShowResult] = useState(false);
+    const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
     const repetitor = getBlobatarById(session.repetitorId);
 
     if (!quiz) return null;
 
-    const handleSelect = (option: QuizOption) => {
-        if (showResult) return;
-        setSelectedOption(option.id);
-        setShowResult(true);
-    };
+    const correctOption = quiz.options.find((option) => option.isCorrect);
+    const isSolved = selectedOptionId !== null;
+    const isCorrect = isSolved && correctOption?.id === selectedOptionId;
 
-    const handleRetry = () => {
-        setSelectedOption(null);
-        setShowResult(false);
-    };
+    // ARCHITECT: разбор берётся у выбранной опции, а при верном ответе — у верной: объяснение
+    // своего неверного выбора после правильного ответа только путало бы.
+    const explanation =
+        quiz.options.find((option) => option.id === selectedOptionId)?.explanation ??
+        correctOption?.explanation;
 
-    const getOptionStyle = (option: QuizOption) => {
-        if (!showResult) return "border-white/10 bg-white/[0.03] hover:border-white/25 hover:bg-white/[0.06]";
-        if (option.isCorrect) return "border-emerald-500/40 bg-emerald-500/10";
-        if (selectedOption === option.id && !option.isCorrect) return "border-rose-500/40 bg-rose-500/10";
-        return "border-white/5 bg-white/[0.02] opacity-50";
+    const stateFor = (option: QuizOption): QuizOptionState => {
+        if (!isSolved) return "idle";
+        if (option.isCorrect) return "correct";
+        return option.id === selectedOptionId ? "wrong" : "dimmed";
     };
 
     return (
         <div className="flex items-start gap-3">
             <BlobatarAvatar id={session.repetitorId} className="mt-0.5 size-8 p-0.5" />
             <div className="min-w-0 flex-1">
-                {repetitor && <p className="mb-1 text-xs font-medium text-[#f0f0f5]/50">{repetitor.name}</p>}
-                <div className="w-full overflow-hidden rounded-2xl rounded-tl-md border border-indigo-500/20 bg-indigo-500/[0.05] md:max-w-[85%]">
-                    <div className="flex items-center gap-2 border-b border-white/5 px-4 py-3">
-                        <HelpCircle className="size-4 text-indigo-400" />
-                        <span className="text-sm font-medium text-[#f0f0f5]">Викторина</span>
-                        {quiz.timeLimit && (
-                            <span className="ml-auto rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-[#f0f0f5]/50">
-                                {quiz.timeLimit} сек
-                            </span>
-                        )}
+                {repetitor && <p className={AUTHOR_NAME}>{repetitor.name}</p>}
+
+                <div className="relative w-full overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-4 md:max-w-[min(85%,70ch)]">
+                    <ConfettiBurst trigger={isCorrect} />
+
+                    <p className="text-[11px] uppercase tracking-wider text-[#f0f0f5]/30">Викторина</p>
+                    <p className="mt-3 text-[15px] leading-[1.6] text-[#f0f0f5]/90 md:text-base">
+                        {quiz.question}
+                    </p>
+
+                    <div className="mt-4 flex flex-col gap-2" role="group" aria-label="Варианты ответа">
+                        {quiz.options.map((option, index) => (
+                            <QuizOptionButton
+                                key={option.id}
+                                marker={LETTERS[index] ?? ""}
+                                text={option.text}
+                                state={stateFor(option)}
+                                disabled={isSolved}
+                                onSelect={() => setSelectedOptionId(option.id)}
+                            />
+                        ))}
                     </div>
 
-                    <div className="p-4">
-                        <p className="mb-4 text-sm font-medium leading-relaxed text-[#f0f0f5]">{quiz.question}</p>
+                    <AnimatePresence initial={false}>
+                        {isSolved && (
+                            <motion.div
+                                initial={{ opacity: 0 }}
+                                animate={{ opacity: 1 }}
+                                exit={{ opacity: 0 }}
+                                transition={{ duration: 0.2, ease: "easeOut" }}
+                                className="mt-4 flex items-start justify-between gap-3"
+                            >
+                                <p className="text-xs leading-[1.6] text-[#f0f0f5]/60">{explanation}</p>
 
-                        <div className="space-y-2">
-                            {quiz.options.map((option, index) => (
-                                <motion.button
-                                    key={option.id}
-                                    initial={{ opacity: 0, x: -10 }}
-                                    animate={{ opacity: 1, x: 0 }}
-                                    transition={{ delay: index * 0.08 }}
-                                    onClick={() => handleSelect(option)}
-                                    disabled={showResult}
-                                    className={cn("flex w-full items-center gap-3 rounded-xl border px-4 py-3 text-left transition-all", getOptionStyle(option))}
-                                >
-                                    <span
-                                        className={cn(
-                                            "flex size-6 shrink-0 items-center justify-center rounded-full text-xs font-semibold",
-                                            showResult && option.isCorrect
-                                                ? "bg-emerald-500 text-black"
-                                                : showResult && selectedOption === option.id && !option.isCorrect
-                                                    ? "bg-rose-500 text-black"
-                                                    : "bg-white/10 text-[#f0f0f5]/60"
-                                        )}
+                                {!isCorrect && (
+                                    <button
+                                        type="button"
+                                        onClick={() => setSelectedOptionId(null)}
+                                        className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[11px] text-[#f0f0f5]/50 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]"
                                     >
-                                        {["А", "Б", "В", "Г"][index] ?? option.text.charAt(0).toUpperCase()}
-                                    </span>
-                                    <span className="flex-1 text-sm text-[#f0f0f5]">{option.text}</span>
-                                    <AnimatePresence>
-                                        {showResult && option.isCorrect && (
-                                            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                                                <Check className="size-4 text-emerald-400" />
-                                            </motion.span>
-                                        )}
-                                        {showResult && selectedOption === option.id && !option.isCorrect && (
-                                            <motion.span initial={{ scale: 0 }} animate={{ scale: 1 }} exit={{ scale: 0 }}>
-                                                <X className="size-4 text-rose-400" />
-                                            </motion.span>
-                                        )}
-                                    </AnimatePresence>
-                                </motion.button>
-                            ))}
-                        </div>
-
-                        <AnimatePresence>
-                            {showResult && (
-                                <motion.div
-                                    initial={{ opacity: 0, height: 0 }}
-                                    animate={{ opacity: 1, height: "auto" }}
-                                    exit={{ opacity: 0, height: 0 }}
-                                    className="overflow-hidden"
-                                >
-                                    <div className="mt-4 rounded-xl bg-black/20 p-3">
-                                        <div className="flex items-center justify-between">
-                                            <p className="text-xs text-[#f0f0f5]/60">
-                                                {quiz.options.find((o) => o.id === selectedOption)?.explanation ??
-                                                    quiz.options.find((o) => o.isCorrect)?.explanation}
-                                            </p>
-                                            <button
-                                                onClick={handleRetry}
-                                                className="flex items-center gap-1 rounded-lg px-2 py-1 text-[11px] text-[#f0f0f5]/50 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]"
-                                            >
-                                                <RotateCcw className="size-3" />
-                                                Заново
-                                            </button>
-                                        </div>
-                                    </div>
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
-                    </div>
+                                        <RotateCcw className="size-3" aria-hidden="true" />
+                                        Заново
+                                    </button>
+                                )}
+                            </motion.div>
+                        )}
+                    </AnimatePresence>
                 </div>
             </div>
         </div>
     );
 }
+

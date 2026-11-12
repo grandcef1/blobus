@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { Settings2 } from "lucide-react";
+import { useNavigate } from "react-router-dom";
 import { MOCK_BLOBATARS } from "@/api/mocks/blobatars";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import { resetSessionProgress, updateSession } from "@/api/sessions";
@@ -37,6 +38,7 @@ interface SessionSettingsMenuProps {
 }
 
 export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuProps) {
+    const navigate = useNavigate();
     const [isResetOpen, setIsResetOpen] = useState(false);
     const { completedLessons, totalLessons } = session.progress;
     const percent = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
@@ -109,6 +111,13 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
                                     </DropdownMenuRadioItem>
                                 ))}
                             </DropdownMenuRadioGroup>
+
+                            <DropdownMenuSeparator />
+                            {/* ARCHITECT: ссылка в конце подменю: из списка видно, что о каждом
+                                репетиторе есть подробности, а смена остаётся одним кликом. */}
+                            <DropdownMenuItem onSelect={() => navigate("/app/tutors")}>
+                                Подробнее о репетиторах
+                            </DropdownMenuItem>
                         </DropdownMenuSubContent>
                     </DropdownMenuSub>
 

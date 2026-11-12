@@ -6,6 +6,7 @@
 import type { RefObject } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
+import { PersonaStory } from "@/components/shared/PersonaStory";
 import { CARD_RADIUS, FOCUS_RING } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 import type { Blobatar } from "@/types/blobatar";
@@ -35,13 +36,6 @@ export function RepetitorHistoryPanel({
     panelRef,
 }: RepetitorHistoryPanelProps) {
     const shouldReduceMotion = useReducedMotion();
-
-    // ARCHITECT: первое слово истории — имя персонажа во всех десяти текстах, поэтому выделяем
-    // его внутри абзаца: имя звучит один раз и не создаёт второго носителя идентичности. Защита
-    // на случай строки без пробела просто оставляет весь текст приглушённым.
-    const spaceIndex = blobatar.persona.story.indexOf(" ");
-    const lead = spaceIndex === -1 ? blobatar.persona.story : blobatar.persona.story.slice(0, spaceIndex);
-    const tail = spaceIndex === -1 ? "" : blobatar.persona.story.slice(spaceIndex);
 
     // ARCHITECT: inline-стиль здесь — данные состояния, а не оформление, как ширина полосы
     // прогресса: центр колонки источника считается от числа колонок и зазора сетки, поэтому
@@ -105,10 +99,10 @@ export function RepetitorHistoryPanel({
                     animate={{ opacity: 1 }}
                     transition={{ duration: shouldReduceMotion ? 0 : 0.2, ease: "easeOut" }}
                 >
-                    <p className="max-w-prose pr-12 text-base leading-relaxed text-[#f0f0f5]/70">
-                        <span className="font-medium text-[#f0f0f5]">{lead}</span>
-                        {tail}
-                    </p>
+                    <PersonaStory
+                        story={blobatar.persona.story}
+                        className="max-w-prose pr-12 text-base leading-relaxed text-[#f0f0f5]/70"
+                    />
                 </motion.div>
             </motion.section>
         </div>

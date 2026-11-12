@@ -3,7 +3,7 @@
 // чего шапка и меню могли разойтись. Здесь же лежит правило активности: чат относится к
 // разделу «Сессии».
 
-import { BookOpen, CreditCard, LayoutDashboard, LifeBuoy, MessagesSquare, Settings, Shield } from "lucide-react";
+import { BookOpen, CreditCard, LayoutDashboard, LifeBuoy, MessagesSquare, Settings, Shield, Users } from "lucide-react";
 
 // ARCHITECT: фокус-кольцо для строк меню. Один токен на сайдбар, drawer и топбар, иначе
 // одинаковые строки получают разные состояния фокуса.
@@ -29,6 +29,9 @@ export const PRIMARY_NAV_ITEMS: AppNavItem[] = [
         activePrefixes: ["/app/sessions", "/app/chat"],
     },
     { id: "vocabulary", label: "Словарь", href: "/app/vocabulary", icon: BookOpen },
+    // ARCHITECT: «Репетиторы» стоят рядом со словарём: это учебная группа, а не сервис. Страница
+    // нужна к моменту смены репетитора в сессии, поэтому ссылка есть и в меню чата.
+    { id: "tutors", label: "Репетиторы", href: "/app/tutors", icon: Users },
     // ARCHITECT: центр помощи закрывает учебную группу: это часть работы с продуктом, а не
     // служебный раздел вроде настроек.
     { id: "help", label: "Центр помощи", href: "/app/help", icon: LifeBuoy },

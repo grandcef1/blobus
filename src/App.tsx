@@ -27,6 +27,10 @@ const SessionsPage = lazy(() =>
   import('@/pages/dashboard/SessionsPage').then((module) => ({ default: module.SessionsPage }))
 );
 
+const TutorsPage = lazy(() =>
+  import('@/pages/dashboard/TutorsPage').then((module) => ({ default: module.TutorsPage }))
+);
+
 const Login = lazy(() =>
   import('@/pages/Login').then((module) => ({ default: module.Login }))
 );
@@ -87,6 +91,14 @@ function App() {
             }
           />
           <Route path="profile" element={<ProfilePage />} />
+          <Route
+            path="tutors"
+            element={
+              <Suspense fallback={null}>
+                <TutorsPage />
+              </Suspense>
+            }
+          />
           <Route path="settings" element={<SettingsPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="admin" element={<AdminPage />} />

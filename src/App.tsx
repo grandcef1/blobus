@@ -30,6 +30,14 @@ const Login = lazy(() =>
   import('@/pages/Login').then((module) => ({ default: module.Login }))
 );
 
+const HelpPage = lazy(() =>
+  import('@/pages/HelpPage').then((module) => ({ default: module.HelpPage }))
+);
+
+const HelpCenterPage = lazy(() =>
+  import('@/pages/dashboard/HelpCenterPage').then((module) => ({ default: module.HelpCenterPage }))
+);
+
 function App() {
   return (
     <BrowserRouter>
@@ -42,6 +50,15 @@ function App() {
           element={
             <Suspense fallback={null}>
               <Login />
+            </Suspense>
+          }
+        />
+        {/* ARCHITECT: центр помощи доступен и без авторизации, и из сайдбара */}
+        <Route
+          path="/help"
+          element={
+            <Suspense fallback={null}>
+              <HelpPage />
             </Suspense>
           }
         />
@@ -72,6 +89,14 @@ function App() {
           <Route path="settings" element={<SettingsPage />} />
           <Route path="billing" element={<BillingPage />} />
           <Route path="admin" element={<AdminPage />} />
+          <Route
+            path="help"
+            element={
+              <Suspense fallback={null}>
+                <HelpCenterPage />
+              </Suspense>
+            }
+          />
         </Route>
       </Routes>
       {/* ARCHITECT: монтируется один раз в корне — работает и на лендинге, и внутри приложения */}

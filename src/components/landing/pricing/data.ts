@@ -53,6 +53,10 @@ export const FEATURES: readonly Feature[] = [
     },
 ] as const;
 
+// ARCHITECT: триал Pro — один раз на аккаунт. Защита от абуза (повторные регистрации) делается
+// на бэкенде: флаг trial_used + верификация email. См. бэклог в конце ТЗ. Сейчас это только
+// копирайт, логики нет.
+
 export const PRICING_PLANS: readonly PricingPlan[] = [
     {
         id: "free",
@@ -61,7 +65,7 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
         monthlyPrice: 0,
         yearlyPrice: 0,
         cta: "Начать бесплатно",
-        ctaSecondary: "7 дней Pro в подарок",
+        ctaSecondary: "Бесплатно навсегда",
         highlighted: false,
     },
     {
@@ -70,8 +74,8 @@ export const PRICING_PLANS: readonly PricingPlan[] = [
         description: "Для тех, кто хочет учиться без ограничений",
         monthlyPrice: 3,
         yearlyPrice: 29,
-        cta: "Попробовать 7 дней",
-        ctaSecondary: "Без привязки карты",
+        cta: "Попробовать 7 дней бесплатно",
+        ctaSecondary: "Для новых аккаунтов · без привязки карты",
         highlighted: true,
     },
 ] as const;

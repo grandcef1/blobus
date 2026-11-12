@@ -1,13 +1,14 @@
 // ARCHITECT: карточка профиля внизу сайдбара — ссылка на /app/profile с аватаром, именем и
 // тарифом. Выход — отдельная кнопка-сестра, а не вложенная в ссылку: интерактивный элемент
-// внутри ссылки ломает семантику и порядок обхода клавиатурой. stopPropagation оставлен на
-// случай будущей обёртки-ссылки и на клик по кнопке ничего не меняет.
+// внутри ссылки ломает семантику и порядок обхода клавиатурой.
+// ARCHITECT: выход очищает auth-store и возвращает на лендинг: раньше кнопка была мёртвой.
 // ARCHITECT: в сложенном виде остаётся центрированный аватар со ссылкой и title «Профиль».
 
-import { Link } from "react-router-dom";
+import { Link, useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
+import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_FOCUS_RING } from "./navigation";
 
@@ -16,6 +17,14 @@ interface SidebarProfileCardProps {
 }
 
 export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
+    const navigate = useNavigate();
+    const signOut = useAuthStore((state) => state.signOut);
+
+    const handleSignOut = () => {
+        signOut();
+        navigate("/");
+    };
+
     const avatar = (
         <BlobatarAvatar id={MOCK_PROFILE_USER.blobatarId} className="size-8 bg-white/5" />
     );
@@ -58,7 +67,7 @@ export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
             <button
                 type="button"
                 aria-label="Выйти из аккаунта"
-                onClick={(event) => event.stopPropagation()}
+                onClick={handleSignOut}
                 className={cn(
                     "flex size-11 shrink-0 items-center justify-center rounded-xl text-[#f0f0f5]/30 transition-colors hover:bg-[#1a1a1c] hover:text-[#f0f0f5]/60",
                     SIDEBAR_FOCUS_RING

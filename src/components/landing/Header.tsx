@@ -26,8 +26,8 @@ export function Header() {
 
     // Добавь обработчики:
     const handleLogin = () => {
-        // ARCHITECT: Для уже зарегистрированных пользователей — вход в приложение
-        navigate('/onboarding'); // Временно ведёт на онбординг, позже заменим на /app
+        // ARCHITECT: вход — самостоятельный экран /login, а не мастер настройки
+        navigate('/login');
     };
 
     const handleGetStarted = () => {

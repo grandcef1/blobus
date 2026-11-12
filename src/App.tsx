@@ -25,12 +25,25 @@ const SessionsPage = lazy(() =>
   import('@/pages/dashboard/SessionsPage').then((module) => ({ default: module.SessionsPage }))
 );
 
+const Login = lazy(() =>
+  import('@/pages/Login').then((module) => ({ default: module.Login }))
+);
+
 function App() {
   return (
     <BrowserRouter>
       <Routes>
         <Route path="/" element={<Landing />} />
         <Route path="/onboarding" element={<Onboarding />} />
+        {/* ARCHITECT: вход существующего пользователя — без шагов мастера */}
+        <Route
+          path="/login"
+          element={
+            <Suspense fallback={null}>
+              <Login />
+            </Suspense>
+          }
+        />
         {/* ARCHITECT: /session/new — тот же мастер в режиме session: репетитор и режим, потом чат */}
         <Route path="/session/new" element={<Onboarding flow="session" />} />
         <Route path="/app" element={<AppLayout />}>

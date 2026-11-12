@@ -11,8 +11,9 @@ interface StepHeaderProps {
     eyebrow: string;
     title: string;
     subtitle?: string;
-    step: number;
-    totalSteps: number;
+    /** Номера шага есть только в мастере: на одиночном экране строка «Шаг N из M» не выводится. */
+    step?: number;
+    totalSteps?: number;
     align?: "center" | "left";
     className?: string;
 }
@@ -59,9 +60,11 @@ export function StepHeader({
                 </motion.p>
             )}
 
-            <motion.p variants={ITEM} className={cn(META_LINE, "mt-4")}>
-                Шаг {step} из {totalSteps}
-            </motion.p>
+            {step !== undefined && totalSteps !== undefined && (
+                <motion.p variants={ITEM} className={cn(META_LINE, "mt-4")}>
+                    Шаг {step} из {totalSteps}
+                </motion.p>
+            )}
         </motion.header>
     );
 }

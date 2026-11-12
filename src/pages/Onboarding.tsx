@@ -54,8 +54,14 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
 
     // ARCHITECT: в режиме session отдельного шага уровня нет, поэтому уровень цели берётся из
     // профиля — карточка сессии показывает уровень, а не пустое поле.
+    // ARCHITECT: финал обоих флоу одинаков — создаём сессию и открываем её чат. Раньше полный
+    // флоу делал navigate("/app") и пользователь попадал на экран без сессии. replace: true —
+    // чтобы «Назад» из чата не возвращал в мастер.
     const startSession = () => {
-        if (!onboardingData.blobatarId || !onboardingData.learningMode) return;
+        if (!onboardingData.blobatarId || !onboardingData.learningMode) {
+            navigate("/app", { replace: true });
+            return;
+        }
 
         const session = createSession({
             repetitorId: onboardingData.blobatarId,
@@ -63,7 +69,7 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
             targetLevel: onboardingData.englishLevel ?? MOCK_USER_PROGRESS.currentLevel,
         });
 
-        navigate(`/app/chat/${session.id}`);
+        navigate(`/app/chat/${session.id}`, { replace: true });
     };
 
     const handleNext = () => {
@@ -73,8 +79,7 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
             return;
         }
 
-        if (flow === "session") startSession();
-        else navigate("/app");
+        startSession();
     };
 
     // ARCHITECT: «Назад» на первом шаге режима session выводит в раздел «Сессии»: экран без

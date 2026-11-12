@@ -1,6 +1,6 @@
 import { motion } from "framer-motion";
 import type { TargetAndTransition, Variants } from "framer-motion";
-import { Check, Play, Sparkles } from "lucide-react";
+import { Check, ArrowDown, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
@@ -53,10 +53,6 @@ export function HeroSection() {
         navigate('/onboarding');
     };
 
-    const handleWatchDemo = () => {
-        // ARCHITECT: Временно скроллим к секции features
-        document.getElementById('features')?.scrollIntoView({ behavior: 'smooth' });
-    };
     return (
 
         // ARCHITECT: overflow-x-clip страхует bleed. min-h = вьюпорт минус хедер.
@@ -130,14 +126,16 @@ export function HeroSection() {
                             <Button
                                 variant="outline"
                                 size="lg"
-                                onClick={handleWatchDemo}
+                                asChild
                                 className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-[#f0f0f5]"
                             >
-                                <Play
-                                    className="mr-2 size-4"
-                                    aria-hidden="true"
-                                />
-                                Смотреть демо
+                                <a href="#how-it-works">
+                                    <ArrowDown
+                                        className="mr-2 size-4"
+                                        aria-hidden="true"
+                                    />
+                                    Как это работает
+                                </a>
                             </Button>
                         </motion.div>
 

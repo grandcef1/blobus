@@ -1,13 +1,20 @@
 // ARCHITECT: «Репетиторы» — страница со всеми персонажами: раскладка и стиль как у остальных
 // рабочих экранов, тексты берутся из persona, поэтому своего описания страница не заводит.
+// ARCHITECT: ростер приходит через useMockQuery — скелетон закрывает сетку, пока список в пути.
 // ARCHITECT: одна колонка на телефоне, три на широком экране: сравнение репетиторов идёт глазами,
 // поэтому карточки не должны уезжать за горизонтальный скролл.
 
 import { motion } from "framer-motion";
-import { MOCK_BLOBATARS } from "@/api/mocks/blobatars";
+import { fetchTutors } from "@/api/tutors";
+import { useMockQuery } from "@/hooks/useMockQuery";
 import { TutorCard } from "@/components/dashboard/TutorCard";
+import { TutorsSkeleton } from "@/components/dashboard/skeletons/TutorsSkeleton";
 
 export function TutorsPage() {
+    const { data: tutors, isLoading } = useMockQuery(fetchTutors);
+
+    if (isLoading || tutors === null) return <TutorsSkeleton />;
+
     return (
         <div className="min-h-[calc(100dvh-4rem)] p-4 md:p-6">
             <div className="mx-auto max-w-6xl">
@@ -24,7 +31,7 @@ export function TutorsPage() {
                 </motion.header>
 
                 <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {MOCK_BLOBATARS.map((blobatar) => (
+                    {tutors.map((blobatar) => (
                         <TutorCard key={blobatar.id} blobatar={blobatar} />
                     ))}
                 </div>

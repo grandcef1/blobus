@@ -5,16 +5,33 @@
 
 import { motion } from "framer-motion";
 import { Award, BookOpen, Calendar, Mail } from "lucide-react";
-import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
-import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
+import { fetchProfileUser } from "@/api/profile";
+import { fetchUserProgress } from "@/api/progress";
+import { fetchPlacementResult } from "@/api/placement";
+import { useMockQuery } from "@/hooks/useMockQuery";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { StatusMarker } from "@/components/shared/StatusMarker";
+import { ProfileSkeleton } from "@/components/dashboard/skeletons/ProfileSkeleton";
 import { ProfileModeCard } from "./ProfileModeCard";
 import { ProfileSkillsCard } from "./ProfileSkillsCard";
 import type { LearningMode } from "@/types/onboarding";
 
+async function loadProfile() {
+    const [progress, user, result] = await Promise.all([
+        fetchUserProgress(),
+        fetchProfileUser(),
+        fetchPlacementResult(),
+    ]);
+
+    return { progress, user, result };
+}
+
 export function ProfilePage() {
-    const progress = MOCK_USER_PROGRESS;
+    const { data, isLoading } = useMockQuery(loadProfile);
+
+    if (isLoading || data === null) return <ProfileSkeleton />;
+
+    const { progress, user, result } = data;
 
     const totalWords = Object.values(progress.modeProgress).reduce(
         (sum, mode) => sum + mode.wordsLearned,
@@ -53,27 +70,27 @@ export function ProfilePage() {
                 <div className="space-y-4">
                     <section className="flex flex-col gap-4 rounded-2xl bg-[#111113] p-4 sm:flex-row sm:items-center md:p-5">
                         <BlobatarAvatar
-                            id={MOCK_PROFILE_USER.blobatarId}
+                            id={user.blobatarId}
                             className="size-16 bg-[#1a1a1c] md:size-24"
                         />
 
                         <div className="min-w-0 flex-1">
                             <h2 className="text-2xl font-semibold text-[#f0f0f5] md:text-3xl">
-                                {MOCK_PROFILE_USER.name}
+                                {user.name}
                             </h2>
 
                             <div className="mt-2 flex flex-col gap-1 text-sm text-[#f0f0f5]/40 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
                                 <span className="flex min-w-0 items-center gap-1.5">
                                     <Mail className="size-3.5 shrink-0" aria-hidden="true" />
-                                    <span className="truncate">{MOCK_PROFILE_USER.email}</span>
+                                    <span className="truncate">{user.email}</span>
                                 </span>
                                 <span className="flex items-center gap-1.5">
                                     <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
-                                    {MOCK_PROFILE_USER.memberSince}
+                                    {user.memberSince}
                                 </span>
                             </div>
 
-                            <StatusMarker label={MOCK_PROFILE_USER.planLabel} className="mt-2" />
+                            <StatusMarker label={user.planLabel} className="mt-2" />
                         </div>
                     </section>
 
@@ -93,7 +110,7 @@ export function ProfilePage() {
                         ))}
                     </div>
 
-                    <ProfileSkillsCard />
+                    <ProfileSkillsCard result={result} />
 
                     <section
                         aria-labelledby="profile-modes-title"

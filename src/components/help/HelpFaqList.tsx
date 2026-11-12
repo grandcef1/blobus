@@ -7,7 +7,6 @@
 
 import { useState } from "react";
 import { Search } from "lucide-react";
-import { HELP_FAQ } from "@/api/mocks/help";
 import { HELP_FAQ_CATEGORY_ORDER } from "@/types/support";
 import type { HelpFaqCategory, HelpFaqItem } from "@/types/support";
 import { INPUT_SURFACE } from "@/lib/surfaces";
@@ -21,7 +20,12 @@ import { FaqCategoryFilter } from "./FaqCategoryFilter";
 import type { FaqCategoryValue } from "./FaqCategoryFilter";
 import { cn } from "@/lib/utils";
 
-export function HelpFaqList() {
+interface HelpFaqListProps {
+    /** Частые вопросы: приходят пропом, потому что их загрузку держит страница (скелетон). */
+    items: HelpFaqItem[];
+}
+
+export function HelpFaqList({ items: allItems }: HelpFaqListProps) {
     const [query, setQuery] = useState("");
     const [category, setCategory] = useState<FaqCategoryValue>("all");
 
@@ -38,7 +42,7 @@ export function HelpFaqList() {
         category === "all" ? [...HELP_FAQ_CATEGORY_ORDER] : [category];
 
     const items = categoryOrder.flatMap((id) =>
-        HELP_FAQ.filter((item) => item.category === id && matchesQuery(item))
+        allItems.filter((item) => item.category === id && matchesQuery(item))
     );
 
     return (

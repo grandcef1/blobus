@@ -9,12 +9,18 @@ import { getTicketById, getTickets } from "@/api/support";
 import { useAuthStore } from "@/store/auth";
 import { FOCUS_RING, PRIMARY_BUTTON } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
+import type { HelpFaqItem } from "@/types/support";
 import { HelpFaqList } from "./HelpFaqList";
 import { TicketList } from "./TicketList";
 import { TicketThread } from "./TicketThread";
 import { NewTicketDialog } from "./NewTicketDialog";
 
-export function HelpCenter() {
+interface HelpCenterProps {
+    /** Частые вопросы: загрузку держит страница, поэтому скелетон показывает каркас заранее. */
+    faqItems: HelpFaqItem[];
+}
+
+export function HelpCenter({ faqItems }: HelpCenterProps) {
     const user = useAuthStore((state) => state.user);
     const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
     const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
@@ -62,7 +68,7 @@ export function HelpCenter() {
                 </div>
             ) : (
                 <div className="grid grid-cols-1 gap-6 lg:grid-cols-[2fr_1fr]">
-                    <HelpFaqList />
+                    <HelpFaqList items={faqItems} />
 
                     {user ? (
                         <TicketList

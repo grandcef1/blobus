@@ -1,53 +1,43 @@
-// ARCHITECT: Настройки — компактные, без иконок в заголовках,
-// монохромные toggle'и
+// ARCHITECT: Настройки — компактные, без иконок в заголовках, монохромные toggle'и.
+// ARCHITECT: значения читаются через useMockQuery, поэтому скелетон страницы — настоящее ожидание
+// загрузки. Форма заводится из ответа на рендере: setState в теле эффекта запрещён правилом
+// react-hooks/set-state-in-effect, а сверка по ссылке не даёт заводить её повторно.
 
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { cn } from "@/lib/utils";
-
-interface SettingsState {
-    notifications: {
-        dailyReminder: boolean;
-        weeklyProgress: boolean;
-        newFeatures: boolean;
-        marketingEmails: boolean;
-    };
-    preferences: {
-        theme: "dark" | "light" | "system";
-        soundEffects: boolean;
-        language: "ru" | "en" | "es";
-        autoCorrection: boolean;
-    };
-}
+import { fetchSettings } from "@/api/settings";
+import { useMockQuery } from "@/hooks/useMockQuery";
+import { SettingSelect } from "@/components/dashboard/SettingSelect";
+import { SettingToggle } from "@/components/dashboard/SettingToggle";
+import { SettingsSkeleton } from "@/components/dashboard/skeletons/SettingsSkeleton";
+import type { SettingsState } from "@/types/settings";
 
 export function SettingsPage() {
-    const [settings, setSettings] = useState<SettingsState>({
-        notifications: {
-            dailyReminder: true,
-            weeklyProgress: true,
-            newFeatures: false,
-            marketingEmails: false,
-        },
-        preferences: {
-            theme: "dark",
-            soundEffects: true,
-            language: "ru",
-            autoCorrection: true,
-        },
-    });
+    const { data, isLoading } = useMockQuery(fetchSettings);
+    const [settings, setSettings] = useState<SettingsState | null>(null);
+    const [seededFrom, setSeededFrom] = useState<SettingsState | null>(null);
+
+    if (data !== null && seededFrom !== data) {
+        setSeededFrom(data);
+        setSettings(data);
+    }
+
+    if (isLoading || settings === null) return <SettingsSkeleton />;
 
     const updateNotification = (key: keyof SettingsState["notifications"], value: boolean) => {
-        setSettings((prev) => ({
-            ...prev,
-            notifications: { ...prev.notifications, [key]: value },
-        }));
+        setSettings((previous) =>
+            previous === null
+                ? previous
+                : { ...previous, notifications: { ...previous.notifications, [key]: value } }
+        );
     };
 
     const updatePreference = (key: keyof SettingsState["preferences"], value: string | boolean) => {
-        setSettings((prev) => ({
-            ...prev,
-            preferences: { ...prev.preferences, [key]: value },
-        }));
+        setSettings((previous) =>
+            previous === null
+                ? previous
+                : { ...previous, preferences: { ...previous.preferences, [key]: value } }
+        );
     };
 
     return (
@@ -136,71 +126,6 @@ export function SettingsPage() {
                     </div>
                 </div>
             </div>
-        </div>
-    );
-}
-
-interface SettingToggleProps {
-    label: string;
-    description: string;
-    checked: boolean;
-    onChange: (checked: boolean) => void;
-}
-
-function SettingToggle({ label, description, checked, onChange }: SettingToggleProps) {
-    return (
-        <div className="flex items-center justify-between rounded-xl bg-[#141416] px-4 py-3">
-            <div className="min-w-0 flex-1">
-                <p className="text-sm font-medium text-[#f0f0f5]">{label}</p>
-                <p className="mt-0.5 text-xs text-[#f0f0f5]/40">{description}</p>
-            </div>
-            <button
-                type="button"
-                onClick={() => onChange(!checked)}
-                role="switch"
-                aria-checked={checked}
-                aria-label={label}
-                className={cn(
-                    "relative ml-4 h-5 w-9 shrink-0 rounded-full transition-colors",
-                    checked ? "bg-[#f0f0f5]" : "bg-[#1a1a1c]"
-                )}
-            >
-                <motion.div
-                    layout
-                    transition={{ type: "spring", stiffness: 500, damping: 30 }}
-                    className={cn(
-                        "absolute top-0.5 size-4 rounded-full",
-                        checked ? "left-[18px] bg-black" : "left-0.5 bg-[#f0f0f5]/60"
-                    )}
-                />
-            </button>
-        </div>
-    );
-}
-
-interface SettingSelectProps {
-    label: string;
-    value: string;
-    onChange: (value: string) => void;
-    options: { value: string; label: string }[];
-}
-
-function SettingSelect({ label, value, onChange, options }: SettingSelectProps) {
-    return (
-        <div className="flex items-center justify-between rounded-xl bg-[#141416] px-4 py-3">
-            <p className="text-sm font-medium text-[#f0f0f5]">{label}</p>
-            <select
-                value={value}
-                onChange={(e) => onChange(e.target.value)}
-                aria-label={label}
-                className="rounded-lg bg-[#1a1a1c] px-3 py-1.5 text-sm text-[#f0f0f5] focus:outline-none focus:ring-1 focus:ring-[#f0f0f5]/20"
-            >
-                {options.map((option) => (
-                    <option key={option.value} value={option.value}>
-                        {option.label}
-                    </option>
-                ))}
-            </select>
         </div>
     );
 }

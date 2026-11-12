@@ -5,6 +5,7 @@
 import type { PlacementResult } from "@/types/placement";
 import type { EnglishLevel } from "@/types/onboarding";
 import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
+import { delayMock } from "@/api/mockDelay";
 
 let stored: PlacementResult | null = null;
 
@@ -15,6 +16,14 @@ export function saveResult(result: PlacementResult): PlacementResult {
 }
 
 export function getResult(): PlacementResult | null {
+    return stored;
+}
+
+// ARCHITECT: профиль читает результат асинхронно: скелетон страницы закрывает и навыки, поэтому
+// уровень приходит тем же запросом, что прогресс и данные пользователя.
+export async function fetchPlacementResult(): Promise<PlacementResult | null> {
+    await delayMock();
+
     return stored;
 }
 

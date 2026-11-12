@@ -5,6 +5,7 @@
 
 import { MOCK_SESSIONS } from "@/api/mocks/sessions";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
+import { delayMock } from "@/api/mockDelay";
 import type { EnhancedChatSession, EnhancedMessage } from "@/types/session";
 import type { BlobatarId } from "@/types/blobatar";
 import type { EnglishLevel, LearningMode } from "@/types/onboarding";
@@ -178,4 +179,18 @@ export function deleteSession(sessionId: string): boolean {
     sessions.splice(index, 1);
 
     return true;
+}
+
+// ARCHITECT: асинхронные обёртки для экранов: скелетон должен быть состоянием загрузки, а не
+// декорацией. Синхронные геттеры остаются — их читает уже загруженный экран (шапка, меню, лента).
+export async function fetchSessions(): Promise<EnhancedChatSession[]> {
+    await delayMock();
+
+    return getSessions();
+}
+
+export async function fetchSessionById(sessionId: string): Promise<EnhancedChatSession | null> {
+    await delayMock();
+
+    return getSessionById(sessionId) ?? null;
 }

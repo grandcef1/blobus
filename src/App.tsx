@@ -18,6 +18,10 @@ import { AdminPage } from '@/pages/dashboard/AdminPage';
 import { AppIndexRedirect } from '@/pages/dashboard/AppIndexRedirect';
 import { ScrollToTopButton } from '@/components/shared/ScrollToTopButton';
 import { Toaster } from '@/components/shared/Toaster';
+import { HelpSkeleton } from '@/components/dashboard/skeletons/HelpSkeleton';
+import { SessionsSkeleton } from '@/components/dashboard/skeletons/SessionsSkeleton';
+import { TutorsSkeleton } from '@/components/dashboard/skeletons/TutorsSkeleton';
+import { VocabularySkeleton } from '@/components/dashboard/skeletons/VocabularySkeleton';
 
 const VocabularyPage = lazy(() =>
   import('@/pages/dashboard/VocabularyPage').then((module) => ({ default: module.VocabularyPage }))
@@ -75,7 +79,7 @@ function App() {
           <Route
             path="sessions"
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<SessionsSkeleton />}>
                 <SessionsPage />
               </Suspense>
             }
@@ -85,7 +89,7 @@ function App() {
           <Route
             path="vocabulary"
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<VocabularySkeleton />}>
                 <VocabularyPage />
               </Suspense>
             }
@@ -94,7 +98,7 @@ function App() {
           <Route
             path="tutors"
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<TutorsSkeleton />}>
                 <TutorsPage />
               </Suspense>
             }
@@ -105,7 +109,7 @@ function App() {
           <Route
             path="help"
             element={
-              <Suspense fallback={null}>
+              <Suspense fallback={<HelpSkeleton />}>
                 <HelpCenterPage />
               </Suspense>
             }

@@ -1,20 +1,34 @@
 // ARCHITECT: Обзор — стартовая страница приложения. Приветственная строка заменена названием
 // раздела с нейтральной подписью: обращение по имени и «Привет» — клише из чёрного списка
-// микрокопа. Искусственный лоадер (350 мс таймер) убран: мок-данные синхронные, задержка
-// только откладывала отрисовку, а правило проекта требует не показывать загрузку короче 300 мс.
+// микрокопа.
+// ARCHITECT: прогресс и список сессий читаются одним запросом через useMockQuery, поэтому скелетон
+// здесь — настоящее состояние загрузки, а не декорация. Задержку держит мок-обёртка, и с реальным
+// API меняется только fetcher.
 
 import { motion } from "framer-motion";
-import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
-import { getSessions } from "@/api/sessions";
+import { fetchUserProgress } from "@/api/progress";
+import { fetchSessions } from "@/api/sessions";
+import { useMockQuery } from "@/hooks/useMockQuery";
+import { OverviewSkeleton } from "@/components/dashboard/skeletons/OverviewSkeleton";
 import { ContinueLearningCard } from "./ContinueLearningCard";
 import { ListeningPromptCard } from "./ListeningPromptCard";
 import { MetricsRow } from "./MetricsRow";
 import { ProgressSection } from "./ProgressSection";
 import { RecentLessonsSection } from "./RecentLessonsSection";
 
+async function loadOverview() {
+    const [progress, sessions] = await Promise.all([fetchUserProgress(), fetchSessions()]);
+
+    return { progress, sessions };
+}
+
 export function DashboardPage() {
-    const progress = MOCK_USER_PROGRESS;
-    const activeSession = getSessions()[0];
+    const { data, isLoading } = useMockQuery(loadOverview);
+
+    if (isLoading || data === null) return <OverviewSkeleton />;
+
+    const { progress, sessions } = data;
+    const activeSession = sessions[0];
 
     return (
         <div className="min-h-[calc(100dvh-4rem)] p-4 md:p-6">

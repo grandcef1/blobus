@@ -1,12 +1,17 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { Search, RotateCcw, Volume2 } from "lucide-react";
-import { MOCK_VOCABULARY } from "@/api/mocks/progress";
+import { fetchVocabulary } from "@/api/progress";
+import { useMockQuery } from "@/hooks/useMockQuery";
+import { VocabularySkeleton } from "@/components/dashboard/skeletons/VocabularySkeleton";
 
 export function VocabularyPage() {
     const [searchQuery, setSearchQuery] = useState("");
+    const { data: words, isLoading } = useMockQuery(fetchVocabulary);
 
-    const filteredWords = MOCK_VOCABULARY.filter(
+    if (isLoading || words === null) return <VocabularySkeleton />;
+
+    const filteredWords = words.filter(
         (word) =>
             word.word.toLowerCase().includes(searchQuery.toLowerCase()) ||
             word.translation.toLowerCase().includes(searchQuery.toLowerCase())
@@ -24,7 +29,7 @@ export function VocabularyPage() {
                     <div>
                         <h1 className="text-xl font-semibold text-[#f0f0f5]">Словарь</h1>
                         <p className="mt-1 text-sm text-[#f0f0f5]/50">
-                            {MOCK_VOCABULARY.length} слов в коллекции
+                            {words.length} слов в коллекции
                         </p>
                     </div>
                     <button className="flex items-center gap-2 rounded-xl bg-[#f0f0f5] px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#f0f0f5]/90">

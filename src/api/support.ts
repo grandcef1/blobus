@@ -2,8 +2,9 @@
 // модуля и чистые функции доступа. Подтверждение от поддержки детерминированное — никаких
 // таймеров и имитации «печатает»: состояние должно воспроизводиться один в один.
 
-import { MOCK_TICKETS } from "@/api/mocks/help";
-import type { SupportTicket, TicketCategory } from "@/types/support";
+import { HELP_FAQ, MOCK_TICKETS } from "@/api/mocks/help";
+import { delayMock } from "@/api/mockDelay";
+import type { HelpFaqItem, SupportTicket, TicketCategory } from "@/types/support";
 
 const ACK_DELAY_MS = 1000;
 const ACK_TEXT = "Обращение зарегистрировано. Ответим в течение 24 часов в рабочие дни.";
@@ -83,4 +84,12 @@ export function sendTicketMessage(
     tickets[index] = updated;
 
     return updated;
+}
+
+// ARCHITECT: центр помощи грузится асинхронно: скелетон страницы — настоящее ожидание контента.
+// Список FAQ читается здесь, а не моком напрямую: страницы передают его в HelpCenter.
+export async function fetchFaqItems(): Promise<HelpFaqItem[]> {
+    await delayMock();
+
+    return HELP_FAQ;
 }

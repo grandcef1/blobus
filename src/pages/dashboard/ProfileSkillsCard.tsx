@@ -1,13 +1,17 @@
 // ARCHITECT: навыки вместо одного уровня: тест измеряет несколько дорожек, и профиль показывает
 // ровно то, что измерено. Пока теста нет, значения берутся из текущего уровня профиля, а
 // аудирование честно остаётся «не проверено» — так понятно, что его можно пройти.
+// ARCHITECT: результат приходит пропом: он читается тем же запросом, что остальные данные профиля,
+// поэтому скелетон страницы закрывает и навыки.
 
-import { useState } from "react";
 import { TrendingUp } from "lucide-react";
-import { getResult } from "@/api/placement";
 import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import { LEVEL_DESCRIPTIONS } from "@/lib/placement";
 import type { PlacementResult } from "@/types/placement";
+
+interface ProfileSkillsCardProps {
+    result: PlacementResult | null;
+}
 
 interface SkillRow {
     readonly id: string;
@@ -16,8 +20,7 @@ interface SkillRow {
     readonly hint: string;
 }
 
-export function ProfileSkillsCard() {
-    const [result] = useState<PlacementResult | null>(() => getResult());
+export function ProfileSkillsCard({ result }: ProfileSkillsCardProps) {
     const level = MOCK_USER_PROGRESS.currentLevel;
     const overall = result?.overall ?? level;
     const listening = result?.listening ?? null;

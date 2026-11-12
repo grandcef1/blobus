@@ -23,6 +23,7 @@ import { ListeningTestDialog } from "@/components/placement/ListeningTestDialog"
 import { PlacementIntro } from "@/components/placement/PlacementIntro";
 import { PlacementQuestion } from "@/components/placement/PlacementQuestion";
 import { PlacementResultView } from "@/components/placement/PlacementResult";
+import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
 
 interface PlacementStepProps {
     onComplete: (level: EnglishLevel) => void;
@@ -82,7 +83,7 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
         return (
             <div className="mx-auto w-full max-w-xl">
                 <StepHeader
-                    eyebrow="Тест"
+                    eyebrow={ONBOARDING_STEP_TITLES.assessment}
                     title="Уровень определён"
                     subtitle="Уровень попадёт в сводку перед первым уроком и в профиль."
                     step={step}
@@ -112,7 +113,7 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
         return (
             <div className="mx-auto w-full max-w-xl">
                 <StepHeader
-                    eyebrow="Тест"
+                    eyebrow={ONBOARDING_STEP_TITLES.assessment}
                     title="Определим твой уровень"
                     step={step}
                     totalSteps={totalSteps}

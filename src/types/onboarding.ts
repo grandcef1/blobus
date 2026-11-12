@@ -20,6 +20,9 @@
     completedSteps: number[];
     }
 
+    // ARCHITECT: пять шагов мастера. Значения-фазы (welcome, auth, blobatar-selection,
+    // mode-selection) остались в типе для совместимости: наружу шаги показываются как intro,
+    // assessment, goals, schedule, lesson — по одному номеру на шаг.
     export type OnboardingStep =
     | "welcome"
     | "auth"
@@ -27,4 +30,19 @@
     | "mode-selection"
     | "schedule"
     | "assessment"
-    | "complete";
+    | "complete"
+    | "intro"
+    | "goals"
+    | "lesson";
+
+    // ARCHITECT: названия шагов — один источник и для мастера, и для чеклиста лендинга
+    // («10 минут до старта»): подписи не могут разойтись.
+    export const ONBOARDING_STEP_TITLES = {
+    intro: "Знакомство",
+    assessment: "Тест",
+    goals: "Цели",
+    schedule: "Расписание",
+    lesson: "Урок",
+    } as const;
+
+    export type OnboardingFullStep = keyof typeof ONBOARDING_STEP_TITLES;

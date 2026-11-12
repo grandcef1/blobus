@@ -11,6 +11,7 @@ import { StepCard } from "@/components/onboarding/StepCard";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { AuthForm } from "@/components/auth/AuthForm";
 import type { AuthMode } from "@/components/onboarding/AuthModeTabs";
+import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
 import { GHOST_BUTTON } from "@/lib/surfaces";
 
 interface AuthStepProps {
@@ -37,7 +38,7 @@ export function AuthStep({ onNext, onBack, step, totalSteps }: AuthStepProps) {
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
-                eyebrow="Аккаунт"
+                eyebrow={ONBOARDING_STEP_TITLES.intro}
                 title={mode === "register" ? "Создать аккаунт" : "Вход в аккаунт"}
                 subtitle={
                     mode === "register"

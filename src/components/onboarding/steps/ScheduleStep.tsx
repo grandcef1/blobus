@@ -7,6 +7,7 @@ import { useState } from 'react';
 import { Clock, Calendar } from 'lucide-react';
 import { StepHeader } from '@/components/onboarding/StepHeader';
 import { StepNav } from '@/components/onboarding/StepNav';
+import { ONBOARDING_STEP_TITLES } from '@/types/onboarding';
 import type { SchedulePreference } from '@/types/onboarding';
 import { tileClasses } from '@/lib/surfaces';
 
@@ -53,7 +54,7 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack, step, totalSt
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
-                eyebrow="Расписание"
+                eyebrow={ONBOARDING_STEP_TITLES.schedule}
                 title="Как часто будешь заниматься?"
                 subtitle="Регулярность важнее интенсивности: выбери темп, который удобно держать."
                 step={step}

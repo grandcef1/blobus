@@ -8,6 +8,7 @@ import { Check, Briefcase, MessageCircle, BookOpen, Globe } from "lucide-react";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
+import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
 import type { LearningMode } from "@/types/onboarding";
 import { cn } from "@/lib/utils";
 import { SELECTED_FILL, tileClasses } from "@/lib/surfaces";
@@ -39,7 +40,7 @@ export function ModeSelectionStep({
     return (
         <div className="mx-auto w-full max-w-3xl">
             <StepHeader
-                eyebrow="Цель"
+                eyebrow={ONBOARDING_STEP_TITLES.goals}
                 title="На чём хочешь сосредоточиться?"
                 subtitle="Режимы можно добавить и сменить позже. Для начала выбери главную цель."
                 step={step}

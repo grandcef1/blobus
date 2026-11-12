@@ -4,6 +4,7 @@
 import { StepCard } from "@/components/onboarding/StepCard";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
+import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
 
 interface PlacementIntroProps {
     onStart: () => void;
@@ -22,7 +23,7 @@ export function PlacementIntro({ onStart, onBack, step, totalSteps }: PlacementI
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
-                eyebrow="Тест"
+                eyebrow={ONBOARDING_STEP_TITLES.assessment}
                 title="Определим твой уровень"
                 subtitle="Адаптивный тест: сложность подстраивается под ответы. Уровень по CEFR, балл по шкале 0-100."
                 step={step}

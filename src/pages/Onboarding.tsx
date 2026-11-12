@@ -1,23 +1,21 @@
-// ARCHITECT: мастер настройки — пошаговый флоу. Постоянные слои (фон, шторка, прогресс) живут
-// в OnboardingShell: монтируются один раз за сессию и не перемонтируются при смене шага.
-// ARCHITECT: у мастера два режима: полный (welcome, auth, репетитор, режим, расписание) и
-// session — только репетитор и режим перед новой сессией. В режиме session финал создаёт сессию
-// и открывает чат; раньше финал делал window.location.href и терял сессию при перезагрузке.
+// ARCHITECT: мастер настройки — пять шагов, у каждого один номер: «Знакомство» (приветствие и
+// аккаунт), «Тест», «Цели» (цель и репетитор), «Расписание», «Урок» (сводка и старт). Фазы внутри
+// шага — деталь реализации, поэтому наружу виден один номер и подписи совпадают с лендингом.
+// ARCHITECT: постоянные слои (фон, шторка, прогресс) живут в OnboardingShell: монтируются один раз
+// за сессию и не перемонтируются при смене шага.
+// ARCHITECT: у мастера два режима: полный (пять шагов) и session — только репетитор и режим перед
+// новой сессией. Финал обоих флоу создаёт сессию и открывает чат; уровня из теста в режиме session
+// нет, поэтому там берётся текущий уровень профиля.
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
-import type { BlobatarId } from "@/types/blobatar";
-import type { LearningMode, OnboardingData, OnboardingStep, SchedulePreference } from "@/types/onboarding";
+import type { EnglishLevel, OnboardingData, OnboardingStep } from "@/types/onboarding";
 import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import { createSession } from "@/api/sessions";
 import { cn } from "@/lib/utils";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
-import { WelcomeStep } from "@/components/onboarding/steps/WelcomeStep";
-import { AuthStep } from "@/components/onboarding/steps/AuthStep";
-import { RepetitorSelectionStep } from "@/components/onboarding/steps/RepetitorSelectionStep";
-import { ModeSelectionStep } from "@/components/onboarding/steps/ModeSelectionStep";
-import { ScheduleStep } from "@/components/onboarding/steps/ScheduleStep";
+import { OnboardingStepView } from "@/components/onboarding/OnboardingStepView";
 
 export type OnboardingFlow = "full" | "session";
 
@@ -26,7 +24,7 @@ interface OnboardingProps {
 }
 
 const STEP_ORDERS: Record<OnboardingFlow, OnboardingStep[]> = {
-    full: ["welcome", "auth", "blobatar-selection", "mode-selection", "schedule"],
+    full: ["intro", "assessment", "goals", "schedule", "lesson"],
     session: ["blobatar-selection", "mode-selection"],
 };
 
@@ -46,20 +44,23 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
     const stepNumber = currentStepIndex + 1;
     const totalSteps = stepOrder.length;
     const progress = (stepNumber / totalSteps) * 100;
-    const isWelcome = currentStep === "welcome";
+    // ARCHITECT: на фазе приветствия шаг занимает весь экран, поэтому общий контейнер с отступами
+    // ему не подходит: форму аккаунта центрирует сам IntroStep.
+    const isFullBleed = currentStep === "intro";
 
     const updateData = (updates: Partial<OnboardingData>) => {
         setOnboardingData((previous) => ({ ...previous, ...updates }));
     };
 
-    // ARCHITECT: в режиме session отдельного шага уровня нет, поэтому уровень цели берётся из
-    // профиля — карточка сессии показывает уровень, а не пустое поле.
-    // ARCHITECT: финал обоих флоу одинаков — создаём сессию и открываем её чат. Раньше полный
-    // флоу делал navigate("/app") и пользователь попадал на экран без сессии. replace: true —
-    // чтобы «Назад» из чата не возвращал в мастер.
+    // ARCHITECT: финал обоих флоу одинаков — создаём сессию и открываем её чат. Уровень берётся из
+    // теста; в режиме session теста нет, поэтому там уровень профиля. replace: true — чтобы
+    // «Назад» из чата не возвращал в мастер.
     const startSession = () => {
+        // ARCHITECT: на полном флоу цель и репетитор выбраны на шаге «Цели», поэтому сюда попадают
+        // только подготовленные данные. Ветка осталась защитой для режима session и уводит в список
+        // сессий: раньше она открывала /app без сессии, то есть пустой экран.
         if (!onboardingData.blobatarId || !onboardingData.learningMode) {
-            navigate("/app", { replace: true });
+            navigate("/app/sessions", { replace: true });
             return;
         }
 
@@ -70,6 +71,13 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
         });
 
         navigate(`/app/chat/${session.id}`, { replace: true });
+    };
+
+    // ARCHITECT: результат теста — единственный источник уровня: он попадает и в сводку урока, и в
+    // целевую сложность созданной сессии.
+    const handleTestComplete = (level: EnglishLevel) => {
+        updateData({ englishLevel: level });
+        handleNext();
     };
 
     const handleNext = () => {
@@ -94,42 +102,18 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
         if (flow === "session") navigate("/app/sessions");
     };
 
-    const stepNav = { onNext: handleNext, onBack: handleBack, step: stepNumber, totalSteps };
-
-    const renderStep = () => {
-        switch (currentStep) {
-            case "welcome":
-                return <WelcomeStep onNext={handleNext} />;
-            case "auth":
-                return <AuthStep {...stepNav} />;
-            case "blobatar-selection":
-                return (
-                    <RepetitorSelectionStep
-                        {...stepNav}
-                        selectedId={onboardingData.blobatarId}
-                        onSelect={(id: BlobatarId) => updateData({ blobatarId: id })}
-                    />
-                );
-            case "mode-selection":
-                return (
-                    <ModeSelectionStep
-                        {...stepNav}
-                        selectedMode={onboardingData.learningMode}
-                        onSelect={(mode: LearningMode) => updateData({ learningMode: mode })}
-                    />
-                );
-            case "schedule":
-                return (
-                    <ScheduleStep
-                        {...stepNav}
-                        schedule={onboardingData.schedule}
-                        onUpdate={(schedule: SchedulePreference) => updateData({ schedule })}
-                    />
-                );
-            default:
-                return null;
-        }
-    };
+    const stepView = (
+        <OnboardingStepView
+            step={currentStep}
+            data={onboardingData}
+            stepNumber={stepNumber}
+            totalSteps={totalSteps}
+            onNext={handleNext}
+            onBack={handleBack}
+            onUpdate={updateData}
+            onTestComplete={handleTestComplete}
+        />
+    );
 
     return (
         <OnboardingShell progress={progress}>
@@ -140,9 +124,9 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
                     animate={{ opacity: 1, y: 0 }}
                     exit={{ opacity: 0, y: -16 }}
                     transition={{ duration: 0.4, ease: "easeOut" }}
-                    className={cn("w-full", !isWelcome && "mx-auto max-w-4xl px-6 py-16")}
+                    className={cn("w-full", !isFullBleed && "mx-auto max-w-4xl px-6 py-16")}
                 >
-                    {renderStep()}
+                    {stepView}
                 </motion.div>
             </AnimatePresence>
         </OnboardingShell>

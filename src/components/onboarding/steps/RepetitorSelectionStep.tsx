@@ -2,8 +2,11 @@
 // в useRepetitorHistory, поэтому она одна на весь шаг. Правой панели выбранного больше нет:
 // панель истории — такой же ребёнок сетки, как карточки, и вставляется на всю ширину под ряд
 // источника, поэтому высота карточек не меняется, а строки ниже плавно съезжают.
+// ARCHITECT: шаг всегда показывает полный ростер: сужение до рекомендованных режимом прятало
+// половину персонажей, а выбор репетитора — личное решение. Рекомендация осталась подсказкой
+// в карточке, а не фильтром списка.
 
-import { useMemo, type ReactNode } from "react";
+import type { ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
@@ -13,13 +16,16 @@ import { SelectionStatusLine } from "@/components/onboarding/SelectionStatusLine
 import { MOCK_BLOBATARS, getBlobatarById } from "@/api/mocks/blobatars";
 import { useRepetitorHistory } from "@/hooks/useRepetitorHistory";
 import { useRovingRadiogroup } from "@/hooks/useRovingRadiogroup";
-import type { Blobatar, BlobatarId } from "@/types/blobatar";
+import type { BlobatarId } from "@/types/blobatar";
+
+// ARCHITECT: порядок обхода один и тот же у шага, у карточек и у клавиатурной модели.
+const ROSTER_IDS: BlobatarId[] = MOCK_BLOBATARS.map((item) => item.id);
 
 interface RepetitorSelectionStepProps {
-    /** Состав карточек: по умолчанию весь список персонажей. */
-    roster?: Blobatar[];
     /** Название шага: в мастере — «Цели», в режиме session — «Репетитор». */
     eyebrow?: string;
+    /** Персонажи, рекомендованные под выбранную цель: подсказка на карточке, не фильтр. */
+    highlightIds?: readonly BlobatarId[];
     selectedId: BlobatarId | null;
     onSelect: (id: BlobatarId) => void;
     onNext: () => void;
@@ -29,8 +35,8 @@ interface RepetitorSelectionStepProps {
 }
 
 export function RepetitorSelectionStep({
-    roster = MOCK_BLOBATARS,
     eyebrow = "Репетитор",
+    highlightIds,
     selectedId,
     onSelect,
     onNext,
@@ -41,13 +47,9 @@ export function RepetitorSelectionStep({
     const shouldReduceMotion = useReducedMotion();
     const selectedBlobatar = selectedId === null ? null : getBlobatarById(selectedId) ?? null;
 
-    // ARCHITECT: порядок обхода один и тот же у шага, у карточек и у клавиатурной модели. Массив id
-    // мемоизирован по составу: новая ссылка на каждом рендере ломала бы мемоизацию карточек.
-    const rosterIds = useMemo(() => roster.map((item) => item.id), [roster]);
-
     const { focusedIndex, setFocusedIndex, handleKeyDown, registerRadio } = useRovingRadiogroup({
-        ids: rosterIds,
-        initialIndex: Math.max(selectedId === null ? -1 : rosterIds.indexOf(selectedId), 0),
+        ids: ROSTER_IDS,
+        initialIndex: Math.max(selectedId === null ? -1 : ROSTER_IDS.indexOf(selectedId), 0),
         onSelect,
     });
 
@@ -63,17 +65,18 @@ export function RepetitorSelectionStep({
         handleClose,
         handleExitComplete,
         handleStepKeyDown,
-    } = useRepetitorHistory({ ids: rosterIds, selectedId });
+    } = useRepetitorHistory({ ids: ROSTER_IDS, selectedId });
 
     const gridItems: ReactNode[] = [];
 
-    roster.forEach((blobatar, index) => {
+    MOCK_BLOBATARS.forEach((blobatar, index) => {
         gridItems.push(
             <RepetitorCard
                 key={blobatar.id}
                 blobatar={blobatar}
                 index={index}
                 isSelected={selectedId === blobatar.id}
+                isRecommended={highlightIds?.includes(blobatar.id) ?? false}
                 isHistoryOpen={isPanelOpen && openBlobatar?.id === blobatar.id}
                 isFocused={focusedIndex === index}
                 onSelect={onSelect}
@@ -121,7 +124,7 @@ export function RepetitorSelectionStep({
                 align="left"
             />
 
-            {roster.length === 0 ? (
+            {MOCK_BLOBATARS.length === 0 ? (
                 <p className="text-sm text-[#f0f0f5]/60">Список репетиторов недоступен</p>
             ) : (
                 /* ARCHITECT: radiogroup остаётся на сетке, поэтому панель истории формально

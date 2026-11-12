@@ -17,6 +17,8 @@ export interface RepetitorCardProps {
     blobatar: Blobatar;
     index: number;
     isSelected: boolean;
+    /** Подсказка «рекомендуем под цель»: персонаж подходит выбранному режиму, но выбор свободен. */
+    isRecommended?: boolean;
     isHistoryOpen: boolean;
     isFocused: boolean;
     onSelect: (id: BlobatarId) => void;
@@ -30,6 +32,7 @@ function RepetitorCardBase({
     blobatar,
     index,
     isSelected,
+    isRecommended = false,
     isHistoryOpen,
     isFocused,
     onSelect,
@@ -88,6 +91,11 @@ function RepetitorCardBase({
                 <BlobatarAvatar id={blobatar.id} className="size-20 bg-transparent sm:size-24" />
 
                 <span className="mt-4 block w-full">
+                    {isRecommended && (
+                        <span className="mb-1 block text-[11px] text-[#f0f0f5]/45">
+                            Рекомендуем под цель
+                        </span>
+                    )}
                     <span className="block text-base font-medium text-[#f0f0f5]">
                         {blobatar.name}
                     </span>

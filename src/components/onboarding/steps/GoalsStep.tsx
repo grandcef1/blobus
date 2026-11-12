@@ -1,14 +1,14 @@
 // ARCHITECT: шаг 3 «Цели» — оркестратор двух фаз: выбор цели и выбор репетитора под неё. Номер
 // шага у фаз общий, поэтому мастер остаётся на пяти шагах.
-// ARCHITECT: состав репетиторов берётся из рекомендаций выбранного режима: сначала цель, потом
-// тот, кто её ведёт, — так выбор читается как следствие, а не как список из десяти карточек.
+// ARCHITECT: ростер полный: рекомендации режима подсвечиваются подсказкой на карточке, но прятать
+// половину персонажей нельзя — репетитора выбирает человек.
 
-import { useMemo, useState } from "react";
+import { useState } from "react";
 import { motion } from "framer-motion";
-import type { Blobatar, BlobatarId } from "@/types/blobatar";
+import type { BlobatarId } from "@/types/blobatar";
 import type { LearningMode } from "@/types/onboarding";
 import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
-import { getPersonaByMode, MOCK_BLOBATARS } from "@/api/mocks/blobatars";
+import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import { ModeSelectionStep } from "./ModeSelectionStep";
 import { RepetitorSelectionStep } from "./RepetitorSelectionStep";
 
@@ -47,10 +47,8 @@ export function GoalsStep({
     // один и тот же выбор дважды незачем.
     const [phase, setPhase] = useState<GoalsPhase>(selectedMode === null ? "mode" : "repetitor");
 
-    const roster: Blobatar[] = useMemo(
-        () => (selectedMode === null ? MOCK_BLOBATARS : getPersonaByMode(selectedMode)),
-        [selectedMode]
-    );
+    const recommendedIds =
+        MOCK_LEARNING_MODES.find((item) => item.id === selectedMode)?.recommendedRepetitors ?? [];
 
     if (phase === "mode") {
         return (
@@ -70,8 +68,8 @@ export function GoalsStep({
     return (
         <motion.div key="repetitor" {...PHASE_MOTION}>
             <RepetitorSelectionStep
-                roster={roster}
                 eyebrow={ONBOARDING_STEP_TITLES.goals}
+                highlightIds={recommendedIds}
                 selectedId={selectedId}
                 onSelect={onSelectBlobatar}
                 onNext={onNext}

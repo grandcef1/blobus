@@ -1,10 +1,12 @@
+import { useState } from "react";
 import { motion } from "framer-motion";
 import type { TargetAndTransition, Variants } from "framer-motion";
-import { Check, ArrowDown, Sparkles } from "lucide-react";
+import { Check, MessageCircle, Sparkles } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
 import { TypewriterHeading } from "@/components/landing/TypewriterHeading";
+import { DemoDialog } from "@/components/landing/demo/DemoDialog";
 import { useNavigate } from 'react-router-dom';
 
 const containerVariants: Variants = {
@@ -48,6 +50,9 @@ const BENEFITS: readonly BenefitItem[] = [
 
 export function HeroSection() {
     const navigate = useNavigate();
+    // ARCHITECT: пример урока показывается модально, а не якорем на секцию: вторичная кнопка
+    // должна объяснять формат, а не перескакивать по странице.
+    const [demoOpen, setDemoOpen] = useState(false);
 
     const handleGetStarted = () => {
         navigate('/onboarding');
@@ -126,17 +131,13 @@ export function HeroSection() {
                             <Button
                                 variant="outline"
                                 size="lg"
-                                asChild
+                                onClick={() => setDemoOpen(true)}
                                 className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-[#f0f0f5]"
                             >
-                                <a href="#how-it-works">
-                                    <ArrowDown
-                                        className="mr-2 size-4"
-                                        aria-hidden="true"
-                                    />
-                                    Как это работает
-                                </a>
+                                <MessageCircle className="mr-2 size-4" aria-hidden="true" />
+                                Пример урока
                             </Button>
+                            <DemoDialog open={demoOpen} onOpenChange={setDemoOpen} />
                         </motion.div>
 
                         <motion.div

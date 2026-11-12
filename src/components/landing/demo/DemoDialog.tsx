@@ -79,20 +79,13 @@ export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
                     <div ref={bottomRef} />
                 </div>
 
-                <div className="flex items-center gap-2 border-t border-white/5 bg-black/40 px-4 py-3">
-                    {/* ARCHITECT: поле — визуальная заглушка: пример листается кнопкой, ввод в демо
-                        ничего не значит, поэтому поддельный инпут не должен притворяться настоящим. */}
-                    <p
-                        aria-hidden="true"
-                        className="min-w-0 flex-1 truncate rounded-2xl border border-white/5 px-4 py-2.5 text-sm text-[#f0f0f5]/25"
-                    >
-                        Напиши сообщение на английском...
-                    </p>
-
+                {/* ARCHITECT: поля ввода в примере нет: поддельный инпут выглядел рабочим и просил
+                    клика. Вместо него одна кнопка — она листает сценарий и подписана действием. */}
+                <div className="flex items-center justify-end border-t border-white/5 bg-black/40 px-4 py-3">
                     <Button
                         type="button"
                         onClick={handlePrimary}
-                        className={cn(PRIMARY_BUTTON, "shrink-0 px-5")}
+                        className={cn(PRIMARY_BUTTON, "shrink-0")}
                     >
                         {isLast ? "Начать бесплатно" : "Дальше"}
                         <ArrowRight className="size-4" aria-hidden="true" />

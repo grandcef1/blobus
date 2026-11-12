@@ -5,9 +5,8 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
-import { Blobatar } from "@blobatar/react";
-import { getBlobatarById } from "@/api/mocks/blobatars";
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_FOCUS_RING, findSectionTitle } from "./navigation";
 
@@ -20,7 +19,6 @@ const ICON_BUTTON =
 
 export function MobileTopBar({ onOpenMenu }: MobileTopBarProps) {
     const { pathname } = useLocation();
-    const blobatar = getBlobatarById(MOCK_PROFILE_USER.blobatarId);
 
     return (
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-white/5 bg-black/80 px-2 backdrop-blur-md md:hidden">
@@ -33,13 +31,7 @@ export function MobileTopBar({ onOpenMenu }: MobileTopBarProps) {
             </p>
 
             <Link to="/app/profile" aria-label="Профиль" className={cn(ICON_BUTTON, SIDEBAR_FOCUS_RING)}>
-                <span className="size-8 overflow-hidden rounded-full bg-white/5">
-                    {blobatar ? (
-                        <Blobatar animate="always" name={blobatar.name.toLowerCase()} traits={blobatar.traits} />
-                    ) : (
-                        <span className="block size-8 rounded-full bg-white/10" />
-                    )}
-                </span>
+                <BlobatarAvatar id={MOCK_PROFILE_USER.blobatarId} className="size-8 bg-white/5" />
             </Link>
         </header>
     );

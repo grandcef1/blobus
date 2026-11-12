@@ -1,13 +1,13 @@
-// ARCHITECT: карточка сессии. Данные берутся из общего источника (репетиторы и режимы —
-// MOCK_REPETITORS/MOCK_LEARNING_MODES, аватар — getBlobatarById), чтобы подписи совпадали с
-// чатом. Вся карточка — одна ссылка: попасть в остановленную тему можно в один тап.
+// ARCHITECT: карточка сессии. Данные берутся из общего источника (режимы — MOCK_LEARNING_MODES,
+// персонаж и имя — getBlobatarById), чтобы подписи совпадали с чатом. Вся карточка — одна
+// ссылка: попасть в остановленную тему можно в один тап.
 // ARCHITECT: статус выводится из прогресса, а не хранится отдельным полем: расхождение
 // «завершена, но пройдено 3 из 10» невозможно по конструкции.
 
 import { Link } from "react-router-dom";
-import { Blobatar } from "@blobatar/react";
 import { getBlobatarById } from "@/api/mocks/blobatars";
-import { MOCK_LEARNING_MODES, MOCK_REPETITORS } from "@/api/mocks/repetitors";
+import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { StatusMarker } from "@/components/shared/StatusMarker";
 import { formatRelativeTime } from "@/lib/relativeTime";
@@ -19,8 +19,7 @@ interface SessionCardProps {
 }
 
 export function SessionCard({ session }: SessionCardProps) {
-    const blobatar = getBlobatarById(session.repetitorId);
-    const repetitor = MOCK_REPETITORS.find((item) => item.id === session.repetitorId);
+    const repetitor = getBlobatarById(session.repetitorId);
     const mode = MOCK_LEARNING_MODES.find((item) => item.id === session.learningMode);
 
     const { completedLessons, totalLessons } = session.progress;
@@ -36,13 +35,7 @@ export function SessionCard({ session }: SessionCardProps) {
             )}
         >
             <div className="flex items-start gap-3">
-                <span className="size-10 shrink-0 overflow-hidden rounded-full bg-[#1a1a1c]">
-                    {blobatar ? (
-                        <Blobatar animate="always" name={blobatar.name.toLowerCase()} traits={blobatar.traits} />
-                    ) : (
-                        <span className="block size-10 rounded-full bg-white/10" />
-                    )}
-                </span>
+                <BlobatarAvatar id={session.repetitorId} className="size-10 bg-[#1a1a1c]" />
 
                 <div className="min-w-0 flex-1">
                     <h2 className="truncate text-sm font-medium text-[#f0f0f5] md:text-base">{session.title}</h2>

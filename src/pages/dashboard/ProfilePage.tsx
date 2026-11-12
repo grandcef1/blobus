@@ -5,17 +5,15 @@
 
 import { motion } from "framer-motion";
 import { Award, BookOpen, Calendar, Mail, TrendingUp } from "lucide-react";
-import { Blobatar } from "@blobatar/react";
 import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
-import { getBlobatarById } from "@/api/mocks/blobatars";
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { StatusMarker } from "@/components/shared/StatusMarker";
 import { ProfileModeCard } from "./ProfileModeCard";
 import type { LearningMode } from "@/types/onboarding";
 
 export function ProfilePage() {
     const progress = MOCK_USER_PROGRESS;
-    const userBlobatar = getBlobatarById(MOCK_PROFILE_USER.blobatarId);
 
     const totalWords = Object.values(progress.modeProgress).reduce(
         (sum, mode) => sum + mode.wordsLearned,
@@ -52,17 +50,10 @@ export function ProfilePage() {
 
                 <div className="space-y-4">
                     <section className="flex flex-col gap-4 rounded-2xl bg-[#111113] p-4 sm:flex-row sm:items-center md:p-5">
-                        <span className="size-16 shrink-0 overflow-hidden rounded-full bg-[#1a1a1c] md:size-24">
-                            {userBlobatar ? (
-                                <Blobatar
-                                    animate="always"
-                                    name={userBlobatar.name.toLowerCase()}
-                                    traits={userBlobatar.traits}
-                                />
-                            ) : (
-                                <span className="block size-full rounded-full bg-white/10" />
-                            )}
-                        </span>
+                        <BlobatarAvatar
+                            id={MOCK_PROFILE_USER.blobatarId}
+                            className="size-16 bg-[#1a1a1c] md:size-24"
+                        />
 
                         <div className="min-w-0 flex-1">
                             <h2 className="text-2xl font-semibold text-[#f0f0f5] md:text-3xl">

@@ -4,9 +4,8 @@
 // В сложенном виде секцию не показываем: узкая колонка без подписей читается только по иконкам.
 
 import { Link, useLocation } from "react-router-dom";
-import { Blobatar } from "@blobatar/react";
 import { getSessions } from "@/api/sessions";
-import { getBlobatarById } from "@/api/mocks/blobatars";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_FOCUS_RING } from "./navigation";
 
@@ -32,7 +31,6 @@ export function SidebarRecentSessions({ isCollapsed }: SidebarRecentSessionsProp
             </p>
             <div className="sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto pb-2">
                 {sessions.map((session) => {
-                    const blobatar = getBlobatarById(session.repetitorId);
                     const isActive = pathname === `/app/chat/${session.id}`;
 
                     return (
@@ -47,17 +45,7 @@ export function SidebarRecentSessions({ isCollapsed }: SidebarRecentSessionsProp
                                     : "text-[#f0f0f5]/40 hover:bg-[#141416] hover:text-[#f0f0f5]/70"
                             )}
                         >
-                            <span className="size-6 shrink-0 overflow-hidden rounded-full bg-white/5">
-                                {blobatar ? (
-                                    <Blobatar
-                                        animate="always"
-                                        name={blobatar.name.toLowerCase()}
-                                        traits={blobatar.traits}
-                                    />
-                                ) : (
-                                    <span className="block size-6 rounded-full bg-white/10" />
-                                )}
-                            </span>
+                            <BlobatarAvatar id={session.repetitorId} className="size-6 bg-white/5" />
                             <span className="truncate text-[13px]">{session.title}</span>
                         </Link>
                     );

@@ -5,9 +5,9 @@
 
 import { motion } from "framer-motion";
 import { MoreVertical, Settings2 } from "lucide-react";
-import { Blobatar } from "@blobatar/react";
 import { getBlobatarById } from "@/api/mocks/blobatars";
-import { MOCK_LEARNING_MODES, MOCK_REPETITORS } from "@/api/mocks/repetitors";
+import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { cn } from "@/lib/utils";
 import type { EnhancedChatSession } from "@/types/session";
@@ -20,9 +20,8 @@ const ICON_BUTTON =
     "flex size-11 items-center justify-center rounded-lg text-[#f0f0f5]/40 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] md:size-10";
 
 export function ChatHeader({ session }: ChatHeaderProps) {
-    const repetitor = MOCK_REPETITORS.find((item) => item.id === session.repetitorId);
+    const repetitor = getBlobatarById(session.repetitorId);
     const mode = MOCK_LEARNING_MODES.find((item) => item.id === session.learningMode);
-    const blobatar = getBlobatarById(session.repetitorId);
 
     const { completedLessons, totalLessons } = session.progress;
     const percent = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
@@ -34,13 +33,7 @@ export function ChatHeader({ session }: ChatHeaderProps) {
             className="flex h-14 shrink-0 items-center justify-between gap-3 border-b border-white/5 bg-[#0d0d0d] px-4 md:h-16 md:px-6"
         >
             <div className="flex min-w-0 items-center gap-3">
-                <span className="size-8 shrink-0 overflow-hidden rounded-full bg-[#141416]">
-                    {blobatar ? (
-                        <Blobatar animate="always" name={blobatar.name.toLowerCase()} traits={blobatar.traits} />
-                    ) : (
-                        <span className="block size-8 rounded-full bg-white/10" />
-                    )}
-                </span>
+                <BlobatarAvatar id={session.repetitorId} className="size-8" />
 
                 <div className="min-w-0">
                     <h1 className="truncate text-sm font-semibold text-[#f0f0f5]">{session.title}</h1>

@@ -1,17 +1,22 @@
-// ARCHITECT: Выбор репетитора — использует блобатары из общего источника.
-// Радиогруппа с keyboard navigation (стрелки, Tab, Enter/Space). Логика не меняется:
-// рескин — заголовок через StepHeader, плитки на общих токенах поверхностей, навигация
-// через StepNav. Контейнер max-w-3xl: пять плиток дышат и не сжимаются в узкую колонку.
+// ARCHITECT: оркестратор шага. Выбранный персонаж приходит из мастера, открытая история живёт
+// в useRepetitorHistory, поэтому она одна на весь шаг. Правой панели выбранного больше нет:
+// панель истории — такой же ребёнок сетки, как карточки, и вставляется на всю ширину под ряд
+// источника, поэтому высота карточек не меняется, а строки ниже плавно съезжают.
 
-import { useState } from "react";
-import { motion } from "framer-motion";
-import { Check } from "lucide-react";
-import { Blobatar } from "@blobatar/react";
+import type { ReactNode } from "react";
+import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
-import { MOCK_BLOBATARS } from "@/api/mocks/blobatars";
+import { RepetitorCard } from "@/components/onboarding/RepetitorCard";
+import { RepetitorHistoryPanel } from "@/components/onboarding/RepetitorHistoryPanel";
+import { SelectionStatusLine } from "@/components/onboarding/SelectionStatusLine";
+import { MOCK_BLOBATARS, getBlobatarById } from "@/api/mocks/blobatars";
+import { useRepetitorHistory } from "@/hooks/useRepetitorHistory";
+import { useRovingRadiogroup } from "@/hooks/useRovingRadiogroup";
 import type { BlobatarId } from "@/types/blobatar";
-import { tileClasses } from "@/lib/surfaces";
+
+// ARCHITECT: порядок обхода один и тот же у шага, у карточек и у клавиатурной модели.
+const ROSTER_IDS: BlobatarId[] = MOCK_BLOBATARS.map((item) => item.id);
 
 interface RepetitorSelectionStepProps {
     selectedId: BlobatarId | null;
@@ -30,96 +35,105 @@ export function RepetitorSelectionStep({
     step,
     totalSteps,
 }: RepetitorSelectionStepProps) {
-    const [focusedIndex, setFocusedIndex] = useState(0);
+    const shouldReduceMotion = useReducedMotion();
+    const selectedBlobatar = selectedId === null ? null : getBlobatarById(selectedId) ?? null;
 
-    const handleKeyDown = (e: React.KeyboardEvent) => {
-        const maxIndex = MOCK_BLOBATARS.length - 1;
+    const { focusedIndex, setFocusedIndex, handleKeyDown, registerRadio } = useRovingRadiogroup({
+        ids: ROSTER_IDS,
+        initialIndex: Math.max(selectedId === null ? -1 : ROSTER_IDS.indexOf(selectedId), 0),
+        onSelect,
+    });
 
-        switch (e.key) {
-            case "ArrowRight":
-            case "ArrowDown":
-                e.preventDefault();
-                setFocusedIndex((prev) => (prev < maxIndex ? prev + 1 : 0));
-                break;
-            case "ArrowLeft":
-            case "ArrowUp":
-                e.preventDefault();
-                setFocusedIndex((prev) => (prev > 0 ? prev - 1 : maxIndex));
-                break;
-            case "Enter":
-            case " ":
-                e.preventDefault();
-                onSelect(MOCK_BLOBATARS[focusedIndex].id as BlobatarId);
-                break;
+    const {
+        isPanelOpen,
+        openBlobatar,
+        rowEnd,
+        columns,
+        columnIndex,
+        panelElementRef,
+        registerHistoryButton,
+        handleToggleHistory,
+        handleClose,
+        handleExitComplete,
+        handleStepKeyDown,
+    } = useRepetitorHistory({ ids: ROSTER_IDS, selectedId });
+
+    const gridItems: ReactNode[] = [];
+
+    MOCK_BLOBATARS.forEach((blobatar, index) => {
+        gridItems.push(
+            <RepetitorCard
+                key={blobatar.id}
+                blobatar={blobatar}
+                index={index}
+                isSelected={selectedId === blobatar.id}
+                isHistoryOpen={isPanelOpen && openBlobatar?.id === blobatar.id}
+                isFocused={focusedIndex === index}
+                onSelect={onSelect}
+                onToggleHistory={handleToggleHistory}
+                onFocus={setFocusedIndex}
+                registerRadio={registerRadio}
+                registerHistoryButton={registerHistoryButton}
+            />
+        );
+
+        // ARCHITECT: панель вставляется после последней карточки своего ряда и остаётся прямым
+        // ребёнком сетки: тогда React переносит её узел, а не пересоздаёт, и переезд между
+        // рядами анимируется через layout.
+        if (index + 1 === rowEnd) {
+            gridItems.push(
+                <AnimatePresence key="history" initial={false} onExitComplete={handleExitComplete}>
+                    {isPanelOpen && openBlobatar !== null ? (
+                        <motion.div
+                            key="history-slot"
+                            layout={!shouldReduceMotion}
+                            className="col-span-full"
+                        >
+                            <RepetitorHistoryPanel
+                                blobatar={openBlobatar}
+                                columns={columns}
+                                columnIndex={columnIndex}
+                                onClose={handleClose}
+                                panelRef={panelElementRef}
+                            />
+                        </motion.div>
+                    ) : null}
+                </AnimatePresence>
+            );
         }
-    };
+    });
 
     return (
-        <div className="mx-auto w-full max-w-3xl">
+        <div className="w-full" onKeyDown={handleStepKeyDown}>
             <StepHeader
                 eyebrow="Репетитор"
                 title="Выбери репетитора"
                 subtitle="У каждого свой характер и стиль преподавания"
                 step={step}
                 totalSteps={totalSteps}
+                align="left"
             />
 
-            <div
-                role="radiogroup"
-                aria-label="Выбор репетитора"
-                onKeyDown={handleKeyDown}
-                className="grid grid-cols-2 gap-4 sm:grid-cols-3 sm:gap-6 lg:grid-cols-5"
-            >
-                {MOCK_BLOBATARS.map((blobatar, index) => {
-                    const isSelected = selectedId === blobatar.id;
-                    const isFocused = focusedIndex === index;
+            {MOCK_BLOBATARS.length === 0 ? (
+                <p className="text-sm text-[#f0f0f5]/60">Список репетиторов недоступен</p>
+            ) : (
+                /* ARCHITECT: radiogroup остаётся на сетке, поэтому панель истории формально
+                   оказывается внутри группы. Это цена вставки панели под ряд: вынести её за
+                   пределы группы нельзя, не потеряв строку вставки. */
+                <div
+                    role="radiogroup"
+                    aria-label="Выбор репетитора"
+                    onKeyDown={handleKeyDown}
+                    className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+                >
+                    {gridItems}
+                </div>
+            )}
 
-                    return (
-                        <motion.button
-                            key={blobatar.id}
-                            type="button"
-                            role="radio"
-                            aria-checked={isSelected}
-                            aria-label={blobatar.name}
-                            tabIndex={isFocused ? 0 : -1}
-                            onClick={() => onSelect(blobatar.id as BlobatarId)}
-                            initial={{ opacity: 0, y: 10 }}
-                            animate={{ opacity: 1, y: 0 }}
-                            transition={{ duration: 0.2, delay: index * 0.03 }}
-                            className={tileClasses(
-                                isSelected,
-                                "group relative flex flex-col items-center p-5"
-                            )}
-                        >
-                            {isSelected && (
-                                <div className="absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-[#f0f0f5]">
-                                    <Check
-                                        className="size-3 text-black"
-                                        strokeWidth={3}
-                                        aria-hidden="true"
-                                    />
-                                </div>
-                            )}
-
-                            <div className="mb-3 size-20">
-                                <Blobatar
-                                    animate="always"
-                                    name={blobatar.name.toLowerCase()}
-                                    traits={blobatar.traits}
-                                />
-                            </div>
-
-                            {/* ARCHITECT: имя — span, а не h3: внутри <button> допустим только
-                                phrasing content, а заголовок внутри кнопки ничего не сообщает. */}
-                            <span className="block text-sm font-medium text-[#f0f0f5]">
-                                {blobatar.name}
-                            </span>
-                        </motion.button>
-                    );
-                })}
-            </div>
+            <SelectionStatusLine blobatar={selectedBlobatar} />
 
             <StepNav onBack={onBack} onNext={onNext} nextLabel="Продолжить" disabled={!selectedId} />
         </div>
     );
 }
+

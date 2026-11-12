@@ -2,9 +2,8 @@
 // телефоне и две с sm: на 360px два узких столбца рвали слова. Полоса прогресса — общий
 // ProgressBar, поэтому ширина больше не задаётся inline-стилем.
 
-import { Blobatar } from "@blobatar/react";
-import { MOCK_REPETITORS } from "@/api/mocks/repetitors";
-import { getBlobatarById } from "@/api/mocks/blobatars";
+import { getPersonaByMode } from "@/api/mocks/blobatars";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import type { LearningMode } from "@/types/onboarding";
 import type { UserProgress } from "@/types/progress";
@@ -24,24 +23,18 @@ const MODE_LABELS: Record<LearningMode, string> = {
 const LIST_LIMIT = 2;
 
 export function ProfileModeCard({ modeId, modeData }: ProfileModeCardProps) {
-    const repetitor = MOCK_REPETITORS.find((item) => item.specialties.includes(modeId));
-    const blobatar = repetitor ? getBlobatarById(repetitor.id) : undefined;
+    // ARCHITECT: рекомендацию даёт общий селектор режима, а не перебор производного списка по
+    // specialties: раньше для части режимов показывался чужой персонаж или заглушка.
+    const recommended = getPersonaByMode(modeId);
+    // ARCHITECT: если рекомендаций нет, в аватар уходит id режима — общий компонент на
+    // неизвестный идентификатор покажет нейтральный круг, а не упадёт.
+    const avatarId = recommended.length > 0 ? recommended[0].id : modeId;
 
     return (
         <article className="rounded-xl bg-[#141416] p-4">
             <div className="mb-3 flex items-center justify-between gap-3">
                 <div className="flex min-w-0 items-center gap-2.5">
-                    <span className="size-7 shrink-0 overflow-hidden rounded-full bg-[#1a1a1c]">
-                        {blobatar ? (
-                            <Blobatar
-                                animate="always"
-                                name={blobatar.name.toLowerCase()}
-                                traits={blobatar.traits}
-                            />
-                        ) : (
-                            <span className="block size-7 rounded-full bg-white/10" />
-                        )}
-                    </span>
+                    <BlobatarAvatar id={avatarId} className="size-7 bg-[#1a1a1c]" />
                     <h3 className="truncate text-sm font-medium text-[#f0f0f5]/85">{MODE_LABELS[modeId]}</h3>
                 </div>
                 <span className="shrink-0 text-xs tabular-nums text-[#f0f0f5]/40">{modeData.level}</span>

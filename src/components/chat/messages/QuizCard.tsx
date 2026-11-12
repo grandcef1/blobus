@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { HelpCircle, Check, X, RotateCcw } from "lucide-react";
-import { Blobatar } from "@blobatar/react";
 import type { EnhancedChatSession, QuizContent, QuizOption } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
-import { MOCK_REPETITORS } from "@/api/mocks/repetitors";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { cn } from "@/lib/utils";
 
 interface QuizCardProps {
@@ -17,8 +16,7 @@ interface QuizCardProps {
 export function QuizCard({ quiz, session }: QuizCardProps) {
     const [selectedOption, setSelectedOption] = useState<string | null>(null);
     const [showResult, setShowResult] = useState(false);
-    const blobatar = getBlobatarById(session.repetitorId);
-    const repetitor = MOCK_REPETITORS.find((r) => r.id === session.repetitorId);
+    const repetitor = getBlobatarById(session.repetitorId);
 
     if (!quiz) return null;
 
@@ -42,13 +40,7 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
 
     return (
         <div className="flex items-start gap-3">
-            <div className="mt-0.5 size-8 shrink-0 rounded-full bg-[#141416] p-0.5">
-                {blobatar ? (
-                    <Blobatar animate="always" name={blobatar.name.toLowerCase()} traits={blobatar.traits} />
-                ) : (
-                    <div className="size-full rounded-full bg-white/10" />
-                )}
-            </div>
+            <BlobatarAvatar id={session.repetitorId} className="mt-0.5 size-8 p-0.5" />
             <div className="min-w-0 flex-1">
                 {repetitor && <p className="mb-1 text-xs font-medium text-[#f0f0f5]/50">{repetitor.name}</p>}
                 <div className="w-full overflow-hidden rounded-2xl rounded-tl-md border border-indigo-500/20 bg-indigo-500/[0.05] md:max-w-[85%]">

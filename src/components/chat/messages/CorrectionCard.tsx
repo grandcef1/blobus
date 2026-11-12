@@ -3,10 +3,9 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { AlertCircle, CheckCircle2, ChevronDown, BookOpen, Lightbulb } from "lucide-react";
-import { Blobatar } from "@blobatar/react";
 import type { EnhancedChatSession, EnhancedMessage, GrammarCorrection } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
-import { MOCK_REPETITORS } from "@/api/mocks/repetitors";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { MessageBubble } from "./MessageBubble";
 import { cn } from "@/lib/utils";
 
@@ -24,8 +23,7 @@ const SEVERITY_STYLES = {
 
 export function CorrectionCard({ message, correction, session }: CorrectionCardProps) {
     const [showDetails, setShowDetails] = useState(false);
-    const blobatar = getBlobatarById(session.repetitorId);
-    const repetitor = MOCK_REPETITORS.find((r) => r.id === session.repetitorId);
+    const repetitor = getBlobatarById(session.repetitorId);
 
     if (!correction) {
         return <MessageBubble message={message} session={session} />;
@@ -35,13 +33,7 @@ export function CorrectionCard({ message, correction, session }: CorrectionCardP
 
     return (
         <div className="flex items-start gap-3">
-            <div className="mt-0.5 size-8 shrink-0 rounded-full bg-[#141416] p-0.5">
-                {blobatar ? (
-                    <Blobatar animate="always" name={blobatar.name.toLowerCase()} traits={blobatar.traits} />
-                ) : (
-                    <div className="size-full rounded-full bg-white/10" />
-                )}
-            </div>
+            <BlobatarAvatar id={session.repetitorId} className="mt-0.5 size-8 p-0.5" />
             <div className="min-w-0 flex-1">
                 {repetitor && (
                     <p className="mb-1 text-xs font-medium text-[#f0f0f5]/50">{repetitor.name}</p>

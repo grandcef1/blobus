@@ -1,81 +1,24 @@
-    // ARCHITECT: Моки репетиторов — теперь используют данные из MOCK_BLOBATARS
-    // Этот файл остаётся для обратной совместимости, но данные берутся из блобатаров
+// ARCHITECT: режимы обучения. Это источник только режимов: характеры персонажей живут в
+// api/mocks/blobatars, поэтому производного списка репетиторов с выдуманными описаниями
+// здесь больше нет — имя, черты и историю читают из персоны. Зависимость односторонняя
+// (blobatars -> repetitors), цикла между моками нет.
 
-    import { MOCK_BLOBATARS } from "./blobatars";
-    import type { BlobatarId } from "@/types/blobatar";
-    import type { LearningMode } from "@/types/onboarding";
+import type { BlobatarId } from "@/types/blobatar";
+import type { LearningMode } from "@/types/onboarding";
 
-    export interface Repetitor {
-    id: BlobatarId;
-    name: string;
-    personality: string;
-    backstory: string;
-    voiceAccent: "british" | "american" | "australian";
-    specialties: LearningMode[];
-    teachingStyle: "encouraging" | "structured" | "casual" | "professional";
-    }
+export interface LearningModeOption {
+    id: LearningMode;
+    label: string;
+    description: string;
+    icon: string;
+    recommendedRepetitors: BlobatarId[];
+}
 
-    // ARCHITECT: Заглушки для обратной совместимости
-    // В реальном приложении эти данные должны приходить с бэкенда
-    export const MOCK_REPETITORS: Repetitor[] = MOCK_BLOBATARS.map((blobatar, index) => {
-    const personalities = [
-        "Поддерживающая и терпеливая",
-        "Профессиональный и ориентированный на результат",
-        "Непринуждённая и весёлая",
-        "Структурированный и внимательный к деталям",
-        "Энергичная и мотивирующая",
-        "Спокойная и вдумчивая",
-        "Творческая и нестандартная",
-        "Практичная и прикладная",
-        "Дружелюбная и открытая",
-        "Аналитическая и точная",
-    ];
-
-    const accents: Array<"british" | "american" | "australian"> = [
-        "american",
-        "british",
-        "australian",
-        "american",
-        "british",
-        "american",
-        "australian",
-        "british",
-        "american",
-        "australian",
-    ];
-
-    const styles: Array<"encouraging" | "structured" | "casual" | "professional"> = [
-        "encouraging",
-        "professional",
-        "casual",
-        "structured",
-        "encouraging",
-        "structured",
-        "casual",
-        "professional",
-        "encouraging",
-        "structured",
-    ];
-
-    const allModes: LearningMode[] = ["interview", "speaking", "grammar", "general"];
-    const specialties = allModes.slice(0, 2 + (index % 2));
-
-    return {
-        id: blobatar.id as BlobatarId,
-        name: blobatar.name,
-        personality: personalities[index],
-        backstory: "",
-        voiceAccent: accents[index],
-        specialties,
-        teachingStyle: styles[index],
-    };
-    });
-
-    export const MOCK_LEARNING_MODES = [
+export const MOCK_LEARNING_MODES: LearningModeOption[] = [
     {
         id: "interview",
-        label: "Собеседование",
-        description: "Практика типичных вопросов на собеседовании и тренировка профессиональной лексики",
+        label: "Подготовка к собеседованиям",
+        description: "Практика типичных вопросов на собеседовании и профессиональная лексика",
         icon: "Briefcase",
         recommendedRepetitors: ["max", "orion"],
     },
@@ -100,4 +43,4 @@
         icon: "Globe",
         recommendedRepetitors: ["luna", "nova"],
     },
-    ];
+];

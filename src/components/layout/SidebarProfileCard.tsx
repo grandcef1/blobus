@@ -6,9 +6,8 @@
 
 import { Link } from "react-router-dom";
 import { LogOut } from "lucide-react";
-import { Blobatar } from "@blobatar/react";
-import { getBlobatarById } from "@/api/mocks/blobatars";
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_FOCUS_RING } from "./navigation";
 
@@ -17,16 +16,8 @@ interface SidebarProfileCardProps {
 }
 
 export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
-    const blobatar = getBlobatarById(MOCK_PROFILE_USER.blobatarId);
-
     const avatar = (
-        <span className="size-8 shrink-0 overflow-hidden rounded-full bg-white/5">
-            {blobatar ? (
-                <Blobatar animate="always" name={blobatar.name.toLowerCase()} traits={blobatar.traits} />
-            ) : (
-                <span className="block size-8 rounded-full bg-white/10" />
-            )}
-        </span>
+        <BlobatarAvatar id={MOCK_PROFILE_USER.blobatarId} className="size-8 bg-white/5" />
     );
 
     if (isCollapsed) {

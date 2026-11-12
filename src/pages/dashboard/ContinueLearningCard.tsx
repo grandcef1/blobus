@@ -6,8 +6,7 @@
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { Link } from "react-router-dom";
-import { Blobatar } from "@blobatar/react";
-import { getBlobatarById } from "@/api/mocks/blobatars";
+import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { cn } from "@/lib/utils";
 import type { EnhancedChatSession } from "@/types/session";
@@ -19,8 +18,6 @@ interface ContinueLearningCardProps {
 }
 
 export function ContinueLearningCard({ session, progress }: ContinueLearningCardProps) {
-    const blobatar = getBlobatarById(session.repetitorId);
-
     return (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
             <Link
@@ -30,13 +27,13 @@ export function ContinueLearningCard({ session, progress }: ContinueLearningCard
                     "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 )}
             >
-                <span className="size-14 shrink-0 overflow-hidden rounded-full bg-black/[0.08] md:size-16">
-                    {blobatar ? (
-                        <Blobatar animate="always" name={blobatar.name.toLowerCase()} traits={blobatar.traits} />
-                    ) : (
-                        <span className="block size-full rounded-full bg-black/10" />
-                    )}
-                </span>
+                {/* ARCHITECT: инвертированная светлая карточка — плашка и заглушка тёмные,
+                    поэтому тона передаются явно; размеры остались прежними. */}
+                <BlobatarAvatar
+                    id={session.repetitorId}
+                    className="size-14 bg-black/[0.08] md:size-16"
+                    placeholderClassName="bg-black/10"
+                />
 
                 <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium uppercase tracking-wider text-black/45">

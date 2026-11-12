@@ -1,25 +1,25 @@
 // ARCHITECT: заголовок чата. Высота h-14 на телефоне и md:h-16 на широком экране: выше md есть
 // место под вторую строку. Заголовок усечён (min-w-0 + truncate), иначе длинная тема выдавливает
 // кнопки. Бейдж прогресса скрыт ниже sm и обесцвечен: на 360px он отнимал место у темы.
-// Кнопки действий 44px на телефоне и 40px с md: шире палец, точнее мышь.
+// ARCHITECT: шапка не мутирует сессию сама — обновление и удаление уходят наверх через onUpdated
+// и onDeleted, поэтому состояние живёт в одном месте (ChatPage) и сайдбар видит те же данные.
 
 import { motion } from "framer-motion";
-import { MoreVertical, Settings2 } from "lucide-react";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { ProgressBar } from "@/components/shared/ProgressBar";
-import { cn } from "@/lib/utils";
+import { SessionActionsMenu } from "./header/SessionActionsMenu";
+import { SessionSettingsMenu } from "./header/SessionSettingsMenu";
 import type { EnhancedChatSession } from "@/types/session";
 
 interface ChatHeaderProps {
     session: EnhancedChatSession;
+    onUpdated: (session: EnhancedChatSession) => void;
+    onDeleted: () => void;
 }
 
-const ICON_BUTTON =
-    "flex size-11 items-center justify-center rounded-lg text-[#f0f0f5]/40 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] md:size-10";
-
-export function ChatHeader({ session }: ChatHeaderProps) {
+export function ChatHeader({ session, onUpdated, onDeleted }: ChatHeaderProps) {
     const repetitor = getBlobatarById(session.repetitorId);
     const mode = MOCK_LEARNING_MODES.find((item) => item.id === session.learningMode);
 
@@ -51,13 +51,12 @@ export function ChatHeader({ session }: ChatHeaderProps) {
                     <ProgressBar value={percent} className="w-20" />
                 </div>
 
-                <button type="button" aria-label="Настройки сессии" className={cn(ICON_BUTTON)}>
-                    <Settings2 className="size-4" aria-hidden="true" />
-                </button>
-
-                <button type="button" aria-label="Дополнительные действия" className={cn(ICON_BUTTON)}>
-                    <MoreVertical className="size-4" aria-hidden="true" />
-                </button>
+                <SessionSettingsMenu session={session} onUpdated={onUpdated} />
+                <SessionActionsMenu
+                    session={session}
+                    onUpdated={onUpdated}
+                    onDeleted={onDeleted}
+                />
             </div>
         </motion.header>
     );

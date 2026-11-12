@@ -16,6 +16,7 @@ import { BillingPage } from '@/pages/dashboard/BillingPage';
 import { AdminPage } from '@/pages/dashboard/AdminPage';
 import { AppIndexRedirect } from '@/pages/dashboard/AppIndexRedirect';
 import { ScrollToTopButton } from '@/components/shared/ScrollToTopButton';
+import { Toaster } from '@/components/shared/Toaster';
 
 const VocabularyPage = lazy(() =>
   import('@/pages/dashboard/VocabularyPage').then((module) => ({ default: module.VocabularyPage }))
@@ -75,6 +76,8 @@ function App() {
       </Routes>
       {/* ARCHITECT: монтируется один раз в корне — работает и на лендинге, и внутри приложения */}
       <ScrollToTopButton />
+      {/* ARCHITECT: тосты тоже живут в корне: сообщение должно быть видно на любом экране */}
+      <Toaster />
     </BrowserRouter>
   );
 }

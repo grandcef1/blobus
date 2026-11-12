@@ -5,18 +5,20 @@
 // поэтому своя реплика сразу видна в ленте.
 
 import { useState } from "react";
-import { Link, useParams } from "react-router-dom";
+import { Link, useNavigate, useParams } from "react-router-dom";
 import { sendMessage } from "@/api/chat";
 import { getSessionById } from "@/api/sessions";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
 import { cn } from "@/lib/utils";
+import type { EnhancedChatSession } from "@/types/session";
 
 const CHAT_HEIGHT = "h-[calc(100dvh-3.5rem)] md:h-dvh";
 
 export function ChatPage() {
     const { sessionId } = useParams<{ sessionId: string }>();
+    const navigate = useNavigate();
     const [loadedSession, setLoadedSession] = useState(() => ({
         id: sessionId,
         session: getSessionById(sessionId ?? ""),
@@ -33,6 +35,17 @@ export function ChatPage() {
     const handleSend = (text: string): void => {
         if (!sessionId) return;
         setLoadedSession({ id: sessionId, session: sendMessage(sessionId, text) });
+    };
+
+    // ARCHITECT: правки из меню шапки возвращаются сюда: страница остаётся единственным владельцем
+    // состояния сессии, поэтому шапка и лента всегда показывают одно и то же.
+    const handleUpdated = (updated: EnhancedChatSession): void => {
+        setLoadedSession({ id: sessionId, session: updated });
+    };
+
+    // ARCHITECT: удалённую сессию показывать нечем — уводим в список.
+    const handleDeleted = (): void => {
+        navigate("/app/sessions");
     };
 
     // ARCHITECT: раньше неизвестный id открывал дашборд внутри чата. Теперь это короткое
@@ -53,7 +66,7 @@ export function ChatPage() {
 
     return (
         <div className={cn("flex flex-col bg-black", CHAT_HEIGHT)}>
-            <ChatHeader session={session} />
+            <ChatHeader session={session} onUpdated={handleUpdated} onDeleted={handleDeleted} />
             <ChatMessages messages={session.messages} session={session} />
             <ChatInput onSend={handleSend} />
         </div>

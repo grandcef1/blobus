@@ -1,8 +1,11 @@
-// ARCHITECT: чипы-фильтры категорий. Один ряд с переносом вместо селекта: категорий пять, и
-// выбор должен быть виден целиком, а не спрятан в выпадающий список.
-// ARCHITECT: aria-pressed, а не role="tab": это переключатели фильтра, а не вкладки с панелями —
-// вкладкам пришлось бы держать соответствие tab ↔ tabpanel, которого здесь нет.
+// ARCHITECT: категории вопросов — вкладки, а не теги: активная всегда одна, поэтому ряд не читается
+// как набор включённых фильтров. Панели с content нет, но семантика tablist сохранена, а стрелки
+// Left/Right переключают вкладку — для клавиатуры это привычнее клика по чипу.
+// ARCHITECT: полоса скроллится по горизонтали (thin-scroll) и не переносится: на 360px шесть
+// вкладок в строку не встают, а перенос ломал бы линию подчёркивания активной.
 
+import { useRef } from "react";
+import type { KeyboardEvent } from "react";
 import { HELP_FAQ_CATEGORY_LABELS, HELP_FAQ_CATEGORY_ORDER } from "@/types/support";
 import type { HelpFaqCategory } from "@/types/support";
 import { cn } from "@/lib/utils";
@@ -14,31 +17,56 @@ interface FaqCategoryFilterProps {
     onChange: (value: FaqCategoryValue) => void;
 }
 
-const CHIP =
-    "flex min-h-11 items-center rounded-full border px-3 text-xs transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] md:min-h-9";
+const TAB =
+    "min-h-11 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]";
 
 export function FaqCategoryFilter({ value, onChange }: FaqCategoryFilterProps) {
+    const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
+
     const options: { id: FaqCategoryValue; label: string }[] = [
         { id: "all", label: "Все" },
         ...HELP_FAQ_CATEGORY_ORDER.map((id) => ({ id, label: HELP_FAQ_CATEGORY_LABELS[id] })),
     ];
 
+    const activeIndex = options.findIndex((option) => option.id === value);
+
+    const handleKeyDown = (event: KeyboardEvent<HTMLDivElement>) => {
+        if (event.key !== "ArrowRight" && event.key !== "ArrowLeft") return;
+        event.preventDefault();
+
+        const step = event.key === "ArrowRight" ? 1 : -1;
+        const nextIndex = (activeIndex + step + options.length) % options.length;
+
+        onChange(options[nextIndex].id);
+        tabRefs.current[nextIndex]?.focus();
+    };
+
     return (
-        <div role="group" aria-label="Категории вопросов" className="flex flex-wrap gap-2">
-            {options.map((option) => {
+        <div
+            role="tablist"
+            aria-label="Категории вопросов"
+            onKeyDown={handleKeyDown}
+            className="thin-scroll flex gap-1 overflow-x-auto border-b border-white/5"
+        >
+            {options.map((option, index) => {
                 const isSelected = option.id === value;
 
                 return (
                     <button
                         key={option.id}
                         type="button"
-                        aria-pressed={isSelected}
+                        role="tab"
+                        aria-selected={isSelected}
+                        tabIndex={isSelected ? 0 : -1}
+                        ref={(node) => {
+                            tabRefs.current[index] = node;
+                        }}
                         onClick={() => onChange(option.id)}
                         className={cn(
-                            CHIP,
+                            TAB,
                             isSelected
-                                ? "border-white/20 bg-white/10 text-[#f0f0f5]"
-                                : "border-white/5 text-[#f0f0f5]/50 hover:border-white/15"
+                                ? "border-[#f0f0f5] text-[#f0f0f5]"
+                                : "border-transparent text-[#f0f0f5]/50 hover:text-[#f0f0f5]/80"
                         )}
                     >
                         {option.label}

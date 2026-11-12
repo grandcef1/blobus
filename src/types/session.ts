@@ -13,9 +13,19 @@
     | 'audio-prompt' // listening exercise
     | 'speaking-feedback'; // pronunciation feedback
 
+    /** Сегмент текста правки: changed помечает слово, которое изменил репетитор. */
+    export interface CorrectionSegment {
+    text: string;
+    changed?: boolean;
+    }
+
     export interface GrammarCorrection {
     originalText: string;
     correctedText: string;
+    // ARCHITECT: по сегментам интерфейс зачёркивает только изменённые слова, а не всё предложение.
+    // originalText/correctedText остаются plain-строками без разметки — для aria и запасного рендера.
+    originalSegments: CorrectionSegment[];
+    correctedSegments: CorrectionSegment[];
     explanation: string;
     ruleName: string; // e.g., "Past Simple"
     examples: string[];

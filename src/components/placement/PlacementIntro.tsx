@@ -7,6 +7,9 @@ import { StepNav } from "@/components/onboarding/StepNav";
 import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
 
 interface PlacementIntroProps {
+    /** Включена ли проверка аудирования после основных вопросов. */
+    withListening: boolean;
+    onToggleListening: (value: boolean) => void;
     onStart: () => void;
     onBack: () => void;
     step: number;
@@ -17,10 +20,16 @@ const INTRO_POINTS = [
     "Двадцать вопросов: десять на грамматику и десять на общий английский.",
     "Около семи минут в спокойном темпе.",
     "Сложность подстраивается под ответы — тест адаптивный.",
-    "Аудирование в тест не входит: его можно пройти отдельно.",
 ];
 
-export function PlacementIntro({ onStart, onBack, step, totalSteps }: PlacementIntroProps) {
+export function PlacementIntro({
+    withListening,
+    onToggleListening,
+    onStart,
+    onBack,
+    step,
+    totalSteps,
+}: PlacementIntroProps) {
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
@@ -43,6 +52,26 @@ export function PlacementIntro({ onStart, onBack, step, totalSteps }: PlacementI
                         </li>
                     ))}
                 </ul>
+
+                {/* ARCHITECT: аудирование — opt-in в описании теста: по умолчанию выключено, потому
+                    что его можно пройти когда угодно, а звук в тесте уровня не всем нужен. */}
+                <label className="mt-5 flex min-h-11 cursor-pointer items-start gap-3 border-t border-white/5 pt-4">
+                    <input
+                        type="checkbox"
+                        checked={withListening}
+                        onChange={(event) => onToggleListening(event.target.checked)}
+                        className="mt-1 size-4 shrink-0 accent-[#f0f0f5]"
+                    />
+                    <span className="min-w-0">
+                        <span className="block text-sm text-[#f0f0f5]">
+                            Добавить проверку аудирования
+                        </span>
+                        <span className="mt-1 block text-xs leading-[1.6] text-[#f0f0f5]/50">
+                            Шесть коротких заданий на понимание на слух после основных вопросов. Можно
+                            пройти и позже — карточка появится в «Обзоре».
+                        </span>
+                    </span>
+                </label>
             </StepCard>
 
             <StepNav onBack={onBack} onNext={onStart} nextLabel="Начать тест" />

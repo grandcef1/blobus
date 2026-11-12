@@ -4,6 +4,7 @@
 
 import type { PlacementResult } from "@/types/placement";
 import type { EnglishLevel } from "@/types/onboarding";
+import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 
 let stored: PlacementResult | null = null;
 
@@ -17,13 +18,25 @@ export function getResult(): PlacementResult | null {
     return stored;
 }
 
-// ARCHITECT: аудирование дозаписывается в уже сохранённый результат. Если основного теста ещё не
-// было (например, профиль открыли раньше мастера), уровень аудирования хранить некуда — тогда
-// функция возвращает null, и вызывающий видит, что результат не сохранён.
-export function saveListeningResult(level: EnglishLevel): PlacementResult | null {
-    if (stored === null) return null;
-
-    stored = { ...stored, listening: level, listeningSkipped: false };
+// ARCHITECT: аудирование дозаписывается в сохранённый результат. Если основного теста ещё не было
+// (например, профиль открыли раньше мастера), база собирается из текущего уровня профиля — иначе
+// уровень аудирования негде хранить, и подсказка «не проверено» осталась бы навсегда.
+export function saveListeningResult(level: EnglishLevel): PlacementResult {
+    stored = { ...(stored ?? createFallbackResult()), listening: level, listeningSkipped: false };
 
     return stored;
+}
+
+function createFallbackResult(): PlacementResult {
+    const level = MOCK_USER_PROGRESS.currentLevel;
+
+    return {
+        score: 0,
+        overall: level,
+        grammar: level,
+        general: level,
+        listening: null,
+        listeningSkipped: true,
+        takenAt: Date.now(),
+    };
 }

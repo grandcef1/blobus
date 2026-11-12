@@ -54,13 +54,13 @@ export function PlacementResultView({ result, onCheckListening }: PlacementResul
                 <p className="flex items-center justify-between gap-3 text-sm text-[#f0f0f5]/80">
                     Аудирование
                     <span className="tabular-nums text-[#f0f0f5]">
-                        {result.listening ?? "не пройдено"}
+                        {result.listening ?? "не проверено"}
                     </span>
                 </p>
                 <p className="mt-1 text-xs leading-[1.6] text-[#f0f0f5]/50">
                     {result.listening
                         ? LEVEL_DESCRIPTIONS[result.listening]
-                        : "В основной тест не входит: понимание на слух проверяется отдельно."}
+                        : "Аудирование не проверено: пройти можно здесь или в разделе «Обзор» — карточка ждёт на стартовой странице."}
                 </p>
 
                 <button type="button" onClick={onCheckListening} className={LINK_BUTTON}>

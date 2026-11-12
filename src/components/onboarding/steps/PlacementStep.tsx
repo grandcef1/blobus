@@ -19,6 +19,7 @@ import type { PlacementItem, PlacementResult } from "@/types/placement";
 import type { EnglishLevel } from "@/types/onboarding";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
+import { ListeningFlow } from "@/components/placement/ListeningFlow";
 import { ListeningTestDialog } from "@/components/placement/ListeningTestDialog";
 import { PlacementIntro } from "@/components/placement/PlacementIntro";
 import { PlacementQuestion } from "@/components/placement/PlacementQuestion";
@@ -32,7 +33,7 @@ interface PlacementStepProps {
     totalSteps: number;
 }
 
-type PlacementPhase = "intro" | "test" | "result";
+type PlacementPhase = "intro" | "test" | "listening" | "result";
 
 export function PlacementStep({ onComplete, onBack, step, totalSteps }: PlacementStepProps) {
     const [savedResult, setSavedResult] = useState<PlacementResult | null>(() => getResult());
@@ -40,6 +41,7 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
     const [state, setState] = useState<PlacementState>(() => createPlacementState());
     const [item, setItem] = useState<PlacementItem | null>(null);
     const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+    const [withListening, setWithListening] = useState(false);
     const [isListeningOpen, setIsListeningOpen] = useState(false);
 
     const handleStart = () => {
@@ -56,6 +58,15 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
         setState((previous) => applyAnswer(previous, item.id, optionId));
     };
 
+    // ARCHITECT: результат собирается один раз после последнего вопроса: аудирование может идти
+    // сразу за тестом, поэтому его уровень приходит аргументом, а не дозаписывается позже.
+    const finish = (listening: EnglishLevel | null) => {
+        const finished = finalize(state, listening);
+        saveResult(finished);
+        setSavedResult(finished);
+        setPhase("result");
+    };
+
     const handleAdvance = () => {
         const upcoming = nextItem(state);
 
@@ -65,10 +76,12 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
             return;
         }
 
-        const finished = finalize(state);
-        saveResult(finished);
-        setSavedResult(finished);
-        setPhase("result");
+        if (withListening) {
+            setPhase("listening");
+            return;
+        }
+
+        finish(null);
     };
 
     // ARCHITECT: «Назад» внутри теста возвращает к описанию теста, а не на предыдущий шаг мастера:
@@ -107,6 +120,23 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
         );
     }
 
+    // ARCHITECT: аудирование идёт сразу после основных вопросов, если его включили в описании
+    // теста: результат собирается один — с уровнем аудирования внутри.
+    if (phase === "listening") {
+        return (
+            <div className="mx-auto w-full max-w-xl">
+                <StepHeader
+                    eyebrow={ONBOARDING_STEP_TITLES.assessment}
+                    title="Аудирование"
+                    subtitle="Шесть заданий: два прослушивания на каждое."
+                    step={step}
+                    totalSteps={totalSteps}
+                />
+                <ListeningFlow onComplete={(outcome) => finish(outcome.level)} />
+            </div>
+        );
+    }
+
     if (phase === "test" && item !== null) {
         const questionNumber = askedQuestions(state) + 1;
 
@@ -129,7 +159,11 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
                     onBack={handleBackToIntro}
                     onNext={handleAdvance}
                     nextLabel={
-                        questionNumber >= totalQuestions() ? "Показать результат" : "Дальше"
+                        questionNumber >= totalQuestions()
+                            ? withListening
+                                ? "К аудированию"
+                                : "Показать результат"
+                            : "Дальше"
                     }
                     disabled={selectedOptionId === null}
                 />
@@ -138,6 +172,13 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
     }
 
     return (
-        <PlacementIntro onStart={handleStart} onBack={onBack} step={step} totalSteps={totalSteps} />
+        <PlacementIntro
+            withListening={withListening}
+            onToggleListening={setWithListening}
+            onStart={handleStart}
+            onBack={onBack}
+            step={step}
+            totalSteps={totalSteps}
+        />
     );
 }

@@ -7,6 +7,7 @@ import { motion } from "framer-motion";
 import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import { getSessions } from "@/api/sessions";
 import { ContinueLearningCard } from "./ContinueLearningCard";
+import { ListeningPromptCard } from "./ListeningPromptCard";
 import { MetricsRow } from "./MetricsRow";
 import { ProgressSection } from "./ProgressSection";
 import { RecentLessonsSection } from "./RecentLessonsSection";
@@ -31,6 +32,7 @@ export function DashboardPage() {
                 <div className="space-y-4">
                     {activeSession && <ContinueLearningCard session={activeSession} progress={progress} />}
                     <MetricsRow progress={progress} />
+                    <ListeningPromptCard />
 
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <ProgressSection progress={progress} />

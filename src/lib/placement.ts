@@ -206,7 +206,12 @@ export function estimateListeningLevel(correct: number, total: number): EnglishL
     return thresholds.find((entry) => ratio >= entry.ratio)?.level ?? "A1";
 }
 
-export function finalize(state: PlacementState): PlacementResult {
+// ARCHITECT: аудирование приходит вторым аргументом: тест уровня может пройти его следом, и тогда
+// результат сохраняется одним объектом — иначе уровень аудирования терялся бы до записи основного.
+export function finalize(
+    state: PlacementState,
+    listening: EnglishLevel | null = null
+): PlacementResult {
     const grammar = estimateLevel(state.grammar);
     const general = estimateLevel(state.general);
     // ARCHITECT: итог — минимум из двух дорожек: сильная дорожка не должна завышать уровень
@@ -222,8 +227,8 @@ export function finalize(state: PlacementState): PlacementResult {
         overall,
         grammar,
         general,
-        listening: null,
-        listeningSkipped: true,
+        listening,
+        listeningSkipped: listening === null,
         takenAt: Date.now(),
     };
 }

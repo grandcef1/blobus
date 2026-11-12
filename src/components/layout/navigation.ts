@@ -45,10 +45,20 @@ export function isNavItemActive(item: AppNavItem, pathname: string): boolean {
     return prefixes.some((prefix) => pathname.startsWith(prefix));
 }
 
+// ARCHITECT: разделы, которых нет в рельсе (профиль открывается из блока пользователя), но у
+// которых должен быть свой заголовок вкладки: карта заголовков и карта меню — один источник.
+const EXTRA_SECTION_TITLES: { prefix: string; label: string }[] = [
+    { prefix: "/app/profile", label: "Профиль" },
+];
+
 export function findSectionTitle(pathname: string): string {
     const match = [...PRIMARY_NAV_ITEMS, ...SECONDARY_NAV_ITEMS].find((item) =>
         isNavItemActive(item, pathname)
     );
 
-    return match ? match.label : "Blobus";
+    if (match) return match.label;
+
+    const extra = EXTRA_SECTION_TITLES.find((item) => pathname.startsWith(item.prefix));
+
+    return extra ? extra.label : "Blobus";
 }

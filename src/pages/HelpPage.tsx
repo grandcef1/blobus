@@ -1,15 +1,15 @@
 // ARCHITECT: публичный /help. Шапка лендинга фиксирована (h-16), поэтому main получает pt-16 —
 // иначе заголовок уезжает под неё. Футер тот же, что на лендинге: страница часть публичного сайта.
 
-import { useEffect } from "react";
 import { Header } from "@/components/landing/Header";
 import { Footer } from "@/components/landing/Footer";
 import { HelpCenter } from "@/components/help/HelpCenter";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 
 export function HelpPage() {
-    useEffect(() => {
-        document.title = "Центр помощи — Blobus";
-    }, []);
+    // ARCHITECT: публичная страница не входит в AppLayout, поэтому заголовок ставит сама — тем же
+    // хуком, что и остальные экраны, чтобы правила совпадали.
+    useDocumentTitle("Центр помощи");
 
     return (
         <>

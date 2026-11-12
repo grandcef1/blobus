@@ -9,6 +9,7 @@ import { HowItWorksSection } from '@/components/landing/how-it-works/HowItWorksS
 import { PricingSection } from '@/components/landing/pricing/PricingSection';
 import { FaqSection } from '@/components/landing/faq/FaqSection';
 import { Footer } from '@/components/landing/Footer';
+import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 function useSmoothAnchorScroll(): void {
     useEffect(() => {
@@ -37,6 +38,9 @@ function useSmoothAnchorScroll(): void {
 }
 
 export function Landing() {
+    // ARCHITECT: заголовок лендинга совпадает с заголовком из index.html: без него возврат из
+    // приложения оставлял бы в шапке название последнего раздела.
+    useDocumentTitle('Blobus — ИИ-репетитор');
     useSmoothAnchorScroll();
 
     return (

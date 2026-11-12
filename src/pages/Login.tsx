@@ -2,13 +2,13 @@
 // аккаунтом проходил выбор репетитора заново. Теперь вход — самостоятельная страница без шагов;
 // фон, карточка и заголовок берутся у мастера, чтобы экран не выглядел чужеродным.
 
-import { useEffect } from "react";
 import { Link, Navigate, useNavigate } from "react-router-dom";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepCard } from "@/components/onboarding/StepCard";
 import { AuthForm } from "@/components/auth/AuthForm";
 import { useAuthStore } from "@/store/auth";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { FOCUS_RING } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 
@@ -16,9 +16,7 @@ export function Login() {
     const navigate = useNavigate();
     const user = useAuthStore((state) => state.user);
 
-    useEffect(() => {
-        document.title = "Вход — Blobus";
-    }, []);
+    useDocumentTitle("Вход");
 
     // ARCHITECT: полоса прогресса мастера на одиночном экране смысла не несёт — 0 оставляет
     // только фон и шторку оболочки.

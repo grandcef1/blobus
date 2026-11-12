@@ -14,6 +14,7 @@ import type { EnglishLevel, OnboardingData, OnboardingStep } from "@/types/onboa
 import { createSession } from "@/api/sessions";
 import { getResult } from "@/api/placement";
 import { levelForMode } from "@/lib/placement";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { cn } from "@/lib/utils";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { OnboardingStepView } from "@/components/onboarding/OnboardingStepView";
@@ -32,6 +33,9 @@ const STEP_ORDERS: Record<OnboardingFlow, OnboardingStep[]> = {
 export function Onboarding({ flow = "full" }: OnboardingProps) {
     const navigate = useNavigate();
     const stepOrder = STEP_ORDERS[flow];
+    // ARCHITECT: у мастера два входа (/onboarding и /session/new) — заголовок вкладки называет
+    // именно тот, куда пришёл пользователь.
+    useDocumentTitle(flow === "session" ? "Новая сессия" : "Настройка обучения");
     const [currentStep, setCurrentStep] = useState<OnboardingStep>(stepOrder[0]);
     const [onboardingData, setOnboardingData] = useState<OnboardingData>({
         blobatarId: null,

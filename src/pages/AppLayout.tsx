@@ -11,6 +11,8 @@ import { Outlet, useLocation } from "react-router-dom";
 import { Sidebar } from "@/components/layout/Sidebar";
 import { SidebarDrawer } from "@/components/layout/SidebarDrawer";
 import { MobileTopBar } from "@/components/layout/MobileTopBar";
+import { findSectionTitle } from "@/components/layout/navigation";
+import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { cn } from "@/lib/utils";
 
@@ -31,6 +33,10 @@ export function AppLayout() {
     const [isDrawerOpen, setIsDrawerOpen] = useState(false);
     const [drawerRoute, setDrawerRoute] = useState("");
     const { pathname } = useLocation();
+
+    // ARCHITECT: заголовок вкладки берётся из карты разделов по маршруту: пока его задавали
+    // отдельные страницы, название помощи оставалось в шапке и на соседних экранах.
+    useDocumentTitle(findSectionTitle(pathname));
 
     // ARCHITECT: смена маршрута закрывает drawer. Состояние правится на рендере, а не в эффекте:
     // эффект дал бы кадр с открытым меню поверх нового экрана, и это ровно тот случай, для

@@ -1,8 +1,10 @@
 // ARCHITECT: викторина — минимальная карточка: eyebrow, вопрос, опции-строки. Цветной плашки,
 // бейджа времени и буквенных кружков больше нет: цвет остался там, где он что-то значит —
 // верный и неверный ответ.
+// ARCHITECT: поверхность тёплая (#171310) — решение владельца: карточки интерактива мягко
+// отличаются от холодных сообщений, но остаются спокойными.
 // ARCHITECT: «Заново» показывается только после неверного ответа: при верном выбор фиксируется,
-// и разлёт конфетти срабатывает ровно один раз.
+// а конфетти запрашивает страница чата (подсказка уходит наверх через onCorrect).
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -50,7 +52,7 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
             <div className="min-w-0 flex-1">
                 {repetitor && <p className={AUTHOR_NAME}>{repetitor.name}</p>}
 
-                <div className="relative w-full overflow-hidden rounded-xl border border-white/5 bg-white/[0.02] p-4 md:max-w-[min(85%,70ch)]">
+                <div className="relative w-full overflow-hidden rounded-xl border border-white/5 bg-[#171310] p-4 md:max-w-[min(85%,70ch)]">
                     <ConfettiBurst trigger={isCorrect} />
 
                     <p className="text-[11px] uppercase tracking-wider text-[#f0f0f5]/30">Викторина</p>

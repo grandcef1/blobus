@@ -43,6 +43,7 @@ function DropdownMenuContent({ className, sideOffset = 6, ...props }: React.Comp
             <DropdownMenuPrimitive.Content
                 data-slot="dropdown-menu-content"
                 sideOffset={sideOffset}
+                collisionPadding={8}
                 className={cn(CONTENT_CLASS, className)}
                 {...props}
             />
@@ -77,13 +78,19 @@ function DropdownMenuSubTrigger({ className, variant = "default", children, ...p
     );
 }
 
+// ARCHITECT: подменю порталится отдельно от главного меню: Content прокручивается (max-height +
+// overflow-y-auto для длинных списков) и обрезал вложенный блок своей границей — раньше так и
+// было. Свой портал снимает зависимость от overflow, collisionPadding удерживает у вьюпорта.
 function DropdownMenuSubContent({ className, ...props }: React.ComponentProps<typeof DropdownMenuPrimitive.SubContent>) {
     return (
-        <DropdownMenuPrimitive.SubContent
-            data-slot="dropdown-menu-sub-content"
-            className={cn(CONTENT_CLASS, "max-h-[min(20rem,60vh)] overflow-y-auto", className)}
-            {...props}
-        />
+        <DropdownMenuPrimitive.Portal>
+            <DropdownMenuPrimitive.SubContent
+                data-slot="dropdown-menu-sub-content"
+                sideOffset={4} alignOffset={-4} collisionPadding={8}
+                className={cn(CONTENT_CLASS, "max-h-[min(20rem,var(--radix-dropdown-menu-content-available-height,60vh))] overflow-y-auto thin-scroll", className)}
+                {...props}
+            />
+        </DropdownMenuPrimitive.Portal>
     );
 }
 

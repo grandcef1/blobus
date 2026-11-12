@@ -29,7 +29,7 @@ export function SidebarRecentSessions({ isCollapsed }: SidebarRecentSessionsProp
             >
                 Недавние сессии
             </p>
-            <div className="sidebar-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto pb-2">
+            <div className="thin-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto pb-2">
                 {sessions.map((session) => {
                     const isActive = pathname === `/app/chat/${session.id}`;
 

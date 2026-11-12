@@ -1,5 +1,7 @@
 // ARCHITECT: опция викторины — одна разметка для чата и теста уровня. Цвет меняется только по
 // состоянию ответа (верно/неверно), заливок нет; маркер «А/Б/В/Г» или номер остаётся тонким.
+// ARCHITECT: базовый фон опции — цвет обычного сообщения (#141416): опция не наследует тонировку
+// карточки, поэтому читается как элемент управления, а не как часть фона.
 // ARCHITECT: state приходит снаружи, поэтому компонент не знает, показывать ли разбор — этим
 // управляет вызывающая сторона.
 
@@ -36,7 +38,7 @@ export function QuizOptionButton({
             onClick={onSelect}
             disabled={disabled}
             className={cn(
-                "flex min-h-11 w-full items-center gap-3 rounded-xl border px-4 py-3 text-left text-sm text-[#f0f0f5] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]",
+                "flex min-h-11 w-full items-center gap-3 rounded-xl border bg-[#141416] px-4 py-3 text-left text-sm text-[#f0f0f5] transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]",
                 STATE_STYLES[state]
             )}
         >

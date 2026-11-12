@@ -1,10 +1,12 @@
 // ARCHITECT: викторина — минимальная карточка: eyebrow, вопрос, опции-строки. Цветной плашки,
 // бейджа времени и буквенных кружков больше нет: цвет остался там, где он что-то значит —
 // верный и неверный ответ.
-// ARCHITECT: поверхность тёплая (#171310) — решение владельца: карточки интерактива мягко
-// отличаются от холодных сообщений, но остаются спокойными.
+// ARCHITECT: поверхность холодная индиго — решение владельца: викторина отличается и от ленты, и
+// от золотистой карточки исправления, поэтому два вида интерактива не путаются между собой.
+// ARCHITECT: опции отвечают цветом обычного сообщения (#141416): тонировка карточки к ним не
+// переходит, иначе выбор читался бы как часть фона.
 // ARCHITECT: «Заново» показывается только после неверного ответа: при верном выбор фиксируется,
-// а конфетти запрашивает страница чата (подсказка уходит наверх через onCorrect).
+// а поздравление запрашивает страница чата (подсказка уходит наверх через onCorrect).
 
 import { useState } from "react";
 import { AnimatePresence, motion } from "framer-motion";
@@ -60,8 +62,8 @@ export function QuizCard({ quiz, session, onCorrect }: QuizCardProps) {
             <div className="min-w-0 flex-1">
                 {repetitor && <p className={AUTHOR_NAME}>{repetitor.name}</p>}
 
-                <div className="w-full overflow-hidden rounded-xl border border-white/5 bg-[#171310] p-4 md:max-w-[min(85%,70ch)]">
-                    <p className="text-[11px] uppercase tracking-wider text-[#f0f0f5]/30">Викторина</p>
+                <div className="w-full overflow-hidden rounded-xl border border-indigo-400/20 bg-indigo-500/[0.08] p-4 md:max-w-[min(85%,70ch)]">
+                    <p className="text-[11px] uppercase tracking-wider text-indigo-300/70">Викторина</p>
                     <p className="mt-3 text-[15px] leading-[1.6] text-[#f0f0f5]/90 md:text-base">
                         {quiz.question}
                     </p>

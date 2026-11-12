@@ -1,9 +1,9 @@
 // ARCHITECT: единый вид исправления — один компонент и для чата, и для демо-окна. Правка показана
 // точечно: подсвечено только изменённое слово, а не всё предложение.
-// ARCHITECT: решение владельца — изменённое слово не красится текстом, а получает мягкий тинт
-// контейнера: чип читается как подсветка, без жёсткого контраста и без цветных плашек.
-// ARCHITECT: поверхность карточки тёплая (#171310), чтобы правка мягко отличалась от холодных
-// сообщений; исходник, исправленный и пояснение разведены на отдельные блоки.
+// ARCHITECT: решение владельца — карточка исправления золотистая (amber), а изменённые слова
+// получают заметный тинт контейнера и лёгкую тонировку текста: правку видно сразу, но текст
+// остаётся читаемым. Золото отличает правку и от ленты, и от индиго-карточки викторины.
+// ARCHITECT: исходник, исправленный и пояснение разведены на отдельные блоки.
 // ARCHITECT: ни одного dangerouslySetInnerHTML — сегменты приходят типизированным массивом и
 // рендерятся узлами React, поэтому мок-контент не может стать разметкой.
 
@@ -18,7 +18,7 @@ interface CorrectionViewProps {
     className?: string;
 }
 
-const EYEBROW = "text-[11px] uppercase tracking-wider text-[#f0f0f5]/30";
+const EYEBROW = "text-[11px] uppercase tracking-wider text-amber-300/70";
 const RULE = "text-xs text-[#f0f0f5]/50";
 const BODY = "text-sm leading-[1.6]";
 const SUB_BLOCK = "rounded-lg bg-black/20 p-3";
@@ -56,8 +56,8 @@ function renderSegments(segments: CorrectionSegment[], tone: "original" | "corre
                 className={cn(
                     "rounded-md px-1",
                     tone === "original"
-                        ? "bg-red-400/10 text-[#f0f0f5]/80 line-through decoration-red-400/40"
-                        : "bg-green-400/10 text-[#f0f0f5]/90"
+                        ? "bg-red-500/25 text-red-200 line-through decoration-red-300/50"
+                        : "bg-green-500/25 text-green-200"
                 )}
             >
                 {segment.text}
@@ -70,7 +70,12 @@ export function CorrectionView({ correction, className }: CorrectionViewProps) {
     const [showExamples, setShowExamples] = useState(false);
 
     return (
-        <div className={cn("w-full rounded-xl border border-white/5 bg-[#171310] p-4", className)}>
+        <div
+            className={cn(
+                "w-full rounded-xl border border-amber-400/20 bg-amber-500/[0.08] p-4",
+                className
+            )}
+        >
             <p className={EYEBROW}>Исправление</p>
 
             <div className="mt-3 space-y-3">

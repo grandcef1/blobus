@@ -17,14 +17,10 @@ import {
 import type { PlacementState } from "@/lib/placement";
 import type { PlacementItem, PlacementResult } from "@/types/placement";
 import type { EnglishLevel } from "@/types/onboarding";
-import { StepHeader } from "@/components/onboarding/StepHeader";
-import { StepNav } from "@/components/onboarding/StepNav";
-import { ListeningFlow } from "@/components/placement/ListeningFlow";
-import { ListeningTestDialog } from "@/components/placement/ListeningTestDialog";
 import { PlacementIntro } from "@/components/placement/PlacementIntro";
-import { PlacementQuestion } from "@/components/placement/PlacementQuestion";
-import { PlacementResultView } from "@/components/placement/PlacementResult";
-import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
+import { PlacementListeningPhase } from "@/components/placement/PlacementListeningPhase";
+import { PlacementResultPhase } from "@/components/placement/PlacementResultPhase";
+import { PlacementTestPhase } from "@/components/placement/PlacementTestPhase";
 
 interface PlacementStepProps {
     onComplete: (level: EnglishLevel) => void;
@@ -42,7 +38,6 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
     const [item, setItem] = useState<PlacementItem | null>(null);
     const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
     const [withListening, setWithListening] = useState(false);
-    const [isListeningOpen, setIsListeningOpen] = useState(false);
 
     const handleStart = () => {
         const fresh = createPlacementState();
@@ -94,29 +89,14 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
 
     if (phase === "result" && savedResult !== null) {
         return (
-            <div className="mx-auto w-full max-w-xl">
-                <StepHeader
-                    eyebrow={ONBOARDING_STEP_TITLES.assessment}
-                    title="Уровень определён"
-                    subtitle="Уровень попадёт в сводку перед первым уроком и в профиль."
-                    step={step}
-                    totalSteps={totalSteps}
-                />
-                <PlacementResultView
-                    result={savedResult}
-                    onCheckListening={() => setIsListeningOpen(true)}
-                />
-                <StepNav
-                    onBack={onBack}
-                    onNext={() => onComplete(savedResult.overall)}
-                    nextLabel="Продолжить"
-                />
-                <ListeningTestDialog
-                    open={isListeningOpen}
-                    onOpenChange={setIsListeningOpen}
-                    onSaved={() => setSavedResult(getResult())}
-                />
-            </div>
+            <PlacementResultPhase
+                result={savedResult}
+                step={step}
+                totalSteps={totalSteps}
+                onBack={onBack}
+                onContinue={() => onComplete(savedResult.overall)}
+                onResultChange={setSavedResult}
+            />
         );
     }
 
@@ -124,50 +104,24 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
     // теста: результат собирается один — с уровнем аудирования внутри.
     if (phase === "listening") {
         return (
-            <div className="mx-auto w-full max-w-xl">
-                <StepHeader
-                    eyebrow={ONBOARDING_STEP_TITLES.assessment}
-                    title="Аудирование"
-                    subtitle="Шесть заданий: два прослушивания на каждое."
-                    step={step}
-                    totalSteps={totalSteps}
-                />
-                <ListeningFlow onComplete={(outcome) => finish(outcome.level)} />
-            </div>
+            <PlacementListeningPhase step={step} totalSteps={totalSteps} onComplete={(level) => finish(level)} />
         );
     }
 
     if (phase === "test" && item !== null) {
-        const questionNumber = askedQuestions(state) + 1;
-
         return (
-            <div className="mx-auto w-full max-w-xl">
-                <StepHeader
-                    eyebrow={ONBOARDING_STEP_TITLES.assessment}
-                    title="Определим твой уровень"
-                    step={step}
-                    totalSteps={totalSteps}
-                />
-                <PlacementQuestion
-                    item={item}
-                    number={questionNumber}
-                    total={totalQuestions()}
-                    selectedOptionId={selectedOptionId}
-                    onSelect={handleAnswer}
-                />
-                <StepNav
-                    onBack={handleBackToIntro}
-                    onNext={handleAdvance}
-                    nextLabel={
-                        questionNumber >= totalQuestions()
-                            ? withListening
-                                ? "К аудированию"
-                                : "Показать результат"
-                            : "Дальше"
-                    }
-                    disabled={selectedOptionId === null}
-                />
-            </div>
+            <PlacementTestPhase
+                item={item}
+                number={askedQuestions(state) + 1}
+                total={totalQuestions()}
+                selectedOptionId={selectedOptionId}
+                withListening={withListening}
+                onSelect={handleAnswer}
+                onBack={handleBackToIntro}
+                onNext={handleAdvance}
+                step={step}
+                totalSteps={totalSteps}
+            />
         );
     }
 

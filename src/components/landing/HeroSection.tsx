@@ -108,8 +108,8 @@ export function HeroSection() {
                             variants={subtitleVariants}
                             className="max-w-xl text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:text-lg"
                         >
-                            Персональные уроки и разговорная практика с ИИ-репетитором. Подготовка
-                            к собеседованиям — в живом диалоге.
+                            Персональные уроки и живая практика с ИИ-репетитором. Разговор,
+                            грамматика и собеседования — в диалоге под ваш уровень.
                         </motion.p>
 
                         <motion.div

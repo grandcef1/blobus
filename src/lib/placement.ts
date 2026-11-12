@@ -5,8 +5,9 @@
 // проприетарны.
 
 import { PLACEMENT_ITEMS } from "@/api/mocks/placementTest";
+import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import type { PlacementItem, PlacementResult } from "@/types/placement";
-import type { EnglishLevel } from "@/types/onboarding";
+import type { EnglishLevel, LearningMode } from "@/types/onboarding";
 
 export type PlacementTrack = "grammar" | "general";
 
@@ -226,9 +227,28 @@ export function finalize(
         score: scoreFor(overall, accuracy),
         overall,
         grammar,
+        // ARCHITECT: speaking выводится из дорожки «общий английский»: реальная оценка устной речи
+        // появится на бэкенде, а до неё уровень разговорной практики не должен быть пустым.
+        speaking: general,
         general,
         listening,
         listeningSkipped: listening === null,
         takenAt: Date.now(),
     };
+}
+
+/** Уровень для новой сессии: дорожка теста выбирается по режиму, к которому идёт человек. */
+export function levelForMode(mode: LearningMode, result: PlacementResult | null): EnglishLevel {
+    if (result === null) return MOCK_USER_PROGRESS.currentLevel;
+
+    switch (mode) {
+        case "grammar":
+            return result.grammar;
+        case "speaking":
+            return result.speaking;
+        case "interview":
+        case "general":
+        default:
+            return result.general;
+    }
 }

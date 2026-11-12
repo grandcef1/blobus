@@ -2,6 +2,8 @@
 // полоса» живёт здесь: на телефоне это единственное место, где виден прогресс.
 // ARCHITECT: смена режима или репетитора не перегенерирует приветствие — меняется контекст
 // будущих сообщений, история диалога остаётся нетронутой.
+// ARCHITECT: пункта «Уровень» здесь больше нет: уровень определяет тест, и ручной выбор только
+// спорил бы с результатом. Ручной остаётся только режим, репетитор и сброс прогресса.
 
 import { useState } from "react";
 import { Settings2 } from "lucide-react";
@@ -27,9 +29,7 @@ import {
     DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu";
 import type { EnhancedChatSession } from "@/types/session";
-import type { EnglishLevel, LearningMode } from "@/types/onboarding";
-
-const LEVELS: EnglishLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
+import type { LearningMode } from "@/types/onboarding";
 
 interface SessionSettingsMenuProps {
     session: EnhancedChatSession;
@@ -52,8 +52,6 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
         applyPatch({ learningMode: value as LearningMode }, "Режим изменён");
     const handleTutorChange = (value: string) =>
         applyPatch({ repetitorId: value }, "Репетитор изменён");
-    const handleLevelChange = (value: string) =>
-        applyPatch({ targetLevel: value }, "Уровень изменён");
 
     const handleReset = () => {
         const updated = resetSessionProgress(session.id);
@@ -109,20 +107,6 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
                                         />
                                         {blobatar.name}
                                     </DropdownMenuRadioItem>
-                                ))}
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuSubContent>
-                    </DropdownMenuSub>
-
-                    <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>Уровень</DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="w-40">
-                            <DropdownMenuRadioGroup
-                                value={session.targetLevel ?? ""}
-                                onValueChange={handleLevelChange}
-                            >
-                                {LEVELS.map((level) => (
-                                    <DropdownMenuRadioItem key={level} value={level}>{level}</DropdownMenuRadioItem>
                                 ))}
                             </DropdownMenuRadioGroup>
                         </DropdownMenuSubContent>

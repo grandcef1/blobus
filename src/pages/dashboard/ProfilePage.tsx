@@ -4,12 +4,13 @@
 // с тонким маркером, значения — tabular-nums.
 
 import { motion } from "framer-motion";
-import { Award, BookOpen, Calendar, Mail, TrendingUp } from "lucide-react";
+import { Award, BookOpen, Calendar, Mail } from "lucide-react";
 import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { StatusMarker } from "@/components/shared/StatusMarker";
 import { ProfileModeCard } from "./ProfileModeCard";
+import { ProfileSkillsCard } from "./ProfileSkillsCard";
 import { ProfileListeningCard } from "./ProfileListeningCard";
 import type { LearningMode } from "@/types/onboarding";
 
@@ -21,8 +22,9 @@ export function ProfilePage() {
         0
     );
 
+    // ARCHITECT: уровень переехал в блок навыков: там видно не одну строку, а разбивку по
+    // дорожкам теста. Здесь остаются счётчики, которые к уровню не относятся.
     const stats = [
-        { id: "level", icon: TrendingUp, label: "Текущий уровень", value: progress.currentLevel },
         {
             id: "achievements",
             icon: Award,
@@ -76,7 +78,7 @@ export function ProfilePage() {
                         </div>
                     </section>
 
-                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-3">
+                    <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">
                         {stats.map((stat) => (
                             <div key={stat.id} className="flex items-center gap-3 rounded-xl bg-[#141416] p-4">
                                 <span className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-[#1a1a1c]">
@@ -91,6 +93,8 @@ export function ProfilePage() {
                             </div>
                         ))}
                     </div>
+
+                    <ProfileSkillsCard />
 
                     <section
                         aria-labelledby="profile-modes-title"

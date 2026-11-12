@@ -11,8 +11,9 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { motion, AnimatePresence } from "framer-motion";
 import type { EnglishLevel, OnboardingData, OnboardingStep } from "@/types/onboarding";
-import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import { createSession } from "@/api/sessions";
+import { getResult } from "@/api/placement";
+import { levelForMode } from "@/lib/placement";
 import { cn } from "@/lib/utils";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { OnboardingStepView } from "@/components/onboarding/OnboardingStepView";
@@ -67,7 +68,9 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
         const session = createSession({
             repetitorId: onboardingData.blobatarId,
             learningMode: onboardingData.learningMode,
-            targetLevel: onboardingData.englishLevel ?? MOCK_USER_PROGRESS.currentLevel,
+            // ARCHITECT: уровень сессии берётся из результата теста по дорожке выбранного режима:
+            // грамматика A2 → сессия грамматики A2, разговорная практика → уровень speaking.
+            targetLevel: levelForMode(onboardingData.learningMode, getResult()),
         });
 
         navigate(`/app/chat/${session.id}`, { replace: true });

@@ -34,6 +34,7 @@ function createFallbackResult(): PlacementResult {
         score: 0,
         overall: level,
         grammar: level,
+        speaking: level,
         general: level,
         listening: null,
         listeningSkipped: true,

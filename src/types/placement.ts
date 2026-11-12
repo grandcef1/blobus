@@ -29,6 +29,8 @@ export interface PlacementResult {
     score: number;
     overall: EnglishLevel;
     grammar: EnglishLevel;
+    /** Разговорная практика. До появления оценки устной речи на бэкенде выводится из general. */
+    speaking: EnglishLevel;
     general: EnglishLevel;
     listening: EnglishLevel | null;
     listeningSkipped: boolean;

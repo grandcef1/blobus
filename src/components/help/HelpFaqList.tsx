@@ -69,11 +69,19 @@ export function HelpFaqList() {
             {items.length === 0 ? (
                 <p className="mt-4 text-sm text-[#f0f0f5]/40">Ничего не найдено</p>
             ) : (
-                <Accordion type="single" collapsible className="mt-2">
+                /* ARCHITECT: каждый вопрос — отдельный блок с собственными границами, а не строка
+                   с hairline-разделителем: на длинных ответах список читается по частям. */
+                <Accordion type="single" collapsible className="mt-3 flex flex-col gap-2">
                     {items.map((item) => (
-                        <AccordionItem key={item.id} value={item.id}>
+                        <AccordionItem
+                            key={item.id}
+                            value={item.id}
+                            className="rounded-xl border border-white/5 bg-white/[0.02] px-4"
+                        >
                             <AccordionTrigger>{item.question}</AccordionTrigger>
-                            <AccordionContent>{item.answer}</AccordionContent>
+                            <AccordionContent className="pb-4 pr-4 text-sm leading-[1.6] text-[#f0f0f5]/70">
+                                {item.answer}
+                            </AccordionContent>
                         </AccordionItem>
                     ))}
                 </Accordion>

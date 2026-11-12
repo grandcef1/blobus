@@ -12,19 +12,20 @@ import { RotateCcw } from "lucide-react";
 import type { EnhancedChatSession, QuizContent, QuizOption } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
-import { ConfettiBurst } from "@/components/shared/ConfettiBurst";
 import { QuizOptionButton } from "@/components/shared/QuizOptionButton";
 import type { QuizOptionState } from "@/components/shared/QuizOptionButton";
 
 interface QuizCardProps {
     quiz?: QuizContent;
     session: EnhancedChatSession;
+    /** Верный ответ: страница чата показывает по этому сигналу разлёт конфетти. */
+    onCorrect?: () => void;
 }
 
 const LETTERS = ["А", "Б", "В", "Г"];
 const AUTHOR_NAME = "mb-1 text-xs font-medium text-[#f0f0f5]/60";
 
-export function QuizCard({ quiz, session }: QuizCardProps) {
+export function QuizCard({ quiz, session, onCorrect }: QuizCardProps) {
     const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
     const repetitor = getBlobatarById(session.repetitorId);
 
@@ -40,6 +41,13 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
         quiz.options.find((option) => option.id === selectedOptionId)?.explanation ??
         correctOption?.explanation;
 
+    const handleSelect = (optionId: string) => {
+        if (isSolved) return;
+
+        setSelectedOptionId(optionId);
+        if (correctOption?.id === optionId) onCorrect?.();
+    };
+
     const stateFor = (option: QuizOption): QuizOptionState => {
         if (!isSolved) return "idle";
         if (option.isCorrect) return "correct";
@@ -52,9 +60,7 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
             <div className="min-w-0 flex-1">
                 {repetitor && <p className={AUTHOR_NAME}>{repetitor.name}</p>}
 
-                <div className="relative w-full overflow-hidden rounded-xl border border-white/5 bg-[#171310] p-4 md:max-w-[min(85%,70ch)]">
-                    <ConfettiBurst trigger={isCorrect} />
-
+                <div className="w-full overflow-hidden rounded-xl border border-white/5 bg-[#171310] p-4 md:max-w-[min(85%,70ch)]">
                     <p className="text-[11px] uppercase tracking-wider text-[#f0f0f5]/30">Викторина</p>
                     <p className="mt-3 text-[15px] leading-[1.6] text-[#f0f0f5]/90 md:text-base">
                         {quiz.question}
@@ -68,7 +74,7 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
                                 text={option.text}
                                 state={stateFor(option)}
                                 disabled={isSolved}
-                                onSelect={() => setSelectedOptionId(option.id)}
+                                onSelect={() => handleSelect(option.id)}
                             />
                         ))}
                     </div>

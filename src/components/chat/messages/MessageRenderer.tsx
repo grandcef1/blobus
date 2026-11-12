@@ -12,6 +12,8 @@ interface MessageRendererProps {
     message: EnhancedMessage;
     session: EnhancedChatSession;
     isLast: boolean;
+    /** Верный ответ в викторине: сигнал уходит на страницу чата, которая рисует конфетти. */
+    onQuizCorrect?: () => void;
 }
 
 const messageVariants = {
@@ -19,13 +21,19 @@ const messageVariants = {
     visible: { opacity: 1, y: 0 },
 };
 
-export function MessageRenderer({ message, session, isLast }: MessageRendererProps) {
+export function MessageRenderer({ message, session, isLast, onQuizCorrect }: MessageRendererProps) {
     const renderContent = () => {
         switch (message.type) {
             case "correction":
                 return <CorrectionCard message={message} correction={message.metadata?.correction} session={session} />;
             case "quiz":
-                return <QuizCard quiz={message.metadata?.quiz} session={session} />;
+                return (
+                    <QuizCard
+                        quiz={message.metadata?.quiz}
+                        session={session}
+                        onCorrect={onQuizCorrect}
+                    />
+                );
             case "vocabulary-card":
                 return <VocabularyCardMessage card={message.metadata?.vocabularyCard} session={session} />;
             case "text":

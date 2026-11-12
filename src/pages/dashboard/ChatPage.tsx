@@ -11,6 +11,7 @@ import { getSessionById } from "@/api/sessions";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
+import { ConfettiBurst } from "@/components/shared/ConfettiBurst";
 import { cn } from "@/lib/utils";
 import type { EnhancedChatSession } from "@/types/session";
 
@@ -23,6 +24,9 @@ export function ChatPage() {
         id: sessionId,
         session: getSessionById(sessionId ?? ""),
     }));
+    // ARCHITECT: ключ конфетти растёт на каждый верный ответ: смена key перезапускает разлёт, а
+    // сам оверлей живёт на уровне страницы и покрывает всю область чата, а не карточку.
+    const [confettiKey, setConfettiKey] = useState(0);
 
     // ARCHITECT: смена id в маршруте не перемонтирует страницу, поэтому сессия перечитывается на
     // рендере: эффект здесь дал бы кадр с сообщениями предыдущей сессии.
@@ -65,10 +69,16 @@ export function ChatPage() {
     }
 
     return (
-        <div className={cn("flex flex-col bg-black", CHAT_HEIGHT)}>
+        <div className={cn("relative flex flex-col bg-black", CHAT_HEIGHT)}>
             <ChatHeader session={session} onUpdated={handleUpdated} onDeleted={handleDeleted} />
-            <ChatMessages messages={session.messages} session={session} />
+            <ChatMessages
+                messages={session.messages}
+                session={session}
+                onQuizCorrect={() => setConfettiKey((previous) => previous + 1)}
+            />
             <ChatInput onSend={handleSend} />
+            {/* ARCHITECT: key — единственный триггер разлёта: пока ключ нулевой, оверлея нет. */}
+            {confettiKey > 0 && <ConfettiBurst key={confettiKey} />}
         </div>
     );
 }

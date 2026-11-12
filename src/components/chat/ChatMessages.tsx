@@ -9,9 +9,11 @@ import { MessageRenderer } from "./messages/MessageRenderer";
 interface ChatMessagesProps {
     messages: EnhancedMessage[];
     session: EnhancedChatSession;
+    /** Верный ответ в викторине: лента только передаёт сигнал дальше, конфетти рисует страница. */
+    onQuizCorrect?: () => void;
 }
 
-export function ChatMessages({ messages, session }: ChatMessagesProps) {
+export function ChatMessages({ messages, session, onQuizCorrect }: ChatMessagesProps) {
     const bottomRef = useRef<HTMLDivElement>(null);
 
     useEffect(() => {
@@ -27,6 +29,7 @@ export function ChatMessages({ messages, session }: ChatMessagesProps) {
                         message={message}
                         session={session}
                         isLast={index === messages.length - 1}
+                        onQuizCorrect={onQuizCorrect}
                     />
                 ))}
                 <div ref={bottomRef} />

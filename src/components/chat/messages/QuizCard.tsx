@@ -20,7 +20,7 @@ import type { QuizOptionState } from "@/components/shared/QuizOptionButton";
 interface QuizCardProps {
     quiz?: QuizContent;
     session: EnhancedChatSession;
-    /** Верный ответ: страница чата показывает по этому сигналу разлёт конфетти. */
+    /** Верный ответ: страница чата показывает по этому сигналу короткое поздравление. */
     onCorrect?: () => void;
 }
 

@@ -9,7 +9,7 @@ import { MessageRenderer } from "./messages/MessageRenderer";
 interface ChatMessagesProps {
     messages: EnhancedMessage[];
     session: EnhancedChatSession;
-    /** Верный ответ в викторине: лента только передаёт сигнал дальше, конфетти рисует страница. */
+    /** Верный ответ в викторине: лента только передаёт сигнал дальше, поздравление показывает страница. */
     onQuizCorrect?: () => void;
 }
 

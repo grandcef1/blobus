@@ -12,7 +12,7 @@ interface MessageRendererProps {
     message: EnhancedMessage;
     session: EnhancedChatSession;
     isLast: boolean;
-    /** Верный ответ в викторине: сигнал уходит на страницу чата, которая рисует конфетти. */
+    /** Верный ответ в викторине: сигнал уходит на страницу чата, которая показывает поздравление. */
     onQuizCorrect?: () => void;
 }
 

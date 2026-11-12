@@ -62,7 +62,7 @@ export function ModeSelectionStep({
                             onClick={() => onSelect(modeId)}
                             className={tileClasses(
                                 isSelected,
-                                "relative flex items-start gap-4 p-5 text-left"
+                                "relative flex h-full items-start gap-4 p-5 text-left"
                             )}
                         >
                             {isSelected && (
@@ -94,7 +94,7 @@ export function ModeSelectionStep({
                                 <span className="mb-1 block text-lg font-semibold text-[#f0f0f5]">
                                     {mode.label}
                                 </span>
-                                <span className="block text-sm leading-relaxed text-[#f0f0f5]/50">
+                                <span className="block text-sm leading-relaxed text-[#f0f0f5]/50 line-clamp-2">
                                     {mode.description}
                                 </span>
                             </span>

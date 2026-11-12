@@ -17,8 +17,8 @@ export interface LearningModeOption {
 export const MOCK_LEARNING_MODES: LearningModeOption[] = [
     {
         id: "interview",
-        label: "Подготовка к собеседованиям",
-        description: "Практика типичных вопросов на собеседовании и профессиональная лексика",
+        label: "Собеседование",
+        description: "Типичные вопросы и профессиональная лексика",
         icon: "Briefcase",
         recommendedRepetitors: ["max", "orion"],
     },

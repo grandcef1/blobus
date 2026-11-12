@@ -3,6 +3,8 @@
 // кнопки. Бейдж прогресса скрыт ниже sm и обесцвечен: на 360px он отнимал место у темы.
 // ARCHITECT: шапка не мутирует сессию сама — обновление и удаление уходят наверх через onUpdated
 // и onDeleted, поэтому состояние живёт в одном месте (ChatPage) и сайдбар видит те же данные.
+// ARCHITECT: readOnly переводит шапку в режим просмотра — демо-окно лендинга показывает тот же
+// заголовок, но без меню и прогресса: пример урока не должен выглядеть управляемым.
 
 import { motion } from "framer-motion";
 import { getBlobatarById } from "@/api/mocks/blobatars";
@@ -15,16 +17,19 @@ import type { EnhancedChatSession } from "@/types/session";
 
 interface ChatHeaderProps {
     session: EnhancedChatSession;
-    onUpdated: (session: EnhancedChatSession) => void;
-    onDeleted: () => void;
+    /** Режим просмотра: только аватар, тема и подпись, без меню и прогресса. */
+    readOnly?: boolean;
+    onUpdated?: (session: EnhancedChatSession) => void;
+    onDeleted?: () => void;
 }
 
-export function ChatHeader({ session, onUpdated, onDeleted }: ChatHeaderProps) {
+export function ChatHeader({ session, readOnly = false, onUpdated, onDeleted }: ChatHeaderProps) {
     const repetitor = getBlobatarById(session.repetitorId);
     const mode = MOCK_LEARNING_MODES.find((item) => item.id === session.learningMode);
 
     const { completedLessons, totalLessons } = session.progress;
     const percent = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
+    const showMenus = !readOnly && onUpdated !== undefined;
 
     return (
         <motion.header
@@ -44,19 +49,23 @@ export function ChatHeader({ session, onUpdated, onDeleted }: ChatHeaderProps) {
             </div>
 
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-                <div className="hidden items-center gap-2 sm:flex">
-                    <span className="text-[11px] tabular-nums text-[#f0f0f5]/40">
-                        {completedLessons}/{totalLessons}
-                    </span>
-                    <ProgressBar value={percent} className="w-20" />
-                </div>
+                {!readOnly && (
+                    <div className="hidden items-center gap-2 sm:flex">
+                        <span className="text-[11px] tabular-nums text-[#f0f0f5]/40">
+                            {completedLessons}/{totalLessons}
+                        </span>
+                        <ProgressBar value={percent} className="w-20" />
+                    </div>
+                )}
 
-                <SessionSettingsMenu session={session} onUpdated={onUpdated} />
-                <SessionActionsMenu
-                    session={session}
-                    onUpdated={onUpdated}
-                    onDeleted={onDeleted}
-                />
+                {showMenus && <SessionSettingsMenu session={session} onUpdated={onUpdated} />}
+                {showMenus && onDeleted && (
+                    <SessionActionsMenu
+                        session={session}
+                        onUpdated={onUpdated}
+                        onDeleted={onDeleted}
+                    />
+                )}
             </div>
         </motion.header>
     );

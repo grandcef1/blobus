@@ -1,22 +1,19 @@
-// ARCHITECT: модальный пример урока вместо якоря на секцию лендинга: честное демо формата без
-// видео и без записи в мастер. Шаги раскрываются по одному — так виден ритм диалога, а не стена
-// текста. Фокус-трап, Esc и клик по оверлею даёт Radix Dialog.
-// ARCHITECT: последний шаг меняет главное действие на переход в мастер: после показанного примера
-// следующий осмысленный шаг — начать заниматься, а не листать дальше.
+// ARCHITECT: демо-окно — мини-версия реального чата: та же шапка (readOnly, без меню) и те же
+// рендереры сообщений, поэтому формат правки и карточек здесь не может разойтись с приложением.
+// Нумерации шагов нет: показывается разговор, а не прогресс по викторине.
+// ARCHITECT: последнее сообщение меняет главное действие на переход в мастер: после показанного
+// примера следующий осмысленный шаг — начать заниматься, а не листать дальше.
 
 import { useEffect, useRef, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { DEMO_LESSON } from "@/api/mocks/demoLesson";
+import { ArrowRight } from "lucide-react";
+import { DEMO_MESSAGES, DEMO_SESSION } from "@/api/mocks/demoLesson";
+import { ChatHeader } from "@/components/chat/ChatHeader";
+import { MessageRenderer } from "@/components/chat/messages/MessageRenderer";
 import { Button } from "@/components/ui/button";
-import {
-    Dialog,
-    DialogContent,
-    DialogDescription,
-    DialogFooter,
-    DialogTitle,
-} from "@/components/ui/dialog";
-import { GHOST_BUTTON, PRIMARY_BUTTON } from "@/lib/surfaces";
-import { DemoStep } from "./DemoStep";
+import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
+import { PRIMARY_BUTTON } from "@/lib/surfaces";
+import { cn } from "@/lib/utils";
 
 interface DemoDialogProps {
     open: boolean;
@@ -25,7 +22,7 @@ interface DemoDialogProps {
 
 export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
     const navigate = useNavigate();
-    const [stepIndex, setStepIndex] = useState(0);
+    const [visibleCount, setVisibleCount] = useState(1);
     const [lastOpen, setLastOpen] = useState(open);
     const bottomRef = useRef<HTMLDivElement>(null);
 
@@ -35,64 +32,72 @@ export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
     // значением на рендере — рекомендованный React способ для такого сброса.
     if (lastOpen !== open) {
         setLastOpen(open);
-        if (open) setStepIndex(0);
+        if (open) setVisibleCount(1);
     }
 
-    // ARCHITECT: новый шаг должен попадать в поле зрения — лента растёт вниз внутри модалки.
+    // ARCHITECT: новая реплика должна попадать в поле зрения — лента растёт вниз внутри модалки.
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, [stepIndex]);
+    }, [visibleCount]);
 
-    const visibleSteps = DEMO_LESSON.slice(0, stepIndex + 1);
-    const isLastStep = stepIndex === DEMO_LESSON.length - 1;
+    const visibleMessages = DEMO_MESSAGES.slice(0, visibleCount);
+    const lastVisibleId = visibleMessages[visibleMessages.length - 1]?.id;
+    const isLast = visibleCount === DEMO_MESSAGES.length;
 
     const handlePrimary = () => {
-        if (isLastStep) {
+        if (isLast) {
             onOpenChange(false);
             navigate("/onboarding");
             return;
         }
 
-        setStepIndex((previous) => previous + 1);
+        setVisibleCount((previous) => previous + 1);
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
-            <DialogContent className="max-w-lg">
-                <DialogTitle>Пример урока</DialogTitle>
-                <DialogDescription>
-                    Так выглядит диалог с репетитором: ответ, мягкая правка и новая лексика.
+            <DialogContent className="max-w-lg overflow-hidden p-0">
+                <DialogTitle className="sr-only">Пример урока</DialogTitle>
+                <DialogDescription className="sr-only">
+                    Так выглядит диалог с репетитором: ответ, правка и новая лексика.
                 </DialogDescription>
+
+                <ChatHeader session={DEMO_SESSION} readOnly />
 
                 <div
                     aria-live="polite"
-                    className="mt-4 flex max-h-[min(24rem,50dvh)] flex-col gap-3 overflow-y-auto"
+                    className="thin-scroll flex max-h-[min(28rem,55dvh)] flex-col gap-4 overflow-y-auto px-4 py-5"
                 >
-                    {visibleSteps.map((step) => (
-                        <DemoStep key={step.id} step={step} />
+                    {visibleMessages.map((message) => (
+                        <MessageRenderer
+                            key={message.id}
+                            message={message}
+                            session={DEMO_SESSION}
+                            isLast={message.id === lastVisibleId}
+                        />
                     ))}
                     <div ref={bottomRef} />
                 </div>
 
-                <DialogFooter className="justify-between">
-                    <span className="text-xs tabular-nums text-[#f0f0f5]/40">
-                        Шаг {stepIndex + 1} из {DEMO_LESSON.length}
-                    </span>
+                <div className="flex items-center gap-2 border-t border-white/5 bg-black/40 px-4 py-3">
+                    {/* ARCHITECT: поле — визуальная заглушка: пример листается кнопкой, ввод в демо
+                        ничего не значит, поэтому поддельный инпут не должен притворяться настоящим. */}
+                    <p
+                        aria-hidden="true"
+                        className="min-w-0 flex-1 truncate rounded-2xl border border-white/5 px-4 py-2.5 text-sm text-[#f0f0f5]/25"
+                    >
+                        Напиши сообщение на английском...
+                    </p>
 
-                    <div className="flex items-center gap-3">
-                        <Button
-                            type="button"
-                            variant="ghost"
-                            className={GHOST_BUTTON}
-                            onClick={() => onOpenChange(false)}
-                        >
-                            Закрыть
-                        </Button>
-                        <Button type="button" className={PRIMARY_BUTTON} onClick={handlePrimary}>
-                            {isLastStep ? "Начать бесплатно" : "Дальше"}
-                        </Button>
-                    </div>
-                </DialogFooter>
+                    <Button
+                        type="button"
+                        onClick={handlePrimary}
+                        className={cn(PRIMARY_BUTTON, "shrink-0 px-5")}
+                    >
+                        {isLast ? "Начать бесплатно" : "Дальше"}
+                        <ArrowRight className="size-4" aria-hidden="true" />
+                    </Button>
+                </div>
             </DialogContent>
         </Dialog>
     );

@@ -14,6 +14,7 @@ import { ProfilePage } from '@/pages/dashboard/ProfilePage';
 import { SettingsPage } from '@/pages/dashboard/SettingsPage';
 import { BillingPage } from '@/pages/dashboard/BillingPage';
 import { AdminPage } from '@/pages/dashboard/AdminPage';
+import { AppIndexRedirect } from '@/pages/dashboard/AppIndexRedirect';
 import { ScrollToTopButton } from '@/components/shared/ScrollToTopButton';
 
 const VocabularyPage = lazy(() =>
@@ -33,7 +34,7 @@ function App() {
         {/* ARCHITECT: /session/new — тот же мастер в режиме session: репетитор и режим, потом чат */}
         <Route path="/session/new" element={<Onboarding flow="session" />} />
         <Route path="/app" element={<AppLayout />}>
-          <Route index element={<Navigate to="overview" replace />} />
+          <Route index element={<AppIndexRedirect />} />
           <Route path="overview" element={<DashboardPage />} />
           <Route
             path="sessions"

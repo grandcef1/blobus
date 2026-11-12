@@ -33,8 +33,11 @@ export const LEVEL_DESCRIPTIONS: Record<EnglishLevel, string> = {
 };
 
 const START_LEVEL: EnglishLevel = "A2";
-const ITEMS_PER_TRACK = 6;
-const RECENT_WINDOW = 3;
+// ARCHITECT: 10 вопросов на дорожку — 20 на тест: при спокойном темпе это около семи минут, как
+// обещает лендинг. Оценка уровня идёт по последним четырём ответам — на десяти вопросах окно в три
+// было слишком чувствительно к одной случайной ошибке.
+const ITEMS_PER_TRACK = 10;
+const RECENT_WINDOW = 4;
 /** Смещения поиска задания, когда на текущем уровне вопросы израсходованы. */
 const LEVEL_OFFSETS = [0, -1, 1, -2, 2, -3, 3, -4, 4, -5, 5];
 

@@ -10,6 +10,7 @@ import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { StatusMarker } from "@/components/shared/StatusMarker";
 import { ProfileModeCard } from "./ProfileModeCard";
+import { ProfileListeningCard } from "./ProfileListeningCard";
 import type { LearningMode } from "@/types/onboarding";
 
 export function ProfilePage() {
@@ -104,6 +105,8 @@ export function ProfilePage() {
                             ))}
                         </div>
                     </section>
+
+                    <ProfileListeningCard />
                 </div>
             </div>
         </div>

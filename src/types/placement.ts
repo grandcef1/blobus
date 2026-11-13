@@ -36,3 +36,15 @@ export interface PlacementResult {
     listeningSkipped: boolean;
     takenAt: number;
 }
+
+/** Итог проверки аудирования: уровень и число верных ответов. */
+export interface ListeningResult {
+    level: EnglishLevel;
+    correctCount: number;
+}
+
+/**
+ * Контекст проверки аудирования: шаг мастера или отдельный экран приложения.
+ * Отличается только поверхность вокруг блока — сам тест ведёт себя одинаково.
+ */
+export type ListeningContext = "wizard" | "standalone";

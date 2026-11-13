@@ -19,6 +19,7 @@ import { AppIndexRedirect } from '@/pages/dashboard/AppIndexRedirect';
 import { ScrollToTopButton } from '@/components/shared/ScrollToTopButton';
 import { Toaster } from '@/components/shared/Toaster';
 import { HelpSkeleton } from '@/components/dashboard/skeletons/HelpSkeleton';
+import { ListeningSkeleton } from '@/components/dashboard/skeletons/ListeningSkeleton';
 import { SessionsSkeleton } from '@/components/dashboard/skeletons/SessionsSkeleton';
 import { TutorsSkeleton } from '@/components/dashboard/skeletons/TutorsSkeleton';
 import { VocabularySkeleton } from '@/components/dashboard/skeletons/VocabularySkeleton';
@@ -45,6 +46,10 @@ const HelpPage = lazy(() =>
 
 const HelpCenterPage = lazy(() =>
   import('@/pages/dashboard/HelpCenterPage').then((module) => ({ default: module.HelpCenterPage }))
+);
+
+const ListeningTestPage = lazy(() =>
+  import('@/pages/dashboard/ListeningTestPage').then((module) => ({ default: module.ListeningTestPage }))
 );
 
 function App() {
@@ -100,6 +105,15 @@ function App() {
             element={
               <Suspense fallback={<TutorsSkeleton />}>
                 <TutorsPage />
+              </Suspense>
+            }
+          />
+          {/* ARCHITECT: проверка аудирования — экран, а не диалог: у неё есть адрес и свой скелетон */}
+          <Route
+            path="listening"
+            element={
+              <Suspense fallback={<ListeningSkeleton />}>
+                <ListeningTestPage />
               </Suspense>
             }
           />

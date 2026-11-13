@@ -95,7 +95,6 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
                 totalSteps={totalSteps}
                 onBack={onBack}
                 onContinue={() => onComplete(savedResult.overall)}
-                onResultChange={setSavedResult}
             />
         );
     }

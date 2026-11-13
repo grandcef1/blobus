@@ -1,6 +1,8 @@
 // ARCHITECT: одно задание аудирования — прогресс, счётчик прослушиваний, запуск озвучки, вопрос и
-// опции. Вынесено из потока: разметка задания не знает, откуда оно открыто — из мастера или из
-// «Обзора».
+// опции. Вынесено из потока: разметка задания не знает, откуда оно открыто — из мастера или с
+// отдельного экрана.
+// ARCHITECT: счётчик показывает остаток, а не сделанные попытки: «осталось 2/2» читается как ресурс,
+// который тратится, и объясняет, почему кнопка гаснет после второго запуска.
 
 import { Volume2 } from "lucide-react";
 import type { PlacementItem } from "@/types/placement";
@@ -24,6 +26,9 @@ const MARKERS = ["1", "2", "3", "4"];
 const PLAY_BUTTON =
     "flex min-h-11 items-center gap-2 rounded-full px-3 text-xs text-[#f0f0f5]/60 transition-colors hover:bg-white/5 hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]";
 const PLAY_BUTTON_LOCKED = "text-[#f0f0f5]/25 hover:bg-transparent hover:text-[#f0f0f5]/25";
+/** Счётчик остатка: тонкая метка рядом с кнопкой, но заметная — от неё зависит доступность ответа. */
+const COUNTER = "rounded-md bg-white/5 px-2 py-1 text-[11px] tabular-nums text-[#f0f0f5]/60";
+const COUNTER_LOCKED = "text-[#f0f0f5]/30";
 
 export function ListeningQuestion({
     item,
@@ -37,6 +42,7 @@ export function ListeningQuestion({
 }: ListeningQuestionProps) {
     const isAnswered = selectedOptionId !== null;
     const canPlay = plays < maxPlays;
+    const remaining = maxPlays - plays;
     // ARCHITECT: ответ доступен только после первого прослушивания: задание на понимание на слух
     // нельзя решать наугад, не услышав запись.
     const canAnswer = plays > 0;
@@ -49,19 +55,18 @@ export function ListeningQuestion({
 
     return (
         <div className="mt-4">
-            <div className="flex items-center justify-between gap-3">
+            <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs tabular-nums text-[#f0f0f5]/50">
-                    Задание {number} из {total}
+                    Вопрос {number} из {total}
                 </p>
 
                 <div className="flex items-center gap-2">
-                    {/* ARCHITECT: счётчик виден до второго запуска: он объясняет, почему кнопка
-                        погаснет, и проверяет беглое понимание, а не вслушивание. */}
-                    <span className="text-xs tabular-nums text-[#f0f0f5]/40">
+                    <span className={cn(COUNTER, !canPlay && COUNTER_LOCKED)}>
                         {canPlay
-                            ? `Прослушивание ${plays + 1} из ${maxPlays}`
+                            ? `Осталось прослушиваний: ${remaining}/${maxPlays}`
                             : "Лимит прослушиваний"}
                     </span>
+
                     <button
                         type="button"
                         onClick={onPlay}
@@ -77,9 +82,7 @@ export function ListeningQuestion({
             <p className="mt-4 text-sm leading-[1.6] text-[#f0f0f5]">{item.prompt}</p>
 
             {!canAnswer && (
-                <p className="mt-3 text-xs text-[#f0f0f5]/40">
-                    Опции откроются после первого прослушивания.
-                </p>
+                <p className="mt-3 text-xs text-[#f0f0f5]/40">Сначала прослушайте запись.</p>
             )}
 
             <div className="mt-4 flex flex-col gap-2" role="group" aria-label="Варианты ответа">

@@ -48,10 +48,12 @@ export function isNavItemActive(item: AppNavItem, pathname: string): boolean {
     return prefixes.some((prefix) => pathname.startsWith(prefix));
 }
 
-// ARCHITECT: разделы, которых нет в рельсе (профиль открывается из блока пользователя), но у
-// которых должен быть свой заголовок вкладки: карта заголовков и карта меню — один источник.
+// ARCHITECT: разделы, которых нет в рельсе (профиль открывается из блока пользователя, аудирование —
+// из карточки «Обзора»), но у которых должен быть свой заголовок вкладки: карта заголовков и карта
+// меню — один источник.
 const EXTRA_SECTION_TITLES: { prefix: string; label: string }[] = [
     { prefix: "/app/profile", label: "Профиль" },
+    { prefix: "/app/listening", label: "Аудирование" },
 ];
 
 export function findSectionTitle(pathname: string): string {

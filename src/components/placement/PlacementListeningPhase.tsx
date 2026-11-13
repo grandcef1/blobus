@@ -1,10 +1,12 @@
-// ARCHITECT: фаза аудирования внутри теста уровня — заголовок и общий поток. Вынесена из шага:
-// разметка фазы не должна разрастаться вместе с оркестратором.
+// ARCHITECT: фаза аудирования внутри теста уровня — заголовок шага и общий тест. Полосу прогресса
+// мастера рисует OnboardingShell, поэтому тест её не знает и не дублирует.
+// ARCHITECT: инструкция про два прослушивания показывается самим тестом — она одна на обоих входах,
+// и мастер не повторяет её в подзаголовке шага.
 
 import type { EnglishLevel } from "@/types/onboarding";
 import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
 import { StepHeader } from "@/components/onboarding/StepHeader";
-import { ListeningFlow } from "@/components/placement/ListeningFlow";
+import { ListeningTest } from "@/components/placement/ListeningTest";
 
 interface PlacementListeningPhaseProps {
     step: number;
@@ -22,12 +24,12 @@ export function PlacementListeningPhase({
             <StepHeader
                 eyebrow={ONBOARDING_STEP_TITLES.assessment}
                 title="Аудирование"
-                subtitle="Шесть заданий: два прослушивания на каждое."
+                subtitle="Шесть заданий на понимание на слух."
                 step={step}
                 totalSteps={totalSteps}
             />
 
-            <ListeningFlow onComplete={(outcome) => onComplete(outcome.level)} />
+            <ListeningTest context="wizard" onComplete={(result) => onComplete(result.level)} />
         </div>
     );
 }

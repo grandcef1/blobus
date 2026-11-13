@@ -1,27 +1,17 @@
 // ARCHITECT: аудирование ищут в «Обзоре»: тест уровня предлагает его как опцию, поэтому после теста
-// подсказка живёт на стартовой странице приложения. Карточка исчезает, как только уровень получен;
-// в профиле остаётся тот же вход, но основная точка — здесь.
+// подсказка живёт на стартовой странице приложения. Карточка исчезает, как только уровень получен:
+// результат читается из хранилища при каждом рендере, а «Обзор» после проверки монтируется заново.
+// ARCHITECT: проверка открывается отдельным экраном /app/listening, а не диалогом: у экрана есть
+// адрес, и в него возвращаются из истории браузера.
 
-import { useState } from "react";
+import { Link } from "react-router-dom";
 import { Volume2 } from "lucide-react";
 import { getResult } from "@/api/placement";
 import { FOCUS_RING, PRIMARY_BUTTON } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
-import { ListeningTestDialog } from "@/components/placement/ListeningTestDialog";
-import type { PlacementResult } from "@/types/placement";
 
 export function ListeningPromptCard() {
-    const [result, setResult] = useState<PlacementResult | null>(() => getResult());
-    const [isOpen, setIsOpen] = useState(false);
-
-    // ARCHITECT: состояние обновляется на закрытии диалога, а не на сохранении уровня: иначе
-    // карточка, владеющая диалогом, размонтировала бы его вместе с экраном результата.
-    const handleOpenChange = (next: boolean) => {
-        setIsOpen(next);
-        if (!next) setResult(getResult());
-    };
-
-    if (result?.listening) return null;
+    if (getResult()?.listening) return null;
 
     return (
         <section
@@ -41,15 +31,9 @@ export function ListeningPromptCard() {
                 </p>
             </div>
 
-            <button
-                type="button"
-                onClick={() => setIsOpen(true)}
-                className={cn(PRIMARY_BUTTON, FOCUS_RING, "shrink-0")}
-            >
+            <Link to="/app/listening" className={cn(PRIMARY_BUTTON, FOCUS_RING, "shrink-0")}>
                 Проверить
-            </button>
-
-            <ListeningTestDialog open={isOpen} onOpenChange={handleOpenChange} />
+            </Link>
         </section>
     );
 }

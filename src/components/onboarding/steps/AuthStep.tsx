@@ -2,11 +2,14 @@
 // Форма живёт в components/auth/AuthForm, потому что тот же вход нужен отдельной странице /login.
 // ARCHITECT: вход через таб «Вход» завершает мастер сразу: у пользователя уже есть аккаунт и
 // прогресс, повторный выбор репетитора ему не нужен. Регистрация продолжает мастер как раньше.
+// ARCHITECT: вход ведёт на стартовую страницу приложения, а не в последнюю сессию: продолжение
+// занятия — выбор из «Обзора», одинаковый для обоих входов в аккаунт.
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { APP_HOME_PATH } from "@/components/layout/navigation";
 import { StepCard } from "@/components/onboarding/StepCard";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { AuthForm } from "@/components/auth/AuthForm";
@@ -26,10 +29,10 @@ export function AuthStep({ onNext, onBack, step, totalSteps }: AuthStepProps) {
     const [mode, setMode] = useState<AuthMode>("register");
 
     // ARCHITECT: пользователя в auth-store кладёт сама форма, поэтому здесь решается только
-    // маршрут: вход уходит в приложение, регистрация продолжает мастер.
+    // маршрут: вход уходит на стартовую страницу приложения, регистрация продолжает мастер.
     const handleAuthenticated = () => {
         if (mode === "login") {
-            navigate("/app", { replace: true });
+            navigate(APP_HOME_PATH, { replace: true });
             return;
         }
         onNext();

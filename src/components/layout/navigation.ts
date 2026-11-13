@@ -19,8 +19,13 @@ export interface AppNavItem {
     activePrefixes?: string[];
 }
 
+// ARCHITECT: стартовая страница приложения. Вошедший пользователь попадает сюда: «Обзор» показывает
+// прогресс и продолжение занятия как выбор, а последняя сессия открывается уже осознанным шагом —
+// вход не должен сразу бросать в чат.
+export const APP_HOME_PATH = "/app/overview";
+
 export const PRIMARY_NAV_ITEMS: AppNavItem[] = [
-    { id: "overview", label: "Обзор", href: "/app/overview", icon: LayoutDashboard },
+    { id: "overview", label: "Обзор", href: APP_HOME_PATH, icon: LayoutDashboard },
     {
         id: "sessions",
         label: "Сессии",

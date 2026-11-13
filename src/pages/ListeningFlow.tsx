@@ -10,6 +10,7 @@ import { useNavigate } from "react-router-dom";
 import { LISTENING_ITEMS } from "@/api/mocks/listeningTest";
 import { saveListeningResult } from "@/api/placement";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { APP_HOME_PATH } from "@/components/layout/navigation";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { ListeningTest } from "@/components/placement/ListeningTest";
 import { ListeningResultSummary } from "@/components/placement/ListeningResultSummary";
@@ -34,14 +35,14 @@ export function ListeningFlow() {
                     <ListeningTest
                         context="standalone"
                         onComplete={handleComplete}
-                        onExit={() => navigate("/app/overview")}
+                        onExit={() => navigate(APP_HOME_PATH)}
                     />
                 ) : (
                     <ListeningResultSummary
                         level={result.level}
                         correctCount={result.correctCount}
                         total={LISTENING_ITEMS.length}
-                        onDone={() => navigate("/app/overview")}
+                        onDone={() => navigate(APP_HOME_PATH)}
                     />
                 )}
             </div>

@@ -1,18 +1,17 @@
-// ARCHITECT: викторина — минимальная карточка: eyebrow, вопрос, опции-строки. Цветной плашки,
-// бейджа времени и буквенных кружков больше нет: цвет остался там, где он что-то значит —
-// верный и неверный ответ.
-// ARCHITECT: поверхность холодная индиго — решение владельца: викторина отличается и от ленты, и
-// от золотистой карточки исправления, поэтому два вида интерактива не путаются между собой.
-// ARCHITECT: опции отвечают цветом обычного сообщения (#141416): тонировка карточки к ним не
-// переходит, иначе выбор читался бы как часть фона.
+// ARCHITECT: викторина — минимальная карточка: eyebrow, вопрос, опции-строки. Цвет остался там, где
+// он что-то значит — верный и неверный ответ.
+// ARCHITECT: поверхность холодная индиго и базовый фон опции как у обычного сообщения (решения
+// владельца): викторина не путается с золотистой карточкой исправления, а опции читаются как
+// элементы управления, а не как часть тонированного фона.
 // ARCHITECT: поздравление показывается здесь же, внутри карточки, и только по свежему верному
 // ответу: состояние стартует false и ставится в обработчике выбора, поэтому повторный вход в чат
 // анимацию не запускает.
-// ARCHITECT: «Заново» показывается только после неверного ответа: при верном выбор фиксируется.
+// ARCHITECT: верный вариант открывается после двух промахов подряд: с первого промаха пользователь
+// пробует сам, а не читает ответ. «Заново» промахи не отменяет — иначе второй промах снова был бы
+// первым, и ответ не открылся бы никогда.
 
 import { useEffect, useState } from "react";
-import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
-import { RotateCcw } from "lucide-react";
+import { useReducedMotion } from "framer-motion";
 import type { EnhancedChatSession, QuizContent, QuizOption } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
@@ -20,6 +19,7 @@ import { CorrectAnswerCelebration } from "@/components/shared/CorrectAnswerCeleb
 import { QuizOptionButton } from "@/components/shared/QuizOptionButton";
 import type { QuizOptionState } from "@/components/shared/QuizOptionButton";
 import { cn } from "@/lib/utils";
+import { QuizFeedback } from "./QuizFeedback";
 
 interface QuizCardProps {
     quiz?: QuizContent;
@@ -28,12 +28,15 @@ interface QuizCardProps {
 
 const LETTERS = ["А", "Б", "В", "Г"];
 const AUTHOR_NAME = "mb-1 text-xs font-medium text-[#f0f0f5]/60";
+/** Сколько промахов подряд открывают верный вариант. */
+const REVEAL_AFTER_WRONG = 2;
 /** Полный срок поздравления: короткий импульс, а не экран. */
 const CELEBRATION_MS = 1100;
 const CELEBRATION_REDUCED_MS = 700;
 
 export function QuizCard({ quiz, session }: QuizCardProps) {
     const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
+    const [wrongAttempts, setWrongAttempts] = useState(0);
     const [isCelebrating, setIsCelebrating] = useState(false);
     const shouldReduceMotion = useReducedMotion();
     const repetitor = getBlobatarById(session.repetitorId);
@@ -56,24 +59,44 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
     const correctOption = quiz.options.find((option) => option.isCorrect);
     const isSolved = selectedOptionId !== null;
     const isCorrect = isSolved && correctOption?.id === selectedOptionId;
+    const isRevealed = isSolved && !isCorrect && wrongAttempts >= REVEAL_AFTER_WRONG;
+    // ARCHITECT: после открытия ответа повторная попытка теряет смысл: верный вариант уже подсвечен,
+    // а «Заново» снимало бы подсветку и начинало бы викторину заново.
+    const canRetry = isSolved && !isCorrect && !isRevealed;
 
-    // ARCHITECT: разбор берётся у выбранной опции, а при верном ответе — у верной: объяснение
-    // своего неверного выбора после правильного ответа только путало бы.
-    const explanation =
-        quiz.options.find((option) => option.id === selectedOptionId)?.explanation ??
-        correctOption?.explanation;
+    // ARCHITECT: текст зависит от исхода. На первом промахе разбор выбранной опции не показывается:
+    // он иногда подсказывает верную формулировку, и ответ открывался бы раньше положенного.
+    const buildFeedback = (): string => {
+        if (!isSolved) return "";
+        if (isCorrect) return correctOption?.explanation ?? "";
+        if (isRevealed) {
+            return `Верный ответ — «${correctOption?.text}». ${correctOption?.explanation ?? ""}`.trim();
+        }
+
+        return "Неверно. Попробуйте снова.";
+    };
 
     const handleSelect = (optionId: string) => {
         if (isSolved) return;
 
         setSelectedOptionId(optionId);
-        if (correctOption?.id === optionId) setIsCelebrating(true);
+
+        if (correctOption?.id === optionId) {
+            setIsCelebrating(true);
+            return;
+        }
+
+        setWrongAttempts((previous) => previous + 1);
     };
 
     const stateFor = (option: QuizOption): QuizOptionState => {
         if (!isSolved) return "idle";
-        if (option.isCorrect) return "correct";
-        return option.id === selectedOptionId ? "wrong" : "dimmed";
+        if (option.id === selectedOptionId) return option.isCorrect ? "correct" : "wrong";
+        // ARCHITECT: до открытия ответа невыбранные опции выглядят одинаково приглушённо, поэтому
+        // подсветка не подсказывает, какой вариант верный.
+        if (option.isCorrect && isRevealed) return "correct";
+
+        return "dimmed";
     };
 
     return (
@@ -111,32 +134,10 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
                             ))}
                         </div>
 
-                        <AnimatePresence initial={false}>
-                            {isSolved && (
-                                <motion.div
-                                    initial={{ opacity: 0 }}
-                                    animate={{ opacity: 1 }}
-                                    exit={{ opacity: 0 }}
-                                    transition={{ duration: 0.2, ease: "easeOut" }}
-                                    className="mt-4 flex items-start justify-between gap-3"
-                                >
-                                    <p className="text-xs leading-[1.6] text-[#f0f0f5]/60">
-                                        {explanation}
-                                    </p>
-
-                                    {!isCorrect && (
-                                        <button
-                                            type="button"
-                                            onClick={() => setSelectedOptionId(null)}
-                                            className="flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[11px] text-[#f0f0f5]/50 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]"
-                                        >
-                                            <RotateCcw className="size-3" aria-hidden="true" />
-                                            Заново
-                                        </button>
-                                    )}
-                                </motion.div>
-                            )}
-                        </AnimatePresence>
+                        <QuizFeedback
+                            text={buildFeedback()}
+                            onRetry={canRetry ? () => setSelectedOptionId(null) : undefined}
+                        />
                     </div>
 
                     <CorrectAnswerCelebration show={isCelebrating} />
@@ -145,4 +146,3 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
         </div>
     );
 }
-

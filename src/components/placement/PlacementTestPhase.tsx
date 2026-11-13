@@ -33,7 +33,10 @@ export function PlacementTestPhase({
     step,
     totalSteps,
 }: PlacementTestPhaseProps) {
-    const isLast = number >= total;
+    // ARCHITECT: последний вопрос — ровно двадцатый: граница сравнивается строго с общим числом
+    // вопросов, той же величиной, что и счётчик «Вопрос N из total».
+    const isLast = number === total;
+    const lastLabel = withListening ? "К аудированию" : "К результатам";
 
     return (
         <div className="mx-auto w-full max-w-xl">
@@ -55,7 +58,7 @@ export function PlacementTestPhase({
             <StepNav
                 onBack={onBack}
                 onNext={onNext}
-                nextLabel={isLast ? (withListening ? "К аудированию" : "Показать результат") : "Дальше"}
+                nextLabel={isLast ? lastLabel : "Дальше"}
                 disabled={selectedOptionId === null}
             />
         </div>

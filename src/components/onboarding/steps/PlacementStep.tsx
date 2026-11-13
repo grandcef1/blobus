@@ -31,26 +31,37 @@ interface PlacementStepProps {
 
 type PlacementPhase = "intro" | "test" | "listening" | "result";
 
+// ARCHITECT: номер вопроса фиксируется в момент выдачи задания. Счётчик движка растёт сразу после
+// ответа, поэтому выведенный из него номер опережал бы экран: подпись кнопки переключалась бы на
+// «К аудированию» ещё на предыдущем вопросе.
+interface PlacementQuestionState {
+    item: PlacementItem;
+    number: number;
+}
+
 export function PlacementStep({ onComplete, onBack, step, totalSteps }: PlacementStepProps) {
     const [savedResult, setSavedResult] = useState<PlacementResult | null>(() => getResult());
     const [phase, setPhase] = useState<PlacementPhase>(() => (getResult() ? "result" : "intro"));
     const [state, setState] = useState<PlacementState>(() => createPlacementState());
-    const [item, setItem] = useState<PlacementItem | null>(null);
+    const [question, setQuestion] = useState<PlacementQuestionState | null>(null);
     const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
     const [withListening, setWithListening] = useState(false);
 
     const handleStart = () => {
         const fresh = createPlacementState();
+        const first = nextItem(fresh);
+
         setState(fresh);
-        setItem(nextItem(fresh));
         setSelectedOptionId(null);
         setPhase("test");
+
+        if (first !== null) setQuestion({ item: first, number: askedQuestions(fresh) + 1 });
     };
 
     const handleAnswer = (optionId: string) => {
-        if (item === null || selectedOptionId !== null) return;
+        if (question === null || selectedOptionId !== null) return;
         setSelectedOptionId(optionId);
-        setState((previous) => applyAnswer(previous, item.id, optionId));
+        setState((previous) => applyAnswer(previous, question.item.id, optionId));
     };
 
     // ARCHITECT: результат собирается один раз после последнего вопроса: аудирование может идти
@@ -66,7 +77,9 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
         const upcoming = nextItem(state);
 
         if (upcoming !== null) {
-            setItem(upcoming);
+            // ARCHITECT: номер следующего вопроса считается по уже отвеченному состоянию: движок учёл
+            // текущий ответ, поэтому счётчик отвеченных и есть номер следующего задания.
+            setQuestion({ item: upcoming, number: askedQuestions(state) + 1 });
             setSelectedOptionId(null);
             return;
         }
@@ -82,7 +95,7 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
     // ARCHITECT: «Назад» внутри теста возвращает к описанию теста, а не на предыдущий шаг мастера:
     // уходить из незаконченного теста в «Знакомство» было бы потерей контекста.
     const handleBackToIntro = () => {
-        setItem(null);
+        setQuestion(null);
         setSelectedOptionId(null);
         setPhase("intro");
     };
@@ -107,11 +120,11 @@ export function PlacementStep({ onComplete, onBack, step, totalSteps }: Placemen
         );
     }
 
-    if (phase === "test" && item !== null) {
+    if (phase === "test" && question !== null) {
         return (
             <PlacementTestPhase
-                item={item}
-                number={askedQuestions(state) + 1}
+                item={question.item}
+                number={question.number}
                 total={totalQuestions()}
                 selectedOptionId={selectedOptionId}
                 withListening={withListening}

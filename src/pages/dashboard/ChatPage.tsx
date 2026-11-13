@@ -14,7 +14,6 @@ import { useMockQuery } from "@/hooks/useMockQuery";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatMessages } from "@/components/chat/ChatMessages";
-import { CorrectAnswerCelebration } from "@/components/shared/CorrectAnswerCelebration";
 import { ChatSkeleton } from "@/components/dashboard/skeletons/ChatSkeleton";
 import { cn } from "@/lib/utils";
 import type { EnhancedChatSession } from "@/types/session";
@@ -34,9 +33,6 @@ export function ChatPage() {
         [sessionId]
     );
     const [patch, setPatch] = useState<SessionPatch | null>(null);
-    // ARCHITECT: ключ поздравления растёт на каждый верный ответ: смена key перезапускает анимацию,
-    // а сам оверлей живёт на уровне страницы и покрывает всю область чата, а не карточку.
-    const [celebrationKey, setCelebrationKey] = useState(0);
 
     if (isLoading) return <ChatSkeleton />;
 
@@ -81,14 +77,10 @@ export function ChatPage() {
     return (
         <div className={cn("relative flex flex-col bg-black", CHAT_HEIGHT)}>
             <ChatHeader session={session} onUpdated={handleUpdated} onDeleted={handleDeleted} />
-            <ChatMessages
-                messages={session.messages}
-                session={session}
-                onQuizCorrect={() => setCelebrationKey((previous) => previous + 1)}
-            />
+            {/* ARCHITECT: поздравление с верным ответом рисует сама карточка викторины: страница его
+                не знает, поэтому анимация не появляется при входе в чат и в чужих сессиях. */}
+            <ChatMessages messages={session.messages} session={session} />
             <ChatInput onSend={handleSend} />
-            {/* ARCHITECT: key — единственный триггер показа: пока ключ нулевой, оверлея нет. */}
-            {celebrationKey > 0 && <CorrectAnswerCelebration key={celebrationKey} />}
         </div>
     );
 }

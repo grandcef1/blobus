@@ -1,18 +1,8 @@
-// ARCHITECT: шаг «Тест» мастера — оркестратор фаз: интро, вопросы, аудирование, сводка. Логика подачи
-// живёт в lib/placement и ничего не знает про React, поэтому здесь остаются только переходы между
-// фазами.
-// ARCHITECT: состояние сессии теста (фаза, ответы, адаптивные дорожки, номер вопроса) лежит в сторе:
-// мастер перемонтирует шаг при переходах между шагами, и локальное состояние уносило бы с собой все
-// ответы.
-// ARCHITECT: пройденный тест не предлагается заново: сохранённый результат открывает шаг сразу на
-// экране итога, иначе возврат назад по мастеру обнулял бы уже определённый уровень.
+// ARCHITECT: шаг «Тест» мастера — разметка фаз: интро, вопросы, аудирование, сводка. Состояние и
+// правила переходов живут в usePlacementTest, поэтому здесь остаётся только выбор того, что показать:
+// так шаг не разрастается при каждой правке логики теста.
 
-import { useState } from "react";
-import { getResult, saveResult } from "@/api/placement";
-import { finalize, findPlacementItem, totalQuestions } from "@/lib/placement";
-import { usePlacementSession } from "@/store/placement";
-import type { PlacementPhase } from "@/store/placement";
-import type { PlacementResult } from "@/types/placement";
+import { usePlacementTest } from "@/hooks/usePlacementTest";
 import type { EnglishLevel } from "@/types/onboarding";
 import { PlacementIntro } from "@/components/placement/PlacementIntro";
 import { PlacementListeningPhase } from "@/components/placement/PlacementListeningPhase";
@@ -27,129 +17,55 @@ interface PlacementStepProps {
 }
 
 export function PlacementStep({ onComplete, onBack, step, totalSteps }: PlacementStepProps) {
-    const {
-        phase: sessionPhase,
-        includeListening,
-        answers,
-        currentIndex,
-        trackState,
-        askedItemIds,
-        start,
-        answer,
-        goNext,
-        goPrev,
-        setPhase,
-        setIncludeListening,
-        reset,
-    } = usePlacementSession();
+    const test = usePlacementTest(onComplete);
 
-    const [savedResult, setSavedResult] = useState<PlacementResult | null>(() => getResult());
-
-    const total = totalQuestions();
-    // ARCHITECT: незаконченная сессия важнее сохранённого результата: она и есть текущий прогресс,
-    // поэтому возврат на шаг продолжает тест, а не показывает чужой итог.
-    const isTestInProgress = askedItemIds.length > 0 && sessionPhase !== "result";
-    const phase: PlacementPhase = isTestInProgress || savedResult === null ? sessionPhase : "result";
-
-    const currentItemId = askedItemIds[currentIndex] ?? null;
-    const currentItem = currentItemId === null ? null : findPlacementItem(currentItemId);
-    const questionNumber = currentIndex + 1;
-    const selectedOptionId = currentItemId === null ? null : (answers[currentItemId] ?? null);
-    // ARCHITECT: номер вопроса и граница последнего считаются от одного индекса, поэтому подпись
-    // кнопки переключается ровно на двадцатом вопросе, а не после ответа на девятнадцатый.
-    const isLastQuestion = questionNumber === total;
-
-    const handleAnswer = (optionId: string) => {
-        if (currentItem === null || selectedOptionId !== null) return;
-        answer(currentItem.id, optionId);
-    };
-
-    // ARCHITECT: результат собирается один раз после последнего вопроса: аудирование может идти сразу
-    // за тестом, поэтому его уровень приходит аргументом, а не дозаписывается позже.
-    const finish = (listening: EnglishLevel | null) => {
-        const finished = finalize(trackState, listening);
-        saveResult(finished);
-        setSavedResult(finished);
-        setPhase("result");
-    };
-
-    const handleAdvance = () => {
-        if (!isLastQuestion) {
-            goNext();
-            return;
-        }
-
-        if (includeListening) {
-            setPhase("listening");
-            return;
-        }
-
-        finish(null);
-    };
-
-    // ARCHITECT: «Назад» внутри теста возвращает к предыдущему вопросу, а на первом — к описанию:
-    // ответы остаются, поэтому возврат не стоит повторного прохождения.
-    const handleBack = () => {
-        if (currentIndex > 0) {
-            goPrev();
-            return;
-        }
-
-        setPhase("intro");
-    };
-
-    if (phase === "result" && savedResult !== null) {
+    if (test.phase === "result" && test.savedResult !== null) {
         return (
             <PlacementResultPhase
-                result={savedResult}
+                result={test.savedResult}
                 step={step}
                 totalSteps={totalSteps}
                 onBack={onBack}
-                // ARCHITECT: сессия закрывается на выходе из сводки: вернувшись на шаг позже,
-                // пользователь снова увидит итог, а не незаконченный тест.
-                onContinue={() => {
-                    reset();
-                    onComplete(savedResult.overall);
-                }}
+                onContinue={test.complete}
             />
         );
     }
 
-    // ARCHITECT: аудирование идёт сразу после основных вопросов, если его включили в описании
-    // теста: результат собирается один — с уровнем аудирования внутри.
-    if (phase === "listening") {
+    // ARCHITECT: аудирование идёт сразу после основных вопросов, если его включили в описании теста:
+    // полосу прогресса мастера здесь рисует OnboardingShell, как и на остальных шагах.
+    if (test.phase === "listening") {
         return (
-            <PlacementListeningPhase step={step} totalSteps={totalSteps} onComplete={(level) => finish(level)} />
+            <PlacementListeningPhase
+                step={step}
+                totalSteps={totalSteps}
+                onComplete={test.finishListening}
+            />
         );
     }
 
-    if (phase === "questions" && currentItem !== null) {
+    if (test.phase === "questions" && test.item !== null) {
         return (
             <PlacementTestPhase
-                item={currentItem}
-                number={questionNumber}
-                total={total}
-                selectedOptionId={selectedOptionId}
-                withListening={includeListening}
-                onSelect={handleAnswer}
-                onBack={handleBack}
-                onNext={handleAdvance}
+                item={test.item}
+                number={test.questionNumber}
+                total={test.total}
+                selectedOptionId={test.selectedOptionId}
+                withListening={test.includeListening}
+                onSelect={test.answer}
+                onBack={test.back}
+                onNext={test.advance}
                 step={step}
                 totalSteps={totalSteps}
             />
         );
     }
 
-    // ARCHITECT: незаконченный тест продолжается с того же вопроса, а не начинается заново: кнопка
-    // описания возвращает к нему, и только старт с нуля действительно обнуляет сессию.
-    const hasProgress = askedItemIds.length > 0;
-
     return (
         <PlacementIntro
-            withListening={includeListening}
-            hasProgress={hasProgress}
-            onToggleListening={setIncludeListening}
-            onStart={() => (hasProgress ? setPhase("questions") : start(includeListening))}
+            withListening={test.includeListening}
+            hasProgress={test.hasProgress}
+            onToggleListening={test.toggleListening}
+            onStart={test.startOrResume}
             onBack={onBack}
             step={step}
             totalSteps={totalSteps}

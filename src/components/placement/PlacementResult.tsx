@@ -1,7 +1,8 @@
 // ARCHITECT: сводка теста: балл по шкале EF SET (0-100), итоговый уровень и разбивка по дорожкам.
 // Числа — tabular-nums, цветных бейджей нет: статус показывают текст и метка уровня, как везде.
-// ARCHITECT: аудирование в основной тест не входит, поэтому строка о нём ведёт в отдельный диалог —
-// и с экрана результата, и из профиля.
+// ARCHITECT: аудирование в основной тест не входит, поэтому строка о нём ведёт на отдельный экран —
+// и с экрана результата, и из профиля. Кнопка есть только пока проверки не было: пройденный уровень
+// показывается значением строки, и предлагать его заново нечего.
 
 import type { PlacementResult } from "@/types/placement";
 import { LEVEL_DESCRIPTIONS } from "@/lib/placement";
@@ -63,9 +64,11 @@ export function PlacementResultView({ result, onCheckListening }: PlacementResul
                         : "Аудирование не проверено: пройти можно здесь или в разделе «Обзор» — карточка ждёт на стартовой странице."}
                 </p>
 
-                <button type="button" onClick={onCheckListening} className={LINK_BUTTON}>
-                    Проверить аудирование
-                </button>
+                {result.listening === null && (
+                    <button type="button" onClick={onCheckListening} className={LINK_BUTTON}>
+                        Проверить аудирование
+                    </button>
+                )}
             </div>
         </StepCard>
     );

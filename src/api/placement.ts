@@ -2,9 +2,8 @@
 // как и остальные мок-сторы проекта (api/sessions). После подключения бэкенда здесь единственная
 // точка замены: запись результата теста и чтение последнего результата в профиль.
 
-import type { PlacementResult, PlacementItem } from "@/types/placement";
+import type { PlacementResult } from "@/types/placement";
 import type { EnglishLevel } from "@/types/onboarding";
-import { LISTENING_ITEMS } from "@/api/mocks/listeningTest";
 import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import { delayMock } from "@/api/mockDelay";
 
@@ -26,14 +25,6 @@ export async function fetchPlacementResult(): Promise<PlacementResult | null> {
     await delayMock();
 
     return stored;
-}
-
-// ARCHITECT: банк заданий аудирования отдаётся через модуль, как и остальные данные: отдельный экран
-// показывает скелетон, пока задания в пути. Сам банк статичен, задержку даёт мок-обёртка.
-export async function fetchListeningItems(): Promise<PlacementItem[]> {
-    await delayMock();
-
-    return LISTENING_ITEMS;
 }
 
 // ARCHITECT: аудирование дозаписывается в сохранённый результат. Если основного теста ещё не было

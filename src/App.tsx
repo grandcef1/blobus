@@ -8,6 +8,7 @@ import { lazy, Suspense } from 'react';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Landing } from '@/pages/Landing';
 import { Onboarding } from '@/pages/Onboarding';
+import { ListeningFlow } from '@/pages/ListeningFlow';
 import { AppLayout } from '@/pages/AppLayout';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { ChatPage } from '@/pages/dashboard/ChatPage';
@@ -19,7 +20,6 @@ import { AppIndexRedirect } from '@/pages/dashboard/AppIndexRedirect';
 import { ScrollToTopButton } from '@/components/shared/ScrollToTopButton';
 import { Toaster } from '@/components/shared/Toaster';
 import { HelpSkeleton } from '@/components/dashboard/skeletons/HelpSkeleton';
-import { ListeningSkeleton } from '@/components/dashboard/skeletons/ListeningSkeleton';
 import { SessionsSkeleton } from '@/components/dashboard/skeletons/SessionsSkeleton';
 import { TutorsSkeleton } from '@/components/dashboard/skeletons/TutorsSkeleton';
 import { VocabularySkeleton } from '@/components/dashboard/skeletons/VocabularySkeleton';
@@ -48,10 +48,6 @@ const HelpCenterPage = lazy(() =>
   import('@/pages/dashboard/HelpCenterPage').then((module) => ({ default: module.HelpCenterPage }))
 );
 
-const ListeningTestPage = lazy(() =>
-  import('@/pages/dashboard/ListeningTestPage').then((module) => ({ default: module.ListeningTestPage }))
-);
-
 function App() {
   return (
     <BrowserRouter>
@@ -78,6 +74,9 @@ function App() {
         />
         {/* ARCHITECT: /session/new — тот же мастер в режиме session: репетитор и режим, потом чат */}
         <Route path="/session/new" element={<Onboarding flow="session" />} />
+        {/* ARCHITECT: /listening — отложенная проверка аудирования в интерфейсе мастера, вне
+            приложения: полосы прогресса здесь нет, а возврат ведёт в «Обзор» */}
+        <Route path="/listening" element={<ListeningFlow />} />
         <Route path="/app" element={<AppLayout />}>
           <Route index element={<AppIndexRedirect />} />
           <Route path="overview" element={<DashboardPage />} />
@@ -105,15 +104,6 @@ function App() {
             element={
               <Suspense fallback={<TutorsSkeleton />}>
                 <TutorsPage />
-              </Suspense>
-            }
-          />
-          {/* ARCHITECT: проверка аудирования — экран, а не диалог: у неё есть адрес и свой скелетон */}
-          <Route
-            path="listening"
-            element={
-              <Suspense fallback={<ListeningSkeleton />}>
-                <ListeningTestPage />
               </Suspense>
             }
           />

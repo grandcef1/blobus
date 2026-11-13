@@ -1,7 +1,7 @@
 // ARCHITECT: фаза итога теста — заголовок, сводка и переход дальше. Вынесена из шага: он стал
 // оркестратором четырёх фаз и упёрся в лимит строк на компонент.
-// ARCHITECT: аудирование открывается отдельным экраном /app/listening (в приложении, без полосы
-// мастера): у проверки есть адрес, и вернуться к ней можно из истории браузера.
+// ARCHITECT: аудирование открывается экраном /listening в интерфейсе мастера (без полосы прогресса):
+// у проверки есть адрес, и вернуться к ней можно из истории браузера.
 
 import { useNavigate } from "react-router-dom";
 import type { PlacementResult } from "@/types/placement";
@@ -39,7 +39,7 @@ export function PlacementResultPhase({
 
             <PlacementResultView
                 result={result}
-                onCheckListening={() => navigate("/app/listening")}
+                onCheckListening={() => navigate("/listening")}
             />
 
             <StepNav onBack={onBack} onNext={onContinue} nextLabel="Продолжить" />

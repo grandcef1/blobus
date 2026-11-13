@@ -1,8 +1,8 @@
 // ARCHITECT: аудирование ищут в «Обзоре»: тест уровня предлагает его как опцию, поэтому после теста
 // подсказка живёт на стартовой странице приложения. Карточка исчезает, как только уровень получен:
 // результат читается из хранилища при каждом рендере, а «Обзор» после проверки монтируется заново.
-// ARCHITECT: проверка открывается отдельным экраном /app/listening, а не диалогом: у экрана есть
-// адрес, и в него возвращаются из истории браузера.
+// ARCHITECT: проверка открывается экраном /listening в интерфейсе мастера, а не модалкой: у экрана
+// есть адрес, и в него возвращаются из истории браузера.
 
 import { Link } from "react-router-dom";
 import { Volume2 } from "lucide-react";
@@ -31,7 +31,7 @@ export function ListeningPromptCard() {
                 </p>
             </div>
 
-            <Link to="/app/listening" className={cn(PRIMARY_BUTTON, FOCUS_RING, "shrink-0")}>
+            <Link to="/listening" className={cn(PRIMARY_BUTTON, FOCUS_RING, "shrink-0")}>
                 Проверить
             </Link>
         </section>

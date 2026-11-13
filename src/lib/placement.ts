@@ -128,6 +128,11 @@ export function nextItem(state: PlacementState): PlacementItem | null {
     return pickItem(state, other, state[other].level);
 }
 
+/** Задание по id: возврат назад по тесту берёт задание из пройденной цепочки, а не из новой выборки. */
+export function findPlacementItem(itemId: string): PlacementItem | null {
+    return PLACEMENT_ITEMS.find((entry) => entry.id === itemId) ?? null;
+}
+
 export function applyAnswer(
     state: PlacementState,
     itemId: string,

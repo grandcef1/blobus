@@ -9,6 +9,8 @@ import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
 interface PlacementIntroProps {
     /** Включена ли проверка аудирования после основных вопросов. */
     withListening: boolean;
+    /** Есть незаконченная сессия теста: тогда кнопка продолжает её, а не начинает заново. */
+    hasProgress: boolean;
     onToggleListening: (value: boolean) => void;
     onStart: () => void;
     onBack: () => void;
@@ -24,6 +26,7 @@ const INTRO_POINTS = [
 
 export function PlacementIntro({
     withListening,
+    hasProgress,
     onToggleListening,
     onStart,
     onBack,
@@ -74,7 +77,11 @@ export function PlacementIntro({
                 </label>
             </StepCard>
 
-            <StepNav onBack={onBack} onNext={onStart} nextLabel="Начать тест" />
+            <StepNav
+                onBack={onBack}
+                onNext={onStart}
+                nextLabel={hasProgress ? "Продолжить тест" : "Начать тест"}
+            />
         </div>
     );
 }

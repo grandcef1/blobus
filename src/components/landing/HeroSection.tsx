@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import type { TargetAndTransition, Variants } from "framer-motion";
-import { Check, MessageCircle, Sparkles } from "lucide-react";
+import { Check, MessageCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
+import { HeroBadge } from "@/components/hero/HeroBadge";
 import { TypewriterHeading } from "@/components/landing/TypewriterHeading";
 import { DemoDialog } from "@/components/landing/demo/DemoDialog";
 import { useNavigate } from 'react-router-dom';
@@ -31,7 +32,6 @@ function fadeInUp(delay: number): Variants {
     };
 }
 
-const badgeVariants = fadeInUp(0);
 const titleVariants = fadeInUp(0.1);
 const subtitleVariants = fadeInUp(0.2);
 const actionsVariants = fadeInUp(0.3);
@@ -89,18 +89,7 @@ export function HeroSection() {
                     {/* Текстовый блок: выровнен по левому краю, без лишних отступов.
                         ARCHITECT (RESPONSIVE FIX #1): order-2 на mobile — текст уходит ПОД блобатара. */}
                     <div className="order-2 flex flex-col justify-center gap-7 md:order-1 xl:max-w-[36rem]">
-                        <motion.div variants={badgeVariants}>
-                            <a
-                                href="#features"
-                                className="group inline-flex w-fit items-center gap-2 rounded-full border border-white/10 bg-white/[0.04] px-3 py-1.5 text-[11px] tracking-[0.14em] text-[#f0f0f5]/70 uppercase transition-colors duration-300 hover:border-white/25 hover:bg-white/[0.07] hover:text-[#f0f0f5]"
-                            >
-                                <Sparkles
-                                    className="size-3.5 text-[#f0f0f5]/80 transition-transform duration-300 group-hover:rotate-12"
-                                    aria-hidden="true"
-                                />
-                                Новый способ учить английский
-                            </a>
-                        </motion.div>
+                        <HeroBadge label="Новый способ учить английский" />
 
                         <motion.div variants={titleVariants}>
                             <TypewriterHeading />

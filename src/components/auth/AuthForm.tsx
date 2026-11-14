@@ -91,21 +91,21 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
                 {mode === "register" && (
                     <TextField
-                        id="auth-name" label="Имя" placeholder="Как к тебе обращаться" autoComplete="name"
+                        id="auth-name" name="name" required label="Имя" placeholder="Как к тебе обращаться" autoComplete="name"
                         value={values.name} error={errors.name}
                         onChange={(value) => setValue("name", value)} onBlur={() => handleBlur("name")}
                     />
                 )}
 
                 <TextField
-                    id="auth-email" label="Почта" type="email" placeholder="name@mail.com" autoComplete="email"
-                    value={values.email} error={errors.email}
+                    id="auth-email" name="email" required label="Почта" type="email" placeholder="name@mail.com"
+                    autoComplete={mode === "register" ? "email" : "username"} value={values.email} error={errors.email}
                     onChange={(value) => setValue("email", value)} onBlur={() => handleBlur("email")}
                 />
 
                 <div>
                     <TextField
-                        id="auth-password" label="Пароль" placeholder="Минимум 8 символов"
+                        id="auth-password" name="password" required label="Пароль" placeholder="Минимум 8 символов"
                         type={showPassword ? "text" : "password"}
                         autoComplete={mode === "register" ? "new-password" : "current-password"}
                         value={values.password} error={errors.password}

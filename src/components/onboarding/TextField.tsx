@@ -17,6 +17,11 @@ interface TextFieldProps {
     type?: string;
     placeholder?: string;
     autoComplete?: string;
+    // ARCHITECT: name нужен менеджерам паролей для автозаполнения; без него они опираются
+    // только на id и autocomplete. Необязательный: остальные вызовы ничего не передают.
+    name?: string;
+    /** Только семантика для скринридеров: форма объявлена noValidate, нативная проверка выключена. */
+    required?: boolean;
     children?: ReactNode;
 }
 
@@ -30,6 +35,8 @@ export function TextField({
     type = "text",
     placeholder,
     autoComplete,
+    name,
+    required,
     children,
 }: TextFieldProps) {
     const errorId = `${id}-error`;
@@ -42,6 +49,8 @@ export function TextField({
             <div className="relative">
                 <input
                     id={id}
+                    name={name}
+                    required={required}
                     type={type}
                     value={value}
                     onChange={(event) => onChange(event.target.value)}

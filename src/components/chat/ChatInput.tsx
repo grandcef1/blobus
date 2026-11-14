@@ -38,9 +38,14 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
         setMessage('');
     };
 
+    // ARCHITECT: в CJK-раскладке Enter подтверждает кандидата IME, а не отправляет сообщение:
+    // без проверки isComposing уходил недописанный текст. keyCode 229 нужен для Safari — там
+    // compositionend приходит раньше подтверждающего keydown (WebKit bug 165004), и isComposing
+    // к этому моменту уже false.
     const handleKeyDown = (e: React.KeyboardEvent) => {
         if (e.key === 'Enter' && !e.shiftKey) {
             e.preventDefault();
+            if (e.nativeEvent.isComposing || e.nativeEvent.keyCode === 229) return;
             handleSubmit();
         }
     };

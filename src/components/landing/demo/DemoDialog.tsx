@@ -5,6 +5,7 @@
 // примера следующий осмысленный шаг — начать заниматься, а не листать дальше.
 
 import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
 import { ArrowRight } from "lucide-react";
 import { DEMO_MESSAGES, DEMO_SESSION } from "@/api/mocks/demoLesson";
@@ -22,6 +23,7 @@ interface DemoDialogProps {
 
 export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
     const navigate = useNavigate();
+    const shouldReduceMotion = useReducedMotion();
     const [visibleCount, setVisibleCount] = useState(1);
     const [lastOpen, setLastOpen] = useState(open);
     const bottomRef = useRef<HTMLDivElement>(null);
@@ -36,9 +38,13 @@ export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
     }
 
     // ARCHITECT: новая реплика должна попадать в поле зрения — лента растёт вниз внутри модалки.
+    // Прокрутка мгновенная, если система просит меньше движения.
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth", block: "nearest" });
-    }, [visibleCount]);
+        bottomRef.current?.scrollIntoView({
+            behavior: shouldReduceMotion ? "auto" : "smooth",
+            block: "nearest",
+        });
+    }, [visibleCount, shouldReduceMotion]);
 
     const visibleMessages = DEMO_MESSAGES.slice(0, visibleCount);
     const lastVisibleId = visibleMessages[visibleMessages.length - 1]?.id;

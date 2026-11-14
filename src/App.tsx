@@ -5,6 +5,7 @@
 // и скелет только мигал бы.
 
 import { lazy, Suspense } from 'react';
+import { MotionConfig } from 'framer-motion';
 import { BrowserRouter, Navigate, Route, Routes } from 'react-router-dom';
 import { Landing } from '@/pages/Landing';
 import { Onboarding } from '@/pages/Onboarding';
@@ -50,81 +51,86 @@ const HelpCenterPage = lazy(() =>
 
 function App() {
   return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/" element={<Landing />} />
-        <Route path="/onboarding" element={<Onboarding />} />
-        {/* ARCHITECT: вход существующего пользователя — без шагов мастера */}
-        <Route
-          path="/login"
-          element={
-            <Suspense fallback={null}>
-              <Login />
-            </Suspense>
-          }
-        />
-        {/* ARCHITECT: центр помощи доступен и без авторизации, и из сайдбара */}
-        <Route
-          path="/help"
-          element={
-            <Suspense fallback={null}>
-              <HelpPage />
-            </Suspense>
-          }
-        />
-        {/* ARCHITECT: /session/new — тот же мастер в режиме session: репетитор и режим, потом чат */}
-        <Route path="/session/new" element={<Onboarding flow="session" />} />
-        {/* ARCHITECT: /listening — отложенная проверка аудирования в интерфейсе мастера, вне
-            приложения: полосы прогресса здесь нет, а возврат ведёт в «Обзор» */}
-        <Route path="/listening" element={<ListeningFlow />} />
-        <Route path="/app" element={<AppLayout />}>
-          <Route index element={<AppIndexRedirect />} />
-          <Route path="overview" element={<DashboardPage />} />
+    // ARCHITECT: reducedMotion="user" гасит только transform/layout-анимации, когда система
+    // просит меньше движения; opacity остаётся, поэтому появление элементов не исчезает.
+    // Существующие гейты useReducedMotion в компонентах не тронуты и продолжают работать.
+    <MotionConfig reducedMotion="user">
+      <BrowserRouter>
+        <Routes>
+          <Route path="/" element={<Landing />} />
+          <Route path="/onboarding" element={<Onboarding />} />
+          {/* ARCHITECT: вход существующего пользователя — без шагов мастера */}
           <Route
-            path="sessions"
+            path="/login"
             element={
-              <Suspense fallback={<SessionsSkeleton />}>
-                <SessionsPage />
+              <Suspense fallback={null}>
+                <Login />
               </Suspense>
             }
           />
-          <Route path="chat" element={<Navigate to="/app/sessions" replace />} />
-          <Route path="chat/:sessionId" element={<ChatPage />} />
+          {/* ARCHITECT: центр помощи доступен и без авторизации, и из сайдбара */}
           <Route
-            path="vocabulary"
+            path="/help"
             element={
-              <Suspense fallback={<VocabularySkeleton />}>
-                <VocabularyPage />
+              <Suspense fallback={null}>
+                <HelpPage />
               </Suspense>
             }
           />
-          <Route path="profile" element={<ProfilePage />} />
-          <Route
-            path="tutors"
-            element={
-              <Suspense fallback={<TutorsSkeleton />}>
-                <TutorsPage />
-              </Suspense>
-            }
-          />
-          <Route path="settings" element={<SettingsPage />} />
-          <Route path="billing" element={<BillingPage />} />
-          <Route path="admin" element={<AdminPage />} />
-          <Route
-            path="help"
-            element={
-              <Suspense fallback={<HelpSkeleton />}>
-                <HelpCenterPage />
-              </Suspense>
-            }
-          />
-        </Route>
-      </Routes>
-      {/* ARCHITECT: монтируется один раз в корне — работает и на лендинге, и внутри приложения */}
-      <ScrollToTopButton />
-      {/* ARCHITECT: тосты тоже живут в корне: сообщение должно быть видно на любом экране */}
-      <Toaster />
-    </BrowserRouter>
+          {/* ARCHITECT: /session/new — тот же мастер в режиме session: репетитор и режим, потом чат */}
+          <Route path="/session/new" element={<Onboarding flow="session" />} />
+          {/* ARCHITECT: /listening — отложенная проверка аудирования в интерфейсе мастера, вне
+              приложения: полосы прогресса здесь нет, а возврат ведёт в «Обзор» */}
+          <Route path="/listening" element={<ListeningFlow />} />
+          <Route path="/app" element={<AppLayout />}>
+            <Route index element={<AppIndexRedirect />} />
+            <Route path="overview" element={<DashboardPage />} />
+            <Route
+              path="sessions"
+              element={
+                <Suspense fallback={<SessionsSkeleton />}>
+                  <SessionsPage />
+                </Suspense>
+              }
+            />
+            <Route path="chat" element={<Navigate to="/app/sessions" replace />} />
+            <Route path="chat/:sessionId" element={<ChatPage />} />
+            <Route
+              path="vocabulary"
+              element={
+                <Suspense fallback={<VocabularySkeleton />}>
+                  <VocabularyPage />
+                </Suspense>
+              }
+            />
+            <Route path="profile" element={<ProfilePage />} />
+            <Route
+              path="tutors"
+              element={
+                <Suspense fallback={<TutorsSkeleton />}>
+                  <TutorsPage />
+                </Suspense>
+              }
+            />
+            <Route path="settings" element={<SettingsPage />} />
+            <Route path="billing" element={<BillingPage />} />
+            <Route path="admin" element={<AdminPage />} />
+            <Route
+              path="help"
+              element={
+                <Suspense fallback={<HelpSkeleton />}>
+                  <HelpCenterPage />
+                </Suspense>
+              }
+            />
+          </Route>
+        </Routes>
+        {/* ARCHITECT: монтируется один раз в корне — работает и на лендинге, и внутри приложения */}
+        <ScrollToTopButton />
+        {/* ARCHITECT: тосты тоже живут в корне: сообщение должно быть видно на любом экране */}
+        <Toaster />
+      </BrowserRouter>
+    </MotionConfig>
   );
 }
 

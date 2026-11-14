@@ -4,6 +4,7 @@
 // уезжает под клавиатуру при появлении экранной раскладки.
 
 import { useEffect, useRef, useState } from "react";
+import { useReducedMotion } from "framer-motion";
 import { Send } from "lucide-react";
 import { sendTicketMessage } from "@/api/support";
 import { toast } from "@/store/toast";
@@ -21,13 +22,15 @@ interface TicketThreadProps {
 }
 
 export function TicketThread({ ticket }: TicketThreadProps) {
+    const shouldReduceMotion = useReducedMotion();
     const [current, setCurrent] = useState(ticket);
     const [draft, setDraft] = useState("");
     const bottomRef = useRef<HTMLDivElement>(null);
 
+    // ARCHITECT: плавный автоскролл — движение, поэтому он же и учитывает настройку системы.
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: "smooth" });
-    }, [current.messages.length]);
+        bottomRef.current?.scrollIntoView({ behavior: shouldReduceMotion ? "auto" : "smooth" });
+    }, [current.messages.length, shouldReduceMotion]);
 
     const handleSend = () => {
         const text = draft.trim();
@@ -82,6 +85,9 @@ export function TicketThread({ ticket }: TicketThreadProps) {
                     onKeyDown={(event) => {
                         if (event.key === "Enter" && !event.shiftKey) {
                             event.preventDefault();
+                            // ARCHITECT: Enter подтверждает кандидата IME (CJK) — отправлять в этот
+                            // момент нельзя. keyCode 229 страхует Safari с его порядком событий.
+                            if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
                             handleSend();
                         }
                     }}

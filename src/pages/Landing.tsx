@@ -2,6 +2,7 @@
 // ARCHITECT: добавлен Footer. Порядок: Hero -> Features -> HowItWorks -> Pricing -> Faq -> Footer
 
 import { useEffect } from 'react';
+import { useReducedMotion } from 'framer-motion';
 import { Header } from '@/components/landing/Header';
 import { HeroSection } from '@/components/landing/HeroSection';
 import { FeaturesSection } from '@/components/landing/FeaturesSection';
@@ -12,6 +13,8 @@ import { Footer } from '@/components/landing/Footer';
 import { useDocumentTitle } from '@/hooks/useDocumentTitle';
 
 function useSmoothAnchorScroll(): void {
+    const shouldReduceMotion = useReducedMotion();
+
     useEffect(() => {
         const onClick = (event: MouseEvent): void => {
             const target = event.target;
@@ -29,12 +32,13 @@ function useSmoothAnchorScroll(): void {
             event.preventDefault();
             const HEADER_OFFSET_PX = 120;
             const top = section.getBoundingClientRect().top + window.scrollY - HEADER_OFFSET_PX;
-            window.scrollTo({ top, behavior: 'smooth' });
+            // ARCHITECT: плавный переход к секции — движение; при reduced motion прыгаем сразу.
+            window.scrollTo({ top, behavior: shouldReduceMotion ? 'auto' : 'smooth' });
         };
 
         document.addEventListener('click', onClick);
         return () => document.removeEventListener('click', onClick);
-    }, []);
+    }, [shouldReduceMotion]);
 }
 
 export function Landing() {

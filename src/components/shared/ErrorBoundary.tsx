@@ -1,0 +1,67 @@
+// ARCHITECT: Class component is required by React for componentDidCatch.
+// ARCHITECT: граница ставится выше BrowserRouter в App.tsx: если упадёт сам роутер или любая
+// страница, пользователь увидит этот экран вместо белого листа, а консоль — только в dev.
+
+import { Component, type ErrorInfo, type ReactNode } from "react";
+import { AlertTriangle } from "lucide-react";
+
+interface ErrorBoundaryProps {
+    children: ReactNode;
+}
+
+interface ErrorBoundaryState {
+    hasError: boolean;
+}
+
+export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundaryState> {
+    constructor(props: ErrorBoundaryProps) {
+        super(props);
+        this.state = { hasError: false };
+    }
+
+    static getDerivedStateFromError(): ErrorBoundaryState {
+        return { hasError: true };
+    }
+
+    // ARCHITECT: детали ошибки (стек, компонентный трассировщик) не показываются пользователю:
+    // это отладочная информация, ей место в консоли и только в dev-сборке.
+    componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
+        if (import.meta.env.DEV) {
+            console.error("[ErrorBoundary]", error, errorInfo.componentStack);
+        }
+    }
+
+    private readonly handleReload = (): void => {
+        window.location.reload();
+    };
+
+    render(): ReactNode {
+        if (this.state.hasError) {
+            return (
+                <div className="flex min-h-screen flex-col items-center justify-center bg-black px-6 text-center">
+                    <div className="flex max-w-md flex-col items-center rounded-2xl border border-white/10 bg-white/5 p-10 backdrop-blur-xl">
+                        <span className="flex size-14 items-center justify-center rounded-full border border-white/10 bg-white/5">
+                            <AlertTriangle className="size-6 text-white/70" aria-hidden="true" />
+                        </span>
+                        <h1 className="mt-6 text-xl font-semibold text-white">
+                            Что-то пошло не так
+                        </h1>
+                        <p className="mt-2 text-sm leading-relaxed text-white/50">
+                            Непредвиденная ошибка интерфейса. Перезагрузите страницу — обычно
+                            этого достаточно.
+                        </p>
+                        <button
+                            type="button"
+                            onClick={this.handleReload}
+                            className="mt-8 inline-flex h-10 items-center justify-center rounded-md border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
+                        >
+                            Перезагрузить страницу
+                        </button>
+                    </div>
+                </div>
+            );
+        }
+
+        return this.props.children;
+    }
+}

@@ -3,10 +3,10 @@
 // поэтому обе точки входа ведут себя одинаково, а вызывающий решает только маршрут после успеха.
 
 import { useState, type FormEvent } from "react";
-import { ArrowRight, Eye, EyeOff, Loader2 } from "lucide-react";
+import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/onboarding/TextField";
-import { PasswordStrengthMeter } from "@/components/onboarding/PasswordStrengthMeter";
+import { PasswordField } from "@/components/auth/PasswordField";
 import { GoogleAuthButton } from "@/components/onboarding/GoogleAuthButton";
 import { AuthModeTabs, type AuthMode } from "@/components/onboarding/AuthModeTabs";
 import { useAuthStore } from "@/store/auth";
@@ -24,8 +24,6 @@ export interface AuthFormProps {
     showTabs?: boolean;
 }
 
-const EYE_BUTTON = "flex size-11 items-center justify-center text-[#f0f0f5]/40 transition-colors hover:text-[#f0f0f5]/70";
-
 export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true }: AuthFormProps) {
     const signIn = useAuthStore((state) => state.signIn);
     const signUp = useAuthStore((state) => state.signUp);
@@ -33,7 +31,6 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
 
     const [values, setValues] = useState({ name: "", email: "", password: "" });
     const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
-    const [showPassword, setShowPassword] = useState(false);
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // ARCHITECT: смена таба сбрасывает ошибки предыдущего режима, но не введённые значения.
@@ -103,29 +100,18 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
                     onChange={(value) => setValue("email", value)} onBlur={() => handleBlur("email")}
                 />
 
-                <div>
-                    <TextField
-                        id="auth-password" name="password" required label="Пароль" placeholder="Минимум 8 символов"
-                        type={showPassword ? "text" : "password"}
-                        autoComplete={mode === "register" ? "new-password" : "current-password"}
-                        value={values.password} error={errors.password}
-                        onChange={(value) => setValue("password", value)} onBlur={() => handleBlur("password")}
-                    >
-                        <button
-                            type="button"
-                            onClick={() => setShowPassword(!showPassword)}
-                            aria-label={showPassword ? "Скрыть пароль" : "Показать пароль"}
-                            className={EYE_BUTTON}
-                        >
-                            {showPassword ? (
-                                <EyeOff className="size-4" aria-hidden="true" />
-                            ) : (
-                                <Eye className="size-4" aria-hidden="true" />
-                            )}
-                        </button>
-                    </TextField>
-                    {mode === "register" && <PasswordStrengthMeter password={values.password} />}
-                </div>
+                {/* ARCHITECT: поле пароля вместе с метром силы и ссылкой восстановления переехало
+                    в PasswordField: форма с ним внутри переваливает за лимит 150 строк (rules 5.2),
+                    а сам блок отвечает за три разные вещи и в форме только мешал чтению. */}
+                <PasswordField
+                    id="auth-password"
+                    name="password"
+                    mode={mode}
+                    value={values.password}
+                    error={errors.password}
+                    onChange={(value) => setValue("password", value)}
+                    onBlur={() => handleBlur("password")}
+                />
 
                 <Button type="submit" disabled={isSubmitting} className={cn(PRIMARY_BUTTON, "w-full")}>
                     {isSubmitting ? "Проверяем…" : "Продолжить"}

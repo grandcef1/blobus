@@ -11,6 +11,9 @@ import { Landing } from '@/pages/Landing';
 import { Onboarding } from '@/pages/Onboarding';
 import { ListeningFlow } from '@/pages/ListeningFlow';
 import { AppLayout } from '@/pages/AppLayout';
+import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
+import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
+import { NotFoundPage } from '@/pages/NotFoundPage';
 import { DashboardPage } from '@/pages/dashboard/DashboardPage';
 import { ChatPage } from '@/pages/dashboard/ChatPage';
 import { ProfilePage } from '@/pages/dashboard/ProfilePage';
@@ -55,7 +58,10 @@ function App() {
     // просит меньше движения; opacity остаётся, поэтому появление элементов не исчезает.
     // Существующие гейты useReducedMotion в компонентах не тронуты и продолжают работать.
     <MotionConfig reducedMotion="user">
-      <BrowserRouter>
+      {/* ARCHITECT: граница ошибок охватывает весь роутинг: падение любой страницы или самого
+          BrowserRouter уходит на экран ErrorBoundary, а не на белый лист. */}
+      <ErrorBoundary>
+        <BrowserRouter>
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/onboarding" element={<Onboarding />} />
@@ -82,7 +88,17 @@ function App() {
           {/* ARCHITECT: /listening — отложенная проверка аудирования в интерфейсе мастера, вне
               приложения: полосы прогресса здесь нет, а возврат ведёт в «Обзор» */}
           <Route path="/listening" element={<ListeningFlow />} />
-          <Route path="/app" element={<AppLayout />}>
+          {/* ARCHITECT: защита ставится над самим AppLayout, а не над каждой вложенной
+              страницей: один узел покрывает все дочерние маршруты /app/* и не позволяет
+              забыть обёртку при добавлении нового экрана. */}
+          <Route
+            path="/app"
+            element={
+              <ProtectedRoute>
+                <AppLayout />
+              </ProtectedRoute>
+            }
+          >
             <Route index element={<AppIndexRedirect />} />
             <Route path="overview" element={<DashboardPage />} />
             <Route
@@ -124,12 +140,16 @@ function App() {
               }
             />
           </Route>
+          {/* ARCHITECT: catch-all ставится последним: любой неизвестный путь внутри SPA
+              попадает на брендированную 404 вместо пустого экрана. */}
+          <Route path="*" element={<NotFoundPage />} />
         </Routes>
         {/* ARCHITECT: монтируется один раз в корне — работает и на лендинге, и внутри приложения */}
         <ScrollToTopButton />
         {/* ARCHITECT: тосты тоже живут в корне: сообщение должно быть видно на любом экране */}
         <Toaster />
-      </BrowserRouter>
+        </BrowserRouter>
+      </ErrorBoundary>
     </MotionConfig>
   );
 }

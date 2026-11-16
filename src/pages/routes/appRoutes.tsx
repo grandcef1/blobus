@@ -7,7 +7,6 @@
 
 import { Suspense } from 'react';
 import { Navigate, Route } from 'react-router-dom';
-import { AppLayout } from '@/pages/AppLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import { AppIndexRedirect } from '@/pages/dashboard/AppIndexRedirect';
@@ -20,8 +19,10 @@ import { VocabularySkeleton } from '@/components/dashboard/skeletons/VocabularyS
 import { ChatSkeleton } from '@/components/dashboard/skeletons/ChatSkeleton';
 import { ProfileSkeleton } from '@/components/dashboard/skeletons/ProfileSkeleton';
 import { SettingsSkeleton } from '@/components/dashboard/skeletons/SettingsSkeleton';
+import { AppShellSkeleton } from '@/components/dashboard/skeletons/AppShellSkeleton';
 import {
   AdminPage,
+  AppLayout,
   BillingPage,
   ChatPage,
   DashboardPage,
@@ -33,12 +34,16 @@ import {
   VocabularyPage,
 } from './appLazy';
 
+// ARCHITECT: оболочка панели ленива, поэтому посетитель лендинга её код не скачивает; гейт
+// авторизации стоит до Suspense, и неавторизованный посетитель чанк оболочки не запрашивает.
 export const appRoutes = (
   <Route
     path="/app"
     element={
       <ProtectedRoute>
-        <AppLayout />
+        <Suspense fallback={<AppShellSkeleton />}>
+          <AppLayout />
+        </Suspense>
       </ProtectedRoute>
     }
   >

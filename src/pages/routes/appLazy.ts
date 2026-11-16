@@ -45,3 +45,7 @@ export const ProfilePage = lazy(() =>
 export const SettingsPage = lazy(() =>
   import('@/pages/dashboard/SettingsPage').then((module) => ({ default: module.SettingsPage }))
 );
+
+export const AppLayout = lazy(() =>
+  import('@/pages/AppLayout').then((module) => ({ default: module.AppLayout }))
+);

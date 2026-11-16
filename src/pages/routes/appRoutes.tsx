@@ -1,4 +1,3 @@
-/* eslint-disable react-refresh/only-export-components -- дерево маршрутов отдаётся константой, а не компонентом, поэтому правило про fast-refresh тут неприменимо */
 // ARCHITECT: маршруты приложения. /app/chat без id ведёт в раздел «Сессии», а /app открывает
 // последнюю сессию или список сессий: у каждого пути ровно один экран, и вход в приложение не
 // оставляет пользователя на пустом чате. Ленивые маршруты обёрнуты в Suspense: без границы React
@@ -6,49 +5,33 @@
 // ARCHITECT: fallback у каждого ленивого маршрута — скелетон его раскладки: белый лист на время
 // загрузки чанка читается как сбой, а скелетон показывает, что экран уже открывается.
 
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { Navigate, Route } from 'react-router-dom';
 import { AppLayout } from '@/pages/AppLayout';
 import { ProtectedRoute } from '@/components/auth/ProtectedRoute';
 import { AdminRoute } from '@/components/auth/AdminRoute';
 import { AppIndexRedirect } from '@/pages/dashboard/AppIndexRedirect';
-import { DashboardPage } from '@/pages/dashboard/DashboardPage';
-import { ChatPage } from '@/pages/dashboard/ChatPage';
-import { ProfilePage } from '@/pages/dashboard/ProfilePage';
-import { SettingsPage } from '@/pages/dashboard/SettingsPage';
 import { HelpSkeleton } from '@/components/dashboard/skeletons/HelpSkeleton';
 import { BillingSkeleton } from '@/components/dashboard/skeletons/BillingSkeleton';
 import { OverviewSkeleton } from '@/components/dashboard/skeletons/OverviewSkeleton';
 import { SessionsSkeleton } from '@/components/dashboard/skeletons/SessionsSkeleton';
 import { TutorsSkeleton } from '@/components/dashboard/skeletons/TutorsSkeleton';
 import { VocabularySkeleton } from '@/components/dashboard/skeletons/VocabularySkeleton';
-
-const VocabularyPage = lazy(() =>
-  import('@/pages/dashboard/VocabularyPage').then((module) => ({ default: module.VocabularyPage }))
-);
-
-const SessionsPage = lazy(() =>
-  import('@/pages/dashboard/SessionsPage').then((module) => ({ default: module.SessionsPage }))
-);
-
-const TutorsPage = lazy(() =>
-  import('@/pages/dashboard/TutorsPage').then((module) => ({ default: module.TutorsPage }))
-);
-
-// ARCHITECT: «Подписка» ленива, как остальные разделы панели: страница тянет query-слой и Radix
-// AlertDialog, а на первом экране приложения они не нужны.
-const BillingPage = lazy(() =>
-  import('@/pages/dashboard/BillingPage').then((module) => ({ default: module.BillingPage }))
-);
-
-const HelpCenterPage = lazy(() =>
-  import('@/pages/dashboard/HelpCenterPage').then((module) => ({ default: module.HelpCenterPage }))
-);
-
-// ARCHITECT: админ-панель грузится лениво: обычный пользователь её чанк не скачивает вовсе.
-const AdminPage = lazy(() =>
-  import('@/pages/dashboard/AdminPage').then((module) => ({ default: module.AdminPage }))
-);
+import { ChatSkeleton } from '@/components/dashboard/skeletons/ChatSkeleton';
+import { ProfileSkeleton } from '@/components/dashboard/skeletons/ProfileSkeleton';
+import { SettingsSkeleton } from '@/components/dashboard/skeletons/SettingsSkeleton';
+import {
+  AdminPage,
+  BillingPage,
+  ChatPage,
+  DashboardPage,
+  HelpCenterPage,
+  ProfilePage,
+  SessionsPage,
+  SettingsPage,
+  TutorsPage,
+  VocabularyPage,
+} from './appLazy';
 
 export const appRoutes = (
   <Route
@@ -60,7 +43,14 @@ export const appRoutes = (
     }
   >
     <Route index element={<AppIndexRedirect />} />
-    <Route path="overview" element={<DashboardPage />} />
+    <Route
+      path="overview"
+      element={
+        <Suspense fallback={<OverviewSkeleton />}>
+          <DashboardPage />
+        </Suspense>
+      }
+    />
     <Route
       path="sessions"
       element={
@@ -70,7 +60,14 @@ export const appRoutes = (
       }
     />
     <Route path="chat" element={<Navigate to="/app/sessions" replace />} />
-    <Route path="chat/:sessionId" element={<ChatPage />} />
+    <Route
+      path="chat/:sessionId"
+      element={
+        <Suspense fallback={<ChatSkeleton />}>
+          <ChatPage />
+        </Suspense>
+      }
+    />
     <Route
       path="vocabulary"
       element={
@@ -79,7 +76,14 @@ export const appRoutes = (
         </Suspense>
       }
     />
-    <Route path="profile" element={<ProfilePage />} />
+    <Route
+      path="profile"
+      element={
+        <Suspense fallback={<ProfileSkeleton />}>
+          <ProfilePage />
+        </Suspense>
+      }
+    />
     <Route
       path="tutors"
       element={
@@ -88,7 +92,14 @@ export const appRoutes = (
         </Suspense>
       }
     />
-    <Route path="settings" element={<SettingsPage />} />
+    <Route
+      path="settings"
+      element={
+        <Suspense fallback={<SettingsSkeleton />}>
+          <SettingsPage />
+        </Suspense>
+      }
+    />
     <Route
       path="billing"
       element={

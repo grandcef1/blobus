@@ -12,6 +12,7 @@
 
 import { useEffect, useState } from "react";
 import { useReducedMotion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { EnhancedChatSession, QuizContent, QuizOption } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
@@ -20,21 +21,15 @@ import { QuizOptionButton } from "@/components/shared/QuizOptionButton";
 import type { QuizOptionState } from "@/components/shared/QuizOptionButton";
 import { cn } from "@/lib/utils";
 import { QuizFeedback } from "./QuizFeedback";
+import { AUTHOR_NAME, CELEBRATION_MS, CELEBRATION_REDUCED_MS, LETTERS_KEYS, REVEAL_AFTER_WRONG } from "./quizConstants";
 
 interface QuizCardProps {
     quiz?: QuizContent;
     session: EnhancedChatSession;
 }
 
-const LETTERS = ["А", "Б", "В", "Г"];
-const AUTHOR_NAME = "mb-1 text-xs font-medium text-[#f0f0f5]/60";
-/** Сколько промахов подряд открывают верный вариант. */
-const REVEAL_AFTER_WRONG = 2;
-/** Полный срок поздравления: короткий импульс, а не экран. */
-const CELEBRATION_MS = 1100;
-const CELEBRATION_REDUCED_MS = 700;
-
 export function QuizCard({ quiz, session }: QuizCardProps) {
+    const { t } = useTranslation("chat");
     const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
     const [wrongAttempts, setWrongAttempts] = useState(0);
     const [isCelebrating, setIsCelebrating] = useState(false);
@@ -70,10 +65,10 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
         if (!isSolved) return "";
         if (isCorrect) return correctOption?.explanation ?? "";
         if (isRevealed) {
-            return `Верный ответ — «${correctOption?.text}». ${correctOption?.explanation ?? ""}`.trim();
+            return t("quiz.correctAnswer", { answer: correctOption?.text ?? "", explanation: correctOption?.explanation ?? "" }).trim();
         }
 
-        return "Неверно. Попробуйте снова.";
+        return t("quiz.incorrect");
     };
 
     const handleSelect = (optionId: string) => {
@@ -115,23 +110,26 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
                         )}
                     >
                         <p className="text-[11px] uppercase tracking-wider text-indigo-300/70">
-                            Викторина
+                            {t("quiz.title")}
                         </p>
                         <p className="mt-3 text-[15px] leading-[1.6] text-[#f0f0f5]/90 md:text-base">
                             {quiz.question}
                         </p>
 
-                        <div className="mt-4 flex flex-col gap-2" role="group" aria-label="Варианты ответа">
-                            {quiz.options.map((option, index) => (
-                                <QuizOptionButton
-                                    key={option.id}
-                                    marker={LETTERS[index] ?? ""}
-                                    text={option.text}
-                                    state={stateFor(option)}
-                                    disabled={isSolved}
-                                    onSelect={() => handleSelect(option.id)}
-                                />
-                            ))}
+                        <div className="mt-4 flex flex-col gap-2" role="group" aria-label={t("quiz.optionsLabel")}>
+                            {quiz.options.map((option, index) => {
+                                const letterKey = LETTERS_KEYS[index];
+                                return (
+                                    <QuizOptionButton
+                                        key={option.id}
+                                        marker={letterKey ? t(letterKey) : ""}
+                                        text={option.text}
+                                        state={stateFor(option)}
+                                        disabled={isSolved}
+                                        onSelect={() => handleSelect(option.id)}
+                                    />
+                                );
+                            })}
                         </div>
 
                         <QuizFeedback

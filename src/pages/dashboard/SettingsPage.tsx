@@ -8,6 +8,8 @@ import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { fetchSettings } from "@/api/settings";
 import { useMockQuery } from "@/hooks/useMockQuery";
+import { SUPPORTED_LANGUAGES } from "@/lib/i18n";
+import { useLanguageStore } from "@/store/language";
 import { SettingSelect } from "@/components/dashboard/SettingSelect";
 import { SettingToggle } from "@/components/dashboard/SettingToggle";
 import { SettingsSkeleton } from "@/components/dashboard/skeletons/SettingsSkeleton";
@@ -15,6 +17,10 @@ import type { SettingsState } from "@/types/settings";
 
 export function SettingsPage() {
     const { t } = useTranslation("dashboard");
+    // ARCHITECT: язык интерфейса управляется общим стором (как футер-переключатель), а не муляжом
+    // настроек, поэтому смена сразу применяет переводы и сохраняется в localStorage.
+    const currentLang = useLanguageStore((state) => state.lang);
+    const setLanguage = useLanguageStore((state) => state.setLanguage);
     const { data, isLoading } = useMockQuery(fetchSettings);
     const [settings, setSettings] = useState<SettingsState | null>(null);
     const [seededFrom, setSeededFrom] = useState<SettingsState | null>(null);
@@ -110,8 +116,11 @@ export function SettingsPage() {
                             />
                             <SettingSelect
                                 label={t("settings.preferences.language.label")}
-                                value={settings.preferences.language}
-                                onChange={(value) => updatePreference("language", value)}
+                                value={currentLang}
+                                onChange={(value) => {
+                                    const next = SUPPORTED_LANGUAGES.find((code) => code === value);
+                                    if (next) setLanguage(next);
+                                }}
                                 options={[
                                     { value: "ru", label: t("settings.preferences.language.ru") },
                                     { value: "en", label: t("settings.preferences.language.en") },

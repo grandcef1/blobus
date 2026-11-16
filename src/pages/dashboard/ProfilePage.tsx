@@ -5,6 +5,7 @@
 
 import { motion } from "framer-motion";
 import { Award, BookOpen, Calendar } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { fetchProfileUser } from "@/api/profile";
 import { fetchUserProgress } from "@/api/progress";
 import { fetchPlacementResult } from "@/api/placement";
@@ -29,6 +30,7 @@ async function loadProfile() {
 }
 
 export function ProfilePage() {
+    const { t } = useTranslation("dashboard");
     const { data, isLoading } = useMockQuery(loadProfile);
     // ARCHITECT: статус подтверждения почты живёт в auth-store, поэтому хук вызывается до раннего
     // возврата скелетона: иначе порядок хуков менялся бы между рендерами.
@@ -49,10 +51,10 @@ export function ProfilePage() {
         {
             id: "achievements",
             icon: Award,
-            label: "Достижения",
+            label: t("profile.stats.achievements"),
             value: String(progress.achievements.filter((item) => item.unlockedAt).length),
         },
-        { id: "words", icon: BookOpen, label: "Всего слов", value: String(totalWords) },
+        { id: "words", icon: BookOpen, label: t("profile.stats.words"), value: String(totalWords) },
     ];
 
     const modeProgress = Object.entries(progress.modeProgress) as [
@@ -69,7 +71,7 @@ export function ProfilePage() {
                     transition={{ duration: 0.2 }}
                     className="mb-5"
                 >
-                    <h1 className="text-xl font-semibold text-[#f0f0f5]">Профиль</h1>
+                    <h1 className="text-xl font-semibold text-[#f0f0f5]">{t("profile.title")}</h1>
                 </motion.header>
 
                 <div className="space-y-4">
@@ -125,7 +127,7 @@ export function ProfilePage() {
                         className="rounded-2xl bg-[#111113] p-4 md:p-5"
                     >
                         <h2 id="profile-modes-title" className="mb-4 text-base font-medium text-[#f0f0f5]/80">
-                            Прогресс по направлениям
+                            {t("profile.modes.title")}
                         </h2>
                         <div className="grid grid-cols-1 gap-3 md:grid-cols-2">
                             {modeProgress.map(([modeId, modeData]) => (

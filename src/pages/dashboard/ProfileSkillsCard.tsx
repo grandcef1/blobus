@@ -5,6 +5,7 @@
 // поэтому скелетон страницы закрывает и навыки.
 
 import { TrendingUp } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import { LEVEL_DESCRIPTIONS } from "@/lib/placement";
 import type { PlacementResult } from "@/types/placement";
@@ -21,31 +22,32 @@ interface SkillRow {
 }
 
 export function ProfileSkillsCard({ result }: ProfileSkillsCardProps) {
+    const { t } = useTranslation("dashboard");
     const level = MOCK_USER_PROGRESS.currentLevel;
     const overall = result?.overall ?? level;
     const listening = result?.listening ?? null;
 
     const rows: readonly SkillRow[] = [
-        { id: "overall", label: "Общий", value: overall, hint: LEVEL_DESCRIPTIONS[overall] },
+        { id: "overall", label: t("profile.skills.overall"), value: overall, hint: LEVEL_DESCRIPTIONS[overall] },
         {
             id: "grammar",
-            label: "Грамматика",
+            label: t("profile.skills.grammar"),
             value: result?.grammar ?? level,
             hint: LEVEL_DESCRIPTIONS[result?.grammar ?? level],
         },
         {
             id: "speaking",
-            label: "Разговорная практика",
+            label: t("profile.skills.speaking"),
             value: result?.speaking ?? level,
             hint: LEVEL_DESCRIPTIONS[result?.speaking ?? level],
         },
         {
             id: "listening",
-            label: "Аудирование",
-            value: listening ?? "не проверено",
+            label: t("profile.skills.listening"),
+            value: listening ?? t("profile.skills.notChecked"),
             hint: listening
                 ? LEVEL_DESCRIPTIONS[listening]
-                : "Проверка на понимание на слух — карточка в «Обзоре».",
+                : t("profile.skills.listeningHint"),
         },
     ];
 
@@ -56,7 +58,7 @@ export function ProfileSkillsCard({ result }: ProfileSkillsCardProps) {
                 className="flex items-center gap-2 text-base font-medium text-[#f0f0f5]/80"
             >
                 <TrendingUp className="size-4 text-[#f0f0f5]/60" strokeWidth={1.5} aria-hidden="true" />
-                Уровень по навыкам
+                {t("profile.skills.title")}
             </h2>
 
             <dl className="mt-4 flex flex-col">

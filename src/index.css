@@ -32,6 +32,9 @@
         max-width: 100%;
         overflow-x: hidden;
         background-color: #000000;
+        /* ARCHITECT: цвет фона и текста переехал сюда из inline <style> в index.html: инлайновая
+           тема дублировала этот слой и мешала CSP без 'unsafe-inline' для стилей. */
+        color: #f0f0f5;
     }
 
     #root {

@@ -1,4 +1,6 @@
 import { Menu } from "lucide-react";
+import { useNavigate } from 'react-router-dom';
+import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
 import {
@@ -10,19 +12,20 @@ import {
     SheetTitle,
     SheetTrigger,
 } from "@/components/ui/sheet";
-// ARCHITECT: единый источник навигации — якоря для плавного скролла.
+
+// ARCHITECT: единый источник навигации — якоря для плавного скролла; подписи лежат ключами в
+// словаре landing, поэтому шапка переводится вместе со страницей.
 const NAV_LINKS = [
-    { label: "Возможности", href: "#features" },
-    { label: "Как работает", href: "#how-it-works" },
-    { label: "Тарифы", href: "#pricing" },
-    { label: "FAQ", href: "#faq" },
+    { labelKey: "nav.features", href: "#features" },
+    { labelKey: "nav.howItWorks", href: "#how-it-works" },
+    { labelKey: "nav.pricing", href: "#pricing" },
+    { labelKey: "nav.faq", href: "#faq" },
 ] as const;
-
-import { useNavigate } from 'react-router-dom';
-
 
 export function Header() {
     const navigate = useNavigate();
+    const { t } = useTranslation("landing");
+    const { t: tCommon } = useTranslation("common");
 
     // Добавь обработчики:
     const handleLogin = () => {
@@ -43,14 +46,14 @@ export function Header() {
                 <a
                     href="/"
                     className="font-bold text-xl text-[#f0f0f5] hover:text-white transition-colors"
-                    aria-label="Перейти на главную страницу"
+                    aria-label={tCommon('a11y.homeLink')}
                 >
                     Blobus
                 </a>
 
                 {/* ARCHITECT: десктопная навигация — скрыта на мобильных, видна с md */}
                 <nav
-                    aria-label="Основная навигация"
+                    aria-label={tCommon('a11y.mainNav')}
                     className="hidden items-center gap-8 md:flex"
                 >
                     {NAV_LINKS.map((link) => (
@@ -59,7 +62,7 @@ export function Header() {
                             href={link.href}
                             className="text-sm text-[#f0f0f5]/70 transition-colors hover:text-white"
                         >
-                            {link.label}
+                            {t(link.labelKey)}
                         </a>
                     ))}
                 </nav>
@@ -71,13 +74,13 @@ export function Header() {
                         onClick={handleLogin}
                         className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-white"
                     >
-                        Войти
+                        {tCommon('actions.login')}
                     </Button>
                     <Button
                         onClick={handleGetStarted}
                         className="rounded-full shadow-none bg-[#f0f0f5] text-black hover:bg-white"
                     >
-                        Начать
+                        {tCommon('actions.start')}
                     </Button>
                 </div>
 
@@ -87,7 +90,7 @@ export function Header() {
                         <Button
                             variant="ghost"
                             size="icon"
-                            aria-label="Открыть меню"
+                            aria-label={tCommon('a11y.openMenu')}
                             className="text-[#f0f0f5] hover:bg-white/10 hover:text-white md:hidden"
                         >
                             <Menu aria-hidden="true" />
@@ -96,11 +99,11 @@ export function Header() {
                     <SheetContent side="right" className="w-72 sm:w-72">
                         <SheetHeader>
                             <SheetTitle>Blobus</SheetTitle>
-                            <SheetDescription>Навигация по сайту</SheetDescription>
+                            <SheetDescription>{tCommon('a11y.siteNav')}</SheetDescription>
                         </SheetHeader>
 
                         <nav
-                            aria-label="Мобильная навигация"
+                            aria-label={tCommon('a11y.mobileNav')}
                             className="flex flex-col gap-1 px-4"
                         >
                             {NAV_LINKS.map((link) => (
@@ -110,7 +113,7 @@ export function Header() {
                                         href={link.href}
                                         className="rounded-xl px-3 py-2.5 text-base text-[#f0f0f5]/80 transition-colors hover:bg-white/5 hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]/60"
                                     >
-                                        {link.label}
+                                        {t(link.labelKey)}
                                     </a>
                                 </SheetClose>
                             ))}
@@ -123,14 +126,14 @@ export function Header() {
                                 onClick={handleGetStarted}
                                 className="w-full rounded-full bg-[#f0f0f5] text-black shadow-none hover:bg-white"
                             >
-                                Начать
+                                {tCommon('actions.start')}
                             </Button>
                             <Button
                                 variant="outline"
                                 onClick={handleLogin}
                                 className="w-full rounded-full border border-white/20 bg-transparent text-[#f0f0f5] shadow-none hover:bg-white/5 hover:text-white"
                             >
-                                Войти
+                                {tCommon('actions.login')}
                             </Button>
                         </div>
                     </SheetContent>

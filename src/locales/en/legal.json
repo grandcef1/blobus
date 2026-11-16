@@ -1,0 +1,210 @@
+{
+  "legal": {
+    "layout": {
+      "home": "Back to home",
+      "effective": "Effective date: {{date}}",
+      "contactLabel": "Data enquiries:",
+      "navLabel": "Other documents",
+      "nav": {
+        "privacy": "Privacy",
+        "terms": "Terms of use",
+        "cookies": "Cookies & storage"
+      }
+    },
+    "processors": {
+      "title": "Who else processes your data",
+      "intro": "Blobus runs on third-party services. Below is who receives data, what for and from when. None of them ever receives your password.",
+      "status": {
+        "now": "Already in use",
+        "later": "Once the feature launches"
+      },
+      "items": {
+        "vercel": {
+          "purpose": "Hosting for the website and app, plus server request logs."
+        },
+        "supabase": {
+          "purpose": "Storage of accounts and learning progress, sign-in."
+        },
+        "openai": {
+          "purpose": "Processing exercise texts and chat messages to generate the tutor's reply and check your work. Requests go through our backend."
+        },
+        "sentry": {
+          "purpose": "Technical error reports — enabled only with your consent."
+        },
+        "vercelAnalytics": {
+          "purpose": "Anonymous visit and performance statistics — only with your consent."
+        },
+        "payments": {
+          "brand": "Payment provider (to be confirmed)",
+          "purpose": "Processing payments for paid plans once they launch.",
+          "note": "A provider available in Belarus will be named before paid plans go live. Stripe is not used."
+        }
+      }
+    },
+    "privacy": {
+      "metaTitle": "Privacy Policy",
+      "title": "Privacy Policy",
+      "intro": "This page explains what data Blobus collects, why, who it is shared with, and how you can control it. As brief and as free of legalese as such a document can be.",
+      "sections": {
+        "who": {
+          "title": "Who we are",
+          "body": "The data controller is {{operator}}. There is no legal entity behind the project: Blobus is a study project built by a single developer.\n\nWe process data under Law No. 99-Z of the Republic of Belarus “On Personal Data Protection”, which rests on the data subject's consent. For users in the European Union, the GDPR applies as well.\n\nFor any questions about your data, write to {{email}}."
+        },
+        "what": {
+          "title": "What data we collect",
+          "body": "At sign-up: your name and email address. Your password is stored only as a hash and we cannot read it.\n\nWhile you learn: exercise texts and chat messages with the tutor, check results and progress. Without them the service could neither explain a mistake nor show what you have already mastered.\n\nTechnical data: IP address, browser details and server request logs — needed to keep the service running and protected from abuse.\n\nYour browser's local storage holds the sign-in session, the interface language you chose and your analytics consent decision."
+        },
+        "why": {
+          "title": "Why we process it",
+          "body": "To run the service: account, lessons, progress and settings.\n\nTo answer your emails and investigate when something breaks.\n\nTo improve quality: to see which exercises cause trouble and which AI mistakes happen more often.\n\nTo protect the service: to notice hacking attempts, spam and overload."
+        },
+        "basis": {
+          "title": "Our legal basis",
+          "body": "The basis is your consent. You give it at sign-up: without it neither an account nor learning is possible.\n\nAnalytics and error reporting need separate consent, given in the banner on your first visit. Until then those services are not loaded at all.\n\nYou can withdraw consent at any time by writing to {{email}}: processing stops and the data is deleted at your request."
+        },
+        "ai": {
+          "title": "How exercise texts are processed",
+          "body": "When you do an exercise or write in the chat, the task text and your answer are sent to an AI provider through our backend: that is how the tutor's reply and the check are produced. At the AI launch stage this provider is OpenAI.\n\nPasswords are never sent to the AI provider. The current list of recipients is in the table below."
+        },
+        "storage": {
+          "title": "Where the data is stored",
+          "body": "The website and the app run on Vercel hosting, which also keeps the technical logs.\n\nAccounts and learning progress will move to Supabase when the backend launches. Until then, progress is stored in your browser."
+        },
+        "processors": {
+          "title": "Who else processes your data",
+          "body": "Processors receive data on our instruction and may not use it for their own purposes."
+        },
+        "transfer": {
+          "title": "Cross-border transfer",
+          "body": "The services Blobus runs on are located outside the Republic of Belarus, so data is transferred abroad — otherwise the service could not work.\n\nYou consent to that transfer at sign-up and in the consent banner. The recipients are listed in the table above."
+        },
+        "cookies": {
+          "title": "Cookies and local storage",
+          "body": "Functional records are needed for sign-in, your language choice and remembering your decision — they always work.\n\nAnalytics and error reporting are enabled only with your consent and are off by default."
+        },
+        "reports": {
+          "title": "Technical error reports",
+          "body": "When the interface crashes, the app sends failure details to our own server: the error message, the stack and the page address. This report goes to our own server, is needed for the service to keep working and stay secure, does not involve third-party services and therefore needs no separate consent.\n\nBefore sending, email addresses and URL query parameters are stripped from the report. The content of your chat with the tutor, the text you type and your password are never transmitted.\n\nError reports to a third-party service (Sentry) and anonymised statistics (Vercel Analytics and Speed Insights) work only after consent in the banner and are off by default."
+        },
+        "rights": {
+          "title": "Your rights",
+          "body": "You can request access to your data, correct it, delete it, get a machine-readable copy, or withdraw consent. To do so, write to {{email}} from the address your account is registered to.\n\nWe reply within a reasonable time — usually within a month. If a request takes longer, we will tell you why."
+        },
+        "children": {
+          "title": "Users under 18",
+          "body": "Blobus is aimed at an adult audience. If you are under 18, you may use the service only with the consent of a parent or legal guardian.\n\nIf such data reached us without consent, write to {{email}} and we will delete the account."
+        },
+        "retention": {
+          "title": "How long we keep data",
+          "body": "Account data and progress are kept while the account is active and for a reasonable period after deletion: so that you can restore access, and we do not lose the history of disputed cases.\n\nHosting logs live for a limited time set by the provider. Analytics data is anonymised and cannot be traced back to an individual."
+        },
+        "changes": {
+          "title": "Changes to this policy",
+          "body": "The effective date is updated with every edit and is always shown at the top of the page. We will announce material changes — a new data processor, for example — in the interface or by email."
+        }
+      }
+    },
+    "terms": {
+      "metaTitle": "Terms of Use",
+      "title": "Terms of Use",
+      "intro": "The rules Blobus runs on: what the service is, what you may and may not do, and what happens to your content and your account.",
+      "sections": {
+        "service": {
+          "title": "What Blobus is",
+          "body": "Blobus is an AI English tutor. It is a study project built by a single developer, not a company with a support team and lawyers.\n\nThe service is provided “as is”. We aim for stable operation, but we do not promise uninterrupted access and we do not guarantee that AI answers are accurate."
+        },
+        "ai": {
+          "title": "The AI can be wrong",
+          "body": "The tutor is built on a language model: it may explain a rule imprecisely, invent an example, or check your work incorrectly.\n\nBlobus answers are learning material, not professional advice. Do not make medical, legal or financial decisions based on them."
+        },
+        "account": {
+          "title": "Your account",
+          "body": "One account per person. Please give accurate details: we send replies to data requests and important notices to that address.\n\nKeeping your password safe is your responsibility. We store only its hash, so we cannot recover your password and will never ask for it by email."
+        },
+        "forbidden": {
+          "title": "What is not allowed",
+          "body": "You may not use the service for spam or bulk mailings, try to access other people's accounts or data, break or overload the API with automated requests, scrape the service with bots, or publish unlawful content.\n\nIf these rules are broken, we may restrict access to the account."
+        },
+        "content": {
+          "title": "Your content",
+          "body": "The texts you write in exercises and in the chat remain yours.\n\nYou allow us to process them so the service can work: generate a reply, check your work, save your progress. We do not use your texts for anything else."
+        },
+        "payment": {
+          "title": "Payment",
+          "body": "The service is free today.\n\nPaid plans will come later, and payment will go through a payment provider available in the Republic of Belarus (Stripe is not used). We will publish the payment and refund terms before sales start: you will only use a paid plan after you have read them."
+        },
+        "termination": {
+          "title": "Ending access",
+          "body": "We may suspend or close an account if these terms are broken — usually after warning you and explaining why.\n\nYou can delete your account at any time: write to {{email}} from the account's address and we will delete the data within a reasonable time."
+        },
+        "liability": {
+          "title": "Liability",
+          "body": "The service is free and educational, so liability is limited to the extent the law allows: we are not liable for indirect losses, lost profit, or the consequences of decisions made on the basis of AI answers.\n\nThis does not limit the rights the law grants you as a consumer."
+        },
+        "law": {
+          "title": "Governing law",
+          "body": "The laws of the Republic of Belarus apply, including Law No. 99-Z “On Personal Data Protection”.\n\nFor users in the European Union, the requirements of the GDPR apply as well."
+        },
+        "changes": {
+          "title": "Changes to these terms",
+          "body": "The update date is always shown at the top of the page. We will announce material changes in advance — the launch of paid plans, for example — in the interface or by email."
+        },
+        "contact": {
+          "title": "Contact",
+          "body": "Questions about these terms, payment or your account: {{email}}. Write from the address your account is registered to, so we can sort it out faster."
+        }
+      }
+    },
+    "cookies": {
+      "metaTitle": "Cookie and Local Storage Policy",
+      "title": "Cookie and Local Storage Policy",
+      "intro": "In short: without functional records the service cannot work, and analytics is switched on only with your consent.",
+      "sections": {
+        "basics": {
+          "title": "What they are",
+          "body": "Cookies are small records a website stores in your browser. Local storage (localStorage) works the same way, except the data stays with you and is not sent to the server with every request.\n\nThey serve one purpose: to let the browser remember who you are, which language you chose, and what you decided about analytics."
+        },
+        "necessary": {
+          "title": "Functional (strictly necessary)",
+          "body": "These records keep the service running, so they need no consent: without them neither sign-in, nor language switching, nor the memory of your decision would work."
+        },
+        "optional": {
+          "title": "Analytics and error reports",
+          "body": "Vercel Analytics and Speed Insights collect anonymised visit and performance statistics; Sentry collects technical error reports. Both are enabled only after your consent and are off by default: until then their code is not loaded at all.\n\nSeparately from them, technical error reports go to our own server — without email addresses, tokens or chat text: they keep the service working, need no consent and do not involve third-party services.\n\nIf you agreed and then changed your mind, you can change the decision with the button below."
+        },
+        "control": {
+          "title": "How to manage your decision",
+          "body": "On your first visit the decision is made in the banner: “Accept all” enables analytics, “Necessary only” leaves it off.\n\nYou can change the decision here with the button below, and clear all site records in your browser settings. Withdrawing consent is as easy as giving it."
+        }
+      },
+      "storage": {
+        "columns": {
+          "name": "Name",
+          "purpose": "Purpose",
+          "ttl": "Retention",
+          "type": "Type"
+        },
+        "necessaryType": "Functional (strictly necessary)",
+        "items": {
+          "auth": {
+            "purpose": "Sign-in session: the browser remembers that you are logged in.",
+            "ttl": "Until you sign out"
+          },
+          "lang": {
+            "purpose": "The interface language you chose, so you are not asked again.",
+            "ttl": "Persistent"
+          },
+          "consent": {
+            "purpose": "Your decision about analytics and error reporting.",
+            "ttl": "Persistent"
+          }
+        }
+      },
+      "reset": {
+        "button": "Change my consent decision",
+        "toastTitle": "Consent decision reset",
+        "toastDescription": "The banner will appear again — you can choose afresh."
+      }
+    }
+  }
+}

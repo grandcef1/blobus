@@ -9,9 +9,11 @@ import { TextField } from "@/components/onboarding/TextField";
 import { PasswordField } from "@/components/auth/PasswordField";
 import { GoogleAuthButton } from "@/components/onboarding/GoogleAuthButton";
 import { AuthModeTabs, type AuthMode } from "@/components/onboarding/AuthModeTabs";
+import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/auth";
 import type { AuthUser } from "@/api/auth";
 import { validateEmail, validateName, validatePassword } from "@/lib/validation";
+import type { ValidationKey } from "@/lib/validation";
 import { PRIMARY_BUTTON } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 
@@ -25,12 +27,15 @@ export interface AuthFormProps {
 }
 
 export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true }: AuthFormProps) {
+    const { t } = useTranslation("auth");
     const signIn = useAuthStore((state) => state.signIn);
     const signUp = useAuthStore((state) => state.signUp);
     const signInWithGoogle = useAuthStore((state) => state.signInWithGoogle);
 
     const [values, setValues] = useState({ name: "", email: "", password: "" });
-    const [errors, setErrors] = useState<Partial<Record<FieldName, string>>>({});
+    // ARCHITECT: в состоянии лежат ключи словаря, а не готовый текст: смена языка обновляет уже
+    // показанные ошибки, а не оставляет их на прежнем языке.
+    const [errors, setErrors] = useState<Partial<Record<FieldName, ValidationKey>>>({});
     const [isSubmitting, setIsSubmitting] = useState(false);
 
     // ARCHITECT: смена таба сбрасывает ошибки предыдущего режима, но не введённые значения.
@@ -44,11 +49,11 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
         if (errors[field]) setErrors((previous) => ({ ...previous, [field]: undefined }));
     };
 
-    const validateField = (field: FieldName): string | undefined => {
+    const validateField = (field: FieldName): ValidationKey | undefined => {
         if (field === "name") return mode === "register" ? validateName(values.name) : undefined;
         if (field === "email") return validateEmail(values.email);
         if (mode === "register") return validatePassword(values.password);
-        return values.password ? undefined : "Укажи пароль";
+        return values.password ? undefined : "errors.passwordRequired";
     };
 
     const handleBlur = (field: FieldName) => {
@@ -59,7 +64,7 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
         event.preventDefault();
         const fields: FieldName[] =
             mode === "register" ? ["name", "email", "password"] : ["email", "password"];
-        const nextErrors: Partial<Record<FieldName, string>> = {};
+        const nextErrors: Partial<Record<FieldName, ValidationKey>> = {};
         for (const field of fields) nextErrors[field] = validateField(field);
         setErrors(nextErrors);
         if (fields.some((field) => nextErrors[field])) return;
@@ -88,15 +93,15 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
                 {mode === "register" && (
                     <TextField
-                        id="auth-name" name="name" required label="Имя" placeholder="Как к тебе обращаться" autoComplete="name"
-                        value={values.name} error={errors.name}
+                        id="auth-name" name="name" required label={t("fields.name.label")} placeholder={t("fields.name.placeholder")} autoComplete="name"
+                        value={values.name} error={errors.name ? t(errors.name) : undefined}
                         onChange={(value) => setValue("name", value)} onBlur={() => handleBlur("name")}
                     />
                 )}
 
                 <TextField
-                    id="auth-email" name="email" required label="Почта" type="email" placeholder="name@mail.com"
-                    autoComplete={mode === "register" ? "email" : "username"} value={values.email} error={errors.email}
+                    id="auth-email" name="email" required label={t("fields.email.label")} type="email" placeholder={t("fields.email.placeholder")}
+                    autoComplete={mode === "register" ? "email" : "username"} value={values.email} error={errors.email ? t(errors.email) : undefined}
                     onChange={(value) => setValue("email", value)} onBlur={() => handleBlur("email")}
                 />
 
@@ -108,13 +113,13 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
                     name="password"
                     mode={mode}
                     value={values.password}
-                    error={errors.password}
+                    error={errors.password ? t(errors.password) : undefined}
                     onChange={(value) => setValue("password", value)}
                     onBlur={() => handleBlur("password")}
                 />
 
                 <Button type="submit" disabled={isSubmitting} className={cn(PRIMARY_BUTTON, "w-full")}>
-                    {isSubmitting ? "Проверяем…" : "Продолжить"}
+                    {isSubmitting ? t("actions.submitting") : t("actions.submit")}
                     {isSubmitting ? (
                         <Loader2 className="size-4 animate-spin" aria-hidden="true" />
                     ) : (
@@ -124,7 +129,7 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
 
                 <div className="flex items-center gap-3 pt-1">
                     <div className="h-px flex-1 bg-white/10" />
-                    <span className="text-xs text-[#f0f0f5]/40">или</span>
+                    <span className="text-xs text-[#f0f0f5]/40">{t("actions.or")}</span>
                     <div className="h-px flex-1 bg-white/10" />
                 </div>
 

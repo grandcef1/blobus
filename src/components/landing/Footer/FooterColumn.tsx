@@ -1,6 +1,8 @@
 // src/components/landing/Footer/FooterColumn.tsx
 // ARCHITECT: Усилена типографика — треккинг заголовков, чёткая иерархия.
+// ARCHITECT: заголовок колонки приходит ключом словаря: тексты футера живут только в src/locales.
 
+import { useTranslation } from 'react-i18next';
 import type { FooterColumnItem } from './Footer.types';
 import { FooterLink } from './FooterLink';
 
@@ -9,7 +11,9 @@ interface FooterColumnProps {
 }
 
 export function FooterColumn({ column }: FooterColumnProps) {
-    const { title, links } = column;
+    const { t } = useTranslation('footer');
+    const { titleKey, links } = column;
+    const title = t(titleKey);
 
     return (
         <nav aria-label={title} className="flex flex-col gap-5">
@@ -18,7 +22,7 @@ export function FooterColumn({ column }: FooterColumnProps) {
             </h3>
             <ul className="flex flex-col gap-3">
                 {links.map((link) => (
-                    <li key={`${title}-${link.href}`}>
+                    <li key={`${titleKey}-${link.href}`}>
                         <FooterLink link={link} />
                     </li>
                 ))}

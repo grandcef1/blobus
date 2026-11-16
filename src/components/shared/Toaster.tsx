@@ -30,6 +30,15 @@ export function Toaster() {
                 >
                     <ToastTitle>{item.title}</ToastTitle>
                     {item.description && <ToastDescription>{item.description}</ToastDescription>}
+                    {item.action && (
+                        <button
+                            type="button"
+                            onClick={item.action.onClick}
+                            className="mt-2 rounded-md border border-white/10 px-3 py-1.5 text-xs text-[#f0f0f5]/70 transition-colors hover:bg-white/5 hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]"
+                        >
+                            {item.action.label}
+                        </button>
+                    )}
                 </ToastRoot>
             ))}
             <ToastViewport />

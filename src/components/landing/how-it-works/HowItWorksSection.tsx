@@ -1,35 +1,30 @@
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
-import type { ComponentType } from "react";
+import { useTranslation } from "react-i18next";
 
 import { GoalSvg } from "./visuals/GoalSvg";
 import { DialogueSvg } from "./visuals/DialogueSvg";
 import { GrowthSvg } from "./visuals/GrowthSvg";
 
-interface StepData {
-    readonly number: string;
-    readonly title: string;
-    readonly description: string;
-    readonly Visual: ComponentType;
-}
-
-const STEPS: readonly StepData[] = [
+// ARCHITECT: подписи шагов — ключи словаря landing: текст живёт в src/locales, а порядок, номера и
+// визуалы остаются здесь.
+const STEPS = [
     {
         number: "01",
-        title: "Фокус на цели",
-        description: "Выберите трек: разговорная практика, собеседование или грамматика. ИИ мгновенно адаптирует сценарий и сложность под ваши задачи.",
+        titleKey: "howItWorks.steps.goal.title",
+        descriptionKey: "howItWorks.steps.goal.description",
         Visual: GoalSvg,
     },
     {
         number: "02",
-        title: "Естественный диалог",
-        description: "Общайтесь голосом или текстом. ИИ поддерживает контекст, мягко корректирует ошибки в реальном времени и ведёт себя как живой ментор.",
+        titleKey: "howItWorks.steps.dialogue.title",
+        descriptionKey: "howItWorks.steps.dialogue.description",
         Visual: DialogueSvg,
     },
     {
         number: "03",
-        title: "Мгновенный рост",
-        description: "Получайте детальный разбор после каждой сессии. Персональный дашборд с трекингом прогресса и работой над ошибками.",
+        titleKey: "howItWorks.steps.growth.title",
+        descriptionKey: "howItWorks.steps.growth.description",
         Visual: GrowthSvg,
     },
 ] as const;
@@ -51,6 +46,8 @@ const itemVariants: Variants = {
 };
 
 export function HowItWorksSection() {
+    const { t } = useTranslation("landing");
+
     return (
         <section id="how-it-works" className="relative w-full bg-black py-24 md:py-32">
             <div className="mx-auto max-w-6xl px-4 sm:px-6 lg:px-8">
@@ -63,10 +60,10 @@ export function HowItWorksSection() {
                     className="mb-12 md:mb-16"
                 >
                     <h2 className="text-3xl font-bold tracking-tight text-[#f0f0f5] md:text-5xl">
-                        Как работает Blobus
+                        {t("howItWorks.title")}
                     </h2>
                     <p className="mt-4 max-w-2xl text-base text-[#f0f0f5]/60 md:text-lg">
-                        Три простых шага от регистрации до уверенного владения языком
+                        {t("howItWorks.subtitle")}
                     </p>
                 </motion.header>
 
@@ -99,10 +96,10 @@ export function HowItWorksSection() {
                                         {step.number}
                                     </span>
                                     <h3 className="text-2xl font-semibold text-[#f0f0f5]/80 transition-colors duration-300 group-hover:text-[#f0f0f5] md:text-3xl">
-                                        {step.title}
+                                        {t(step.titleKey)}
                                     </h3>
                                     <p className="max-w-md text-base leading-relaxed text-[#f0f0f5]/50 transition-colors duration-300 group-hover:text-[#f0f0f5]/70">
-                                        {step.description}
+                                        {t(step.descriptionKey)}
                                     </p>
                                 </div>
 

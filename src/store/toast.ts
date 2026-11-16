@@ -7,11 +7,19 @@ import { create } from "zustand";
 
 export type ToastVariant = "success" | "error" | "info";
 
+// ARCHITECT: действие необязательно и живёт в самом тосте: сообщение о недоступном обновлении
+// должно лечить проблему, а не только о ней сообщать.
+export interface ToastAction {
+    label: string;
+    onClick: () => void;
+}
+
 export interface ToastItem {
     id: string;
     variant: ToastVariant;
     title: string;
     description?: string;
+    action?: ToastAction;
 }
 
 interface ToastState {
@@ -31,12 +39,18 @@ export const useToastStore = create<ToastState>((set) => ({
 }));
 
 // ARCHITECT: helper вызывается вне React: api-слой и обработчики меню не должны знать о хуках.
-function pushToast(variant: ToastVariant, title: string, description?: string): void {
-    useToastStore.getState().push({ variant, title, description });
+function pushToast(
+    variant: ToastVariant,
+    title: string,
+    description?: string,
+    action?: ToastAction
+): void {
+    useToastStore.getState().push({ variant, title, description, action });
 }
 
 export const toast = {
     success: (title: string, description?: string) => pushToast("success", title, description),
-    error: (title: string, description?: string) => pushToast("error", title, description),
+    error: (title: string, description?: string, action?: ToastAction) =>
+        pushToast("error", title, description, action),
     info: (title: string, description?: string) => pushToast("info", title, description),
 };

@@ -1,0 +1,69 @@
+{
+  "actions": {
+    "start": "Empezar",
+    "startFree": "Empezar gratis",
+    "login": "Iniciar sesión",
+    "next": "Siguiente",
+    "details": "Ver más",
+    "close": "Cerrar"
+  },
+  "a11y": {
+    "openMenu": "Abrir menú",
+    "mainNav": "Navegación principal",
+    "mobileNav": "Navegación móvil",
+    "siteNav": "Navegación del sitio",
+    "homeLink": "Ir a la página de inicio"
+  },
+  "language": {
+    "selectLabel": "Idioma de la interfaz",
+    "listLabel": "Idiomas disponibles"
+  },
+  "consent": {
+    "regionLabel": "Consentimiento para analítica e informes de errores",
+    "title": "Usamos cookies",
+    "description": "Los registros funcionales son necesarios para el inicio de sesión, el idioma y la memoria de tu decisión. La analítica y los informes de errores se activan solo con tu consentimiento.",
+    "acceptAll": "Aceptar todo",
+    "acceptNecessary": "Solo las necesarias",
+    "details": "Más información"
+  },
+  "errors": {
+    "updateAvailable": {
+      "title": "Actualización disponible",
+      "description": "Parte de la interfaz no se cargó: hay una versión nueva.",
+      "action": "Recargar la página"
+    }
+  },
+  "dev": {
+    "observability": {
+      "title": "Observabilidad",
+      "consent": "Consentimiento de analítica",
+      "sentry": "Sentry",
+      "reports": "Informes enviados",
+      "on": "activado",
+      "off": "desactivado",
+      "throwError": "Error de prueba",
+      "rejectPromise": "Promesa rechazada de prueba",
+      "reset": "Restablecer consentimiento",
+      "resetDone": "Consentimiento restablecido"
+    }
+  },
+  "profile": {
+    "email": {
+      "label": "Correo",
+      "verified": "Confirmado",
+      "unverified": "Sin confirmar",
+      "verify": "Confirmar",
+      "sentToast": "Correo enviado",
+      "sentToastHint": "Mira tu bandeja: el enlace de confirmación va en camino.",
+      "errorToast": "No pudimos enviar el correo",
+      "errorToastHint": "Comprueba la conexión e inténtalo de nuevo."
+    }
+  },
+  "steps": {
+    "intro": "Presentación",
+    "assessment": "Nivel",
+    "goals": "Objetivos",
+    "schedule": "Horario",
+    "lesson": "Lección"
+  }
+}

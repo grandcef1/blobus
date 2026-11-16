@@ -4,6 +4,7 @@
 // ARCHITECT: Блобатар позиционирован абсолютно справа и обрезается через overflow-hidden родителя.
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { User, Globe } from "lucide-react";
 import { FaqBlobatar } from "./FaqBlobatar";
 import type { FaqItem } from "./data";
@@ -15,6 +16,9 @@ interface FaqCardProps {
 }
 
 export function FaqCard({ item, index, onClick }: FaqCardProps) {
+    const { t } = useTranslation("landing");
+    const { t: tCommon } = useTranslation("common");
+
     return (
         <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -57,15 +61,15 @@ export function FaqCard({ item, index, onClick }: FaqCardProps) {
                         </div>
 
                         <h3 className="text-base md:text-lg font-semibold text-[#f0f0f5] mb-1.5 group-hover:text-white transition-colors line-clamp-2">
-                            {item.question}
+                            {t(item.questionKey)}
                         </h3>
 
                         <p className="text-sm leading-relaxed text-[#f0f0f5]/60 line-clamp-2">
-                            {item.shortAnswer}
+                            {t(item.shortKey)}
                         </p>
 
                         <div className="mt-3 flex items-center gap-1 text-xs text-[#f0f0f5]/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
-                            <span>Подробнее</span>
+                            <span>{tCommon("actions.details")}</span>
                             <svg viewBox="0 0 24 24" className="size-3" fill="none" stroke="currentColor" strokeWidth="2">
                                 <path d="M5 12h14M12 5l7 7-7 7" strokeLinecap="round" strokeLinejoin="round" />
                             </svg>

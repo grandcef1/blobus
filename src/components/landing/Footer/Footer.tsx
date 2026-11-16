@@ -6,7 +6,8 @@
 import { useRef } from 'react';
 import { motion, useInView } from 'framer-motion';
 import type { Variants, Easing } from 'framer-motion';
-import { FOOTER_DATA } from './Footer.data';
+import { useTranslation } from 'react-i18next';
+import { FOOTER_COLUMNS, FOOTER_NEWSLETTER, FOOTER_SOCIAL } from './Footer.data';
 import { FooterColumn } from './FooterColumn';
 import { SocialLinks } from './SocialLinks';
 import { NewsletterForm } from './NewsletterForm';
@@ -31,11 +32,14 @@ const itemVariants: Variants = {
     },
 };
 
+// ARCHITECT: год копирайта — константа, а не new Date(): строка собирается переводом, и значение
+// должно быть предсказуемым при рендере.
+const COPYRIGHT_YEAR = 2026;
+
 export function Footer() {
     const footerRef = useRef<HTMLElement>(null);
     const isInView = useInView(footerRef, { once: true, margin: '-50px' });
-
-    const { columns, social, copyright, newsletter } = FOOTER_DATA;
+    const { t } = useTranslation('footer');
 
     return (
         <footer
@@ -63,9 +67,11 @@ export function Footer() {
                     >
                         <div className="flex flex-col gap-1.5">
                             <h3 className="text-lg font-medium tracking-tight text-white">
-                                {newsletter.title}
+                                {t(FOOTER_NEWSLETTER.titleKey)}
                             </h3>
-                            <p className="text-sm text-zinc-500">{newsletter.description}</p>
+                            <p className="text-sm text-zinc-500">
+                                {t(FOOTER_NEWSLETTER.descriptionKey)}
+                            </p>
                         </div>
                         <NewsletterForm />
                     </motion.div>
@@ -78,8 +84,8 @@ export function Footer() {
                     animate={isInView ? 'visible' : 'hidden'}
                     className="mb-16 grid grid-cols-2 gap-10 sm:grid-cols-2 lg:grid-cols-4 lg:gap-8"
                 >
-                    {columns.map((column) => (
-                        <motion.div key={column.title} variants={itemVariants}>
+                    {FOOTER_COLUMNS.map((column) => (
+                        <motion.div key={column.titleKey} variants={itemVariants}>
                             <FooterColumn column={column} />
                         </motion.div>
                     ))}
@@ -95,10 +101,10 @@ export function Footer() {
                         variants={itemVariants}
                         className="flex flex-col items-center justify-between gap-6 sm:flex-row"
                     >
-                        <SocialLinks links={social} />
+                        <SocialLinks links={FOOTER_SOCIAL} />
 
                         <p className="order-3 text-xs text-zinc-600 sm:order-2">
-                            {copyright}
+                            {t('copyright', { year: COPYRIGHT_YEAR })}
                         </p>
 
                         <div className="order-2 flex items-center gap-2 sm:order-3">

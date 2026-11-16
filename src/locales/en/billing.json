@@ -1,0 +1,102 @@
+{
+  "page": {
+    "title": "Subscription"
+  },
+  "plans": {
+    "free": {
+      "name": "Blobus Free"
+    },
+    "pro": {
+      "name": "Blobus Pro"
+    }
+  },
+  "status": {
+    "free": "Free plan",
+    "trialing": "Trial period",
+    "active": "Active",
+    "past_due": "Payment failed",
+    "scheduled_cancel": "Cancelled, access until the period ends"
+  },
+  "current": {
+    "title": "Current plan",
+    "free": "Free",
+    "price": "{{amount}} per month",
+    "trialEndsOn": "Trial until {{date}}",
+    "renewsOn": "Renews on {{date}}",
+    "endsOn": "Access until {{date}}",
+    "pastDuePayment": "Renewal on hold",
+    "pending": "From {{date}} — {{plan}}",
+    "pendingNoDate": "Plan change to {{plan}} is scheduled"
+  },
+  "actions": {
+    "upgrade": "Switch to Pro",
+    "payNow": "Pay now",
+    "cancel": "Cancel",
+    "resume": "Resume",
+    "downgrade": "Switch to Free",
+    "undoDowngrade": "Cancel plan change",
+    "retry": "Retry payment"
+  },
+  "usage": {
+    "title": "Usage",
+    "messages": "Messages with the tutor",
+    "counter": "{{used}} of {{limit}}",
+    "unlimited": "Unlimited"
+  },
+  "invoices": {
+    "title": "Payments",
+    "empty": "No payments yet",
+    "download": "Download receipt",
+    "status": {
+      "paid": "Paid",
+      "failed": "Failed",
+      "refunded": "Refunded"
+    },
+    "receipt": {
+      "title": "Blobus receipt",
+      "number": "Invoice: {{id}}",
+      "date": "Date: {{date}}",
+      "amount": "Amount: {{amount}}",
+      "status": "Status: {{status}}"
+    }
+  },
+  "pastDue": {
+    "title": "Payment failed",
+    "description": "Your Pro access is kept, but the payment has to be retried: otherwise the plan returns to Free."
+  },
+  "cancelDialog": {
+    "title": "Cancel subscription",
+    "description": "Pro access stays until the end of the paid period. After that the plan becomes Free; lessons and progress are kept.",
+    "confirm": "Cancel subscription",
+    "keep": "Keep"
+  },
+  "errors": {
+    "title": "Could not load subscription data",
+    "description": "Check your connection and try again.",
+    "retry": "Try again"
+  },
+  "toasts": {
+    "error": "Action failed",
+    "generic": "Try again later",
+    "offline": "No connection to the server",
+    "unavailable": "This action is not available for the current subscription status",
+    "paymentFailed": "The payment failed. Check your payment method and try again",
+    "checkout": "Pro trial started",
+    "convert": "Pro subscription paid",
+    "retry": "Payment went through",
+    "cancel": "Subscription cancelled",
+    "resume": "Subscription resumed",
+    "downgrade": "Plan change scheduled",
+    "undoDowngrade": "Plan change cancelled",
+    "receipt": "Receipt saved"
+  },
+  "dev": {
+    "title": "Developer panel",
+    "status": "Subscription status",
+    "failPayment": "Make the next payment fail",
+    "failPaymentOn": "The next payment will fail",
+    "failPaymentOff": "The next payment will go through",
+    "reset": "Reset mock db",
+    "resetDone": "Subscription mock db reset"
+  }
+}

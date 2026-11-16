@@ -7,6 +7,7 @@
 // ARCHITECT: кнопки на одном уровне через flex flex-col h-full + mt-auto.
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { PricingPlan, BillingPeriod } from "./data";
 import { FEATURES } from "./data";
 import { FeatureTable } from "./FeatureTable";
@@ -27,13 +28,14 @@ const QUIET_SURFACE = "border-white/10 bg-black";
 
 export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
     const navigate = useNavigate();
+    const { t } = useTranslation("landing");
 
     const handleCTA = () => {
         // ARCHITECT: Обе CTA ведут на онбординг
         navigate('/onboarding');
     };
     const price = billingPeriod === "month" ? plan.monthlyPrice : plan.yearlyPrice;
-    const period = billingPeriod === "month" ? "/мес" : "/год";
+    const period = t(billingPeriod === "month" ? "pricing.perMonth" : "pricing.perYear");
     const Visual = plan.id === "pro" ? ProCardSvg : FreeCardSvg;
 
     return (
@@ -55,7 +57,7 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                 {plan.highlighted && (
                     <div className="absolute -top-3 left-1/2 z-20 -translate-x-1/2">
                         <span className="inline-flex items-center rounded-full border border-white/15 bg-[#141416] px-3 py-1 text-xs font-medium text-[#f0f0f5]">
-                            Популярный
+                            {t("pricing.popular")}
                         </span>
                     </div>
                 )}
@@ -75,10 +77,10 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                         </div>
 
                         <h3 className="mb-2 text-center text-2xl font-bold text-[#f0f0f5]">
-                            {plan.name}
+                            {t(plan.nameKey)}
                         </h3>
                         <p className="mb-6 text-center text-sm text-[#f0f0f5]/60">
-                            {plan.description}
+                            {t(plan.descriptionKey)}
                         </p>
 
                         <div className="mb-6 text-center">
@@ -92,7 +94,7 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                             </div>
                             {billingPeriod === "year" && plan.yearlyPrice > 0 && (
                                 <p className="mt-1 text-xs text-[#f0f0f5]/40">
-                                    ${Math.round(plan.yearlyPrice / 12)}/мес при оплате за год
+                                    {t("pricing.yearlyHint", { price: Math.round(plan.yearlyPrice / 12) })}
                                 </p>
                             )}
                         </div>
@@ -110,10 +112,10 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                                         : "border border-white/20 bg-transparent text-[#f0f0f5] hover:border-white/40 hover:bg-white/5"
                                     }`}
                             >
-                                {plan.cta}
+                                {t(plan.ctaKey)}
                             </button>
                             <span className="text-xs text-[#f0f0f5]/40">
-                                {plan.ctaSecondary}
+                                {t(plan.ctaSecondaryKey)}
                             </span>
                         </div>
                     </div>

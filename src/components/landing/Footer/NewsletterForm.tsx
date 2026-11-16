@@ -8,7 +8,8 @@ import { useState, useRef, useEffect } from 'react';
 import type { FormEvent, ChangeEvent } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, CheckCircle2, AlertCircle } from 'lucide-react';
-import { FOOTER_DATA } from './Footer.data';
+import { useTranslation } from 'react-i18next';
+import { FOOTER_NEWSLETTER } from './Footer.data';
 
 type FormStatus = 'idle' | 'success';
 
@@ -16,23 +17,23 @@ type FormStatus = 'idle' | 'success';
 // финальная валидация — на бэкенде (правило: валидировать с обеих сторон).
 const EMAIL_PATTERN = /^[^\s@]+@[^\s@]+\.[^\s@]{2,}$/;
 
-function validateEmail(value: string): string | null {
+// ARCHITECT: функция возвращает ключ словаря, а не текст: перевод делает компонент, поэтому в модуле
+// нет ни одной строки интерфейса, и сообщение меняется вместе с языком.
+type NewsletterErrorKey = 'newsletter.errors.empty' | 'newsletter.errors.format';
+
+function validateEmail(value: string): NewsletterErrorKey | null {
     const trimmed = value.trim();
-    if (trimmed.length === 0) {
-        return 'Введите email — иначе не сможем прислать новости.';
-    }
-    if (!EMAIL_PATTERN.test(trimmed)) {
-        return 'Похоже, в адресе опечатка. Формат: name@domain.com';
-    }
+    if (trimmed.length === 0) return 'newsletter.errors.empty';
+    if (!EMAIL_PATTERN.test(trimmed)) return 'newsletter.errors.format';
     return null;
 }
 
 export function NewsletterForm() {
+    const { t } = useTranslation('footer');
     const [email, setEmail] = useState<string>('');
-    const [error, setError] = useState<string | null>(null);
+    const [errorKey, setErrorKey] = useState<NewsletterErrorKey | null>(null);
     const [status, setStatus] = useState<FormStatus>('idle');
     const resetTimerRef = useRef<number | null>(null);
-    const { placeholder, buttonLabel, successLabel } = FOOTER_DATA.newsletter;
 
     // ARCHITECT: чистим таймер при размонтировании — защита от утечек
     useEffect(() => {
@@ -47,7 +48,7 @@ export function NewsletterForm() {
         // ARCHITECT: паттерн "touched" — не нудим при вводе, пока не было ошибки;
         // после первой ошибки перевалидируем на лету, чтобы пользователь сразу
         // видел, что исправил верно
-        if (error !== null) setError(validateEmail(next));
+        if (errorKey !== null) setErrorKey(validateEmail(next));
         if (status === 'success') setStatus('idle');
     };
 
@@ -56,11 +57,11 @@ export function NewsletterForm() {
 
         const nextError = validateEmail(email);
         if (nextError !== null) {
-            setError(nextError);
+            setErrorKey(nextError);
             return;
         }
 
-        setError(null);
+        setErrorKey(null);
         // TODO: заменить на реальный API-вызов через бэкенд
         if (import.meta.env.DEV) console.log('[Newsletter] Subscribed:', email.trim());
 
@@ -71,7 +72,7 @@ export function NewsletterForm() {
         resetTimerRef.current = window.setTimeout(() => setStatus('idle'), 3000);
     };
 
-    const hasError = error !== null;
+    const hasError = errorKey !== null;
     const isSuccess = status === 'success';
 
     return (
@@ -84,11 +85,11 @@ export function NewsletterForm() {
             <div className="flex flex-col gap-2 sm:flex-row">
                 <input
                     type="email"
-                    placeholder={placeholder}
+                    placeholder={t(FOOTER_NEWSLETTER.placeholderKey)}
                     value={email}
                     onChange={handleChange}
                     disabled={isSuccess}
-                    aria-label="Электронная почта для рассылки"
+                    aria-label={t('newsletter.emailLabel')}
                     aria-invalid={hasError}
                     aria-describedby="newsletter-hint"
                     className={`h-12 min-h-12 w-full rounded-lg border bg-transparent px-4 text-base transition-colors duration-200 placeholder:text-zinc-600 focus:outline-none disabled:cursor-not-allowed disabled:opacity-50 sm:w-auto sm:flex-1 sm:text-sm ${hasError
@@ -110,11 +111,11 @@ export function NewsletterForm() {
                         {isSuccess ? (
                             <>
                                 <CheckCircle2 className="h-4 w-4" aria-hidden="true" />
-                                {successLabel}
+                                {t(FOOTER_NEWSLETTER.successKey)}
                             </>
                         ) : (
                             <>
-                                {buttonLabel}
+                                {t(FOOTER_NEWSLETTER.buttonKey)}
                                 <Send className="h-3.5 w-3.5" aria-hidden="true" />
                             </>
                         )}
@@ -126,7 +127,7 @@ export function NewsletterForm() {
           не сдвигает layout (защита от layout shift) */}
             <div id="newsletter-hint" aria-live="polite" className="min-h-[1.25rem] pt-1.5">
                 <AnimatePresence mode="wait">
-                    {hasError && error !== null ? (
+                    {hasError && errorKey !== null ? (
                         <motion.p
                             key="error"
                             initial={{ opacity: 0, y: -4 }}
@@ -136,7 +137,7 @@ export function NewsletterForm() {
                             className="flex items-center gap-1.5 text-xs text-red-400/90"
                         >
                             <AlertCircle className="h-3 w-3 shrink-0" aria-hidden="true" />
-                            <span>{error}</span>
+                            <span>{t(errorKey)}</span>
                         </motion.p>
                     ) : isSuccess ? (
                         <motion.p
@@ -148,7 +149,7 @@ export function NewsletterForm() {
                             className="flex items-center gap-1.5 text-xs text-zinc-500"
                         >
                             <CheckCircle2 className="h-3 w-3 shrink-0" aria-hidden="true" />
-                            <span>Отлично! Первое письмо уже в пути.</span>
+                            <span>{t('newsletter.successHint')}</span>
                         </motion.p>
                     ) : null}
                 </AnimatePresence>

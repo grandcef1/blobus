@@ -1,5 +1,6 @@
 // src/components/landing/TypewriterHeading.tsx
 import { useState, useEffect } from "react";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 
 // ARCHITECT: Компонент вынесен наружу для корректной работы хуков и анимаций
@@ -12,12 +13,24 @@ const Cursor = () => (
 );
 
 export function TypewriterHeading() {
-    const line1 = "Учи английский с";
-    const line2 = "ИИ-репетитором";
+    const { t } = useTranslation("landing");
+    const line1 = t("hero.titleLine1");
+    const line2 = t("hero.titleLine2");
 
     const [text1, setText1] = useState("");
     const [text2, setText2] = useState("");
     const [phase, setPhase] = useState<1 | 2 | 3>(1);
+    const [source, setSource] = useState({ line1, line2 });
+
+    // ARCHITECT: смена языка перезапускает печать: иначе на экране остался бы прежний заголовок, а
+    // анимация продолжила бы печатать строку на другом языке. Сброс идёт на рендере, как в DemoDialog:
+    // правило react-hooks/set-state-in-effect запрещает setState в теле эффекта.
+    if (source.line1 !== line1 || source.line2 !== line2) {
+        setSource({ line1, line2 });
+        setText1("");
+        setText2("");
+        setPhase(1);
+    }
 
     useEffect(() => {
         if (phase === 1) {

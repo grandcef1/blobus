@@ -1,0 +1,210 @@
+{
+  "legal": {
+    "layout": {
+      "home": "Volver al inicio",
+      "effective": "Fecha de entrada en vigor: {{date}}",
+      "contactLabel": "Contacto sobre datos:",
+      "navLabel": "Otros documentos",
+      "nav": {
+        "privacy": "Privacidad",
+        "terms": "Términos de uso",
+        "cookies": "Cookies y almacenamiento"
+      }
+    },
+    "processors": {
+      "title": "Quién más trata los datos",
+      "intro": "Blobus funciona sobre servicios externos. Aquí está quién recibe datos, para qué y desde cuándo. Ninguno de ellos recibe tu contraseña.",
+      "status": {
+        "now": "Ya en uso",
+        "later": "Al lanzar la función"
+      },
+      "items": {
+        "vercel": {
+          "purpose": "Alojamiento del sitio y de la aplicación, y registros de peticiones al servidor."
+        },
+        "supabase": {
+          "purpose": "Almacenamiento de cuentas y del progreso de estudio, inicio de sesión."
+        },
+        "openai": {
+          "purpose": "Tratamiento de los textos de los ejercicios y de los mensajes del chat para generar la respuesta del tutor y corregir tu trabajo. La petición pasa por nuestro backend."
+        },
+        "sentry": {
+          "purpose": "Informes técnicos de errores: se activa solo con tu consentimiento."
+        },
+        "vercelAnalytics": {
+          "purpose": "Estadísticas anónimas de visitas y de velocidad: solo con tu consentimiento."
+        },
+        "payments": {
+          "brand": "Proveedor de pagos (por confirmar)",
+          "purpose": "Procesar el pago de los planes de pago cuando existan.",
+          "note": "El proveedor disponible en Bielorrusia se indicará antes del lanzamiento de los planes de pago. No se utiliza Stripe."
+        }
+      }
+    },
+    "privacy": {
+      "metaTitle": "Política de privacidad",
+      "title": "Política de privacidad",
+      "intro": "Aquí explicamos qué datos recoge Blobus, para qué, con quién los comparte y cómo puedes controlarlo. Lo más breve y sin jerga legal que permite un documento así.",
+      "sections": {
+        "who": {
+          "title": "Quiénes somos",
+          "body": "El responsable del tratamiento es {{operator}}. No hay persona jurídica detrás del proyecto: Blobus es un proyecto de estudio que desarrolla un solo programador.\n\nTratamos los datos conforme a la Ley n.º 99-Z de la República de Bielorrusia «Sobre la protección de datos personales», basada en el consentimiento del interesado. Para los usuarios de la Unión Europea se aplica además el RGPD.\n\nPara cualquier duda sobre tus datos, escribe a {{email}}."
+        },
+        "what": {
+          "title": "Qué datos recogemos",
+          "body": "Al registrarte: tu nombre y tu correo electrónico. La contraseña se guarda solo como hash y no podemos leerla.\n\nMientras estudias: los textos de los ejercicios y de los mensajes del chat con el tutor, los resultados de las correcciones y tu progreso. Sin ellos el servicio no podría explicar un error ni mostrar lo que ya dominas.\n\nDatos técnicos: dirección IP, datos del navegador y registros de peticiones al servidor; son necesarios para que el servicio funcione y esté protegido frente a abusos.\n\nEn el almacenamiento local del navegador quedan la sesión iniciada, el idioma de la interfaz que elegiste y tu decisión sobre la analítica."
+        },
+        "why": {
+          "title": "Para qué los tratamos",
+          "body": "Para que el servicio funcione: la cuenta, las lecciones, el progreso y los ajustes.\n\nPara responder a tus mensajes y averiguar qué falla cuando algo se rompe.\n\nPara mejorar la calidad: ver qué ejercicios cuestan más y qué errores de la IA son más frecuentes.\n\nPara proteger el servicio: detectar intentos de intrusión, spam y sobrecarga."
+        },
+        "basis": {
+          "title": "Base jurídica",
+          "body": "La base es tu consentimiento. Lo das al registrarte: sin él no son posibles ni la cuenta ni el aprendizaje.\n\nLa analítica y los informes de errores requieren un consentimiento aparte, que das en el banner en tu primera visita. Hasta entonces esos servicios no se cargan.\n\nPuedes retirar el consentimiento en cualquier momento escribiendo a {{email}}: el tratamiento se detiene y los datos se eliminan a petición tuya."
+        },
+        "ai": {
+          "title": "Cómo se tratan los textos de los ejercicios",
+          "body": "Cuando haces un ejercicio o escribes en el chat, el enunciado y tu respuesta se envían a un proveedor de IA a través de nuestro backend: así se generan la respuesta del tutor y la corrección. En la etapa de lanzamiento de la IA ese proveedor es OpenAI.\n\nLas contraseñas nunca se envían al proveedor de IA. La lista actual de destinatarios está en la tabla de abajo."
+        },
+        "storage": {
+          "title": "Dónde se guardan los datos",
+          "body": "El sitio y la aplicación funcionan en el alojamiento de Vercel, que también conserva los registros técnicos.\n\nLas cuentas y el progreso se trasladarán a Supabase cuando se lance el backend. Hasta entonces el progreso se guarda en tu navegador."
+        },
+        "processors": {
+          "title": "Quién más trata los datos",
+          "body": "Los encargados reciben los datos por nuestra indicación y no pueden usarlos para fines propios."
+        },
+        "transfer": {
+          "title": "Transferencia internacional",
+          "body": "Los servicios sobre los que funciona Blobus están fuera de la República de Bielorrusia, así que los datos se transfieren al extranjero: sin ello el servicio no podría funcionar.\n\nDas tu consentimiento a esa transferencia al registrarte y en el banner de consentimiento. Los destinatarios figuran en la tabla anterior."
+        },
+        "cookies": {
+          "title": "Cookies y almacenamiento local",
+          "body": "Los registros funcionales son necesarios para el inicio de sesión, el idioma elegido y la memoria de tu decisión: funcionan siempre.\n\nLa analítica y los informes de errores se activan solo con tu consentimiento y están desactivados por defecto."
+        },
+        "reports": {
+          "title": "Informes técnicos de errores",
+          "body": "Cuando la interfaz falla, la aplicación envía los detalles del fallo a nuestro propio servidor: el mensaje de error, la traza y la dirección de la página. Es un informe a nuestro servidor, sirve para que el servicio funcione y esté protegido, no implica a terceros y por eso no requiere un consentimiento aparte.\n\nAntes de enviarlo se eliminan del informe las direcciones de correo y los parámetros de la barra de direcciones. El contenido de la conversación con el tutor, el texto que escribes y las contraseñas nunca se transmiten.\n\nLos informes de errores a un servicio externo (Sentry) y las estadísticas anónimas (Vercel Analytics y Speed Insights) funcionan solo tras el consentimiento en el banner y están desactivados por defecto."
+        },
+        "rights": {
+          "title": "Tus derechos",
+          "body": "Puedes solicitar acceso a tus datos, corregirlos, eliminarlos, obtener una copia legible por máquina o retirar el consentimiento. Para ello escribe a {{email}} desde la dirección con la que registraste la cuenta.\n\nRespondemos en un plazo razonable, normalmente en un mes. Si la solicitud requiere más tiempo, te explicaremos por qué."
+        },
+        "children": {
+          "title": "Menores de edad",
+          "body": "Blobus está pensado para un público adulto. Si eres menor de 18 años, solo puedes usar el servicio con el consentimiento de tu padre, madre o tutor legal.\n\nSi esos datos llegaron a nosotros sin consentimiento, escribe a {{email}} y eliminaremos la cuenta."
+        },
+        "retention": {
+          "title": "Cuánto tiempo guardamos los datos",
+          "body": "Los datos de la cuenta y el progreso se conservan mientras la cuenta esté activa y durante un plazo razonable tras su eliminación: para que puedas recuperar el acceso y para no perder el historial de posibles disputas.\n\nLos registros del alojamiento duran el tiempo limitado que fija el proveedor. Los datos de analítica son anónimos y no permiten volver a una persona concreta."
+        },
+        "changes": {
+          "title": "Cambios en esta política",
+          "body": "La fecha de entrada en vigor se actualiza con cada cambio y siempre aparece al principio de la página. Los cambios importantes —por ejemplo, un nuevo encargado del tratamiento— los avisaremos en la interfaz o por correo."
+        }
+      }
+    },
+    "terms": {
+      "metaTitle": "Términos de uso",
+      "title": "Términos de uso",
+      "intro": "Las reglas con las que funciona Blobus: qué es el servicio, qué puedes hacer y qué no, y qué ocurre con tu contenido y tu cuenta.",
+      "sections": {
+        "service": {
+          "title": "Qué es Blobus",
+          "body": "Blobus es un tutor de inglés con IA. Es un proyecto de estudio: lo desarrolla un solo programador, no una empresa con equipo de soporte y abogados.\n\nEl servicio se presta «tal cual». Procuramos que funcione de forma estable, pero no prometemos acceso ininterrumpido ni garantizamos que las respuestas de la IA sean exactas."
+        },
+        "ai": {
+          "title": "La IA puede equivocarse",
+          "body": "El tutor se basa en un modelo de lenguaje: puede explicar una regla de forma imprecisa, inventar un ejemplo o corregirte mal.\n\nLas respuestas de Blobus son material de estudio, no asesoramiento profesional. No tomes decisiones médicas, jurídicas o financieras basándote en ellas."
+        },
+        "account": {
+          "title": "Tu cuenta",
+          "body": "Una cuenta por persona. Indica datos veraces: a esa dirección enviamos las respuestas a solicitudes sobre datos y los avisos importantes.\n\nLa seguridad de tu contraseña es tu responsabilidad. Guardamos solo su hash, así que no podemos recuperarla y nunca te la pediremos por correo."
+        },
+        "forbidden": {
+          "title": "Qué está prohibido",
+          "body": "No puedes usar el servicio para spam o envíos masivos, intentar acceder a cuentas o datos ajenos, romper o sobrecargar la API con peticiones automáticas, extraer datos del servicio con robots ni publicar contenido ilícito.\n\nSi se incumplen estas reglas, podemos restringir el acceso a la cuenta."
+        },
+        "content": {
+          "title": "Tu contenido",
+          "body": "Los textos que escribes en los ejercicios y en el chat siguen siendo tuyos.\n\nNos autorizas a tratarlos para que el servicio funcione: generar una respuesta, corregir tu trabajo, guardar tu progreso. No usamos tus textos para nada más."
+        },
+        "payment": {
+          "title": "Pago",
+          "body": "Hoy el servicio es gratuito.\n\nLos planes de pago llegarán más adelante y el pago se hará a través de un proveedor disponible en la República de Bielorrusia (no se utiliza Stripe). Publicaremos las condiciones de pago y devolución antes de empezar a vender: solo podrás usar un plan de pago después de leerlas."
+        },
+        "termination": {
+          "title": "Fin del acceso",
+          "body": "Podemos suspender o cerrar una cuenta si se incumplen estos términos, normalmente avisando y explicando el motivo.\n\nPuedes eliminar tu cuenta en cualquier momento: escribe a {{email}} desde la dirección de la cuenta y eliminaremos los datos en un plazo razonable."
+        },
+        "liability": {
+          "title": "Responsabilidad",
+          "body": "El servicio es gratuito y educativo, así que la responsabilidad se limita a lo que permite la ley: no respondemos de daños indirectos, lucro cesante ni de las consecuencias de decisiones tomadas a partir de las respuestas de la IA.\n\nEsto no limita los derechos que la ley te reconoce como consumidor."
+        },
+        "law": {
+          "title": "Legislación aplicable",
+          "body": "Se aplica la legislación de la República de Bielorrusia, incluida la Ley n.º 99-Z «Sobre la protección de datos personales».\n\nPara los usuarios de la Unión Europea se aplican además los requisitos del RGPD."
+        },
+        "changes": {
+          "title": "Cambios en los términos",
+          "body": "La fecha de actualización siempre aparece al principio de la página. Los cambios importantes —por ejemplo, la llegada de los planes de pago— los avisaremos con antelación en la interfaz o por correo."
+        },
+        "contact": {
+          "title": "Contacto",
+          "body": "Dudas sobre estos términos, el pago o tu cuenta: {{email}}. Escribe desde la dirección con la que registraste la cuenta para que podamos resolverlo antes."
+        }
+      }
+    },
+    "cookies": {
+      "metaTitle": "Política de cookies y almacenamiento local",
+      "title": "Política de cookies y almacenamiento local",
+      "intro": "En resumen: sin los registros funcionales el servicio no funciona, y la analítica solo se activa con tu consentimiento.",
+      "sections": {
+        "basics": {
+          "title": "Qué son",
+          "body": "Las cookies son pequeños registros que el sitio guarda en tu navegador. El almacenamiento local (localStorage) funciona igual, solo que los datos se quedan contigo y no se envían al servidor en cada petición.\n\nSirven para una cosa: que el navegador recuerde quién eres, qué idioma elegiste y qué decidiste sobre la analítica."
+        },
+        "necessary": {
+          "title": "Funcionales (necesarias)",
+          "body": "Estos registros hacen posible el funcionamiento del servicio, así que no necesitan consentimiento: sin ellos no funcionan ni el inicio de sesión, ni el cambio de idioma, ni la memoria de tu decisión."
+        },
+        "optional": {
+          "title": "Analítica e informes de errores",
+          "body": "Vercel Analytics y Speed Insights recogen estadísticas anónimas de visitas y velocidad; Sentry, informes técnicos de errores. Ambos se activan solo tras tu consentimiento y están desactivados por defecto: hasta entonces su código no se carga.\n\nAparte de ellos, los informes técnicos de errores van a nuestro propio servidor — sin correos, tokens ni textos de la conversación: mantienen el servicio en funcionamiento, no requieren consentimiento y no implican a terceros.\n\nSi aceptaste y luego cambiaste de opinión, puedes cambiar la decisión con el botón de abajo."
+        },
+        "control": {
+          "title": "Cómo gestionar tu decisión",
+          "body": "En la primera visita la decisión se toma en el banner: «Aceptar todo» activa la analítica y «Solo las necesarias» la deja desactivada.\n\nPuedes cambiar la decisión aquí con el botón de abajo, y borrar todos los registros del sitio en los ajustes del navegador. Retirar el consentimiento es tan fácil como darlo."
+        }
+      },
+      "storage": {
+        "columns": {
+          "name": "Nombre",
+          "purpose": "Finalidad",
+          "ttl": "Duración",
+          "type": "Tipo"
+        },
+        "necessaryType": "Funcional (necesaria)",
+        "items": {
+          "auth": {
+            "purpose": "Sesión iniciada: el navegador recuerda que ya has entrado.",
+            "ttl": "Hasta cerrar sesión"
+          },
+          "lang": {
+            "purpose": "El idioma de la interfaz que elegiste, para no volver a preguntarlo.",
+            "ttl": "Permanente"
+          },
+          "consent": {
+            "purpose": "Tu decisión sobre la analítica y los informes de errores.",
+            "ttl": "Permanente"
+          }
+        }
+      },
+      "reset": {
+        "button": "Cambiar mi decisión de consentimiento",
+        "toastTitle": "Decisión de consentimiento restablecida",
+        "toastDescription": "El banner volverá a aparecer: puedes elegir de nuevo."
+      }
+    }
+  }
+}

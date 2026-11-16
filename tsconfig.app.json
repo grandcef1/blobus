@@ -8,6 +8,9 @@
 
     "moduleResolution": "bundler",
     "allowImportingTsExtensions": true,
+    // ARCHITECT: словари i18n лежат в JSON и импортируются в src/lib/i18n.ts ради строгой типизации
+    // ключей t(); без resolveJsonModule TS не умеет читать JSON-модули.
+    "resolveJsonModule": true,
     "isolatedModules": true,
     "moduleDetection": "force",
     "noEmit": true,

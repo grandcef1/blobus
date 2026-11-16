@@ -1,0 +1,102 @@
+{
+  "page": {
+    "title": "Suscripción"
+  },
+  "plans": {
+    "free": {
+      "name": "Blobus Free"
+    },
+    "pro": {
+      "name": "Blobus Pro"
+    }
+  },
+  "status": {
+    "free": "Plan gratuito",
+    "trialing": "Periodo de prueba",
+    "active": "Activa",
+    "past_due": "El pago no se realizó",
+    "scheduled_cancel": "Cancelada, acceso hasta el final del periodo"
+  },
+  "current": {
+    "title": "Plan actual",
+    "free": "Gratis",
+    "price": "{{amount}} al mes",
+    "trialEndsOn": "Prueba hasta el {{date}}",
+    "renewsOn": "Renovación el {{date}}",
+    "endsOn": "Acceso hasta el {{date}}",
+    "pastDuePayment": "Renovación en pausa",
+    "pending": "Desde el {{date}} — {{plan}}",
+    "pendingNoDate": "Cambio de plan a {{plan}} programado"
+  },
+  "actions": {
+    "upgrade": "Cambiar a Pro",
+    "payNow": "Pagar ahora",
+    "cancel": "Cancelar",
+    "resume": "Reanudar",
+    "downgrade": "Cambiar a Free",
+    "undoDowngrade": "Cancelar el cambio de plan",
+    "retry": "Reintentar el pago"
+  },
+  "usage": {
+    "title": "Uso",
+    "messages": "Mensajes con el tutor",
+    "counter": "{{used}} de {{limit}}",
+    "unlimited": "Sin límites"
+  },
+  "invoices": {
+    "title": "Pagos",
+    "empty": "Todavía no hay pagos",
+    "download": "Descargar recibo",
+    "status": {
+      "paid": "Pagado",
+      "failed": "Fallido",
+      "refunded": "Reembolsado"
+    },
+    "receipt": {
+      "title": "Recibo de Blobus",
+      "number": "Factura: {{id}}",
+      "date": "Fecha: {{date}}",
+      "amount": "Importe: {{amount}}",
+      "status": "Estado: {{status}}"
+    }
+  },
+  "pastDue": {
+    "title": "El pago no se realizó",
+    "description": "El acceso a Pro se mantiene, pero hay que reintentar el pago: de lo contrario el plan vuelve a Free."
+  },
+  "cancelDialog": {
+    "title": "Cancelar la suscripción",
+    "description": "El acceso a Pro se mantiene hasta el final del periodo pagado. Después el plan pasa a Free; las lecciones y el progreso se conservan.",
+    "confirm": "Cancelar la suscripción",
+    "keep": "Mantener"
+  },
+  "errors": {
+    "title": "No se pudieron cargar los datos de la suscripción",
+    "description": "Comprueba la conexión e inténtalo de nuevo.",
+    "retry": "Reintentar"
+  },
+  "toasts": {
+    "error": "No se pudo completar la acción",
+    "generic": "Inténtalo de nuevo más tarde",
+    "offline": "Sin conexión con el servidor",
+    "unavailable": "La acción no está disponible para el estado actual de la suscripción",
+    "paymentFailed": "El pago no se realizó. Comprueba el método de pago e inténtalo de nuevo",
+    "checkout": "Periodo de prueba Pro iniciado",
+    "convert": "Suscripción Pro pagada",
+    "retry": "El pago se realizó",
+    "cancel": "Suscripción cancelada",
+    "resume": "Suscripción reanudada",
+    "downgrade": "Cambio de plan programado",
+    "undoDowngrade": "Cambio de plan cancelado",
+    "receipt": "Recibo guardado"
+  },
+  "dev": {
+    "title": "Panel de desarrollo",
+    "status": "Estado de la suscripción",
+    "failPayment": "Hacer que el próximo pago falle",
+    "failPaymentOn": "El próximo pago fallará",
+    "failPaymentOff": "El próximo pago se realizará",
+    "reset": "Restablecer la mock db",
+    "resetDone": "Mock db de la suscripción restablecida"
+  }
+}

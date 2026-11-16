@@ -1,49 +1,104 @@
-// ARCHITECT: тарифы и история платежей читаются через модуль-хранилище: страница «Подписка»
-// показывает скелетон, пока данные в пути. Значения — те же, что были в разметке, перенесены без
-// изменений, поэтому вид страницы не поехал.
+// ARCHITECT: контракт подписки и двойная реализация. USE_MOCKS=true читает mock-машину состояний из
+// api/mocks/billing, false — ходит в бэкенд через apiClient. Разметка не знает, откуда пришли
+// данные: меняется только эта ветка, а типы и промисы у обеих реализаций одинаковые.
+// ARCHITECT: эндпоинты реального режима: GET /billing/subscription, GET /billing/invoices,
+// POST /billing/checkout|convert|retry|cancel|resume|downgrade|undo-downgrade. Провайдер оплаты
+// выбирается позже (не Stripe): клиент отправляет намерение, ссылку на оплату отдаёт бэкенд.
+// ARCHITECT: типы живут в types/billing и реэкспортируются здесь — потребители импортируют контракт
+// из одного модуля, как AuthUser из api/auth.
 
-import { delayMock } from "@/api/mockDelay";
+import { apiClient } from "@/api/client";
+import { billingMock, delayBillingMock } from "@/api/mocks/billing";
+import { USE_MOCKS } from "@/lib/env";
+import type { Invoice, Subscription } from "@/types/billing";
 
-export type PlanId = "free" | "pro";
+export type {
+    Invoice,
+    PlanId,
+    Subscription,
+    SubscriptionStatus,
+    SubscriptionUsage,
+} from "@/types/billing";
 
-/** Период оплаты: переключатель на странице тарифов и в разделе «Подписка». */
-export type BillingPeriod = "month" | "year";
-
-export interface BillingPlanFeature {
-    text: string;
-    freeIncluded: boolean;
-    proIncluded: boolean;
-    freeLimit?: string;
+export async function getSubscription(): Promise<Subscription> {
+    if (USE_MOCKS) {
+        await delayBillingMock();
+        return billingMock.subscription();
+    }
+    return apiClient.get<Subscription>("/billing/subscription");
 }
 
-export interface PaymentRecord {
-    id: string;
-    date: string;
-    amount: number;
-    plan: string;
+// ARCHITECT: счета читаются отдельным запросом: ошибка в истории платежей не должна скрывать
+// состояние подписки, а список нужен только нижней секции страницы.
+export async function getInvoices(): Promise<Invoice[]> {
+    if (USE_MOCKS) {
+        await delayBillingMock();
+        return billingMock.invoices();
+    }
+    return apiClient.get<Invoice[]>("/billing/invoices");
 }
 
-export interface BillingSummary {
-    currentPlan: PlanId;
-    features: readonly BillingPlanFeature[];
-    paymentHistory: PaymentRecord[];
+// ARCHITECT: действия возвращают void: свежее состояние приходит следующим чтением подписки, поэтому
+// клиент не собирает его сам из ответа и не расходится с сервером.
+export async function startCheckout(): Promise<void> {
+    if (USE_MOCKS) {
+        await delayBillingMock();
+        billingMock.startCheckout();
+        return;
+    }
+    await apiClient.post<void>("/billing/checkout");
 }
 
-const FEATURES: readonly BillingPlanFeature[] = [
-    { text: "Уроки с ИИ-репетитором", freeIncluded: true, proIncluded: true, freeLimit: "1 в день" },
-    { text: "Все режимы обучения", freeIncluded: true, proIncluded: true },
-    { text: "Персонализация и память", freeIncluded: true, proIncluded: true },
-    { text: "Премиум-голос ИИ", freeIncluded: false, proIncluded: true },
-    { text: "Безлимит уроков", freeIncluded: false, proIncluded: true },
-];
+export async function convertTrial(): Promise<void> {
+    if (USE_MOCKS) {
+        await delayBillingMock();
+        billingMock.pay();
+        return;
+    }
+    await apiClient.post<void>("/billing/convert");
+}
 
-const PAYMENT_HISTORY: PaymentRecord[] = [
-    { id: "pay_1", date: "2026-11-01", amount: 0, plan: "Free" },
-    { id: "pay_2", date: "2026-10-01", amount: 0, plan: "Free" },
-];
+export async function retryPayment(): Promise<void> {
+    if (USE_MOCKS) {
+        await delayBillingMock();
+        billingMock.pay();
+        return;
+    }
+    await apiClient.post<void>("/billing/retry");
+}
 
-export async function fetchBillingSummary(): Promise<BillingSummary> {
-    await delayMock();
+export async function cancelSubscription(): Promise<void> {
+    if (USE_MOCKS) {
+        await delayBillingMock();
+        billingMock.cancel();
+        return;
+    }
+    await apiClient.post<void>("/billing/cancel");
+}
 
-    return { currentPlan: "free", features: FEATURES, paymentHistory: PAYMENT_HISTORY };
+export async function resumeSubscription(): Promise<void> {
+    if (USE_MOCKS) {
+        await delayBillingMock();
+        billingMock.resume();
+        return;
+    }
+    await apiClient.post<void>("/billing/resume");
+}
+
+export async function scheduleDowngrade(): Promise<void> {
+    if (USE_MOCKS) {
+        await delayBillingMock();
+        billingMock.scheduleDowngrade();
+        return;
+    }
+    await apiClient.post<void>("/billing/downgrade");
+}
+
+export async function undoDowngrade(): Promise<void> {
+    if (USE_MOCKS) {
+        await delayBillingMock();
+        billingMock.undoDowngrade();
+        return;
+    }
+    await apiClient.post<void>("/billing/undo-downgrade");
 }

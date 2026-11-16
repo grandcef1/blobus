@@ -1,16 +1,19 @@
 // src/components/landing/Footer/FooterLink.tsx
 // ARCHITECT: Чистая монохромная ссылка. Серый → белый. Без цветных акцентов.
+// ARCHITECT: подпись переводится по ключу из словаря footer.
 
+import { useTranslation } from 'react-i18next';
 import { motion } from 'framer-motion';
 import { ExternalLink } from 'lucide-react';
-import type { FooterLinkItem } from './Footer.types';
+import type { FooterColumnLinkItem } from './Footer.types';
 
 interface FooterLinkProps {
-    readonly link: FooterLinkItem;
+    readonly link: FooterColumnLinkItem;
 }
 
 export function FooterLink({ link }: FooterLinkProps) {
-    const { label, href, external = false } = link;
+    const { t } = useTranslation('footer');
+    const { labelKey, href, external = false } = link;
 
     return (
         <motion.a
@@ -21,7 +24,7 @@ export function FooterLink({ link }: FooterLinkProps) {
             whileHover={{ x: 3 }}
             transition={{ type: 'tween', duration: 0.15 }}
         >
-            <span>{label}</span>
+            <span>{t(labelKey)}</span>
             {external && (
                 <ExternalLink
                     className="h-3 w-3 opacity-0 transition-opacity duration-200 group-hover:opacity-50"

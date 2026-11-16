@@ -4,6 +4,7 @@
 
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth";
 import { PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS, isNavItemActive } from "./navigation";
 import { SidebarNavLink } from "./SidebarNavLink";
 
@@ -13,6 +14,11 @@ interface SidebarNavProps {
 
 export function SidebarNav({ isCollapsed }: SidebarNavProps) {
     const { pathname } = useLocation();
+    // ARCHITECT: «Админ» показывается только владельцу. Гейт здесь ради UX, а не ради защиты:
+    // реальная проверка роли будет на бэкенде (RLS). Селектор отдаёт примитив, поэтому список
+    // пересобирается при смене роли, а не на каждое изменение объекта пользователя.
+    const isAdmin = useAuthStore((state) => state.user?.role === "admin");
+    const secondaryItems = SECONDARY_NAV_ITEMS.filter((item) => !item.requiresAdmin || isAdmin);
 
     return (
         <div className={cn("shrink-0 space-y-1", isCollapsed ? "px-2" : "px-3")}>
@@ -27,7 +33,7 @@ export function SidebarNav({ isCollapsed }: SidebarNavProps) {
 
             <hr className="my-3 border-t border-white/5" />
 
-            {SECONDARY_NAV_ITEMS.map((item) => (
+            {secondaryItems.map((item) => (
                 <SidebarNavLink
                     key={item.id}
                     item={item}

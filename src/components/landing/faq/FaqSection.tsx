@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
 import { ArrowRight, Mail } from "lucide-react";
 import { FOCUS_RING } from "@/lib/surfaces";
@@ -15,6 +16,7 @@ import { FaqModal } from "./FaqModal";
 
 export function FaqSection() {
     const [selectedItem, setSelectedItem] = useState<FaqItem | null>(null);
+    const { t } = useTranslation("landing");
 
     return (
         <section id="faq" className="relative w-full bg-black py-24 md:py-32">
@@ -27,10 +29,10 @@ export function FaqSection() {
                     className="mb-16 text-center"
                 >
                     <h2 className="text-3xl font-bold tracking-tight text-[#f0f0f5] md:text-5xl">
-                        Частые вопросы
+                        {t("faq.title")}
                     </h2>
                     <p className="mt-4 text-base text-[#f0f0f5]/60 md:text-lg">
-                        Всё, что нужно знать о Blobus
+                        {t("faq.subtitle")}
                     </p>
                 </motion.header>
 
@@ -58,11 +60,11 @@ export function FaqSection() {
                                 <Mail className="size-5 text-[#f0f0f5]" aria-hidden="true" />
                             </div>
                             <h3 className="text-lg font-semibold tracking-tight text-[#f0f0f5] md:text-xl">
-                                Остались вопросы?
+                                {t("faq.support.title")}
                             </h3>
                         </div>
                         <p className="max-w-sm text-sm leading-relaxed text-[#f0f0f5]/50">
-                            Не нашли ответ? Напишите нам, и мы лично поможем разобраться в любом вопросе.
+                            {t("faq.support.text")}
                         </p>
                         
                         {/* ARCHITECT: Обновленная кнопка. font-medium и tracking-wide делают текст 
@@ -75,7 +77,7 @@ export function FaqSection() {
                             to="/help"
                             className={cn("group flex min-h-11 w-full items-center justify-center gap-2 rounded-full bg-[#f0f0f5] px-5 text-sm font-medium tracking-wide text-black transition-colors hover:bg-white", FOCUS_RING)}
                         >
-                            Написать в поддержку
+                            {t("faq.support.cta")}
                             <ArrowRight className="size-4 transition-transform duration-300 group-hover:translate-x-1" aria-hidden="true" />
                         </Link>
                     </div>

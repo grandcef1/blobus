@@ -14,6 +14,7 @@ import { MobileTopBar } from "@/components/layout/MobileTopBar";
 import { findSectionTitle } from "@/components/layout/navigation";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
+import { Seo } from "@/components/shared/Seo";
 import { cn } from "@/lib/utils";
 
 const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
@@ -56,6 +57,9 @@ export function AppLayout() {
 
     return (
         <div className="flex min-h-dvh bg-black text-[#f0f0f5]">
+            {/* ARCHITECT: приватные разделы приложения не индексируются; заголовок вкладки остаётся
+                за useDocumentTitle выше — имя раздела задаётся картой маршрутов. */}
+            <Seo indexable={false} />
             {isDesktop ? (
                 <Sidebar isCollapsed={isSidebarCollapsed} onToggle={handleToggleSidebar} />
             ) : (

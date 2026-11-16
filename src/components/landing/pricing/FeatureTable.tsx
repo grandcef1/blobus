@@ -1,14 +1,17 @@
 // src/components/landing/pricing/FeatureTable.tsx
 // ARCHITECT: таблица функций с разделителями между пунктами.
-// ARCHITECT: использует единый список FEATURES, показывает статус для конкретного плана.
+// ARCHITECT: состав тарифа читается из lib/plans по ключу возможности: свободный список строк здесь,
+// а «входит или нет» — общий с страницей «Подписка».
 // ARCHITECT: недоступные функции в Free показаны с крестиком и пониженной прозрачностью.
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import { PLANS, type PlanId } from "@/lib/plans";
 import type { Feature } from "./data";
 
 interface FeatureTableProps {
     readonly features: readonly Feature[];
-    readonly planId: "free" | "pro";
+    readonly planId: PlanId;
 }
 
 function CheckIcon() {
@@ -34,15 +37,17 @@ function XIcon() {
 }
 
 export function FeatureTable({ features, planId }: FeatureTableProps) {
+    const { t } = useTranslation("landing");
+
     return (
         <ul className="flex flex-col">
             {features.map((feature, index) => {
-                const isIncluded = planId === "free" ? feature.freeIncluded : feature.proIncluded;
-                const limit = planId === "free" ? feature.freeLimit : undefined;
+                const isIncluded = PLANS[planId].featureKeys.includes(feature.key);
+                const limitKey = planId === "free" ? feature.freeLimitKey : undefined;
                 const isLast = index === features.length - 1;
 
                 return (
-                    <li key={feature.text}>
+                    <li key={feature.key}>
                         <motion.div
                             initial={{ opacity: 0, x: -10 }}
                             whileInView={{ opacity: 1, x: 0 }}
@@ -54,10 +59,10 @@ export function FeatureTable({ features, planId }: FeatureTableProps) {
                                 {isIncluded ? <CheckIcon /> : <XIcon />}
                             </span>
                             <span className={`flex-1 text-sm ${isIncluded ? "text-[#f0f0f5]/80" : "text-[#f0f0f5]/30"}`}>
-                                {feature.text}
-                                {limit && (
+                                {t(feature.textKey)}
+                                {limitKey && (
                                     <span className="ml-1.5 text-xs text-[#f0f0f5]/40">
-                                        · {limit}
+                                        · {t(limitKey)}
                                     </span>
                                 )}
                             </span>

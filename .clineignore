@@ -7,6 +7,10 @@ out/
 .vite/
 .cache/
 
+# Graphify: артефакты локального графа кода.
+# Лог запросов лежит вне репозитория (~/.cache/graphify-queries.log), глушится GRAPHIFY_QUERY_LOG_DISABLE=1.
+graphify-out/
+
 # Lock-файлы (огромные, не нужны для контекста)
 package-lock.json
 yarn.lock

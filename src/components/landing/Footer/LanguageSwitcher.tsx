@@ -3,14 +3,19 @@
 // выглядит как осознанная типографическая деталь, а не как fallback Windows.
 
 import { useState, useRef, useEffect } from 'react';
+import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Globe, ChevronDown } from 'lucide-react';
+import { useLanguageStore } from '@/store/language';
 import { LANGUAGES } from './Footer.data';
 import type { LanguageCode } from './Footer.types';
 
 export function LanguageSwitcher() {
-    // ARCHITECT: 'ru' по умолчанию — сайт сейчас на русской версии
-    const [currentLang, setCurrentLang] = useState<LanguageCode>('ru');
+    const { t } = useTranslation('common');
+    // ARCHITECT: язык берётся из общего стора, а не из локального состояния: выбор переключателя
+    // меняет переводы всего приложения и сохраняется в localStorage (это делает детектор i18next).
+    const currentLang = useLanguageStore((state) => state.lang);
+    const setLanguage = useLanguageStore((state) => state.setLanguage);
     const [isOpen, setIsOpen] = useState(false);
     const containerRef = useRef<HTMLDivElement>(null);
 
@@ -28,10 +33,8 @@ export function LanguageSwitcher() {
     }, []);
 
     const handleSelect = (code: LanguageCode): void => {
-        setCurrentLang(code);
+        setLanguage(code);
         setIsOpen(false);
-        // TODO: интеграция с i18n (react-i18next) — переключение словарей
-        if (import.meta.env.DEV) console.log('[i18n] Language changed:', code);
     };
 
     return (
@@ -41,7 +44,7 @@ export function LanguageSwitcher() {
                 onClick={() => setIsOpen((prev) => !prev)}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
-                aria-label="Выбор языка интерфейса"
+                aria-label={t('language.selectLabel')}
                 className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-zinc-500 transition-colors duration-200 hover:text-white"
             >
                 <Globe className="h-4 w-4" aria-hidden="true" />
@@ -60,7 +63,7 @@ export function LanguageSwitcher() {
                 {isOpen && (
                     <motion.ul
                         role="listbox"
-                        aria-label="Доступные языки"
+                        aria-label={t('language.listLabel')}
                         initial={{ opacity: 0, y: 8, scale: 0.98 }}
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}

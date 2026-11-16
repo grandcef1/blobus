@@ -7,6 +7,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useReducedMotion } from "framer-motion";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowRight } from "lucide-react";
 import { DEMO_MESSAGES, DEMO_SESSION } from "@/api/mocks/demoLesson";
 import { ChatHeader } from "@/components/chat/ChatHeader";
@@ -23,6 +24,7 @@ interface DemoDialogProps {
 
 export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
     const navigate = useNavigate();
+    const { t } = useTranslation("landing");
     const shouldReduceMotion = useReducedMotion();
     const [visibleCount, setVisibleCount] = useState(1);
     const [lastOpen, setLastOpen] = useState(open);
@@ -63,9 +65,9 @@ export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-lg overflow-hidden p-0">
-                <DialogTitle className="sr-only">Пример урока</DialogTitle>
+                <DialogTitle className="sr-only">{t("hero.demo.title")}</DialogTitle>
                 <DialogDescription className="sr-only">
-                    Так выглядит диалог с репетитором: ответ, правка и новая лексика.
+                    {t("hero.demo.description")}
                 </DialogDescription>
 
                 <ChatHeader session={DEMO_SESSION} readOnly />
@@ -93,7 +95,7 @@ export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
                         onClick={handlePrimary}
                         className={cn(PRIMARY_BUTTON, "shrink-0")}
                     >
-                        {isLast ? "Начать бесплатно" : "Дальше"}
+                        {isLast ? t("hero.demo.start") : t("hero.demo.next")}
                         <ArrowRight className="size-4" aria-hidden="true" />
                     </Button>
                 </div>

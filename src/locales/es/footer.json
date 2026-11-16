@@ -1,0 +1,45 @@
+{
+  "columns": {
+    "product": {
+      "title": "Producto",
+      "features": "Funciones",
+      "howItWorks": "Cómo funciona",
+      "pricing": "Precios",
+      "faq": "FAQ"
+    },
+    "resources": {
+      "title": "Recursos",
+      "docs": "Documentación",
+      "api": "API",
+      "changelog": "Novedades",
+      "status": "Estado"
+    },
+    "company": {
+      "title": "Empresa",
+      "contacts": "Contacto",
+      "blog": "Blog"
+    },
+    "legal": {
+      "title": "Legal y soporte",
+      "privacy": "Privacidad",
+      "terms": "Términos de uso",
+      "cookies": "Cookies",
+      "help": "Centro de ayuda",
+      "support": "Soporte"
+    }
+  },
+  "newsletter": {
+    "title": "Mantente al día",
+    "description": "Novedades del producto y nuevos lanzamientos, sin spam.",
+    "placeholder": "Tu correo",
+    "emailLabel": "Correo electrónico para la newsletter",
+    "button": "Suscribirme",
+    "success": "¡Listo!",
+    "successHint": "¡Genial! El primer correo ya está en camino.",
+    "errors": {
+      "empty": "Escribe tu correo: sin él no podemos enviarte las novedades.",
+      "format": "Parece que hay un error en la dirección. Formato: nombre@dominio.com"
+    }
+  },
+  "copyright": "© {{year}} Blobus. Todos los derechos reservados."
+}

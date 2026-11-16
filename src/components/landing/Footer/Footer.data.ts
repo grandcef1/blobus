@@ -1,69 +1,74 @@
-    // src/components/landing/Footer/Footer.data.ts
-    // ARCHITECT: Контент на русском (текущая версия сайта).
-    // При подключении i18n (react-i18next) строки уйдут в словари ru/en/es.
+// src/components/landing/Footer/Footer.data.ts
+// ARCHITECT: структура футера (адреса, состав колонок) отделена от текста: подписи лежат ключами в
+// src/locales/{ru,en,es}/footer.json. Языки и соцсети остаются данными — их имена не переводятся.
 
-    import type { FooterDataShape, LanguageOption } from './Footer.types';
+import type {
+    FooterColumnItem,
+    FooterLinkItem,
+    FooterNewsletterCopy,
+    LanguageOption,
+} from './Footer.types';
 
-    export const FOOTER_DATA: FooterDataShape = {
-    columns: [
-        {
-        title: 'Продукт',
+export const FOOTER_COLUMNS: readonly FooterColumnItem[] = [
+    {
+        titleKey: 'columns.product.title',
         links: [
-            { label: 'Возможности', href: '#features' },
-            { label: 'Как это работает', href: '#how-it-works' },
-            { label: 'Тарифы', href: '#pricing' },
-            { label: 'FAQ', href: '#faq' },
+            { labelKey: 'columns.product.features', href: '#features' },
+            { labelKey: 'columns.product.howItWorks', href: '#how-it-works' },
+            { labelKey: 'columns.product.pricing', href: '#pricing' },
+            { labelKey: 'columns.product.faq', href: '#faq' },
         ],
-        },
-        {
-        title: 'Ресурсы',
-        links: [
-            { label: 'Документация', href: '/docs' },
-            { label: 'API', href: '/api-docs' },
-            { label: 'Обновления', href: '/changelog' },
-            { label: 'Статус', href: '/status' },
-        ],
-        },
-        {
-        title: 'Компания',
-        links: [
-            { label: 'О нас', href: '/about' },
-            { label: 'Контакты', href: '/contacts' },
-            { label: 'Блог', href: '/blog' },
-            { label: 'Карьера', href: '/careers' },
-        ],
-        },
-        {
-        title: 'Право и поддержка',
-        links: [
-            { label: 'Конфиденциальность', href: '/privacy' },
-            { label: 'Условия использования', href: '/terms' },
-            { label: 'Файлы cookie', href: '/cookies' },
-            { label: 'Центр помощи', href: '/help' },
-            { label: 'Поддержка', href: 'mailto:support@blobus.ai', external: true },
-        ],
-        },
-    ],
-    social: [
-        { label: 'Twitter', href: 'https://twitter.com/blobus_ai', external: true },
-        { label: 'LinkedIn', href: 'https://linkedin.com/company/blobus', external: true },
-        { label: 'GitHub', href: 'https://github.com/grandcef1/blobus', external: true },
-        { label: 'Discord', href: 'https://discord.gg/blobus', external: true },
-    ],
-    copyright: '© 2026 Blobus. Все права защищены.',
-    newsletter: {
-        title: 'Будьте в курсе',
-        description: 'Новости о функциях и новых релизах — без спама.',
-        placeholder: 'Ваш email',
-        buttonLabel: 'Подписаться',
-        successLabel: 'Готово!',
     },
-    };
+    {
+        titleKey: 'columns.resources.title',
+        links: [
+            { labelKey: 'columns.resources.docs', href: '/docs' },
+            { labelKey: 'columns.resources.api', href: '/api-docs' },
+            { labelKey: 'columns.resources.changelog', href: '/changelog' },
+            { labelKey: 'columns.resources.status', href: '/status' },
+        ],
+    },
+    {
+        titleKey: 'columns.company.title',
+        links: [
+            { labelKey: 'columns.company.contacts', href: '/contacts' },
+            { labelKey: 'columns.company.blog', href: '/blog' },
+        ],
+    },
+    {
+        titleKey: 'columns.legal.title',
+        links: [
+            { labelKey: 'columns.legal.privacy', href: '/privacy' },
+            { labelKey: 'columns.legal.terms', href: '/terms' },
+            { labelKey: 'columns.legal.cookies', href: '/cookies' },
+            { labelKey: 'columns.legal.help', href: '/help' },
+            { labelKey: 'columns.legal.support', href: 'mailto:blobus.support@gmail.com', external: true },
+        ],
+    },
+];
 
-    // ARCHITECT: Коды языков (RU/EN/ES) вместо флагов: рендерятся одинаково
-    // на всех ОС и семантически честны (EN = English, а не "Великобритания").
-    export const LANGUAGES: readonly LanguageOption[] = [
+export const FOOTER_SOCIAL: readonly FooterLinkItem[] = [
+    { label: 'Twitter', href: 'https://twitter.com/blobus_ai', external: true },
+    { label: 'LinkedIn', href: 'https://linkedin.com/company/blobus', external: true },
+    { label: 'GitHub', href: 'https://github.com/grandcef1/blobus', external: true },
+    { label: 'Discord', href: 'https://discord.gg/blobus', external: true },
+];
+
+// ARCHITECT: подписи рассылки — ключи: их читают Footer и NewsletterForm, а перевод живёт в словаре.
+export const FOOTER_NEWSLETTER: FooterNewsletterCopy = {
+    titleKey: 'newsletter.title',
+    descriptionKey: 'newsletter.description',
+    placeholderKey: 'newsletter.placeholder',
+    buttonKey: 'newsletter.button',
+    successKey: 'newsletter.success',
+};
+
+// ARCHITECT: Коды языков (RU/EN/ES) вместо флагов: рендерятся одинаково
+// на всех ОС и семантически честны (EN = English, а не "Великобритания").
+// ARCHITECT: название языка пишется на нём самом — так его узнаёт носитель, даже если интерфейс
+// сейчас на другом языке.
+export const LANGUAGES: readonly LanguageOption[] = [
     { code: 'ru', label: 'Русский', short: 'ru' },
     { code: 'en', label: 'English', short: 'en' },
     { code: 'es', label: 'Español', short: 'es' },
-    ] as const;
+];

@@ -1,0 +1,45 @@
+{
+  "columns": {
+    "product": {
+      "title": "Продукт",
+      "features": "Возможности",
+      "howItWorks": "Как это работает",
+      "pricing": "Тарифы",
+      "faq": "FAQ"
+    },
+    "resources": {
+      "title": "Ресурсы",
+      "docs": "Документация",
+      "api": "API",
+      "changelog": "Обновления",
+      "status": "Статус"
+    },
+    "company": {
+      "title": "Компания",
+      "contacts": "Контакты",
+      "blog": "Блог"
+    },
+    "legal": {
+      "title": "Право и поддержка",
+      "privacy": "Конфиденциальность",
+      "terms": "Условия использования",
+      "cookies": "Файлы cookie",
+      "help": "Центр помощи",
+      "support": "Поддержка"
+    }
+  },
+  "newsletter": {
+    "title": "Будьте в курсе",
+    "description": "Новости о функциях и новых релизах — без спама.",
+    "placeholder": "Ваш email",
+    "emailLabel": "Электронная почта для рассылки",
+    "button": "Подписаться",
+    "success": "Готово!",
+    "successHint": "Отлично! Первое письмо уже в пути.",
+    "errors": {
+      "empty": "Введите email — иначе не сможем прислать новости.",
+      "format": "Похоже, в адресе опечатка. Формат: name@domain.com"
+    }
+  },
+  "copyright": "© {{year}} Blobus. Все права защищены."
+}

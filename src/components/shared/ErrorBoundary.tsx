@@ -4,6 +4,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
+import { reportError } from "@/lib/observability/report-error";
 
 interface ErrorBoundaryProps {
     children: ReactNode;
@@ -25,10 +26,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
 
     // ARCHITECT: детали ошибки (стек, компонентный трассировщик) не показываются пользователю:
     // это отладочная информация, ей место в консоли и только в dev-сборке.
+    // ARCHITECT: в прод-сборке падение страницы уходит в first-party отчёт: это единственный
+    // сигнал о том, что экран сломался у пользователя.
     componentDidCatch(error: Error, errorInfo: ErrorInfo): void {
         if (import.meta.env.DEV) {
             console.error("[ErrorBoundary]", error, errorInfo.componentStack);
         }
+        reportError({
+            severity: "error",
+            error,
+            componentStack: errorInfo.componentStack ?? undefined,
+        });
     }
 
     private readonly handleReload = (): void => {

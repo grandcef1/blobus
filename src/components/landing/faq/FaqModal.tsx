@@ -5,6 +5,7 @@
 
 import { useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { X } from "lucide-react";
 import type { FaqItem } from "./data";
 
@@ -14,6 +15,9 @@ interface FaqModalProps {
 }
 
 export function FaqModal({ item, onClose }: FaqModalProps) {
+    const { t } = useTranslation("landing");
+    const { t: tCommon } = useTranslation("common");
+
     useEffect(() => {
         if (!item) return;
         
@@ -53,7 +57,7 @@ export function FaqModal({ item, onClose }: FaqModalProps) {
                         <button
                             onClick={onClose}
                             className="absolute top-4 right-4 p-2 rounded-full bg-white/5 hover:bg-white/10 transition-colors"
-                            aria-label="Закрыть"
+                            aria-label={tCommon("actions.close")}
                         >
                             <X className="size-4 text-[#f0f0f5]" aria-hidden="true" />
                         </button>
@@ -66,18 +70,20 @@ export function FaqModal({ item, onClose }: FaqModalProps) {
                                 </span>
                             </div>
                             <span className="text-sm font-medium text-[#f0f0f5]/60">
-                                {item.featured ? "От команды Blobus" : `${item.userName} спрашивает`}
+                                {item.featured
+                                    ? t("faq.fromTeam")
+                                    : t("faq.asks", { name: item.userName })}
                             </span>
                         </div>
 
                         <h3 className="text-2xl font-bold text-[#f0f0f5] mb-4">
-                            {item.question}
+                            {t(item.questionKey)}
                         </h3>
 
                         {/* ARCHITECT: whitespace-pre-line сохраняет переносы строк из текста (\n\n),
                             создавая визуальные абзацы без необходимости разбивать текст вручную. */}
                         <p className="text-base leading-relaxed text-[#f0f0f5]/70 whitespace-pre-line">
-                            {item.fullAnswer}
+                            {t(item.fullKey)}
                         </p>
                     </motion.div>
                 </motion.div>

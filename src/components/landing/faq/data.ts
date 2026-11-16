@@ -1,12 +1,27 @@
 // src/components/landing/faq/data.ts
-// ARCHITECT: fullAnswer для Blobus Team сокращен до двух абзацев для идеального баланса.
+// ARCHITECT: вопросы и ответы живут в словаре landing, здесь — только состав списка и подписи авторов
+// (имена не переводятся). Ключи выведены шаблонным типом, поэтому опечатка в имени вопроса — ошибка
+// сборки, а не пустая карточка.
+
+export type FaqItemId =
+    | "different"
+    | "modes"
+    | "plans"
+    | "cancel"
+    | "languages"
+    | "support"
+    | "privacy";
+
+export type FaqQuestionKey = `faq.items.${FaqItemId}.question`;
+export type FaqShortKey = `faq.items.${FaqItemId}.short`;
+export type FaqFullKey = `faq.items.${FaqItemId}.full`;
 
 export interface FaqItem {
     readonly id: number;
     readonly userName: string;
-    readonly question: string;
-    readonly shortAnswer: string;
-    readonly fullAnswer: string;
+    readonly questionKey: FaqQuestionKey;
+    readonly shortKey: FaqShortKey;
+    readonly fullKey: FaqFullKey;
     readonly featured?: boolean;
 }
 
@@ -14,51 +29,51 @@ export const FAQ_ITEMS: readonly FaqItem[] = [
     {
         id: 1,
         userName: "Blobus Team",
-        question: "Чем Blobus отличается от обычных приложений?",
-        shortAnswer: "Адаптивный ИИ подстраивается под ваш уровень и цели в реальном времени.",
-        fullAnswer: "Blobus принципиально отличается от обычных приложений для изучения языков, где все пользователи проходят одинаковые статичные уроки. Вместо скучных упражнений на заполнение пропусков, вы ведете полноценный, живой диалог с ИИ, который понимает контекст, сленг и культурные нюансы, мягко корректируя ошибки прямо в процессе разговора.\n\nНаш алгоритм анализирует ваш стиль обучения, темп прогресса и слабые места в реальном времени, подстраивая сложность и темы под ваши личные цели. Будь то подготовка к собеседованию в IT-компанию или изучение языка для путешествий, вы получаете эффект персонального репетитора, который доступен 24/7, никогда не устает и помогает преодолеть языковой барьер без страха осуждения.",
+        questionKey: "faq.items.different.question",
+        shortKey: "faq.items.different.short",
+        fullKey: "faq.items.different.full",
         featured: true,
     },
     {
         id: 2,
         userName: "Maria",
-        question: "Какие режимы обучения доступны?",
-        shortAnswer: "Повседневное общение, разговорная практика, грамматика и подготовка к собеседованиям.",
-        fullAnswer: "Четыре режима: General English для повседневного общения, Conversation Practice для разговорной практики, Grammar для глубокого изучения правил, и Interview Prep для подготовки к техническим и behavioral собеседованиям на английском.",
+        questionKey: "faq.items.modes.question",
+        shortKey: "faq.items.modes.short",
+        fullKey: "faq.items.modes.full",
     },
     {
         id: 3,
         userName: "John",
-        question: "В чем разница между Free и Pro тарифами?",
-        shortAnswer: "Free дает один урок в день, а Pro открывает полный безлимит и премиум-голос ИИ.",
-        fullAnswer: "Free тариф включает один урок в день с базовым браузерным голосом. Pro тариф открывает безлимит уроков, премиум-голос ИИ (Deepgram + OpenAI TTS), приоритетную скорость обработки, расширенную аналитику прогресса и детальную работу над ошибками. Первые 7 дней Pro бесплатно без привязки карты.",
+        questionKey: "faq.items.plans.question",
+        shortKey: "faq.items.plans.short",
+        fullKey: "faq.items.plans.full",
     },
     {
         id: 4,
         userName: "Sarah",
-        question: "Как отменить подписку Pro?",
-        shortAnswer: "Один клик в настройках, доступ сохраняется до конца оплаченного периода.",
-        fullAnswer: "Отмена происходит в один клик в разделе 'Настройки аккаунта'. Никаких скрытых условий или звонков в поддержку. Доступ к Pro-функциям сохраняется до конца оплаченного периода, после чего аккаунт автоматически переходит на Free тариф.",
+        questionKey: "faq.items.cancel.question",
+        shortKey: "faq.items.cancel.short",
+        fullKey: "faq.items.cancel.full",
     },
     {
         id: 5,
         userName: "David",
-        question: "Можно ли изучать другие языки?",
-        shortAnswer: "Да, ИИ поддерживает испанский, французский, немецкий и другие языки.",
-        fullAnswer: "Да! Наш ИИ поддерживает испанский, французский, немецкий, итальянский и другие языки. Английский — основной фокус с максимальным количеством режимов и функций, но вы можете переключиться на любой доступный язык в настройках профиля.",
+        questionKey: "faq.items.languages.question",
+        shortKey: "faq.items.languages.short",
+        fullKey: "faq.items.languages.full",
     },
     {
         id: 6,
         userName: "Emma",
-        question: "Что делать, если что-то не работает?",
-        shortAnswer: "Напишите в поддержку через кнопку 'Помощь', ответим за 24 часа.",
-        fullAnswer: "Если вы столкнулись с технической проблемой, напишите в поддержку через кнопку 'Помощь' в приложении. Мы отвечаем в течение 24 часов в рабочие дни и лично решаем любые вопросы.",
+        questionKey: "faq.items.support.question",
+        shortKey: "faq.items.support.short",
+        fullKey: "faq.items.support.full",
     },
     {
         id: 7,
         userName: "Alex",
-        question: "Безопасны ли мои данные и диалоги?",
-        shortAnswer: "Да, мы не храним и не передаем ваши голосовые записи третьим лицам.",
-        fullAnswer: "Конфиденциальность — наш приоритет. Голосовые данные обрабатываются в реальном времени и не сохраняются на серверах. Текстовая история хранится в зашифрованном виде исключительно для вашего прогресса и никогда не покидает пределы платформы.",
+        questionKey: "faq.items.privacy.question",
+        shortKey: "faq.items.privacy.short",
+        fullKey: "faq.items.privacy.full",
     },
-] as const;
+];

@@ -1,57 +1,50 @@
 // src/components/landing/pricing/data.ts
-// ARCHITECT: унифицированный список фич для обеих карточек.
-// ARCHITECT: одинаковые пункты в Free и Pro, но с разными статусами included.
-// ARCHITECT: сократили с 8 до 5 ключевых пунктов для снижения визуальной нагрузки.
+// ARCHITECT: здесь остаётся структура тарифов (состав строк таблицы), а цены и набор возможностей
+// приходят из lib/plans: прайс лендинга и страницы «Подписка» — одни и те же числа. Тексты — ключами
+// словаря landing: строки живут в src/locales, поэтому смена языка не требует правок здесь.
+
+import { PLANS, type PlanFeatureKey, type PlanId } from "@/lib/plans";
 
 export type BillingPeriod = "month" | "year";
 
+export type PricingFeatureKey =
+    | "pricing.features.lessons"
+    | "pricing.features.modes"
+    | "pricing.features.memory"
+    | "pricing.features.voice"
+    | "pricing.features.unlimited";
+
 export interface Feature {
-    readonly text: string;
-    readonly freeIncluded: boolean;
-    readonly proIncluded: boolean;
-    readonly freeLimit?: string;
+    /** Ключ возможности в lib/plans: по нему таблица узнаёт, входит ли она в тариф. */
+    readonly key: PlanFeatureKey;
+    readonly textKey: PricingFeatureKey;
+    readonly freeLimitKey?: "pricing.features.lessonsLimit";
 }
 
 export interface PricingPlan {
-    readonly id: "free" | "pro";
-    readonly name: string;
-    readonly description: string;
+    readonly id: PlanId;
+    readonly nameKey: "pricing.plans.free.name" | "pricing.plans.pro.name";
+    readonly descriptionKey:
+        | "pricing.plans.free.description"
+        | "pricing.plans.pro.description";
     readonly monthlyPrice: number;
     readonly yearlyPrice: number;
-    readonly cta: string;
-    readonly ctaSecondary: string;
+    readonly ctaKey: "pricing.plans.free.cta" | "pricing.plans.pro.cta";
+    readonly ctaSecondaryKey:
+        | "pricing.plans.free.ctaSecondary"
+        | "pricing.plans.pro.ctaSecondary";
     readonly highlighted: boolean;
 }
 
-// ARCHITECT: единый список фич — порядок и формулировки идентичны для обеих карточек.
+// ARCHITECT: единый список возможностей — порядок строк задаёт лендинг, состав тарифа берётся из
+// lib/plans, поэтому «входит ли в Pro» нигде не дублируется булевым полем.
 export const FEATURES: readonly Feature[] = [
-    {
-        text: "Уроки с ИИ-репетитором",
-        freeIncluded: true,
-        proIncluded: true,
-        freeLimit: "1 в день",
-    },
-    {
-        text: "Все режимы обучения",
-        freeIncluded: true,
-        proIncluded: true,
-    },
-    {
-        text: "Персонализация и память",
-        freeIncluded: true,
-        proIncluded: true,
-    },
-    {
-        text: "Премиум-голос ИИ",
-        freeIncluded: false,
-        proIncluded: true,
-    },
-    {
-        text: "Безлимит уроков",
-        freeIncluded: false,
-        proIncluded: true,
-    },
-] as const;
+    { key: "lessons", textKey: "pricing.features.lessons", freeLimitKey: "pricing.features.lessonsLimit" },
+    { key: "modes", textKey: "pricing.features.modes" },
+    { key: "memory", textKey: "pricing.features.memory" },
+    { key: "voice", textKey: "pricing.features.voice" },
+    { key: "unlimited", textKey: "pricing.features.unlimited" },
+];
 
 // ARCHITECT: триал Pro — один раз на аккаунт. Защита от абуза (повторные регистрации) делается
 // на бэкенде: флаг trial_used + верификация email. См. бэклог в конце ТЗ. Сейчас это только
@@ -60,22 +53,23 @@ export const FEATURES: readonly Feature[] = [
 export const PRICING_PLANS: readonly PricingPlan[] = [
     {
         id: "free",
-        name: "Blobus Free",
-        description: "Для знакомства с платформой и регулярной практики",
-        monthlyPrice: 0,
-        yearlyPrice: 0,
-        cta: "Начать бесплатно",
-        ctaSecondary: "Бесплатно навсегда",
-        highlighted: false,
+        nameKey: "pricing.plans.free.name",
+        descriptionKey: "pricing.plans.free.description",
+        monthlyPrice: PLANS.free.priceUsd,
+        yearlyPrice: PLANS.free.yearlyPriceUsd,
+        ctaKey: "pricing.plans.free.cta",
+        ctaSecondaryKey: "pricing.plans.free.ctaSecondary",
+        highlighted: PLANS.free.highlighted,
     },
     {
         id: "pro",
-        name: "Blobus Pro",
-        description: "Для тех, кто хочет учиться без ограничений",
-        monthlyPrice: 3,
-        yearlyPrice: 29,
-        cta: "Попробовать 7 дней бесплатно",
-        ctaSecondary: "Для новых аккаунтов · без привязки карты",
-        highlighted: true,
+        nameKey: "pricing.plans.pro.name",
+        descriptionKey: "pricing.plans.pro.description",
+        monthlyPrice: PLANS.pro.priceUsd,
+        yearlyPrice: PLANS.pro.yearlyPriceUsd,
+        ctaKey: "pricing.plans.pro.cta",
+        ctaSecondaryKey: "pricing.plans.pro.ctaSecondary",
+        highlighted: PLANS.pro.highlighted,
     },
-] as const;
+];
+

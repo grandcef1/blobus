@@ -12,7 +12,7 @@ import { Link } from "react-router-dom";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { Seo } from "@/components/shared/Seo";
 import { FOCUS_RING } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 
@@ -43,12 +43,11 @@ const HOME_LINK = cn(
 export function NotFoundPage() {
     const shouldReduceMotion = useReducedMotion();
 
-    // ARCHITECT: страница ставит заголовок вкладки сама — тот же хук, что у остальных экранов:
-    // иначе после перехода на несуществующий путь в шапке остаётся название прошлого раздела.
-    useDocumentTitle("Страница не найдена");
-
+    // ARCHITECT: soft-404 SPA гасится noindex: любой неизвестный путь внутри приложения отдаётся
+    // одним и тем же index.html, и без этой метки поисковик считал бы его копией лендинга.
     return (
         <main className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-black px-6 text-center">
+            <Seo indexable={false} title="Страница не найдена" />
             <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(240,240,245,0.05),transparent_65%)]"

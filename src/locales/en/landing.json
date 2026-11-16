@@ -1,0 +1,172 @@
+{
+  "meta": {
+    "title": "Blobus — AI English tutor"
+  },
+  "nav": {
+    "features": "Features",
+    "howItWorks": "How it works",
+    "pricing": "Pricing",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "badge": "A new way to learn English",
+    "titleLine1": "Learn English with",
+    "titleLine2": "an AI tutor",
+    "subtitle": "One-to-one lessons and live practice with an AI tutor. Conversation, grammar and interview prep — in a dialogue tuned to your level.",
+    "benefits": {
+      "trial": "7 days free",
+      "noCard": "No card required",
+      "cancel": "Cancel anytime"
+    },
+    "demo": {
+      "title": "Sample lesson",
+      "description": "This is what a session looks like: an answer, a correction and new vocabulary.",
+      "next": "Next",
+      "start": "Start free"
+    }
+  },
+  "features": {
+    "title": "Everything you need for fluent English",
+    "subtitle": "A personal AI tutor that adapts to your goals",
+    "cards": {
+      "personalization": {
+        "title": "Built around you",
+        "description": "Pick a tutor whose character and voice fit you"
+      },
+      "assessment": {
+        "title": "Ready in 10 minutes",
+        "description": "An adaptive test places your level between A1 and C2"
+      },
+      "modes": {
+        "title": "Learning modes",
+        "description": "From grammar to interview prep — switch whenever you want"
+      },
+      "chat": {
+        "title": "Live conversation with AI",
+        "description": "Instant error correction with the rule explained"
+      }
+    },
+    "assessment": {
+      "stepsLabel": "Onboarding steps",
+      "note": "An adaptive test places your level between A1 and C2",
+      "durations": {
+        "intro": "1 min",
+        "assessment": "7 min",
+        "goals": "1 min",
+        "schedule": "1 min",
+        "lesson": "right away"
+      }
+    },
+    "modesLabel": "Learning modes",
+    "modes": {
+      "interview": { "label": "Interview Prep", "hint": "Interview prep", "badge": "Popular" },
+      "speaking": { "label": "Speaking Practice", "hint": "Speaking practice" },
+      "grammar": { "label": "Grammar Focus", "hint": "Grammar" },
+      "general": { "label": "General English", "hint": "General English" }
+    },
+    "chat": {
+      "listen": "Play",
+      "translate": "Translate",
+      "caption": "Voice playback and translation"
+    }
+  },
+  "howItWorks": {
+    "title": "How Blobus works",
+    "subtitle": "Three steps from signing up to speaking with confidence",
+    "steps": {
+      "goal": {
+        "title": "Focus on a goal",
+        "description": "Choose a track: speaking practice, interview prep or grammar. The AI adapts the scenario and the difficulty to your task in seconds."
+      },
+      "dialogue": {
+        "title": "A natural dialogue",
+        "description": "Talk or type. The AI keeps the context, corrects mistakes gently in real time and behaves like a living mentor."
+      },
+      "growth": {
+        "title": "Visible growth",
+        "description": "Get a detailed review after every session, plus a personal dashboard that tracks progress and works through your mistakes."
+      }
+    }
+  },
+  "pricing": {
+    "title": "Simple, honest pricing",
+    "subtitle": "Start free, move to Pro when you're ready",
+    "month": "Monthly",
+    "year": "Yearly",
+    "discount": "−20%",
+    "popular": "Most popular",
+    "perMonth": "/mo",
+    "perYear": "/yr",
+    "yearlyHint": "${{price}}/mo billed yearly",
+    "features": {
+      "lessons": "Lessons with an AI tutor",
+      "lessonsLimit": "1 a day",
+      "modes": "All learning modes",
+      "memory": "Personalisation and memory",
+      "voice": "Premium AI voice",
+      "unlimited": "Unlimited lessons"
+    },
+    "plans": {
+      "free": {
+        "name": "Blobus Free",
+        "description": "For trying the platform and practising regularly",
+        "cta": "Start free",
+        "ctaSecondary": "Free forever"
+      },
+      "pro": {
+        "name": "Blobus Pro",
+        "description": "For those who want to learn without limits",
+        "cta": "Try 7 days free",
+        "ctaSecondary": "For new accounts · no card required"
+      }
+    }
+  },
+  "faq": {
+    "title": "Frequently asked questions",
+    "subtitle": "Everything you need to know about Blobus",
+    "fromTeam": "From the Blobus team",
+    "asks": "{{name}} asks",
+    "support": {
+      "title": "Still have questions?",
+      "text": "Didn't find your answer? Write to us and we'll personally help you sort it out.",
+      "cta": "Contact support"
+    },
+    "items": {
+      "different": {
+        "question": "How is Blobus different from other apps?",
+        "short": "An adaptive AI that adjusts to your level and goals in real time.",
+        "full": "Blobus works differently from ordinary language apps, where every learner goes through the same static lessons. Instead of gap-fill drills you hold a real, living dialogue with an AI that understands context, slang and cultural nuance, and corrects mistakes gently while you speak.\n\nOur algorithm reads your learning style, pace and weak spots in real time and adjusts difficulty and topics to your personal goals. Whether you are preparing for an interview at a tech company or learning the language for travel, you get the effect of a personal tutor who is available 24/7, never gets tired and helps you get past the fear of speaking."
+      },
+      "modes": {
+        "question": "Which learning modes are available?",
+        "short": "Everyday conversation, speaking practice, grammar and interview prep.",
+        "full": "Four modes: General English for everyday communication, Conversation Practice for speaking, Grammar for a deeper look at the rules, and Interview Prep for technical and behavioural interviews in English."
+      },
+      "plans": {
+        "question": "What is the difference between Free and Pro?",
+        "short": "Free gives you one lesson a day; Pro unlocks unlimited lessons and the premium AI voice.",
+        "full": "Free includes one lesson a day with the standard browser voice. Pro unlocks unlimited lessons, the premium AI voice (Deepgram + OpenAI TTS), priority processing, deeper progress analytics and detailed work on your mistakes. The first 7 days of Pro are free and need no card."
+      },
+      "cancel": {
+        "question": "How do I cancel Pro?",
+        "short": "One click in settings; access lasts until the end of the paid period.",
+        "full": "Cancelling takes one click in Account settings. No hidden conditions and no calls to support. Pro features stay available until the end of the paid period, after which the account moves to Free automatically."
+      },
+      "languages": {
+        "question": "Can I learn other languages?",
+        "short": "Yes — the AI supports Spanish, French, German and more.",
+        "full": "Yes. Our AI supports Spanish, French, German, Italian and other languages. English is the main focus with the widest set of modes and features, but you can switch to any available language in your profile settings."
+      },
+      "support": {
+        "question": "What if something doesn't work?",
+        "short": "Write to support with the Help button and we'll reply within 24 hours.",
+        "full": "If you run into a technical problem, write to support with the Help button in the app. We reply within 24 hours on business days and handle every case personally."
+      },
+      "privacy": {
+        "question": "Are my data and conversations safe?",
+        "short": "Yes — we never store or share your voice recordings with third parties.",
+        "full": "Privacy comes first. Voice data is processed in real time and is not stored on our servers. Your text history is kept encrypted, used only for your progress and never leaves the platform."
+      }
+    }
+  }
+}

@@ -17,6 +17,8 @@ export interface AppNavItem {
     icon: typeof LayoutDashboard;
     /** Префиксы путей, на которых пункт активен, если они шире href. */
     activePrefixes?: string[];
+    /** Пункт виден только администратору: раздел закрыт AdminRoute. */
+    requiresAdmin?: boolean;
 }
 
 // ARCHITECT: стартовая страница приложения. Вошедший пользователь попадает сюда: «Обзор» показывает
@@ -45,7 +47,9 @@ export const PRIMARY_NAV_ITEMS: AppNavItem[] = [
 export const SECONDARY_NAV_ITEMS: AppNavItem[] = [
     { id: "settings", label: "Настройки", href: "/app/settings", icon: Settings },
     { id: "billing", label: "Подписка", href: "/app/billing", icon: CreditCard },
-    { id: "admin", label: "Админ", href: "/app/admin", icon: Shield },
+    // ARCHITECT: пункт виден только владельцу: экран закрыт AdminRoute, а настоящая проверка роли
+    // будет на бэкенде (RLS).
+    { id: "admin", label: "Админ", href: "/app/admin", icon: Shield, requiresAdmin: true },
 ];
 
 export function isNavItemActive(item: AppNavItem, pathname: string): boolean {

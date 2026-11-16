@@ -3,6 +3,7 @@
 // ARCHITECT: активный элемент подсвечивается белым, что выглядит дороже и профессиональнее.
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { BillingPeriod } from "./data";
 
 interface PricingToggleProps {
@@ -11,6 +12,8 @@ interface PricingToggleProps {
 }
 
 export function PricingToggle({ billingPeriod, onPeriodChange }: PricingToggleProps) {
+    const { t } = useTranslation("landing");
+
     return (
         <div className="flex items-center justify-center gap-1 rounded-full border border-white/10 bg-white/[0.02] p-1 backdrop-blur-sm">
             <button
@@ -22,7 +25,7 @@ export function PricingToggle({ billingPeriod, onPeriodChange }: PricingTogglePr
                         : "text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
                 }`}
             >
-                Месяц
+                {t("pricing.month")}
             </button>
 
             <button
@@ -34,14 +37,14 @@ export function PricingToggle({ billingPeriod, onPeriodChange }: PricingTogglePr
                         : "text-[#f0f0f5]/50 hover:text-[#f0f0f5]"
                 }`}
             >
-                Год
+                {t("pricing.year")}
                 {billingPeriod === "year" && (
                     <motion.span
                         initial={{ scale: 0 }}
                         animate={{ scale: 1 }}
                         className="rounded-full bg-black/10 px-1.5 py-0.5 text-[10px] font-bold"
                     >
-                        −20%
+                        {t("pricing.discount")}
                     </motion.span>
                 )}
             </button>

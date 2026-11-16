@@ -9,6 +9,7 @@ import { HeroBadge } from "@/components/hero/HeroBadge";
 import { TypewriterHeading } from "@/components/landing/TypewriterHeading";
 import { DemoDialog } from "@/components/landing/demo/DemoDialog";
 import { useNavigate } from 'react-router-dom';
+import { useTranslation } from "react-i18next";
 
 const containerVariants: Variants = {
     hidden: {},
@@ -38,18 +39,17 @@ const actionsVariants = fadeInUp(0.3);
 const benefitsVariants = fadeInUp(0.4);
 const blobatarVariants = fadeInUp(0.4);
 
-interface BenefitItem {
-    label: string;
-}
-
-const BENEFITS: readonly BenefitItem[] = [
-    { label: "Бесплатно 7 дней" },
-    { label: "Без привязки карты" },
-    { label: "Отмена в любой момент" },
-];
+// ARCHITECT: подписи выгод — ключи словаря landing: строка не может остаться русской в en/es.
+const BENEFITS = [
+    "hero.benefits.trial",
+    "hero.benefits.noCard",
+    "hero.benefits.cancel",
+] as const;
 
 export function HeroSection() {
     const navigate = useNavigate();
+    const { t } = useTranslation("landing");
+    const { t: tCommon } = useTranslation("common");
     // ARCHITECT: пример урока показывается модально, а не якорем на секцию: вторичная кнопка
     // должна объяснять формат, а не перескакивать по странице.
     const [demoOpen, setDemoOpen] = useState(false);
@@ -89,7 +89,7 @@ export function HeroSection() {
                     {/* Текстовый блок: выровнен по левому краю, без лишних отступов.
                         ARCHITECT (RESPONSIVE FIX #1): order-2 на mobile — текст уходит ПОД блобатара. */}
                     <div className="order-2 flex flex-col justify-center gap-7 md:order-1 xl:max-w-[36rem]">
-                        <HeroBadge label="Новый способ учить английский" />
+                        <HeroBadge label={t("hero.badge")} />
 
                         <motion.div variants={titleVariants}>
                             <TypewriterHeading />
@@ -102,8 +102,7 @@ export function HeroSection() {
                             variants={subtitleVariants}
                             className="max-w-xl text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:text-lg"
                         >
-                            Персональные уроки и живая практика с ИИ-репетитором. Разговор,
-                            грамматика и собеседования — в диалоге под ваш уровень.
+                            {t("hero.subtitle")}
                         </motion.p>
 
                         <motion.div
@@ -115,7 +114,7 @@ export function HeroSection() {
                                 onClick={handleGetStarted}
                                 className="rounded-full shadow-none bg-[#f0f0f5] text-black hover:bg-white"
                             >
-                                Начать бесплатно
+                                {tCommon("actions.startFree")}
                             </Button>
                             <Button
                                 variant="outline"
@@ -124,7 +123,7 @@ export function HeroSection() {
                                 className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-[#f0f0f5]"
                             >
                                 <MessageCircle className="mr-2 size-4" aria-hidden="true" />
-                                Пример урока
+                                {t("hero.demo.title")}
                             </Button>
                             <DemoDialog open={demoOpen} onOpenChange={setDemoOpen} />
                         </motion.div>
@@ -133,9 +132,9 @@ export function HeroSection() {
                             variants={benefitsVariants}
                             className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2"
                         >
-                            {BENEFITS.map((benefit) => (
+                            {BENEFITS.map((benefitKey) => (
                                 <div
-                                    key={benefit.label}
+                                    key={benefitKey}
                                     className="flex items-center gap-1.5 text-xs text-[#f0f0f5]/50"
                                 >
                                     <Check
@@ -143,7 +142,7 @@ export function HeroSection() {
                                         aria-hidden="true"
                                     />
                                     <span className="whitespace-nowrap">
-                                        {benefit.label}
+                                        {t(benefitKey)}
                                     </span>
                                 </div>
                             ))}

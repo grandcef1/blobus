@@ -1,0 +1,172 @@
+{
+  "meta": {
+    "title": "Blobus — Tutor de inglés con IA"
+  },
+  "nav": {
+    "features": "Funciones",
+    "howItWorks": "Cómo funciona",
+    "pricing": "Precios",
+    "faq": "FAQ"
+  },
+  "hero": {
+    "badge": "Una forma nueva de aprender inglés",
+    "titleLine1": "Aprende inglés con",
+    "titleLine2": "un tutor de IA",
+    "subtitle": "Clases personalizadas y práctica real con un tutor de IA. Conversación, gramática y entrevistas, en un diálogo adaptado a tu nivel.",
+    "benefits": {
+      "trial": "7 días gratis",
+      "noCard": "Sin tarjeta",
+      "cancel": "Cancela cuando quieras"
+    },
+    "demo": {
+      "title": "Lección de ejemplo",
+      "description": "Así se ve una clase: una respuesta, una corrección y vocabulario nuevo.",
+      "next": "Siguiente",
+      "start": "Empezar gratis"
+    }
+  },
+  "features": {
+    "title": "Todo lo que necesitas para hablar inglés con soltura",
+    "subtitle": "Un tutor de IA personal que se adapta a tus objetivos",
+    "cards": {
+      "personalization": {
+        "title": "Pensado para ti",
+        "description": "Elige un tutor cuyo carácter y voz te encajen"
+      },
+      "assessment": {
+        "title": "Listo en 10 minutos",
+        "description": "Una prueba adaptativa sitúa tu nivel entre A1 y C2"
+      },
+      "modes": {
+        "title": "Modos de estudio",
+        "description": "De la gramática a la entrevista: cambia cuando quieras"
+      },
+      "chat": {
+        "title": "Conversación real con IA",
+        "description": "Corrección inmediata y la regla explicada"
+      }
+    },
+    "assessment": {
+      "stepsLabel": "Pasos de inicio",
+      "note": "Una prueba adaptativa sitúa tu nivel entre A1 y C2",
+      "durations": {
+        "intro": "1 min",
+        "assessment": "7 min",
+        "goals": "1 min",
+        "schedule": "1 min",
+        "lesson": "al instante"
+      }
+    },
+    "modesLabel": "Modos de estudio",
+    "modes": {
+      "interview": { "label": "Interview Prep", "hint": "Entrevistas", "badge": "Popular" },
+      "speaking": { "label": "Speaking Practice", "hint": "Práctica oral" },
+      "grammar": { "label": "Grammar Focus", "hint": "Gramática" },
+      "general": { "label": "General English", "hint": "Inglés general" }
+    },
+    "chat": {
+      "listen": "Escuchar",
+      "translate": "Traducir",
+      "caption": "Reproducción de voz y traducción"
+    }
+  },
+  "howItWorks": {
+    "title": "Cómo funciona Blobus",
+    "subtitle": "Tres pasos desde el registro hasta hablar con confianza",
+    "steps": {
+      "goal": {
+        "title": "Enfoque en tu objetivo",
+        "description": "Elige un itinerario: práctica oral, entrevistas o gramática. La IA adapta el escenario y la dificultad a tu tarea en segundos."
+      },
+      "dialogue": {
+        "title": "Diálogo natural",
+        "description": "Habla o escribe. La IA mantiene el contexto, corrige con suavidad en tiempo real y se comporta como un mentor real."
+      },
+      "growth": {
+        "title": "Progreso visible",
+        "description": "Recibe un análisis detallado después de cada sesión y un panel personal que sigue tu avance y trabaja tus errores."
+      }
+    }
+  },
+  "pricing": {
+    "title": "Precios simples y honestos",
+    "subtitle": "Empieza gratis y pasa a Pro cuando quieras",
+    "month": "Mes",
+    "year": "Año",
+    "discount": "−20%",
+    "popular": "Más popular",
+    "perMonth": "/mes",
+    "perYear": "/año",
+    "yearlyHint": "${{price}}/mes con pago anual",
+    "features": {
+      "lessons": "Clases con un tutor de IA",
+      "lessonsLimit": "1 al día",
+      "modes": "Todos los modos de estudio",
+      "memory": "Personalización y memoria",
+      "voice": "Voz premium de IA",
+      "unlimited": "Clases sin límite"
+    },
+    "plans": {
+      "free": {
+        "name": "Blobus Free",
+        "description": "Para probar la plataforma y practicar con regularidad",
+        "cta": "Empezar gratis",
+        "ctaSecondary": "Gratis para siempre"
+      },
+      "pro": {
+        "name": "Blobus Pro",
+        "description": "Para quien quiere aprender sin límites",
+        "cta": "Prueba 7 días gratis",
+        "ctaSecondary": "Para cuentas nuevas · sin tarjeta"
+      }
+    }
+  },
+  "faq": {
+    "title": "Preguntas frecuentes",
+    "subtitle": "Todo lo que necesitas saber sobre Blobus",
+    "fromTeam": "Del equipo de Blobus",
+    "asks": "{{name}} pregunta",
+    "support": {
+      "title": "¿Te quedan dudas?",
+      "text": "¿No encuentras la respuesta? Escríbenos y te ayudamos personalmente.",
+      "cta": "Escribir a soporte"
+    },
+    "items": {
+      "different": {
+        "question": "¿En qué se diferencia Blobus de otras aplicaciones?",
+        "short": "Una IA adaptativa que se ajusta a tu nivel y tus objetivos en tiempo real.",
+        "full": "Blobus funciona de forma distinta a las aplicaciones habituales de idiomas, donde todo el mundo hace las mismas lecciones estáticas. En lugar de ejercicios de rellenar huecos, mantienes un diálogo real y vivo con una IA que entiende el contexto, el argot y los matices culturales, y corrige los errores con suavidad mientras hablas.\n\nNuestro algoritmo analiza tu forma de aprender, tu ritmo y tus puntos débiles en tiempo real, y ajusta la dificultad y los temas a tus objetivos. Da igual si preparas una entrevista en una empresa tecnológica o aprendes el idioma para viajar: obtienes el efecto de un tutor personal disponible 24/7, que nunca se cansa y te ayuda a superar el miedo a hablar."
+      },
+      "modes": {
+        "question": "¿Qué modos de estudio hay?",
+        "short": "Conversación cotidiana, práctica oral, gramática y preparación de entrevistas.",
+        "full": "Cuatro modos: General English para el día a día, Conversation Practice para hablar, Grammar para profundizar en las reglas e Interview Prep para entrevistas técnicas y de comportamiento en inglés."
+      },
+      "plans": {
+        "question": "¿Cuál es la diferencia entre Free y Pro?",
+        "short": "Free incluye una clase al día; Pro abre clases ilimitadas y la voz premium de IA.",
+        "full": "Free incluye una clase al día con la voz estándar del navegador. Pro abre clases ilimitadas, la voz premium de IA (Deepgram + OpenAI TTS), procesamiento prioritario, analítica de progreso más detallada y trabajo a fondo sobre tus errores. Los primeros 7 días de Pro son gratis y sin tarjeta."
+      },
+      "cancel": {
+        "question": "¿Cómo cancelo Pro?",
+        "short": "Un clic en los ajustes; el acceso sigue hasta el final del periodo pagado.",
+        "full": "La cancelación se hace con un clic en Ajustes de la cuenta. Sin condiciones ocultas ni llamadas a soporte. Las funciones Pro siguen disponibles hasta el final del periodo pagado y después la cuenta pasa a Free automáticamente."
+      },
+      "languages": {
+        "question": "¿Puedo estudiar otros idiomas?",
+        "short": "Sí: la IA admite español, francés, alemán y más idiomas.",
+        "full": "Sí. Nuestra IA admite español, francés, alemán, italiano y otros idiomas. El inglés es el foco principal, con más modos y funciones, pero puedes cambiar a cualquier idioma disponible en los ajustes del perfil."
+      },
+      "support": {
+        "question": "¿Qué hago si algo no funciona?",
+        "short": "Escribe a soporte con el botón Ayuda y te respondemos en 24 horas.",
+        "full": "Si tienes un problema técnico, escribe a soporte con el botón Ayuda de la aplicación. Respondemos en un plazo de 24 horas en días laborables y resolvemos cada caso personalmente."
+      },
+      "privacy": {
+        "question": "¿Están seguros mis datos y mis conversaciones?",
+        "short": "Sí: no guardamos ni compartimos tus grabaciones de voz con terceros.",
+        "full": "La privacidad es lo primero. Los datos de voz se procesan en tiempo real y no se guardan en nuestros servidores. Tu historial de texto se almacena cifrado, se usa solo para tu progreso y nunca sale de la plataforma."
+      }
+    }
+  }
+}

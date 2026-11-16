@@ -4,16 +4,18 @@
 // с тонким маркером, значения — tabular-nums.
 
 import { motion } from "framer-motion";
-import { Award, BookOpen, Calendar, Mail } from "lucide-react";
+import { Award, BookOpen, Calendar } from "lucide-react";
 import { fetchProfileUser } from "@/api/profile";
 import { fetchUserProgress } from "@/api/progress";
 import { fetchPlacementResult } from "@/api/placement";
 import { useMockQuery } from "@/hooks/useMockQuery";
+import { useAuthStore } from "@/store/auth";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { StatusMarker } from "@/components/shared/StatusMarker";
 import { ProfileSkeleton } from "@/components/dashboard/skeletons/ProfileSkeleton";
 import { ProfileModeCard } from "./ProfileModeCard";
 import { ProfileSkillsCard } from "./ProfileSkillsCard";
+import { ProfileEmailRow } from "./ProfileEmailRow";
 import type { LearningMode } from "@/types/onboarding";
 
 async function loadProfile() {
@@ -28,6 +30,9 @@ async function loadProfile() {
 
 export function ProfilePage() {
     const { data, isLoading } = useMockQuery(loadProfile);
+    // ARCHITECT: статус подтверждения почты живёт в auth-store, поэтому хук вызывается до раннего
+    // возврата скелетона: иначе порядок хуков менялся бы между рендерами.
+    const authUser = useAuthStore((state) => state.user);
 
     if (isLoading || data === null) return <ProfileSkeleton />;
 
@@ -79,19 +84,22 @@ export function ProfilePage() {
                                 {user.name}
                             </h2>
 
-                            <div className="mt-2 flex flex-col gap-1 text-sm text-[#f0f0f5]/40 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
-                                <span className="flex min-w-0 items-center gap-1.5">
-                                    <Mail className="size-3.5 shrink-0" aria-hidden="true" />
-                                    <span className="truncate">{user.email}</span>
-                                </span>
-                                <span className="flex items-center gap-1.5">
-                                    <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
-                                    {user.memberSince}
-                                </span>
+                            {/* ARCHITECT: почта переехала в отдельную строку со статусом подтверждения,
+                                поэтому дублировать адрес в шапке больше не нужно. */}
+                            <div className="mt-2 flex items-center gap-1.5 text-sm text-[#f0f0f5]/40">
+                                <Calendar className="size-3.5 shrink-0" aria-hidden="true" />
+                                {user.memberSince}
                             </div>
 
                             <StatusMarker label={user.planLabel} className="mt-2" />
                         </div>
+                    </section>
+
+                    <section className="rounded-2xl bg-[#111113] p-4 md:p-5">
+                        <ProfileEmailRow
+                            email={authUser?.email ?? user.email}
+                            isVerified={Boolean(authUser?.emailVerified)}
+                        />
                     </section>
 
                     <div className="grid grid-cols-1 gap-3 sm:grid-cols-2">

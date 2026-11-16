@@ -3,6 +3,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 
 import { PricingToggle } from "./PricingToggle";
 import { PricingCard } from "./PricingCard";
@@ -11,6 +12,7 @@ import type { BillingPeriod } from "./data";
 
 export function PricingSection() {
     const [billingPeriod, setBillingPeriod] = useState<BillingPeriod>("month");
+    const { t } = useTranslation("landing");
 
     return (
         <section id="pricing" className="relative w-full bg-black py-24 md:py-32">
@@ -23,10 +25,10 @@ export function PricingSection() {
                     className="mb-16 text-center"
                 >
                     <h2 className="text-3xl font-bold tracking-tight text-[#f0f0f5] md:text-5xl">
-                        Простые и честные тарифы
+                        {t("pricing.title")}
                     </h2>
                     <p className="mt-4 text-base text-[#f0f0f5]/60 md:text-lg">
-                        Начни бесплатно, переходи на Pro когда будешь готов
+                        {t("pricing.subtitle")}
                     </p>
                 </motion.header>
 

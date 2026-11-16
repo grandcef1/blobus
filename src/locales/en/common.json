@@ -1,0 +1,69 @@
+{
+  "actions": {
+    "start": "Get started",
+    "startFree": "Start free",
+    "login": "Log in",
+    "next": "Next",
+    "details": "Read more",
+    "close": "Close"
+  },
+  "a11y": {
+    "openMenu": "Open menu",
+    "mainNav": "Main navigation",
+    "mobileNav": "Mobile navigation",
+    "siteNav": "Site navigation",
+    "homeLink": "Go to the home page"
+  },
+  "language": {
+    "selectLabel": "Interface language",
+    "listLabel": "Available languages"
+  },
+  "consent": {
+    "regionLabel": "Analytics and error-reporting consent",
+    "title": "We use cookies",
+    "description": "Functional records are needed for sign-in, language and remembering your decision. Analytics and error reporting are enabled only with your consent.",
+    "acceptAll": "Accept all",
+    "acceptNecessary": "Necessary only",
+    "details": "Learn more"
+  },
+  "errors": {
+    "updateAvailable": {
+      "title": "Update available",
+      "description": "Part of the interface failed to load: a new version was released.",
+      "action": "Reload page"
+    }
+  },
+  "dev": {
+    "observability": {
+      "title": "Observability",
+      "consent": "Analytics consent",
+      "sentry": "Sentry",
+      "reports": "Reports sent",
+      "on": "on",
+      "off": "off",
+      "throwError": "Test error",
+      "rejectPromise": "Test rejected promise",
+      "reset": "Reset consent",
+      "resetDone": "Consent reset"
+    }
+  },
+  "profile": {
+    "email": {
+      "label": "Email",
+      "verified": "Confirmed",
+      "unverified": "Not confirmed",
+      "verify": "Confirm",
+      "sentToast": "Email sent",
+      "sentToastHint": "Check your inbox — the confirmation link is on its way.",
+      "errorToast": "We couldn't send the email",
+      "errorToastHint": "Check your connection and try again."
+    }
+  },
+  "steps": {
+    "intro": "Intro",
+    "assessment": "Level test",
+    "goals": "Goals",
+    "schedule": "Schedule",
+    "lesson": "Lesson"
+  }
+}

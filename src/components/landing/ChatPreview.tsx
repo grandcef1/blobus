@@ -5,6 +5,7 @@
 // Вынесен из FeaturesSection: один компонент на файл.
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { Languages, Volume2 } from "lucide-react";
 
 import { ChatBlobatar } from "@/components/landing/ChatBlobatar";
@@ -33,7 +34,11 @@ const CHAT_MESSAGES: ChatMessage[] = [
     },
 ];
 
+// ARCHITECT: реплики диалога не переводятся: это образец английской речи, ради которого карточка и
+// существует. Переводятся только подписи интерфейса вокруг него.
 export function ChatPreview() {
+    const { t } = useTranslation("landing");
+
     return (
         <div className="mx-auto flex w-full min-w-0 max-w-6xl flex-col items-center justify-center gap-6 md:flex-row md:gap-12">
             <div className="flex min-w-0 w-full flex-1 flex-col gap-3 md:gap-4">
@@ -69,7 +74,7 @@ export function ChatPreview() {
                                         className="flex size-6 items-center justify-center rounded-full bg-black/10 text-[#f0f0f5]/60 transition-colors hover:bg-black/20 hover:text-[#f0f0f5] md:size-7"
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.95 }}
-                                        aria-label="Прослушать"
+                                        aria-label={t("features.chat.listen")}
                                     >
                                         <Volume2 className="size-3 md:size-3.5" aria-hidden="true" />
                                     </motion.button>
@@ -78,7 +83,7 @@ export function ChatPreview() {
                                         className="flex size-6 items-center justify-center rounded-full bg-black/10 text-[#f0f0f5]/60 transition-colors hover:bg-black/20 hover:text-[#f0f0f5] md:size-7"
                                         whileHover={{ scale: 1.1 }}
                                         whileTap={{ scale: 0.95 }}
-                                        aria-label="Перевести"
+                                        aria-label={t("features.chat.translate")}
                                     >
                                         <Languages className="size-3 md:size-3.5" aria-hidden="true" />
                                     </motion.button>
@@ -109,7 +114,7 @@ export function ChatPreview() {
                 {/* ARCHITECT: подпись про голос и перевод — только на десктопе: на телефоне
                     сниппет держим короче, с md он снова выглядит как раньше. */}
                 <p className="mt-4 hidden text-xs text-[#f0f0f5]/40 md:block">
-                    Воспроизведение голосом и перевод
+                    {t("features.chat.caption")}
                 </p>
             </div>
 

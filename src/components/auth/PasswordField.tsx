@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { Eye, EyeOff } from "lucide-react";
 import { TextField } from "@/components/onboarding/TextField";
 import { PasswordStrengthMeter } from "@/components/onboarding/PasswordStrengthMeter";
@@ -21,6 +22,14 @@ interface PasswordFieldProps {
     onChange: (value: string) => void;
     onBlur: () => void;
     error?: string;
+    // ARCHITECT: два флага вместо второго компонента пароля: метру и ссылке восстановления нужны
+    // разные экраны (регистрация / вход / сброс), а логика глаза и автофилла у поля одна.
+    // Дефолты выводятся из mode, поэтому AuthForm не меняется и ведёт себя как раньше.
+    showStrengthMeter?: boolean;
+    showForgotLink?: boolean;
+    /** Подписи переопределяются для переиспользования: «Новый пароль», «Повтори пароль». */
+    label?: string;
+    placeholder?: string;
 }
 
 const EYE_BUTTON = "flex size-11 items-center justify-center text-[#f0f0f5]/40 transition-colors hover:text-[#f0f0f5]/70";
@@ -34,8 +43,24 @@ const FORGOT_LINK = cn(
 
 // ARCHITECT: aria-label намеренно не ставится: видимый текст «Забыли пароль?» сам описывает
 // действие, а отдельное имя разошлось бы с видимой меткой (WCAG 2.5.3 Label in Name).
-export function PasswordField({ id, name, value, mode, onChange, onBlur, error }: PasswordFieldProps) {
+export function PasswordField({
+    id,
+    name,
+    value,
+    mode,
+    onChange,
+    onBlur,
+    error,
+    showStrengthMeter,
+    showForgotLink,
+    label,
+    placeholder,
+}: PasswordFieldProps) {
+    const { t } = useTranslation("auth");
     const [isVisible, setIsVisible] = useState(false);
+
+    const withMeter = showStrengthMeter ?? mode === "register";
+    const withForgotLink = showForgotLink ?? mode === "login";
 
     return (
         <div>
@@ -43,10 +68,12 @@ export function PasswordField({ id, name, value, mode, onChange, onBlur, error }
                 id={id}
                 name={name}
                 required
-                label="Пароль"
-                placeholder="Минимум 8 символов"
+                label={label ?? t("fields.password.label")}
+                placeholder={placeholder ?? t("fields.password.placeholder")}
                 type={isVisible ? "text" : "password"}
-                autoComplete={mode === "register" ? "new-password" : "current-password"}
+                // ARCHITECT: пока показан метр, поле заведомо про новый пароль — менеджер паролей
+                // должен предлагать генерацию, а не подстановку старого.
+                autoComplete={withMeter || mode === "register" ? "new-password" : "current-password"}
                 value={value}
                 error={error}
                 onChange={onChange}
@@ -55,7 +82,9 @@ export function PasswordField({ id, name, value, mode, onChange, onBlur, error }
                 <button
                     type="button"
                     onClick={() => setIsVisible(!isVisible)}
-                    aria-label={isVisible ? "Скрыть пароль" : "Показать пароль"}
+                    aria-label={
+                        isVisible ? t("fields.password.hide") : t("fields.password.show")
+                    }
                     className={EYE_BUTTON}
                 >
                     {isVisible ? (
@@ -66,12 +95,12 @@ export function PasswordField({ id, name, value, mode, onChange, onBlur, error }
                 </button>
             </TextField>
 
-            {mode === "register" ? (
-                <PasswordStrengthMeter password={value} />
-            ) : (
+            {withMeter && <PasswordStrengthMeter password={value} />}
+
+            {withForgotLink && (
                 <div className="mt-1 flex justify-end">
                     <Link to="/forgot-password" className={FORGOT_LINK}>
-                        Забыли пароль?
+                        {t("fields.password.forgot")}
                     </Link>
                 </div>
             )}

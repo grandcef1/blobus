@@ -9,7 +9,7 @@ import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { LISTENING_ITEMS } from "@/api/mocks/listeningTest";
 import { saveListeningResult } from "@/api/placement";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { Seo } from "@/components/shared/Seo";
 import { APP_HOME_PATH } from "@/components/layout/navigation";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { ListeningTest } from "@/components/placement/ListeningTest";
@@ -19,7 +19,6 @@ import type { ListeningResult } from "@/types/placement";
 export function ListeningFlow() {
     const navigate = useNavigate();
     const [result, setResult] = useState<ListeningResult | null>(null);
-    useDocumentTitle("Проверка аудирования");
 
     const handleComplete = (next: ListeningResult) => {
         // ARCHITECT: уровень дозаписывается в сохранённый результат теста: ту же запись читает
@@ -30,6 +29,8 @@ export function ListeningFlow() {
 
     return (
         <OnboardingShell showProgress={false}>
+            {/* ARCHITECT: проверка аудирования — служебный экран вне приложения: noindex. */}
+            <Seo indexable={false} title="Проверка аудирования" />
             <div className="mx-auto w-full max-w-xl px-6 py-16">
                 {result === null ? (
                     <ListeningTest

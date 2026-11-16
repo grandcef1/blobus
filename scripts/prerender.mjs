@@ -1,0 +1,286 @@
+// ARCHITECT: prerender без SSR React-дерева. Сайт — CSR SPA на Vercel, а shaders, i18n-детектор и
+// zustand-persist небезопасны в Node, поэтому React в Node не рендерится: post-build скрипт вставляет
+// в статические HTML per-route <head> и осмысленный crawlable-контент в #root, а React (createRoot)
+// при загрузке заменяет содержимое контейнера.
+// ARCHITECT: Vercel отдаёт файлы из filesystem до rewrites, поэтому dist/privacy/index.html
+// побеждает SPA-fallback на /index.html.
+// ARCHITECT: тексты читаются из тех же файлов, что бандлит приложение (src/locales/ru, src/lib/legal.ts,
+// src/lib/seo-routes.json): заглушек и Lorem здесь нет, а статический HTML не может разойтись с UI.
+
+import { mkdir, readFile, writeFile } from "node:fs/promises";
+import { dirname, join, relative } from "node:path";
+import { fileURLToPath } from "node:url";
+
+const ROOT = join(dirname(fileURLToPath(import.meta.url)), "..");
+const DIST = join(ROOT, "dist");
+// ARCHITECT: тот же фоллбэк, что и в src/lib/seo.ts: prerender пишет canonical, sitemap и robots,
+// и расхождение с клиентом дало бы два разных домена в одном сайте.
+const SITE_URL = process.env.VITE_SITE_URL ?? "https://blobus-ai.vercel.app";
+const BUILD_DATE = new Date().toISOString().slice(0, 10);
+const SCHEMA_CONTEXT = "https://schema.org";
+const OG_IMAGE_URL = `${SITE_URL}/og-image.png`;
+
+// ARCHITECT: приватные маршруты закрыты в robots.txt — они не входят в sitemap и живут только в SPA.
+const DISALLOWED_PATHS = [
+    "/app/",
+    "/onboarding",
+    "/listening",
+    "/login",
+    "/forgot-password",
+    "/reset-password",
+    "/verify-email",
+];
+
+const readText = (relativePath) => readFile(join(ROOT, relativePath), "utf8");
+const readJson = async (relativePath) => JSON.parse(await readText(relativePath));
+
+const escapeHtml = (value) =>
+    value
+        .replaceAll("&", "&amp;")
+        .replaceAll("<", "&lt;")
+        .replaceAll(">", "&gt;")
+        .replaceAll('"', "&quot;");
+
+const paragraphs = (text) => text.split("\n\n").map((part) => `<p>${escapeHtml(part)}</p>`).join("");
+
+const absoluteUrl = (path) => (path === "/" ? `${SITE_URL}/` : `${SITE_URL}${path}`);
+
+const routes = await readJson("src/lib/seo-routes.json");
+const landing = await readJson("src/locales/ru/landing.json");
+const legal = await readJson("src/locales/ru/legal.json");
+const legalSource = await readText("src/lib/legal.ts");
+
+// ARCHITECT: имя оператора и адрес поддержки — тот же источник, что у самих страниц: копии констант
+// в скрипте не появляется.
+const readConst = (name) => {
+    const match = new RegExp(`export const ${name} = "([^"]+)"`).exec(legalSource);
+    if (match === null) throw new Error(`prerender: в src/lib/legal.ts не найдена константа ${name}`);
+    return match[1];
+};
+
+const withVars = (text) =>
+    text
+        .replaceAll("{{operator}}", readConst("OPERATOR_NAME"))
+        .replaceAll("{{email}}", readConst("OPERATOR_CONTACT_EMAIL"));
+
+const landingHtml = () => {
+    const features = Object.values(landing.features.cards)
+        .map((card) => `<li><strong>${escapeHtml(card.title)}</strong>: ${escapeHtml(card.description)}</li>`)
+        .join("");
+    const steps = Object.values(landing.howItWorks.steps)
+        .map((step) => `<h3>${escapeHtml(step.title)}</h3><p>${escapeHtml(step.description)}</p>`)
+        .join("");
+    const plans = Object.values(landing.pricing.plans)
+        .map(
+            (plan) =>
+                `<li><h3>${escapeHtml(plan.name)}</h3><p>${escapeHtml(plan.description)}</p><p>${escapeHtml(plan.cta)}</p></li>`
+        )
+        .join("");
+    const faq = Object.values(landing.faq.items)
+        .map((item) => `<h3>${escapeHtml(item.question)}</h3>${paragraphs(item.full)}`)
+        .join("");
+    const legalLinks = ["privacy", "terms", "cookies"]
+        .map((id) => `<a href="/${id}">${escapeHtml(legal.legal.layout.nav[id])}</a>`)
+        .join(" · ");
+
+    return `<main>
+<h1>${escapeHtml(`${landing.hero.titleLine1} ${landing.hero.titleLine2}`)}</h1>
+<p>${escapeHtml(landing.hero.subtitle)}</p>
+<ul>${Object.values(landing.hero.benefits).map((benefit) => `<li>${escapeHtml(benefit)}</li>`).join("")}</ul>
+<h2>${escapeHtml(landing.features.title)}</h2>
+<p>${escapeHtml(landing.features.subtitle)}</p>
+<ul>${features}</ul>
+<h2>${escapeHtml(landing.howItWorks.title)}</h2>
+<p>${escapeHtml(landing.howItWorks.subtitle)}</p>
+${steps}
+<h2>${escapeHtml(landing.pricing.title)}</h2>
+<p>${escapeHtml(landing.pricing.subtitle)}</p>
+<ul>${plans}</ul>
+<h2>${escapeHtml(landing.faq.title)}</h2>
+<p>${escapeHtml(landing.faq.subtitle)}</p>
+${faq}
+<nav><a href="/help">${escapeHtml(landing.faq.support.cta)}</a> · ${legalLinks}</nav>
+</main>`;
+};
+
+// shortcut: таблицы правовых страниц (обработчики данных, хранилище) в prerender не дублируются —
+// текста разделов достаточно для индексирования, а состав таблиц живёт в src/lib/legal.ts и словарях.
+const legalHtml = (pageId) => {
+    const page = legal.legal[pageId];
+    const sections = Object.values(page.sections)
+        .map((section) => `<h2>${escapeHtml(section.title)}</h2>${paragraphs(withVars(section.body))}`)
+        .join("");
+
+    return `<article>
+<h1>${escapeHtml(page.title)}</h1><p>${escapeHtml(page.intro)}</p>
+${sections}
+</article>`;
+};
+
+// ARCHITECT: FAQ центра помощи — из src/api/mocks/help.ts: в словарях его нет, а вопрос и ответ лежат
+// там литералами. Guard ниже падает, если формат файла изменится: лучше громкая ошибка сборки, чем
+// пустой <article> в проде.
+const HELP_FAQ_PATTERN = /question: "((?:[^"\\]|\\.)*)",\s*answer: "((?:[^"\\]|\\.)*)",/g;
+const helpFaq = [...(await readText("src/api/mocks/help.ts")).matchAll(HELP_FAQ_PATTERN)].map((match) => ({
+    question: JSON.parse(`"${match[1]}"`),
+    answer: JSON.parse(`"${match[2]}"`),
+}));
+
+if (helpFaq.length === 0) {
+    throw new Error("prerender: не удалось прочитать FAQ из src/api/mocks/help.ts");
+}
+
+// ARCHITECT: h1 совпадает с заголовком HelpCenter: статический HTML и React-страница называют раздел
+// одинаково.
+const helpHtml = (route) => `
+<article>
+<h1>Центр помощи</h1>
+<p>${escapeHtml(route.description)}</p>
+<h2>${escapeHtml(landing.faq.title)}</h2>
+${helpFaq.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join("")}
+</article>`;
+
+const BODIES = {
+    "/": landingHtml,
+    "/help": helpHtml,
+    "/privacy": () => legalHtml("privacy"),
+    "/terms": () => legalHtml("terms"),
+    "/cookies": () => legalHtml("cookies"),
+};
+
+const ORGANIZATION = {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "Organization",
+    name: "Blobus",
+    url: SITE_URL,
+    logo: `${SITE_URL}/blobatar-icon.png`,
+    contactPoint: {
+        "@type": "ContactPoint",
+        contactType: "customer support",
+        email: readConst("OPERATOR_CONTACT_EMAIL"),
+        availableLanguage: ["ru", "en", "es"],
+    },
+};
+
+const WEBSITE = { "@context": SCHEMA_CONTEXT, "@type": "WebSite", name: "Blobus", url: SITE_URL, inLanguage: "ru" };
+
+const SOFTWARE_APPLICATION = {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "SoftwareApplication",
+    name: "Blobus",
+    applicationCategory: "EducationalApplication",
+    operatingSystem: "Web",
+    inLanguage: "ru",
+    offers: { "@type": "Offer", price: "0", priceCurrency: "USD" },
+};
+
+const HOME_FAQ = {
+    "@context": SCHEMA_CONTEXT,
+    "@type": "FAQPage",
+    mainEntity: Object.values(landing.faq.items).map((item) => ({
+        "@type": "Question",
+        name: item.question,
+        acceptedAnswer: { "@type": "Answer", text: item.full },
+    })),
+};
+
+// ARCHITECT: форма разметки совпадает с клиентской (src/lib/structured-data.ts): на главной — узел
+// с @graph, на остальных — BreadcrumbList. Один вид разметки вместо двух.
+const jsonLdFor = (route) =>
+    route.path === "/"
+        ? { "@context": SCHEMA_CONTEXT, "@graph": [ORGANIZATION, WEBSITE, SOFTWARE_APPLICATION, HOME_FAQ] }
+        : [
+              {
+                  "@context": SCHEMA_CONTEXT,
+                  "@type": "BreadcrumbList",
+                  itemListElement: [
+                      { "@type": "ListItem", position: 1, name: "Главная", item: absoluteUrl("/") },
+                      { "@type": "ListItem", position: 2, name: route.title, item: absoluteUrl(route.path) },
+                  ],
+              },
+          ];
+
+const metaTag = (attributes) => `<meta data-seo="static" ${attributes} />`;
+
+const headTags = (route, jsonLd) => {
+    const url = absoluteUrl(route.path);
+    const title = escapeHtml(route.title);
+    const description = escapeHtml(route.description);
+
+    return [
+        `<title data-seo="static">${title}</title>`,
+        metaTag(`name="description" content="${description}"`),
+        metaTag('name="robots" content="index,follow"'),
+        `<link data-seo="static" rel="canonical" href="${url}" />`,
+        metaTag('property="og:type" content="website"'),
+        metaTag('property="og:site_name" content="Blobus"'),
+        metaTag('property="og:locale" content="ru_RU"'),
+        metaTag(`property="og:url" content="${url}"`),
+        metaTag(`property="og:title" content="${title}"`),
+        metaTag(`property="og:description" content="${description}"`),
+        metaTag(`property="og:image" content="${OG_IMAGE_URL}"`),
+        metaTag('property="og:image:width" content="1200"'),
+        metaTag('property="og:image:height" content="630"'),
+        metaTag('name="twitter:card" content="summary_large_image"'),
+        metaTag(`name="twitter:image" content="${OG_IMAGE_URL}"`),
+        `<script data-seo="static" type="application/ld+json">${jsonLd}</script>`,
+    ].join("\n        ");
+};
+
+const ROOT_CONTAINER = '<div id="root"></div>';
+const template = await readText("dist/index.html");
+
+if (!template.includes(ROOT_CONTAINER)) {
+    throw new Error("prerender: в dist/index.html нет пустого #root — проверь index.html");
+}
+
+// ARCHITECT: title и description шаблона снимаются до вставки: иначе в HTML оказались бы два
+// заголовка — от Vite-шаблона и от маршрута.
+const stripped = template
+    .replace(/<title[^>]*>[\s\S]*?<\/title>\s*/i, "")
+    .replace(/<meta name="description"[^>]*>\s*/i, "");
+
+for (const route of routes) {
+    const buildBody = BODIES[route.path];
+    if (buildBody === undefined) throw new Error(`prerender: для маршрута ${route.path} нет контента`);
+    // ARCHITECT: JSON-LD проходит через JSON.parse до вставки — невалидный JSON не уедет в HTML.
+    const jsonLd = JSON.stringify(JSON.parse(JSON.stringify(jsonLdFor(route)))).replaceAll("<", "\\u003c");
+    const html = stripped
+        .replace("</head>", `${headTags(route, jsonLd)}\n    </head>`)
+        .replace(ROOT_CONTAINER, `<div id="root">${buildBody(route)}</div>`);
+    const file = route.path === "/" ? join(DIST, "index.html") : join(DIST, route.path.slice(1), "index.html");
+
+    await mkdir(dirname(file), { recursive: true });
+    await writeFile(file, html, "utf8");
+    console.log(`prerender: ${route.path} -> ${relative(DIST, file).replaceAll("\\", "/")}`);
+}
+
+const robotsTxt = [
+    "User-agent: *",
+    "Allow: /",
+    ...DISALLOWED_PATHS.map((path) => `Disallow: ${path}`),
+    `Sitemap: ${SITE_URL}/sitemap.xml`,
+    "",
+].join("\n");
+
+const sitemapXml = [
+    '<?xml version="1.0" encoding="UTF-8"?>',
+    '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">',
+    ...routes.map((route) =>
+        [
+            "  <url>",
+            `    <loc>${absoluteUrl(route.path)}</loc>`,
+            `    <lastmod>${BUILD_DATE}</lastmod>`,
+            `    <changefreq>${route.changefreq}</changefreq>`,
+            `    <priority>${route.priority.toFixed(1)}</priority>`,
+            "  </url>",
+        ].join("\n")
+    ),
+    "</urlset>",
+    "",
+].join("\n");
+
+await writeFile(join(DIST, "robots.txt"), robotsTxt, "utf8");
+await writeFile(join(DIST, "sitemap.xml"), sitemapXml, "utf8");
+console.log(`prerender: robots.txt и sitemap.xml готовы (${routes.length} URL)`);
+

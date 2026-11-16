@@ -10,7 +10,9 @@ import { HowItWorksSection } from '@/components/landing/how-it-works/HowItWorksS
 import { PricingSection } from '@/components/landing/pricing/PricingSection';
 import { FaqSection } from '@/components/landing/faq/FaqSection';
 import { Footer } from '@/components/landing/Footer';
-import { useDocumentTitle } from '@/hooks/useDocumentTitle';
+import { Seo } from '@/components/shared/Seo';
+import { HOME_JSON_LD } from '@/lib/structured-data';
+
 
 function useSmoothAnchorScroll(): void {
     const shouldReduceMotion = useReducedMotion();
@@ -42,13 +44,14 @@ function useSmoothAnchorScroll(): void {
 }
 
 export function Landing() {
-    // ARCHITECT: заголовок лендинга совпадает с заголовком из index.html: без него возврат из
-    // приложения оставлял бы в шапке название последнего раздела.
-    useDocumentTitle('Blobus — ИИ-репетитор');
     useSmoothAnchorScroll();
 
     return (
         <>
+            {/* ARCHITECT: заголовок, description и JSON-LD лендинга едут из seo-routes.json и
+                src/lib/structured-data.ts — теми же строками, что попадают в статический HTML
+                prerender'а. Поэтому title больше не берётся из словаря: язык SEO — ru. */}
+            <Seo path="/" jsonLd={HOME_JSON_LD} />
             <Header />
             <main className="min-h-dvh w-full max-w-full overflow-x-hidden bg-black">
                 <HeroSection />

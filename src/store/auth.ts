@@ -17,6 +17,8 @@ interface AuthState {
     signUp: (name: string, email: string, password: string) => Promise<AuthUser>;
     signInWithGoogle: () => Promise<AuthUser>;
     signOut: () => void;
+    /** Отмечает почту подтверждённой: статус живёт только здесь, профиль его не дублирует. */
+    markEmailVerified: () => void;
 }
 
 export const useAuthStore = create<AuthState>()(
@@ -39,6 +41,14 @@ export const useAuthStore = create<AuthState>()(
                 return user;
             },
             signOut: () => set({ user: null }),
+            // ARCHITECT: пустой патч, когда пользователя нет: гость, открывший ссылку из письма, не
+            // должен получить аккаунт — подтверждение применимо только к существующей сессии.
+            markEmailVerified: () =>
+                set((state) =>
+                    state.user === null
+                        ? {}
+                        : { user: { ...state.user, emailVerified: true } }
+                ),
         }),
         { name: "blobus-auth" }
     )

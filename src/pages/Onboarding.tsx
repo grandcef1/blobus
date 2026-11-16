@@ -14,8 +14,9 @@ import type { EnglishLevel, OnboardingData, OnboardingStep } from "@/types/onboa
 import { createSession } from "@/api/sessions";
 import { getResult } from "@/api/placement";
 import { levelForMode } from "@/lib/placement";
-import { useDocumentTitle } from "@/hooks/useDocumentTitle";
+import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
+import { Seo } from "@/components/shared/Seo";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { OnboardingStepView } from "@/components/onboarding/OnboardingStepView";
 
@@ -33,9 +34,6 @@ const STEP_ORDERS: Record<OnboardingFlow, OnboardingStep[]> = {
 export function Onboarding({ flow = "full" }: OnboardingProps) {
     const navigate = useNavigate();
     const stepOrder = STEP_ORDERS[flow];
-    // ARCHITECT: у мастера два входа (/onboarding и /session/new) — заголовок вкладки называет
-    // именно тот, куда пришёл пользователь.
-    useDocumentTitle(flow === "session" ? "Новая сессия" : "Настройка обучения");
     const [currentStep, setCurrentStep] = useState<OnboardingStep>(stepOrder[0]);
     const [onboardingData, setOnboardingData] = useState<OnboardingData>({
         blobatarId: null,
@@ -94,6 +92,14 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
             return;
         }
 
+        // ARCHITECT: мягкий гейт подтверждения почты: после регистрации предлагаем открыть письмо,
+        // но /app не блокируем — «Продолжить без подтверждения» ведёт в приложение. Статус читаем
+        // из стора прямо в обработчике: подписка мастеру не нужна, значение нужно один раз.
+        if (flow === "full" && useAuthStore.getState().user?.emailVerified === false) {
+            navigate("/verify-email?sent=1", { replace: true });
+            return;
+        }
+
         startSession();
     };
 
@@ -124,6 +130,9 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
 
     return (
         <OnboardingShell progress={progress}>
+            {/* ARCHITECT: у мастера два входа (/onboarding и /session/new) — заголовок вкладки
+                называет именно тот, куда пришёл пользователь. Индексация закрыта: это мастер. */}
+            <Seo indexable={false} title={flow === "session" ? "Новая сессия" : "Настройка обучения"} />
             <AnimatePresence mode="wait">
                 <motion.div
                     key={currentStep}

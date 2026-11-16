@@ -3,37 +3,39 @@ import type { ReactNode, RefObject } from "react";
 
 import { motion, useAnimationFrame, useMotionValue } from "framer-motion";
 import type { MotionValue, Variants } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { MOCK_BLOBATARS } from "@/api/mocks/blobatars";
 import { ChatPreview } from "@/components/landing/ChatPreview";
 import { MiniBlobatar } from "@/components/landing/MiniBlobatar";
-import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
 
+// ARCHITECT: заголовки карточек — ключи словаря landing: текст живёт в src/locales, здесь остаётся
+// только раскладка (span) и тайминг появления.
 const FEATURES = [
     {
         id: "personalization",
-        title: "Персонализация под вас",
-        description: "Выберите репетитора с подходящим характером и голосом",
+        titleKey: "features.cards.personalization.title",
+        descriptionKey: "features.cards.personalization.description",
         span: "md:col-span-2",
         delay: 0.1,
     },
     {
         id: "assessment",
-        title: "10 минут до старта",
-        description: "Адаптивный тест определит ваш уровень A1–C2",
+        titleKey: "features.cards.assessment.title",
+        descriptionKey: "features.cards.assessment.description",
         span: "md:col-span-1",
         delay: 0.2,
     },
     {
         id: "modes",
-        title: "Режимы обучения",
-        description: "От грамматики до собеседования — переключайтесь в любой момент",
+        titleKey: "features.cards.modes.title",
+        descriptionKey: "features.cards.modes.description",
         span: "md:col-span-1",
         delay: 0.3,
     },
     {
         id: "chat",
-        title: "Живое общение с ИИ",
-        description: "Мгновенная коррекция ошибок и объяснение правил",
+        titleKey: "features.cards.chat.title",
+        descriptionKey: "features.cards.chat.description",
         span: "md:col-span-2",
         delay: 0.4,
     },
@@ -174,14 +176,14 @@ function BlobatarMarquee() {
     );
 }
 
-// ARCHITECT: подписи шагов берутся из ONBOARDING_STEP_TITLES — того же источника, что у мастера:
-// лендинг и продукт не могут разойтись по названиям. Вёрстка и тайминги не менялись.
+// ARCHITECT: подписи шагов берутся из общих ключей common.steps — того же набора, на который
+// перейдёт мастер: лендинг и продукт не могут разойтись по названиям. Длительности — ключи landing.
 const STEPS = [
-    { label: ONBOARDING_STEP_TITLES.intro, duration: "1 мин" },
-    { label: ONBOARDING_STEP_TITLES.assessment, duration: "7 мин" },
-    { label: ONBOARDING_STEP_TITLES.goals, duration: "1 мин" },
-    { label: ONBOARDING_STEP_TITLES.schedule, duration: "1 мин" },
-    { label: ONBOARDING_STEP_TITLES.lesson, duration: "сразу" },
+    { labelKey: "steps.intro", durationKey: "features.assessment.durations.intro" },
+    { labelKey: "steps.assessment", durationKey: "features.assessment.durations.assessment" },
+    { labelKey: "steps.goals", durationKey: "features.assessment.durations.goals" },
+    { labelKey: "steps.schedule", durationKey: "features.assessment.durations.schedule" },
+    { labelKey: "steps.lesson", durationKey: "features.assessment.durations.lesson" },
 ] as const;
 
 const NODE_DELAY_BASE = 0.2;
@@ -262,34 +264,60 @@ function StepRow({ label, duration }: StepRowProps) {
 }
 
 function ProgressSteps() {
+    const { t } = useTranslation("landing");
+    const { t: tCommon } = useTranslation("common");
+
     return (
         <div className="flex h-full flex-col">
-            <ol aria-label="Шаги онбординга" className="flex flex-1 flex-col">
+            <ol aria-label={t("features.assessment.stepsLabel")} className="flex flex-1 flex-col">
                 {STEPS.map((step, index) => {
                     const isLast = index === STEPS.length - 1;
                     return (
-                        <li key={step.label} className={`flex gap-3.5 ${isLast ? "" : "flex-1"}`}>
+                        <li key={step.labelKey} className={`flex gap-3.5 ${isLast ? "" : "flex-1"}`}>
                             <div className="flex flex-col items-center">
                                 <StepNode index={index} />
                                 {!isLast && <StepSegment index={index} />}
                             </div>
-                            <StepRow label={step.label} duration={step.duration} />
+                            <StepRow
+                                label={tCommon(step.labelKey)}
+                                duration={t(step.durationKey)}
+                            />
                         </li>
                     );
                 })}
             </ol>
             <p className="mt-6 text-sm text-[#f0f0f5]/60">
-                Адаптивный тест определит ваш уровень A1–C2
+                {t("features.assessment.note")}
             </p>
         </div>
     );
 }
 
 const MODES = [
-    { id: "interview", label: "Interview Prep", hint: "Собеседование", badge: "Popular" },
-    { id: "speaking", label: "Speaking Practice", hint: "Разговорная практика", badge: null },
-    { id: "grammar", label: "Grammar Focus", hint: "Грамматика", badge: null },
-    { id: "general", label: "General English", hint: "Общее изучение", badge: null },
+    {
+        id: "interview",
+        label: "Interview Prep",
+        hintKey: "features.modes.interview.hint",
+        badgeKey: "features.modes.interview.badge",
+    },
+    {
+        id: "speaking",
+        label: "Speaking Practice",
+        hintKey: "features.modes.speaking.hint",
+        badgeKey: null,
+    },
+    {
+        id: "grammar",
+        label: "Grammar Focus",
+        hintKey: "features.modes.grammar.hint",
+        badgeKey: null,
+    },
+    {
+        id: "general",
+        label: "General English",
+        hintKey: "features.modes.general.hint",
+        badgeKey: null,
+    },
 ] as const;
 
 type Mode = (typeof MODES)[number];
@@ -300,7 +328,8 @@ interface ModeTileProps {
 }
 
 function ModeTile({ mode, index }: ModeTileProps) {
-    const isPopular = mode.badge !== null;
+    const { t } = useTranslation("landing");
+    const isPopular = mode.badgeKey !== null;
 
     return (
         <motion.li
@@ -318,20 +347,20 @@ function ModeTile({ mode, index }: ModeTileProps) {
                 <span className="text-sm font-semibold leading-snug text-[#f0f0f5]">
                     {mode.label}
                 </span>
-                {mode.badge && (
+                {mode.badgeKey && (
                     <span className="flex shrink-0 items-center gap-1.5 rounded-full border border-white/20 bg-white/10 px-2.5 py-1">
                         <span
                             className="h-1.5 w-1.5 animate-pulse rounded-full bg-[#f0f0f5]"
                             aria-hidden="true"
                         />
                         <span className="whitespace-nowrap text-[9px] font-medium text-[#f0f0f5]">
-                            {mode.badge}
+                            {t(mode.badgeKey)}
                         </span>
                     </span>
                 )}
             </div>
             <div className="flex items-end justify-between gap-2">
-                <span className="text-xs text-[#f0f0f5]/50">{mode.hint}</span>
+                <span className="text-xs text-[#f0f0f5]/50">{t(mode.hintKey)}</span>
                 <span className="text-[10px] tabular-nums text-[#f0f0f5]/25" aria-hidden="true">
                     {String(index + 1).padStart(2, "0")}
                 </span>
@@ -341,8 +370,10 @@ function ModeTile({ mode, index }: ModeTileProps) {
 }
 
 function ModeShowcase() {
+    const { t } = useTranslation("landing");
+
     return (
-        <ul aria-label="Режимы обучения" className="grid h-full grid-cols-1 gap-3 sm:grid-cols-2">
+        <ul aria-label={t("features.modesLabel")} className="grid h-full grid-cols-1 gap-3 sm:grid-cols-2">
             {MODES.map((mode, index) => (
                 <ModeTile key={mode.id} mode={mode} index={index} />
             ))}
@@ -364,6 +395,8 @@ function FeatureContent({ id }: { id: FeatureId }) {
 }
 
 export function FeaturesSection() {
+    const { t } = useTranslation("landing");
+
     return (
         <section id="features" className="relative w-full overflow-hidden bg-black py-24">
             <div
@@ -380,10 +413,10 @@ export function FeaturesSection() {
                     className="mb-16"
                 >
                     <h2 className="mb-4 text-4xl font-bold text-[#f0f0f5] md:text-5xl">
-                        Всё, что нужно для свободного английского
+                        {t("features.title")}
                     </h2>
                     <p className="max-w-2xl text-base leading-relaxed text-[#f0f0f5]/60 md:text-lg">
-                        Персональный ИИ-репетитор, который адаптируется под ваши цели
+                        {t("features.subtitle")}
                     </p>
                 </motion.header>
 
@@ -397,11 +430,15 @@ export function FeaturesSection() {
                     {FEATURES.map((feature) => (
                         <FeatureCard
                             key={feature.id}
-                            title={feature.title}
+                            title={t(feature.titleKey)}
                             delay={feature.delay}
                             className={feature.span}
                             clip={feature.id === "chat"}
-                            description={feature.id === "assessment" ? undefined : feature.description}
+                            description={
+                                feature.id === "assessment"
+                                    ? undefined
+                                    : t(feature.descriptionKey)
+                            }
                         >
                             <FeatureContent id={feature.id} />
                         </FeatureCard>

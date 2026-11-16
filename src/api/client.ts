@@ -3,6 +3,9 @@
 // ни один модуль api/* не дёргает fetch напрямую.
 
 import { useAuthStore } from "@/store/auth";
+// ARCHITECT: циклический импорт client ↔ observability безопасен: обе стороны обращаются к функциям
+// друг друга только в момент запроса, а не при загрузке модуля.
+import { isReportingInFlight, reportError } from "@/lib/observability/report-error";
 
 export interface ApiErrorShape {
     statusCode: number;
@@ -47,11 +50,15 @@ function getAuthToken(): string | undefined {
 }
 
 // ARCHITECT: ошибки логируются только в dev-сборке: в проде журнал консоли — это утечка
-// внутренних данных и шум для пользователя.
+// внутренних данных и шум для пользователя. Вместо консоли прод отправляет отчёт на наш сервер.
 function logError(error: unknown): void {
     if (import.meta.env.DEV) {
         console.error("[api]", error);
+        return;
     }
+    // ARCHITECT: отправка самого отчёта идёт через этот же клиент, поэтому без проверки флага её
+    // падение породило бы новый отчёт — бесконечный цикл.
+    if (!isReportingInFlight()) reportError({ severity: "error", error });
 }
 
 /**

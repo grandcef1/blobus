@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { MoreVertical } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { clearSessionMessages, deleteSession } from "@/api/sessions";
 import { toast } from "@/store/toast";
 import { ConfirmActionDialog } from "./ConfirmActionDialog";
@@ -26,6 +27,7 @@ interface SessionActionsMenuProps {
 }
 
 export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionActionsMenuProps) {
+    const { t } = useTranslation("chat");
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isClearOpen, setIsClearOpen] = useState(false);
     const [isDeleteOpen, setIsDeleteOpen] = useState(false);
@@ -33,9 +35,9 @@ export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionAct
     const handleCopyLink = async () => {
         try {
             await navigator.clipboard.writeText(`${window.location.origin}/app/chat/${session.id}`);
-            toast.success("Ссылка скопирована");
+            toast.success(t("actions.toast.linkCopied"));
         } catch {
-            toast.error("Не удалось скопировать");
+            toast.error(t("actions.toast.copyFailed"));
         }
     };
 
@@ -43,14 +45,14 @@ export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionAct
         const updated = clearSessionMessages(session.id);
         if (updated) onUpdated(updated);
         setIsClearOpen(false);
-        toast.success("История очищена");
+        toast.success(t("actions.toast.historyCleared"));
     };
 
     const handleDelete = () => {
         deleteSession(session.id);
         setIsDeleteOpen(false);
         onDeleted();
-        toast.success("Сессия удалена");
+        toast.success(t("actions.toast.sessionDeleted"));
     };
 
     return (
@@ -59,7 +61,7 @@ export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionAct
                 <DropdownMenuTrigger asChild>
                     <button
                         type="button"
-                        aria-label="Дополнительные действия"
+                        aria-label={t("actions.moreLabel")}
                         className={CHAT_HEADER_BUTTON}
                     >
                         <MoreVertical className="size-4" aria-hidden="true" />
@@ -68,19 +70,19 @@ export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionAct
 
                 <DropdownMenuContent align="end" className="w-56">
                     <DropdownMenuItem onSelect={() => setIsRenameOpen(true)}>
-                        Переименовать
+                        {t("actions.rename")}
                     </DropdownMenuItem>
                     <DropdownMenuItem onSelect={handleCopyLink}>
-                        Скопировать ссылку
+                        {t("actions.copyLink")}
                     </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem onSelect={() => setIsClearOpen(true)}>
-                        Очистить историю
+                        {t("actions.clearHistory")}
                     </DropdownMenuItem>
                     <DropdownMenuItem variant="destructive" onSelect={() => setIsDeleteOpen(true)}>
-                        Удалить сессию
+                        {t("actions.deleteSession")}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -95,18 +97,18 @@ export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionAct
             <ConfirmActionDialog
                 open={isClearOpen}
                 onOpenChange={setIsClearOpen}
-                title="Очистить историю"
-                description="Все сообщения удалятся, останется приветствие выбранного режима."
-                confirmLabel="Очистить"
+                title={t("actions.clearHistory")}
+                description={t("actions.clearHistoryDescription")}
+                confirmLabel={t("actions.clearConfirm")}
                 onConfirm={handleClear}
             />
 
             <ConfirmActionDialog
                 open={isDeleteOpen}
                 onOpenChange={setIsDeleteOpen}
-                title="Удалить сессию"
-                description="Сессия и вся её история исчезнут без возможности восстановления."
-                confirmLabel="Удалить"
+                title={t("actions.deleteSession")}
+                description={t("actions.deleteSessionDescription")}
+                confirmLabel={t("actions.deleteConfirm")}
                 destructive
                 onConfirm={handleDelete}
             />

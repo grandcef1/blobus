@@ -3,6 +3,7 @@
 // ARCHITECT: destructive показан красным текстом без яркой заливки — так требует палитра: цвет
 // отмечает необратимость, а не украшает кнопку.
 
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import {
     Dialog,
@@ -36,6 +37,8 @@ export function ConfirmActionDialog({
     destructive = false,
     onConfirm,
 }: ConfirmActionDialogProps) {
+    const { t } = useTranslation("chat");
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
@@ -49,7 +52,7 @@ export function ConfirmActionDialog({
                         className={GHOST_BUTTON}
                         onClick={() => onOpenChange(false)}
                     >
-                        Отмена
+                        {t("confirm.cancel")}
                     </Button>
                     <Button
                         type="button"

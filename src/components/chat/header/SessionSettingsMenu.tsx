@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { Settings2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { MOCK_BLOBATARS } from "@/api/mocks/blobatars";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
@@ -38,6 +39,7 @@ interface SessionSettingsMenuProps {
 }
 
 export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuProps) {
+    const { t } = useTranslation("chat");
     const navigate = useNavigate();
     const [isResetOpen, setIsResetOpen] = useState(false);
     const { completedLessons, totalLessons } = session.progress;
@@ -51,22 +53,22 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
     };
 
     const handleModeChange = (value: string) =>
-        applyPatch({ learningMode: value as LearningMode }, "Режим изменён");
+        applyPatch({ learningMode: value as LearningMode }, t("settings.toast.modeChanged"));
     const handleTutorChange = (value: string) =>
-        applyPatch({ repetitorId: value }, "Репетитор изменён");
+        applyPatch({ repetitorId: value }, t("settings.toast.tutorChanged"));
 
     const handleReset = () => {
         const updated = resetSessionProgress(session.id);
         if (updated) onUpdated(updated);
         setIsResetOpen(false);
-        toast.success("Прогресс сброшен");
+        toast.success(t("settings.toast.progressReset"));
     };
 
     return (
         <>
             <DropdownMenu>
                 <DropdownMenuTrigger asChild>
-                    <button type="button" aria-label="Настройки сессии" className={CHAT_HEADER_BUTTON}>
+                    <button type="button" aria-label={t("settings.openLabel")} className={CHAT_HEADER_BUTTON}>
                         <Settings2 className="size-4" aria-hidden="true" />
                     </button>
                 </DropdownMenuTrigger>
@@ -80,7 +82,7 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
                     </div>
 
                     <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>Режим</DropdownMenuSubTrigger>
+                        <DropdownMenuSubTrigger>{t("settings.mode")}</DropdownMenuSubTrigger>
                         <DropdownMenuSubContent className="w-64">
                             <DropdownMenuRadioGroup
                                 value={session.learningMode}
@@ -94,7 +96,7 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
                     </DropdownMenuSub>
 
                     <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>Репетитор</DropdownMenuSubTrigger>
+                        <DropdownMenuSubTrigger>{t("settings.tutor")}</DropdownMenuSubTrigger>
                         <DropdownMenuSubContent className="w-56">
                             <DropdownMenuRadioGroup
                                 value={session.repetitorId}
@@ -116,7 +118,7 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
                             {/* ARCHITECT: ссылка в конце подменю: из списка видно, что о каждом
                                 репетиторе есть подробности, а смена остаётся одним кликом. */}
                             <DropdownMenuItem onSelect={() => navigate("/app/tutors")}>
-                                Подробнее о репетиторах
+                                {t("settings.tutorsDetails")}
                             </DropdownMenuItem>
                         </DropdownMenuSubContent>
                     </DropdownMenuSub>
@@ -124,7 +126,7 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
                     <DropdownMenuSeparator />
 
                     <DropdownMenuItem onSelect={() => setIsResetOpen(true)}>
-                        Сбросить прогресс
+                        {t("settings.resetProgress")}
                     </DropdownMenuItem>
                 </DropdownMenuContent>
             </DropdownMenu>
@@ -132,9 +134,9 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
             <ConfirmActionDialog
                 open={isResetOpen}
                 onOpenChange={setIsResetOpen}
-                title="Сбросить прогресс"
-                description="Счётчики уроков, слов и серия дней обнулятся. История сообщений останется."
-                confirmLabel="Сбросить"
+                title={t("settings.resetProgress")}
+                description={t("settings.resetProgressDescription")}
+                confirmLabel={t("settings.resetConfirm")}
                 onConfirm={handleReset}
             />
         </>

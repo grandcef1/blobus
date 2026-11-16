@@ -5,6 +5,7 @@
 // бы кадр со старым названием в уже открытом диалоге.
 
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { updateSession } from "@/api/sessions";
 import { toast } from "@/store/toast";
 import { Button } from "@/components/ui/button";
@@ -28,6 +29,7 @@ export function RenameSessionDialog({
     onOpenChange,
     onUpdated,
 }: RenameSessionDialogProps) {
+    const { t } = useTranslation("chat");
     const [value, setValue] = useState(session.title);
     const [error, setError] = useState<string | undefined>(undefined);
     const [lastOpen, setLastOpen] = useState(open);
@@ -46,24 +48,28 @@ export function RenameSessionDialog({
     const handleSubmit = (event: FormEvent) => {
         event.preventDefault();
         if (!isValid) {
-            setError(trimmed ? `Максимум ${TITLE_MAX_LENGTH} символов` : "Укажи название");
+            setError(
+                trimmed
+                    ? t("rename.errorMaxLength", { max: TITLE_MAX_LENGTH })
+                    : t("rename.errorRequired")
+            );
             return;
         }
 
         const updated = updateSession(session.id, { title: trimmed });
         if (updated) onUpdated(updated);
         onOpenChange(false);
-        toast.success("Название сохранено");
+        toast.success(t("rename.toast.saved"));
     };
 
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent aria-describedby={undefined}>
-                <DialogTitle>Переименовать сессию</DialogTitle>
+                <DialogTitle>{t("rename.title")}</DialogTitle>
 
                 <form onSubmit={handleSubmit} noValidate className="mt-4">
                     <label htmlFor="session-title" className="mb-1.5 block text-sm text-[#f0f0f5]/70">
-                        Название
+                        {t("rename.label")}
                     </label>
                     <input
                         id="session-title"
@@ -94,10 +100,10 @@ export function RenameSessionDialog({
                             className={GHOST_BUTTON}
                             onClick={() => onOpenChange(false)}
                         >
-                            Отмена
+                            {t("confirm.cancel")}
                         </Button>
                         <Button type="submit" disabled={!isValid} className={PRIMARY_BUTTON}>
-                            Сохранить
+                            {t("rename.submit")}
                         </Button>
                     </DialogFooter>
                 </form>

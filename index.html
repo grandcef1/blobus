@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="ru" class="dark" data-theme="dark">
   <head>
-    <!-- ARCHITECT: прячем body, а не #root: механизм работает независимо от того, куда prerender положил разметку;
-         первый кадр чёрный (background + color-scheme), текст не показывается до применения основного CSS. -->
+    <!-- ARCHITECT: body скрыт до монтирования React — раскрытие по флагу data-app-ready из основного CSS;
+         анимация-страховка раскрывает контент через 10с, если JS не загрузился, и работает без внешнего CSS. -->
     <style>
-      html{background:#000;color-scheme:dark}body{margin:0;visibility:hidden}
+      html{background:#000;color-scheme:dark}body{margin:0;visibility:hidden;animation:app-reveal 0s linear 10s forwards}@keyframes app-reveal{to{visibility:visible}}
     </style>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />

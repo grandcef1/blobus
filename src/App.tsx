@@ -1,4 +1,4 @@
-import { lazy, Suspense } from 'react';
+import { lazy, Suspense, useEffect } from 'react';
 import { MotionConfig } from 'framer-motion';
 import { BrowserRouter, Route, Routes } from 'react-router-dom';
 import { ErrorBoundary } from '@/components/shared/ErrorBoundary';
@@ -31,6 +31,12 @@ function App() {
   // применяется к локальным сторам независимо от текущего маршрута.
   const isOnline = useNetworkStatus();
   useAuthStorageSync();
+
+  // ARCHITECT: флаг ставится после коммита, а не в main.tsx до рендера — иначе раскрытие снова обгонит появление
+  // стилизованной разметки; StrictMode вызывает эффект дважды, установка идемпотентна.
+  useEffect(() => {
+    document.documentElement.dataset.appReady = 'true';
+  }, []);
 
   return (
     // ARCHITECT: reducedMotion="user" гасит только transform/layout-анимации, когда система

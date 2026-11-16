@@ -1,6 +1,11 @@
 <!doctype html>
 <html lang="ru" class="dark" data-theme="dark">
   <head>
+    <!-- ARCHITECT: inline-стиль применяется до внешнего CSS, поэтому первый кадр чёрный, а нестилизованный
+         текст prerender-разметки не показывается; раскрытие #root делает main CSS (правило html #root). -->
+    <style>
+      html{background:#000;color-scheme:dark}body{margin:0}#root{visibility:hidden}
+    </style>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
     <meta name="color-scheme" content="dark" />

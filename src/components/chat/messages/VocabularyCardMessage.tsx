@@ -6,6 +6,7 @@
 
 import { useState } from "react";
 import { Bookmark, BookmarkCheck, Volume2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { EnhancedChatSession, VocabularyCard } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
@@ -16,18 +17,20 @@ interface VocabularyCardMessageProps {
     session: EnhancedChatSession;
 }
 
-const PART_OF_SPEECH_RU: Record<VocabularyCard["partOfSpeech"], string> = {
-    noun: "существительное",
-    verb: "глагол",
-    adjective: "прилагательное",
-    adverb: "наречие",
-    preposition: "предлог",
-};
+// ARCHITECT: карта хранит ключи, а не подписи: t() резолвит их в рендере, поэтому смена языка их обновляет.
+const PART_OF_SPEECH_KEYS = {
+    noun: "vocabularyCard.pos.noun",
+    verb: "vocabularyCard.pos.verb",
+    adjective: "vocabularyCard.pos.adjective",
+    adverb: "vocabularyCard.pos.adverb",
+    preposition: "vocabularyCard.pos.preposition",
+} as const satisfies Record<VocabularyCard["partOfSpeech"], string>;
 
 const AUTHOR_NAME = "mb-1 text-xs font-medium text-[#f0f0f5]/60";
 const EYEBROW = "text-[11px] uppercase tracking-wider text-[#f0f0f5]/30";
 
 export function VocabularyCardMessage({ card, session }: VocabularyCardMessageProps) {
+    const { t } = useTranslation("chat");
     const [saved, setSaved] = useState(false);
     const repetitor = getBlobatarById(session.repetitorId);
 
@@ -41,11 +44,11 @@ export function VocabularyCardMessage({ card, session }: VocabularyCardMessagePr
 
                 <div className="w-full rounded-xl border border-white/5 bg-white/[0.02] p-4 md:max-w-[min(85%,70ch)]">
                     <div className="flex items-start justify-between gap-3">
-                        <p className={EYEBROW}>Новое слово</p>
+                        <p className={EYEBROW}>{t("vocabularyCard.newWord")}</p>
                         <button
                             type="button"
                             onClick={() => setSaved(!saved)}
-                            aria-label={saved ? "Убрать из словаря" : "Сохранить в словарь"}
+                            aria-label={saved ? t("vocabularyCard.remove") : t("vocabularyCard.save")}
                             className={cn(
                                 "flex size-11 items-center justify-center rounded-lg transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]",
                                 saved
@@ -65,7 +68,7 @@ export function VocabularyCardMessage({ card, session }: VocabularyCardMessagePr
                         <h3 className="text-xl font-semibold text-[#f0f0f5]">{card.word}</h3>
                         <span className="text-sm text-[#f0f0f5]/50">{card.pronunciation}</span>
                         <span className="rounded-full bg-white/[0.06] px-2 py-0.5 text-[10px] text-[#f0f0f5]/50">
-                            {PART_OF_SPEECH_RU[card.partOfSpeech]}
+                            {t(PART_OF_SPEECH_KEYS[card.partOfSpeech])}
                         </span>
                     </div>
 
@@ -76,11 +79,11 @@ export function VocabularyCardMessage({ card, session }: VocabularyCardMessagePr
                         className="mt-3 flex min-h-11 items-center gap-2 rounded-full bg-white/[0.06] px-3 text-xs text-[#f0f0f5]/70 transition-colors hover:bg-white/10 hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]"
                     >
                         <Volume2 className="size-3.5" aria-hidden="true" />
-                        Прослушать
+                        {t("vocabularyCard.listen")}
                     </button>
 
                     <div className="mt-4 border-t border-white/5 pt-3">
-                        <p className={EYEBROW}>Примеры</p>
+                        <p className={EYEBROW}>{t("vocabularyCard.examples")}</p>
                         <ul className="mt-2 flex flex-col gap-2">
                             {card.examples.map((example, index) => (
                                 <li key={index} className="text-sm leading-[1.6] text-[#f0f0f5]/80">
@@ -97,7 +100,7 @@ export function VocabularyCardMessage({ card, session }: VocabularyCardMessagePr
 
                     {card.relatedWords && card.relatedWords.length > 0 && (
                         <div className="mt-3 flex flex-wrap items-center gap-1.5">
-                            <span className="text-[10px] text-[#f0f0f5]/30">Похожие:</span>
+                            <span className="text-[10px] text-[#f0f0f5]/30">{t("vocabularyCard.similar")}</span>
                             {card.relatedWords.map((word) => (
                                 <span
                                     key={word}

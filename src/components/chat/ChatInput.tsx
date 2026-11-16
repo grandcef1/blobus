@@ -7,6 +7,7 @@
 import { useState, useRef, useEffect } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Send, Mic, Paperclip, Sparkles } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { cn } from '@/lib/utils';
 
 interface ChatInputProps {
@@ -14,18 +15,20 @@ interface ChatInputProps {
     onSend?: (text: string) => void;
 }
 
-// ARCHITECT: быстрые промпты на русском — контекстные подсказки для учеников
-const QUICK_PROMPTS = [
-    'Объясни это правило',
-    'Дай больше примеров',
-    'Потренируем диалог',
-    'Проверь меня по теме',
-];
+// ARCHITECT: быстрые промпты лежат ключами: t() резолвит подпись и в рендере, и в момент клика,
+// поэтому в поле попадает текст текущего языка (введённый пользователем текст не перепереводится).
+const QUICK_PROMPT_KEYS = [
+    'input.quickPrompts.rule',
+    'input.quickPrompts.examples',
+    'input.quickPrompts.dialogue',
+    'input.quickPrompts.check',
+] as const;
 
 const ACTION_BUTTON = 'flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] md:size-10';
 const MUTED_ACTION = 'text-[#f0f0f5]/30 hover:bg-white/[0.06] hover:text-[#f0f0f5]/60';
 
 export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
+    const { t } = useTranslation('chat');
     const [message, setMessage] = useState('');
     const [isFocused, setIsFocused] = useState(false);
     const [isRecording, setIsRecording] = useState(false);
@@ -68,14 +71,14 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
                             exit={{ opacity: 0, y: 8 }}
                             className="mb-3 flex flex-wrap gap-2"
                         >
-                            {QUICK_PROMPTS.map((prompt) => (
+                            {QUICK_PROMPT_KEYS.map((key) => (
                                 <button
-                                    key={prompt}
-                                    onClick={() => setMessage(prompt)}
+                                    key={key}
+                                    onClick={() => setMessage(t(key))}
                                     className="flex min-h-11 items-center gap-1.5 rounded-full border border-white/10 bg-white/[0.04] px-3 text-xs text-[#f0f0f5]/50 transition-colors hover:border-white/25 hover:bg-white/[0.08] hover:text-[#f0f0f5]/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] md:min-h-0 md:py-1.5"
                                 >
                                     <Sparkles className="size-3" aria-hidden="true" />
-                                    {prompt}
+                                    {t(key)}
                                 </button>
                             ))}
                         </motion.div>
@@ -88,7 +91,7 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
                         isFocused ? 'border-white/25 bg-white/[0.06]' : 'border-white/10 bg-white/[0.03]'
                     )}
                 >
-                    <button aria-label="Прикрепить файл" className={cn(ACTION_BUTTON, MUTED_ACTION)}>
+                    <button aria-label={t('input.attachFile')} className={cn(ACTION_BUTTON, MUTED_ACTION)}>
                         <Paperclip className="size-4" aria-hidden="true" />
                     </button>
 
@@ -99,10 +102,10 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
                         onKeyDown={handleKeyDown}
                         onFocus={() => setIsFocused(true)}
                         onBlur={() => setIsFocused(false)}
-                        placeholder="Напиши сообщение на английском..."
+                        placeholder={t('input.placeholder')}
                         disabled={disabled}
                         rows={1}
-                        aria-label="Поле ввода сообщения"
+                        aria-label={t('input.inputLabel')}
                         className={cn(
                             'max-h-[150px] flex-1 resize-none bg-transparent py-2.5 text-base text-[#f0f0f5] md:text-sm',
                             'placeholder:text-[#f0f0f5]/25 focus:outline-none',
@@ -113,7 +116,7 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
                     {/* Голосовой ввод — задел под будущую коррекцию произношения */}
                     <button
                         onClick={() => setIsRecording(!isRecording)}
-                        aria-label={isRecording ? 'Остановить запись' : 'Начать запись'}
+                        aria-label={isRecording ? t('input.stopRecording') : t('input.startRecording')}
                         className={cn(ACTION_BUTTON, isRecording ? 'bg-[#f0f0f5]/15 text-[#f0f0f5]' : MUTED_ACTION)}
                     >
                         <Mic className={cn('size-4', isRecording && 'animate-pulse')} aria-hidden="true" />
@@ -122,7 +125,7 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
                     <button
                         onClick={handleSubmit}
                         disabled={!message.trim() || disabled}
-                        aria-label="Отправить сообщение"
+                        aria-label={t('input.send')}
                         className={cn(
                             ACTION_BUTTON,
                             message.trim()
@@ -135,7 +138,7 @@ export function ChatInput({ disabled = false, onSend }: ChatInputProps) {
                 </div>
 
                 <p className="mt-2 hidden text-center text-[10px] text-[#f0f0f5]/20 md:block">
-                    Enter — отправить, Shift+Enter — новая строка
+                    {t('input.hint')}
                 </p>
             </div>
         </div>

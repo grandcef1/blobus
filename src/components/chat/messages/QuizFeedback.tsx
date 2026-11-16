@@ -6,6 +6,7 @@
 
 import { AnimatePresence, motion } from "framer-motion";
 import { RotateCcw } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface QuizFeedbackProps {
     /** Пустая строка — блока нет: викторина ещё не отвечена. */
@@ -18,6 +19,8 @@ const RETRY_BUTTON =
     "flex min-h-11 shrink-0 items-center gap-1.5 rounded-lg px-2 text-[11px] text-[#f0f0f5]/50 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]";
 
 export function QuizFeedback({ text, onRetry }: QuizFeedbackProps) {
+    const { t } = useTranslation("chat");
+
     return (
         <div aria-live="polite">
             <AnimatePresence initial={false}>
@@ -34,7 +37,7 @@ export function QuizFeedback({ text, onRetry }: QuizFeedbackProps) {
                         {onRetry && (
                             <button type="button" onClick={onRetry} className={RETRY_BUTTON}>
                                 <RotateCcw className="size-3" aria-hidden="true" />
-                                Заново
+                                {t("feedback.retry")}
                             </button>
                         )}
                     </motion.div>

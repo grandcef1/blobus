@@ -9,6 +9,7 @@
 
 import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
 import { SIDEBAR_FOCUS_RING } from "./navigation";
@@ -21,6 +22,8 @@ interface SidebarBodyProps {
 }
 
 export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
+    const { t } = useTranslation("dashboard");
+
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
             {/* ARCHITECT: знак проекта — статичная мини-версия бренд-блобатара (28px): блобатары
@@ -39,7 +42,7 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
             <div className={cn("shrink-0 pb-2", isCollapsed ? "flex justify-center" : "px-3")}>
                 <Link
                     to="/session/new"
-                    title={isCollapsed ? "Новая сессия" : undefined}
+                    title={isCollapsed ? t("nav.newSession") : undefined}
                     className={cn(
                         "flex items-center justify-center gap-2.5 rounded-xl bg-[#f0f0f5] text-black transition-colors hover:bg-[#f0f0f5]/90",
                         SIDEBAR_FOCUS_RING,
@@ -47,11 +50,11 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
                     )}
                 >
                     <Plus className="size-5 shrink-0" aria-hidden="true" />
-                    {!isCollapsed && <span className="truncate">Новая сессия</span>}
+                    {!isCollapsed && <span className="truncate">{t("nav.newSession")}</span>}
                 </Link>
             </div>
 
-            <nav className="flex min-h-0 flex-1 flex-col py-2" aria-label="Главная навигация">
+            <nav className="flex min-h-0 flex-1 flex-col py-2" aria-label={t("nav.mainNav")}>
                 <SidebarNav isCollapsed={isCollapsed} />
                 <SidebarRecentSessions isCollapsed={isCollapsed} />
             </nav>

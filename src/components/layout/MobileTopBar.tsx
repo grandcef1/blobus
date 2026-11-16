@@ -5,6 +5,7 @@
 
 import { Link, useLocation } from "react-router-dom";
 import { Menu } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { cn } from "@/lib/utils";
@@ -18,11 +19,13 @@ const ICON_BUTTON =
     "flex size-11 shrink-0 items-center justify-center rounded-xl text-[#f0f0f5]/70 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]";
 
 export function MobileTopBar({ onOpenMenu }: MobileTopBarProps) {
+    const { t } = useTranslation("dashboard");
+    const { t: tCommon } = useTranslation("common");
     const { pathname } = useLocation();
 
     return (
         <header className="sticky top-0 z-30 flex h-14 shrink-0 items-center gap-2 border-b border-white/5 bg-black/80 px-2 backdrop-blur-md md:hidden">
-            <button type="button" onClick={onOpenMenu} aria-label="Открыть меню" className={cn(ICON_BUTTON, SIDEBAR_FOCUS_RING)}>
+            <button type="button" onClick={onOpenMenu} aria-label={tCommon("a11y.openMenu")} className={cn(ICON_BUTTON, SIDEBAR_FOCUS_RING)}>
                 <Menu className="size-5" aria-hidden="true" />
             </button>
 
@@ -30,7 +33,7 @@ export function MobileTopBar({ onOpenMenu }: MobileTopBarProps) {
                 {findSectionTitle(pathname)}
             </p>
 
-            <Link to="/app/profile" aria-label="Профиль" className={cn(ICON_BUTTON, SIDEBAR_FOCUS_RING)}>
+            <Link to="/app/profile" aria-label={t("nav.profile")} className={cn(ICON_BUTTON, SIDEBAR_FOCUS_RING)}>
                 <BlobatarAvatar id={MOCK_PROFILE_USER.blobatarId} className="size-8 bg-white/5" />
             </Link>
         </header>

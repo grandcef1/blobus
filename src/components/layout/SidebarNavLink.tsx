@@ -4,6 +4,7 @@
 // виде доступна через title и aria-current, поэтому смысл пункта не теряется.
 
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_FOCUS_RING, type AppNavItem } from "./navigation";
 
@@ -14,12 +15,13 @@ interface SidebarNavLinkProps {
 }
 
 export function SidebarNavLink({ item, isCollapsed, isActive }: SidebarNavLinkProps) {
+    const { t } = useTranslation("dashboard");
     const Icon = item.icon;
 
     return (
         <Link
             to={item.href}
-            title={isCollapsed ? item.label : undefined}
+            title={isCollapsed ? t(item.labelKey) : undefined}
             aria-current={isActive ? "page" : undefined}
             className={cn(
                 "flex items-center rounded-xl transition-colors",
@@ -31,7 +33,7 @@ export function SidebarNavLink({ item, isCollapsed, isActive }: SidebarNavLinkPr
             )}
         >
             <Icon className="size-5 shrink-0" aria-hidden="true" />
-            {!isCollapsed && <span className="truncate text-sm">{item.label}</span>}
+            {!isCollapsed && <span className="truncate text-sm">{t(item.labelKey)}</span>}
         </Link>
     );
 }

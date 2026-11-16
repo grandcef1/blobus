@@ -6,6 +6,7 @@
 
 import { Link, useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { useAuthStore } from "@/store/auth";
@@ -17,6 +18,7 @@ interface SidebarProfileCardProps {
 }
 
 export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
+    const { t } = useTranslation("dashboard");
     const navigate = useNavigate();
     const signOut = useAuthStore((state) => state.signOut);
 
@@ -34,8 +36,8 @@ export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
             <div className="flex shrink-0 justify-center border-t border-white/5 py-3">
                 <Link
                     to="/app/profile"
-                    title="Профиль"
-                    aria-label="Профиль"
+                    title={t("shell.profile")}
+                    aria-label={t("shell.profile")}
                     className={cn("flex size-10 items-center justify-center rounded-full transition-colors hover:bg-[#141416]", SIDEBAR_FOCUS_RING)}
                 >
                     {avatar}
@@ -66,7 +68,7 @@ export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
 
             <button
                 type="button"
-                aria-label="Выйти из аккаунта"
+                aria-label={t("shell.signOut")}
                 onClick={handleSignOut}
                 className={cn(
                     "flex size-11 shrink-0 items-center justify-center rounded-xl text-[#f0f0f5]/30 transition-colors hover:bg-[#1a1a1c] hover:text-[#f0f0f5]/60",

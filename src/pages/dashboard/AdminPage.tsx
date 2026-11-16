@@ -3,11 +3,14 @@
 // отдельные файлы, чтобы страница и списки остались в пределах 150 строк.
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { AdminMetrics } from "./admin/AdminMetrics";
 import { AdminTicketsList } from "./admin/AdminTicketsList";
 import { AdminUsersList } from "./admin/AdminUsersList";
 
 export function AdminPage() {
+    const { t } = useTranslation("dashboard");
+
     return (
         <div className="min-h-[calc(100dvh-4rem)] p-4 md:p-6">
             <div className="mx-auto max-w-6xl">
@@ -17,8 +20,8 @@ export function AdminPage() {
                     transition={{ duration: 0.2 }}
                     className="mb-5"
                 >
-                    <h1 className="text-xl font-semibold text-[#f0f0f5]">Админ</h1>
-                    <p className="mt-1 text-sm text-[#f0f0f5]/50">Состояние аккаунтов и обращений</p>
+                    <h1 className="text-xl font-semibold text-[#f0f0f5]">{t("admin.title")}</h1>
+                    <p className="mt-1 text-sm text-[#f0f0f5]/50">{t("admin.subtitle")}</p>
                 </motion.header>
 
                 <div className="space-y-4">

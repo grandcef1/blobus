@@ -7,7 +7,7 @@ import { MoreHorizontal, LifeBuoy } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { StatusMarker } from "@/components/shared/StatusMarker";
 import { EmptyState } from "@/components/shared/EmptyState";
-import { ADMIN_TICKETS, PRIORITY_LABELS, TICKET_STATUS_LABELS, formatAdminDate } from "./adminData";
+import { ADMIN_TICKETS, PRIORITY_LABEL_KEYS, TICKET_STATUS_LABEL_KEYS, formatAdminDate } from "./adminData";
 import type { AdminTicket } from "./adminData";
 
 type Emphasis = "solid" | "muted" | "faint";
@@ -25,12 +25,13 @@ const PRIORITY_EMPHASIS: Record<AdminTicket["priority"], Emphasis> = {
 };
 
 export function AdminTicketsList() {
-    const { t } = useTranslation();
+    const { t } = useTranslation("dashboard");
+    const { t: tCommon } = useTranslation("common");
 
     return (
         <section aria-labelledby="admin-tickets-title" className="rounded-2xl bg-[#111113] p-4 md:p-5">
             <h2 id="admin-tickets-title" className="mb-4 text-base font-medium text-[#f0f0f5]/80">
-                Последние тикеты
+                {t("admin.tickets.title")}
             </h2>
 
             <div className="space-y-2">
@@ -40,8 +41,8 @@ export function AdminTicketsList() {
                     <EmptyState
                         className="bg-transparent p-0"
                         icon={LifeBuoy}
-                        title={t("states.empty.tickets.title")}
-                        description={t("states.empty.tickets.description")}
+                        title={tCommon("states.empty.tickets.title")}
+                        description={tCommon("states.empty.tickets.description")}
                     />
                 )}
                 {ADMIN_TICKETS.map((ticket) => (
@@ -55,7 +56,7 @@ export function AdminTicketsList() {
                                     {ticket.subject}
                                 </p>
                                 <StatusMarker
-                                    label={PRIORITY_LABELS[ticket.priority]}
+                                    label={t(PRIORITY_LABEL_KEYS[ticket.priority])}
                                     emphasis={PRIORITY_EMPHASIS[ticket.priority]}
                                     className="shrink-0"
                                 />
@@ -67,12 +68,12 @@ export function AdminTicketsList() {
 
                         <div className="flex shrink-0 items-center justify-between gap-3 sm:justify-end">
                             <StatusMarker
-                                label={TICKET_STATUS_LABELS[ticket.status]}
+                                label={t(TICKET_STATUS_LABEL_KEYS[ticket.status])}
                                 emphasis={TICKET_STATUS_EMPHASIS[ticket.status]}
                             />
                             <button
                                 type="button"
-                                aria-label="Действия с тикетом"
+                                aria-label={t("admin.tickets.actions")}
                                 className="flex size-11 items-center justify-center rounded-lg text-[#f0f0f5]/40 transition-colors hover:bg-white/5 hover:text-[#f0f0f5]/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]"
                             >
                                 <MoreHorizontal className="size-4" aria-hidden="true" />

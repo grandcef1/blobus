@@ -35,23 +35,23 @@ export const ADMIN_TICKETS: AdminTicket[] = [
     { id: "ticket_3", userId: "user_3", userName: "Иван Смирнов", subject: "Вопрос по повторению слов", priority: "low", status: "resolved", createdAt: "2026-11-08T11:45:00Z" },
 ];
 
-export const USER_STATUS_LABELS: Record<AdminUser["status"], string> = {
-    active: "Активен",
-    suspended: "Заблокирован",
-    pending: "Ожидает",
-};
+export const USER_STATUS_LABEL_KEYS = {
+    active: "admin.users.status.active",
+    suspended: "admin.users.status.suspended",
+    pending: "admin.users.status.pending",
+} as const satisfies Record<AdminUser["status"], string>;
 
-export const TICKET_STATUS_LABELS: Record<AdminTicket["status"], string> = {
-    open: "Открыт",
-    "in-progress": "В работе",
-    resolved: "Решён",
-};
+export const TICKET_STATUS_LABEL_KEYS = {
+    open: "admin.tickets.status.open",
+    "in-progress": "admin.tickets.status.inProgress",
+    resolved: "admin.tickets.status.resolved",
+} as const satisfies Record<AdminTicket["status"], string>;
 
-export const PRIORITY_LABELS: Record<AdminTicket["priority"], string> = {
-    high: "Высокий",
-    medium: "Средний",
-    low: "Низкий",
-};
+export const PRIORITY_LABEL_KEYS = {
+    high: "admin.tickets.priority.high",
+    medium: "admin.tickets.priority.medium",
+    low: "admin.tickets.priority.low",
+} as const satisfies Record<AdminTicket["priority"], string>;
 
 export function formatAdminDate(isoDate: string): string {
     return new Date(isoDate).toLocaleDateString("ru", { day: "numeric", month: "short" });

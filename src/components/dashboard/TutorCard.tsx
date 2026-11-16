@@ -8,6 +8,7 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { PersonaStory } from "@/components/shared/PersonaStory";
 import { cn } from "@/lib/utils";
@@ -23,6 +24,7 @@ const DISCLOSURE =
 const TRAIT = "rounded-md bg-white/5 px-2 py-1 text-[11px] text-[#f0f0f5]/60";
 
 export function TutorCard({ blobatar }: TutorCardProps) {
+    const { t } = useTranslation("dashboard");
     const [isExpanded, setIsExpanded] = useState(false);
 
     return (
@@ -56,7 +58,7 @@ export function TutorCard({ blobatar }: TutorCardProps) {
                     aria-expanded={isExpanded}
                     className={DISCLOSURE}
                 >
-                    Подробнее
+                    {t("tutors.details")}
                     <ChevronDown
                         className={cn(
                             "size-4 shrink-0 transition-transform duration-200",

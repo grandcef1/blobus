@@ -5,6 +5,7 @@
 // сайдбара выглядит одинаково в обоих режимах. Фон и текст перекрываем утилитами: у Sheet
 // светлая тема по умолчанию, а меню приложения всегда тёмное.
 
+import { useTranslation } from "react-i18next";
 import { Sheet, SheetContent, SheetTitle } from "@/components/ui/sheet";
 import { SidebarBody } from "./SidebarBody";
 
@@ -14,6 +15,8 @@ interface SidebarDrawerProps {
 }
 
 export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
+    const { t } = useTranslation("dashboard");
+
     return (
         <Sheet open={open} onOpenChange={onOpenChange}>
             <SheetContent
@@ -21,7 +24,7 @@ export function SidebarDrawer({ open, onOpenChange }: SidebarDrawerProps) {
                 aria-describedby={undefined}
                 className="w-70 gap-0 border-r border-white/5 bg-[#0d0d0d] p-0 text-[#f0f0f5]"
             >
-                <SheetTitle className="sr-only">Меню приложения</SheetTitle>
+                <SheetTitle className="sr-only">{t("nav.appMenu")}</SheetTitle>
                 <SidebarBody isCollapsed={false} />
             </SheetContent>
         </Sheet>

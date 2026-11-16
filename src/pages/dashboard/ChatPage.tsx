@@ -8,6 +8,7 @@
 
 import { useState } from "react";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { sendMessage } from "@/api/chat";
 import { fetchSessionById } from "@/api/sessions";
 import { useMockQuery } from "@/hooks/useMockQuery";
@@ -26,6 +27,7 @@ interface SessionPatch {
 }
 
 export function ChatPage() {
+    const { t } = useTranslation("dashboard");
     const { sessionId } = useParams<{ sessionId: string }>();
     const navigate = useNavigate();
     const { data: loadedSession, isLoading } = useMockQuery(
@@ -63,12 +65,12 @@ export function ChatPage() {
     if (!session) {
         return (
             <div className={cn("flex flex-col items-center justify-center gap-3 bg-black px-6 text-center", CHAT_HEIGHT)}>
-                <p className="text-sm text-[#f0f0f5]/60">Сессия не найдена</p>
+                <p className="text-sm text-[#f0f0f5]/60">{t("sessions.notFound.title")}</p>
                 <Link
                     to="/app/sessions"
                     className="text-sm text-[#f0f0f5] underline transition-colors hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]"
                 >
-                    Ко всем сессиям
+                    {t("sessions.notFound.action")}
                 </Link>
             </div>
         );

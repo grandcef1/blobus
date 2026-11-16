@@ -11,6 +11,7 @@
 
 import { motion } from "framer-motion";
 import { ChevronLeft, ChevronRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { SidebarBody } from "./SidebarBody";
 import { SIDEBAR_FOCUS_RING } from "./navigation";
@@ -24,6 +25,8 @@ interface SidebarProps {
 }
 
 export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
+    const { t } = useTranslation("dashboard");
+
     return (
         <motion.aside
             initial={false}
@@ -39,7 +42,7 @@ export function Sidebar({ isCollapsed, onToggle }: SidebarProps) {
             <button
                 type="button"
                 onClick={onToggle}
-                aria-label={isCollapsed ? "Развернуть меню" : "Свернуть меню"}
+                aria-label={isCollapsed ? t("nav.expandMenu") : t("nav.collapseMenu")}
                 className={cn(
                     "absolute -right-4 top-1/2 flex size-8 -translate-y-1/2 items-center justify-center rounded-full border border-white/15 bg-[#141416] text-[#f0f0f5]/60 transition-colors hover:border-white/25 hover:text-[#f0f0f5]",
                     SIDEBAR_FOCUS_RING

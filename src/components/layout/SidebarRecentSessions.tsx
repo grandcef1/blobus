@@ -4,6 +4,7 @@
 // В сложенном виде секцию не показываем: узкая колонка без подписей читается только по иконкам.
 
 import { Link, useLocation } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getSessions } from "@/api/sessions";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { cn } from "@/lib/utils";
@@ -16,6 +17,7 @@ interface SidebarRecentSessionsProps {
 const RECENT_SESSIONS_LIMIT = 5;
 
 export function SidebarRecentSessions({ isCollapsed }: SidebarRecentSessionsProps) {
+    const { t } = useTranslation("dashboard");
     const { pathname } = useLocation();
     const sessions = getSessions().slice(0, RECENT_SESSIONS_LIMIT);
 
@@ -27,7 +29,7 @@ export function SidebarRecentSessions({ isCollapsed }: SidebarRecentSessionsProp
                 id="sidebar-recent-title"
                 className="mb-2 shrink-0 px-3 text-[11px] font-medium uppercase tracking-wider text-[#f0f0f5]/30"
             >
-                Недавние сессии
+                {t("nav.recentSessions")}
             </p>
             <div className="thin-scroll min-h-0 flex-1 space-y-0.5 overflow-y-auto pb-2">
                 {sessions.map((session) => {

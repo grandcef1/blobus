@@ -6,6 +6,7 @@
 // API меняется только fetcher.
 
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { fetchUserProgress } from "@/api/progress";
 import { fetchSessions } from "@/api/sessions";
 import { useMockQuery } from "@/hooks/useMockQuery";
@@ -23,6 +24,7 @@ async function loadOverview() {
 }
 
 export function DashboardPage() {
+    const { t } = useTranslation("dashboard");
     const { data, isLoading } = useMockQuery(loadOverview);
 
     if (isLoading || data === null) return <OverviewSkeleton />;
@@ -39,8 +41,8 @@ export function DashboardPage() {
                     transition={{ duration: 0.2 }}
                     className="mb-5"
                 >
-                    <h1 className="text-xl font-semibold text-[#f0f0f5]">Обзор</h1>
-                    <p className="mt-1 text-sm text-[#f0f0f5]/50">Прогресс по направлениям и последние занятия</p>
+                    <h1 className="text-xl font-semibold text-[#f0f0f5]">{t("overview.title")}</h1>
+                    <p className="mt-1 text-sm text-[#f0f0f5]/50">{t("overview.subtitle")}</p>
                 </motion.header>
 
                 <div className="space-y-4">

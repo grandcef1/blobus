@@ -5,6 +5,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { ProgressBar } from "@/components/shared/ProgressBar";
@@ -18,6 +19,8 @@ interface ContinueLearningCardProps {
 }
 
 export function ContinueLearningCard({ session, progress }: ContinueLearningCardProps) {
+    const { t } = useTranslation("dashboard");
+
     return (
         <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
             <Link
@@ -37,7 +40,7 @@ export function ContinueLearningCard({ session, progress }: ContinueLearningCard
 
                 <div className="min-w-0 flex-1">
                     <p className="text-xs font-medium uppercase tracking-wider text-black/45">
-                        Продолжить обучение
+                        {t("overview.continueLearning")}
                     </p>
                     <p className="mt-1 truncate text-lg font-semibold text-black">{session.title}</p>
                     <div className="mt-3 flex items-center gap-3">

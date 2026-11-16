@@ -2,6 +2,7 @@
 // состояние передаёт число, а не заливка; значения tabular-nums, чтобы цифры не «плясали».
 
 import { BookOpen, Clock, Flame, Trophy } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { UserProgress } from "@/types/progress";
 
 interface MetricsRowProps {
@@ -9,6 +10,7 @@ interface MetricsRowProps {
 }
 
 export function MetricsRow({ progress }: MetricsRowProps) {
+    const { t } = useTranslation("dashboard");
     const totalWords =
         progress.modeProgress.interview.wordsLearned +
         progress.modeProgress.speaking.wordsLearned +
@@ -18,10 +20,20 @@ export function MetricsRow({ progress }: MetricsRowProps) {
     const unlockedAchievements = progress.achievements.filter((item) => item.unlockedAt).length;
 
     const metrics = [
-        { id: "streak", icon: Flame, label: "Дней подряд", value: progress.streakDays },
-        { id: "words", icon: BookOpen, label: "Слов выучено", value: totalWords },
-        { id: "minutes", icon: Clock, label: "Минут занятий", value: progress.totalStudyMinutes },
-        { id: "achievements", icon: Trophy, label: "Достижений", value: unlockedAchievements },
+        { id: "streak", icon: Flame, label: t("overview.metrics.streak"), value: progress.streakDays },
+        { id: "words", icon: BookOpen, label: t("overview.metrics.words"), value: totalWords },
+        {
+            id: "minutes",
+            icon: Clock,
+            label: t("overview.metrics.minutes"),
+            value: progress.totalStudyMinutes,
+        },
+        {
+            id: "achievements",
+            icon: Trophy,
+            label: t("overview.metrics.achievements"),
+            value: unlockedAchievements,
+        },
     ];
 
     return (

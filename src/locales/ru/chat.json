@@ -1,0 +1,91 @@
+{
+  "actions": {
+    "moreLabel": "Дополнительные действия",
+    "rename": "Переименовать",
+    "copyLink": "Скопировать ссылку",
+    "clearHistory": "Очистить историю",
+    "clearHistoryDescription": "Все сообщения удалятся, останется приветствие выбранного режима.",
+    "clearConfirm": "Очистить",
+    "deleteSession": "Удалить сессию",
+    "deleteSessionDescription": "Сессия и вся её история исчезнут без возможности восстановления.",
+    "deleteConfirm": "Удалить",
+    "toast": {
+      "linkCopied": "Ссылка скопирована",
+      "copyFailed": "Не удалось скопировать",
+      "historyCleared": "История очищена",
+      "sessionDeleted": "Сессия удалена"
+    }
+  },
+  "settings": {
+    "openLabel": "Настройки сессии",
+    "mode": "Режим",
+    "tutor": "Репетитор",
+    "tutorsDetails": "Подробнее о репетиторах",
+    "resetProgress": "Сбросить прогресс",
+    "resetProgressDescription": "Счётчики уроков, слов и серия дней обнулятся. История сообщений останется.",
+    "resetConfirm": "Сбросить",
+    "toast": {
+      "modeChanged": "Режим изменён",
+      "tutorChanged": "Репетитор изменён",
+      "progressReset": "Прогресс сброшен"
+    }
+  },
+  "rename": {
+    "title": "Переименовать сессию",
+    "label": "Название",
+    "errorRequired": "Укажи название",
+    "errorMaxLength": "Максимум {{max}} символов",
+    "submit": "Сохранить",
+    "toast": {
+      "saved": "Название сохранено"
+    }
+  },
+  "confirm": {
+    "cancel": "Отмена"
+  },
+  "input": {
+    "placeholder": "Напиши сообщение на английском...",
+    "attachFile": "Прикрепить файл",
+    "inputLabel": "Поле ввода сообщения",
+    "startRecording": "Начать запись",
+    "stopRecording": "Остановить запись",
+    "send": "Отправить сообщение",
+    "hint": "Enter — отправить, Shift+Enter — новая строка",
+    "quickPrompts": {
+      "rule": "Объясни это правило",
+      "examples": "Дай больше примеров",
+      "dialogue": "Потренируем диалог",
+      "check": "Проверь меня по теме"
+    }
+  },
+  "vocabularyCard": {
+    "newWord": "Новое слово",
+    "listen": "Прослушать",
+    "examples": "Примеры",
+    "similar": "Похожие:",
+    "save": "Сохранить в словарь",
+    "remove": "Убрать из словаря",
+    "pos": {
+      "noun": "существительное",
+      "verb": "глагол",
+      "adjective": "прилагательное",
+      "adverb": "наречие",
+      "preposition": "предлог"
+    }
+  },
+  "quiz": {
+    "title": "Викторина",
+    "optionsLabel": "Варианты ответа",
+    "incorrect": "Неверно. Попробуйте снова.",
+    "correctAnswer": "Верный ответ — «{{answer}}». {{explanation}}",
+    "letters": {
+      "a": "А",
+      "b": "Б",
+      "c": "В",
+      "d": "Г"
+    }
+  },
+  "feedback": {
+    "retry": "Заново"
+  }
+}

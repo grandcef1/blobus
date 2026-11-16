@@ -1,0 +1,91 @@
+{
+  "actions": {
+    "moreLabel": "More actions",
+    "rename": "Rename",
+    "copyLink": "Copy link",
+    "clearHistory": "Clear history",
+    "clearHistoryDescription": "All messages will be deleted; the greeting of the selected mode stays.",
+    "clearConfirm": "Clear",
+    "deleteSession": "Delete session",
+    "deleteSessionDescription": "The session and its whole history will be gone for good.",
+    "deleteConfirm": "Delete",
+    "toast": {
+      "linkCopied": "Link copied",
+      "copyFailed": "Could not copy the link",
+      "historyCleared": "History cleared",
+      "sessionDeleted": "Session deleted"
+    }
+  },
+  "settings": {
+    "openLabel": "Session settings",
+    "mode": "Mode",
+    "tutor": "Tutor",
+    "tutorsDetails": "More about tutors",
+    "resetProgress": "Reset progress",
+    "resetProgressDescription": "Lesson and word counters and the day streak will be reset. The message history stays.",
+    "resetConfirm": "Reset",
+    "toast": {
+      "modeChanged": "Mode changed",
+      "tutorChanged": "Tutor changed",
+      "progressReset": "Progress reset"
+    }
+  },
+  "rename": {
+    "title": "Rename session",
+    "label": "Name",
+    "errorRequired": "Enter a name",
+    "errorMaxLength": "At most {{max}} characters",
+    "submit": "Save",
+    "toast": {
+      "saved": "Name saved"
+    }
+  },
+  "confirm": {
+    "cancel": "Cancel"
+  },
+  "input": {
+    "placeholder": "Write a message in English...",
+    "attachFile": "Attach a file",
+    "inputLabel": "Message input field",
+    "startRecording": "Start recording",
+    "stopRecording": "Stop recording",
+    "send": "Send message",
+    "hint": "Enter — send, Shift+Enter — new line",
+    "quickPrompts": {
+      "rule": "Explain this rule",
+      "examples": "Give me more examples",
+      "dialogue": "Let's practise a dialogue",
+      "check": "Quiz me on this topic"
+    }
+  },
+  "vocabularyCard": {
+    "newWord": "New word",
+    "listen": "Listen",
+    "examples": "Examples",
+    "similar": "Similar:",
+    "save": "Save to vocabulary",
+    "remove": "Remove from vocabulary",
+    "pos": {
+      "noun": "noun",
+      "verb": "verb",
+      "adjective": "adjective",
+      "adverb": "adverb",
+      "preposition": "preposition"
+    }
+  },
+  "quiz": {
+    "title": "Quiz",
+    "optionsLabel": "Answer options",
+    "incorrect": "Not quite. Try again.",
+    "correctAnswer": "The right answer is “{{answer}}”. {{explanation}}",
+    "letters": {
+      "a": "A",
+      "b": "B",
+      "c": "C",
+      "d": "D"
+    }
+  },
+  "feedback": {
+    "retry": "Try again"
+  }
+}

@@ -1,0 +1,91 @@
+{
+  "actions": {
+    "moreLabel": "Más acciones",
+    "rename": "Renombrar",
+    "copyLink": "Copiar enlace",
+    "clearHistory": "Borrar el historial",
+    "clearHistoryDescription": "Se borrarán todos los mensajes; se mantiene el saludo del modo elegido.",
+    "clearConfirm": "Borrar",
+    "deleteSession": "Eliminar la sesión",
+    "deleteSessionDescription": "La sesión y todo su historial desaparecerán sin posibilidad de recuperarlos.",
+    "deleteConfirm": "Eliminar",
+    "toast": {
+      "linkCopied": "Enlace copiado",
+      "copyFailed": "No se pudo copiar el enlace",
+      "historyCleared": "Historial borrado",
+      "sessionDeleted": "Sesión eliminada"
+    }
+  },
+  "settings": {
+    "openLabel": "Ajustes de la sesión",
+    "mode": "Modo",
+    "tutor": "Tutor",
+    "tutorsDetails": "Más sobre los tutores",
+    "resetProgress": "Restablecer el progreso",
+    "resetProgressDescription": "Los contadores de lecciones y palabras y la racha de días se pondrán a cero. El historial de mensajes se mantiene.",
+    "resetConfirm": "Restablecer",
+    "toast": {
+      "modeChanged": "Modo cambiado",
+      "tutorChanged": "Tutor cambiado",
+      "progressReset": "Progreso restablecido"
+    }
+  },
+  "rename": {
+    "title": "Renombrar la sesión",
+    "label": "Nombre",
+    "errorRequired": "Escribe un nombre",
+    "errorMaxLength": "Máximo {{max}} caracteres",
+    "submit": "Guardar",
+    "toast": {
+      "saved": "Nombre guardado"
+    }
+  },
+  "confirm": {
+    "cancel": "Cancelar"
+  },
+  "input": {
+    "placeholder": "Escribe un mensaje en inglés...",
+    "attachFile": "Adjuntar un archivo",
+    "inputLabel": "Campo de entrada del mensaje",
+    "startRecording": "Empezar a grabar",
+    "stopRecording": "Detener la grabación",
+    "send": "Enviar mensaje",
+    "hint": "Enter — enviar, Shift+Enter — nueva línea",
+    "quickPrompts": {
+      "rule": "Explícame esta regla",
+      "examples": "Dame más ejemplos",
+      "dialogue": "Practiquemos un diálogo",
+      "check": "Pregúntame sobre este tema"
+    }
+  },
+  "vocabularyCard": {
+    "newWord": "Palabra nueva",
+    "listen": "Escuchar",
+    "examples": "Ejemplos",
+    "similar": "Similares:",
+    "save": "Guardar en el vocabulario",
+    "remove": "Quitar del vocabulario",
+    "pos": {
+      "noun": "sustantivo",
+      "verb": "verbo",
+      "adjective": "adjetivo",
+      "adverb": "adverbio",
+      "preposition": "preposición"
+    }
+  },
+  "quiz": {
+    "title": "Cuestionario",
+    "optionsLabel": "Opciones de respuesta",
+    "incorrect": "Incorrecto. Inténtalo de nuevo.",
+    "correctAnswer": "La respuesta correcta es «{{answer}}». {{explanation}}",
+    "letters": {
+      "a": "A",
+      "b": "B",
+      "c": "C",
+      "d": "D"
+    }
+  },
+  "feedback": {
+    "retry": "Reintentar"
+  }
+}

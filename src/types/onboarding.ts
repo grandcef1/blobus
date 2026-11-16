@@ -35,6 +35,10 @@
     | "goals"
     | "lesson";
 
+    // ARCHITECT: юнион объявлен независимо, чтобы satisfies проверял полноту карты: добавили шаг в юнион,
+    // забыли в карте — typecheck упадёт; вывод типа из карты такой защиты не даёт.
+    export type OnboardingFullStep = "intro" | "assessment" | "goals" | "schedule" | "lesson";
+
     // ARCHITECT: трёхфазная миграция подписей шагов (expand → migrate → contract) завершена: карта хранит ключи
     // common-неймспейса, резолв делает потребитель в рендере; старая карта русских подписей удалена.
     export const ONBOARDING_STEP_TITLE_KEYS = {
@@ -43,6 +47,4 @@
     goals: "steps.goals",
     schedule: "steps.schedule",
     lesson: "steps.lesson",
-    } as const;
-
-    export type OnboardingFullStep = keyof typeof ONBOARDING_STEP_TITLE_KEYS;
+    } as const satisfies Record<OnboardingFullStep, string>;

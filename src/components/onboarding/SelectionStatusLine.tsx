@@ -3,6 +3,7 @@
 // единственная обратная связь перед кнопкой продолжения. Пустая строка сохранена в DOM с
 // минимальной высотой, поэтому появление текста не дёргает композицию.
 
+import { useTranslation } from "react-i18next";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import type { Blobatar } from "@/types/blobatar";
 
@@ -11,6 +12,8 @@ export interface SelectionStatusLineProps {
 }
 
 export function SelectionStatusLine({ blobatar }: SelectionStatusLineProps) {
+    const { t } = useTranslation("onboarding");
+
     return (
         <p
             aria-live="polite"
@@ -19,7 +22,7 @@ export function SelectionStatusLine({ blobatar }: SelectionStatusLineProps) {
             {blobatar && (
                 <>
                     <BlobatarAvatar id={blobatar.id} className="size-6" />
-                    <span>Выбран репетитор: {blobatar.name}</span>
+                    <span>{t("repetitor.selected", { name: blobatar.name })}</span>
                 </>
             )}
         </p>

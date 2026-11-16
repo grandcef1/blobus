@@ -6,6 +6,7 @@
 import type { RefObject } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { PersonaStory } from "@/components/shared/PersonaStory";
 import { CARD_RADIUS, FOCUS_RING } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
@@ -35,6 +36,7 @@ export function RepetitorHistoryPanel({
     onClose,
     panelRef,
 }: RepetitorHistoryPanelProps) {
+    const { t } = useTranslation("onboarding");
     const shouldReduceMotion = useReducedMotion();
 
     // ARCHITECT: inline-стиль здесь — данные состояния, а не оформление, как ширина полосы
@@ -69,7 +71,7 @@ export function RepetitorHistoryPanel({
                 // ARCHITECT: tabIndex -1 — полоса не входит в порядок табуляции, но принимает
                 // фокус программно при открытии: клавиатурный пользователь сразу в тексте.
                 tabIndex={-1}
-                aria-label={`История: ${blobatar.name}`}
+                aria-label={t("repetitor.historyLabel", { name: blobatar.name })}
                 initial={shouldReduceMotion ? false : { height: 0, opacity: 0 }}
                 animate={{ height: "auto", opacity: 1 }}
                 exit={{ height: 0, opacity: 0 }}
@@ -82,7 +84,7 @@ export function RepetitorHistoryPanel({
                 <button
                     type="button"
                     onClick={onClose}
-                    aria-label="Свернуть историю"
+                    aria-label={t("repetitor.closeHistory")}
                     className={cn(
                         "absolute right-2 top-2 flex size-11 items-center justify-center rounded-full text-[#f0f0f5]/55 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]",
                         FOCUS_RING

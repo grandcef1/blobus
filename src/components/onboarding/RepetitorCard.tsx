@@ -7,6 +7,7 @@
 import { memo } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Check, ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { REPETITOR_HISTORY_PANEL_ID } from "@/components/onboarding/RepetitorHistoryPanel";
 import { FOCUS_RING, tileClasses } from "@/lib/surfaces";
@@ -41,6 +42,7 @@ function RepetitorCardBase({
     registerRadio,
     registerHistoryButton,
 }: RepetitorCardProps) {
+    const { t } = useTranslation("onboarding");
     const shouldReduceMotion = useReducedMotion();
     const { persona } = blobatar;
 
@@ -93,7 +95,7 @@ function RepetitorCardBase({
                 <span className="mt-4 block w-full">
                     {isRecommended && (
                         <span className="mb-1 block text-[11px] text-[#f0f0f5]/45">
-                            Рекомендуем под цель
+                            {t("repetitor.recommended")}
                         </span>
                     )}
                     <span className="block text-base font-medium text-[#f0f0f5]">
@@ -121,7 +123,7 @@ function RepetitorCardBase({
                     FOCUS_RING
                 )}
             >
-                <span>{isHistoryOpen ? "Свернуть" : "История"}</span>
+                <span>{isHistoryOpen ? t("repetitor.collapseHistory") : t("repetitor.history")}</span>
                 <ChevronDown
                     className={cn(
                         "size-4 shrink-0 transition-transform duration-200",

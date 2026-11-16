@@ -8,6 +8,7 @@
 
 import type { ReactNode } from "react";
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
 import { RepetitorCard } from "@/components/onboarding/RepetitorCard";
@@ -35,7 +36,7 @@ interface RepetitorSelectionStepProps {
 }
 
 export function RepetitorSelectionStep({
-    eyebrow = "Репетитор",
+    eyebrow,
     highlightIds,
     selectedId,
     onSelect,
@@ -44,6 +45,7 @@ export function RepetitorSelectionStep({
     step,
     totalSteps,
 }: RepetitorSelectionStepProps) {
+    const { t } = useTranslation("onboarding");
     const shouldReduceMotion = useReducedMotion();
     const selectedBlobatar = selectedId === null ? null : getBlobatarById(selectedId) ?? null;
 
@@ -116,23 +118,23 @@ export function RepetitorSelectionStep({
     return (
         <div className="w-full" onKeyDown={handleStepKeyDown}>
             <StepHeader
-                eyebrow={eyebrow}
-                title="Выбери репетитора"
-                subtitle="У каждого свой характер и стиль преподавания"
+                eyebrow={eyebrow ?? t("repetitor.eyebrow")}
+                title={t("repetitor.title")}
+                subtitle={t("repetitor.subtitle")}
                 step={step}
                 totalSteps={totalSteps}
                 align="left"
             />
 
             {MOCK_BLOBATARS.length === 0 ? (
-                <p className="text-sm text-[#f0f0f5]/60">Список репетиторов недоступен</p>
+                <p className="text-sm text-[#f0f0f5]/60">{t("repetitor.empty")}</p>
             ) : (
                 /* ARCHITECT: radiogroup остаётся на сетке, поэтому панель истории формально
                    оказывается внутри группы. Это цена вставки панели под ряд: вынести её за
                    пределы группы нельзя, не потеряв строку вставки. */
                 <div
                     role="radiogroup"
-                    aria-label="Выбор репетитора"
+                    aria-label={t("repetitor.groupLabel")}
                     onKeyDown={handleKeyDown}
                     className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
                 >
@@ -142,8 +144,7 @@ export function RepetitorSelectionStep({
 
             <SelectionStatusLine blobatar={selectedBlobatar} />
 
-            <StepNav onBack={onBack} onNext={onNext} nextLabel="Продолжить" disabled={!selectedId} />
+            <StepNav onBack={onBack} onNext={onNext} nextLabel={t("shell.next")} disabled={!selectedId} />
         </div>
     );
 }
-

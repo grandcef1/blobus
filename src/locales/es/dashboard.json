@@ -164,7 +164,7 @@
       "searchLabel": "Buscar usuarios",
       "planFilterLabel": "Filtro por plan",
       "allPlans": "Todos los planes",
-      "issues": "{{count}} a soporte",
+      "issues": "{{total}} a soporte",
       "status": {
         "active": "Activo",
         "suspended": "Bloqueado",

@@ -164,7 +164,7 @@
       "searchLabel": "Поиск пользователей",
       "planFilterLabel": "Фильтр по тарифу",
       "allPlans": "Все тарифы",
-      "issues": "{{count}} в поддержку",
+      "issues": "{{total}} в поддержку",
       "status": {
         "active": "Активен",
         "suspended": "Заблокирован",

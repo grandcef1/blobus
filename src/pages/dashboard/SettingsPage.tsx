@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { fetchSettings } from "@/api/settings";
 import { useMockQuery } from "@/hooks/useMockQuery";
 import { SettingSelect } from "@/components/dashboard/SettingSelect";
@@ -13,6 +14,7 @@ import { SettingsSkeleton } from "@/components/dashboard/skeletons/SettingsSkele
 import type { SettingsState } from "@/types/settings";
 
 export function SettingsPage() {
+    const { t } = useTranslation("dashboard");
     const { data, isLoading } = useMockQuery(fetchSettings);
     const [settings, setSettings] = useState<SettingsState | null>(null);
     const [seededFrom, setSeededFrom] = useState<SettingsState | null>(null);
@@ -49,36 +51,36 @@ export function SettingsPage() {
                     transition={{ duration: 0.2 }}
                     className="mb-5"
                 >
-                    <h1 className="text-xl font-semibold text-[#f0f0f5]">Настройки</h1>
+                    <h1 className="text-xl font-semibold text-[#f0f0f5]">{t("settings.title")}</h1>
                 </motion.header>
 
                 <div className="space-y-4">
                     <div className="rounded-2xl bg-[#111113] p-5">
                         <h2 className="mb-4 text-base font-medium text-[#f0f0f5]/80">
-                            Уведомления
+                            {t("settings.notifications.title")}
                         </h2>
                         <div className="space-y-2">
                             <SettingToggle
-                                label="Ежедневные напоминания"
-                                description="Напоминание заниматься каждый день"
+                                label={t("settings.notifications.dailyReminder.label")}
+                                description={t("settings.notifications.dailyReminder.description")}
                                 checked={settings.notifications.dailyReminder}
                                 onChange={(checked) => updateNotification("dailyReminder", checked)}
                             />
                             <SettingToggle
-                                label="Еженедельные отчёты"
-                                description="Сводка прогресса за неделю"
+                                label={t("settings.notifications.weeklyProgress.label")}
+                                description={t("settings.notifications.weeklyProgress.description")}
                                 checked={settings.notifications.weeklyProgress}
                                 onChange={(checked) => updateNotification("weeklyProgress", checked)}
                             />
                             <SettingToggle
-                                label="Новые функции"
-                                description="Уведомления о запуске возможностей"
+                                label={t("settings.notifications.newFeatures.label")}
+                                description={t("settings.notifications.newFeatures.description")}
                                 checked={settings.notifications.newFeatures}
                                 onChange={(checked) => updateNotification("newFeatures", checked)}
                             />
                             <SettingToggle
-                                label="Маркетинговые письма"
-                                description="Советы и специальные предложения"
+                                label={t("settings.notifications.marketingEmails.label")}
+                                description={t("settings.notifications.marketingEmails.description")}
                                 checked={settings.notifications.marketingEmails}
                                 onChange={(checked) => updateNotification("marketingEmails", checked)}
                             />
@@ -87,38 +89,38 @@ export function SettingsPage() {
 
                     <div className="rounded-2xl bg-[#111113] p-5">
                         <h2 className="mb-4 text-base font-medium text-[#f0f0f5]/80">
-                            Предпочтения
+                            {t("settings.preferences.title")}
                         </h2>
                         <div className="space-y-2">
                             <SettingSelect
-                                label="Тема"
+                                label={t("settings.preferences.theme.label")}
                                 value={settings.preferences.theme}
                                 onChange={(value) => updatePreference("theme", value)}
                                 options={[
-                                    { value: "dark", label: "Тёмная" },
-                                    { value: "light", label: "Светлая" },
-                                    { value: "system", label: "Системная" },
+                                    { value: "dark", label: t("settings.preferences.theme.dark") },
+                                    { value: "light", label: t("settings.preferences.theme.light") },
+                                    { value: "system", label: t("settings.preferences.theme.system") },
                                 ]}
                             />
                             <SettingToggle
-                                label="Звуковые эффекты"
-                                description="Звуки при уведомлениях и действиях"
+                                label={t("settings.preferences.soundEffects.label")}
+                                description={t("settings.preferences.soundEffects.description")}
                                 checked={settings.preferences.soundEffects}
                                 onChange={(checked) => updatePreference("soundEffects", checked)}
                             />
                             <SettingSelect
-                                label="Язык"
+                                label={t("settings.preferences.language.label")}
                                 value={settings.preferences.language}
                                 onChange={(value) => updatePreference("language", value)}
                                 options={[
-                                    { value: "ru", label: "Русский" },
-                                    { value: "en", label: "English" },
-                                    { value: "es", label: "Español" },
+                                    { value: "ru", label: t("settings.preferences.language.ru") },
+                                    { value: "en", label: t("settings.preferences.language.en") },
+                                    { value: "es", label: t("settings.preferences.language.es") },
                                 ]}
                             />
                             <SettingToggle
-                                label="Автокоррекция"
-                                description="Исправлять ошибки в чате автоматически"
+                                label={t("settings.preferences.autoCorrection.label")}
+                                description={t("settings.preferences.autoCorrection.description")}
                                 checked={settings.preferences.autoCorrection}
                                 onChange={(checked) => updatePreference("autoCorrection", checked)}
                             />

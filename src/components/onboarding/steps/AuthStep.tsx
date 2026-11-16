@@ -8,13 +8,14 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { APP_HOME_PATH } from "@/components/layout/navigation";
 import { StepCard } from "@/components/onboarding/StepCard";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { AuthForm } from "@/components/auth/AuthForm";
 import type { AuthMode } from "@/components/onboarding/AuthModeTabs";
-import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
+import { ONBOARDING_STEP_TITLE_KEYS } from "@/types/onboarding";
 import { GHOST_BUTTON } from "@/lib/surfaces";
 
 interface AuthStepProps {
@@ -25,6 +26,8 @@ interface AuthStepProps {
 }
 
 export function AuthStep({ onNext, onBack, step, totalSteps }: AuthStepProps) {
+    const { t } = useTranslation("onboarding");
+    const { t: tCommon } = useTranslation("common");
     const navigate = useNavigate();
     const [mode, setMode] = useState<AuthMode>("register");
 
@@ -41,12 +44,12 @@ export function AuthStep({ onNext, onBack, step, totalSteps }: AuthStepProps) {
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
-                eyebrow={ONBOARDING_STEP_TITLES.intro}
-                title={mode === "register" ? "Создать аккаунт" : "Вход в аккаунт"}
+                eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.intro)}
+                title={mode === "register" ? t("auth.titleRegister") : t("auth.titleLogin")}
                 subtitle={
                     mode === "register"
-                        ? "Прогресс и репетитор сохранятся между устройствами"
-                        : "Продолжи с места, где остановился"
+                        ? t("auth.subtitleRegister")
+                        : t("auth.subtitleLogin")
                 }
                 step={step}
                 totalSteps={totalSteps}
@@ -63,7 +66,7 @@ export function AuthStep({ onNext, onBack, step, totalSteps }: AuthStepProps) {
             <div className="mt-4 flex">
                 <Button type="button" onClick={onBack} variant="ghost" className={GHOST_BUTTON}>
                     <ArrowLeft className="size-4" aria-hidden="true" />
-                    Назад
+                    {t("shell.back")}
                 </Button>
             </div>
         </div>

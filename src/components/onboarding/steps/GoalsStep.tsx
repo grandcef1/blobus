@@ -5,9 +5,10 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { BlobatarId } from "@/types/blobatar";
 import type { LearningMode } from "@/types/onboarding";
-import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
+import { ONBOARDING_STEP_TITLE_KEYS } from "@/types/onboarding";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import { ModeSelectionStep } from "./ModeSelectionStep";
 import { RepetitorSelectionStep } from "./RepetitorSelectionStep";
@@ -43,6 +44,7 @@ export function GoalsStep({
     step,
     totalSteps,
 }: GoalsStepProps) {
+    const { t: tCommon } = useTranslation("common");
     // ARCHITECT: возврат на шаг с уже выбранной целью сразу открывает выбор репетитора: проходить
     // один и тот же выбор дважды незачем.
     const [phase, setPhase] = useState<GoalsPhase>(selectedMode === null ? "mode" : "repetitor");
@@ -68,7 +70,7 @@ export function GoalsStep({
     return (
         <motion.div key="repetitor" {...PHASE_MOTION}>
             <RepetitorSelectionStep
-                eyebrow={ONBOARDING_STEP_TITLES.goals}
+                eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.goals)}
                 highlightIds={recommendedIds}
                 selectedId={selectedId}
                 onSelect={onSelectBlobatar}

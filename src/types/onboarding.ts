@@ -46,3 +46,13 @@
     } as const;
 
     export type OnboardingFullStep = keyof typeof ONBOARDING_STEP_TITLES;
+
+    // ARCHITECT: трёхфазная миграция подписей шагов (expand → migrate → contract): новая карта хранит ключи
+    // common-неймспейса, резолв делает потребитель в рендере; старая карта временна — удалим после переноса всех потребителей.
+    export const ONBOARDING_STEP_TITLE_KEYS = {
+    intro: "steps.intro",
+    assessment: "steps.assessment",
+    goals: "steps.goals",
+    schedule: "steps.schedule",
+    lesson: "steps.lesson",
+    } as const satisfies Record<OnboardingFullStep, string>;

@@ -13,7 +13,7 @@ import { join, relative, sep } from "node:path";
 const ROOT = process.cwd();
 const SRC = join(ROOT, "src");
 const EXTENSIONS = [".ts", ".tsx"];
-const EXCLUDED = ["/locales/", "/api/mocks/", ".test.", "__tests__", "/types/"];
+const EXCLUDED = ["/locales/", "/api/mocks/", ".test.", "__tests__"];
 const CYRILLIC = /[А-Яа-яЁё]/;
 const MAX_ROWS = 40;
 

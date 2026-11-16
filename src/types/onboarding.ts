@@ -35,24 +35,14 @@
     | "goals"
     | "lesson";
 
-    // ARCHITECT: названия шагов — один источник и для мастера, и для чеклиста лендинга
-    // («10 минут до старта»): подписи не могут разойтись.
-    export const ONBOARDING_STEP_TITLES = {
-    intro: "Знакомство",
-    assessment: "Тест",
-    goals: "Цели",
-    schedule: "Расписание",
-    lesson: "Урок",
-    } as const;
-
-    export type OnboardingFullStep = keyof typeof ONBOARDING_STEP_TITLES;
-
-    // ARCHITECT: трёхфазная миграция подписей шагов (expand → migrate → contract): новая карта хранит ключи
-    // common-неймспейса, резолв делает потребитель в рендере; старая карта временна — удалим после переноса всех потребителей.
+    // ARCHITECT: трёхфазная миграция подписей шагов (expand → migrate → contract) завершена: карта хранит ключи
+    // common-неймспейса, резолв делает потребитель в рендере; старая карта русских подписей удалена.
     export const ONBOARDING_STEP_TITLE_KEYS = {
     intro: "steps.intro",
     assessment: "steps.assessment",
     goals: "steps.goals",
     schedule: "steps.schedule",
     lesson: "steps.lesson",
-    } as const satisfies Record<OnboardingFullStep, string>;
+    } as const;
+
+    export type OnboardingFullStep = keyof typeof ONBOARDING_STEP_TITLE_KEYS;

@@ -2,8 +2,9 @@
 // оркестратор фаз держит только состояние, а разметка одной фазы живёт отдельно.
 // ARCHITECT: подпись кнопки зависит от того, что идёт дальше — аудирование или итог.
 
+import { useTranslation } from "react-i18next";
 import type { PlacementItem } from "@/types/placement";
-import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
+import { ONBOARDING_STEP_TITLE_KEYS } from "@/types/onboarding";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
 import { PlacementQuestion } from "@/components/placement/PlacementQuestion";
@@ -33,6 +34,7 @@ export function PlacementTestPhase({
     step,
     totalSteps,
 }: PlacementTestPhaseProps) {
+    const { t: tCommon } = useTranslation("common");
     // ARCHITECT: последний вопрос — ровно двадцатый: граница сравнивается строго с общим числом
     // вопросов, той же величиной, что и счётчик «Вопрос N из total».
     const isLast = number === total;
@@ -41,7 +43,7 @@ export function PlacementTestPhase({
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
-                eyebrow={ONBOARDING_STEP_TITLES.assessment}
+                eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.assessment)}
                 title="Определим твой уровень"
                 step={step}
                 totalSteps={totalSteps}

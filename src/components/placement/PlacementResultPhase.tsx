@@ -4,8 +4,9 @@
 // у проверки есть адрес, и вернуться к ней можно из истории браузера.
 
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import type { PlacementResult } from "@/types/placement";
-import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
+import { ONBOARDING_STEP_TITLE_KEYS } from "@/types/onboarding";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
 import { PlacementResultView } from "@/components/placement/PlacementResult";
@@ -25,12 +26,13 @@ export function PlacementResultPhase({
     onBack,
     onContinue,
 }: PlacementResultPhaseProps) {
+    const { t: tCommon } = useTranslation("common");
     const navigate = useNavigate();
 
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
-                eyebrow={ONBOARDING_STEP_TITLES.assessment}
+                eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.assessment)}
                 title="Уровень определён"
                 subtitle="Уровень попадёт в сводку перед первым уроком и в профиль."
                 step={step}

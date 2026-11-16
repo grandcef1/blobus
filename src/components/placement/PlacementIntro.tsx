@@ -1,10 +1,11 @@
 // ARCHITECT: интро теста уровня — отдельный блок шага: описание занимает половину файла, а
 // оркестратор фаз должен оставаться читаемым.
 
+import { useTranslation } from "react-i18next";
 import { StepCard } from "@/components/onboarding/StepCard";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
-import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
+import { ONBOARDING_STEP_TITLE_KEYS } from "@/types/onboarding";
 
 interface PlacementIntroProps {
     /** Включена ли проверка аудирования после основных вопросов. */
@@ -33,10 +34,12 @@ export function PlacementIntro({
     step,
     totalSteps,
 }: PlacementIntroProps) {
+    const { t: tCommon } = useTranslation("common");
+
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
-                eyebrow={ONBOARDING_STEP_TITLES.assessment}
+                eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.assessment)}
                 title="Определим твой уровень"
                 subtitle="Адаптивный тест: сложность подстраивается под ответы. Уровень по CEFR, балл по шкале 0-100."
                 step={step}

@@ -7,6 +7,7 @@
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { GLASS_SURFACE, LEAF_RADIUS, EYEBROW, META_LINE, PRIMARY_BUTTON } from "@/lib/surfaces";
@@ -23,18 +24,20 @@ const fadeUp = (delay: number) => ({
 });
 
 export function WelcomeStep({ onNext }: WelcomeStepProps) {
+    const { t } = useTranslation("onboarding");
+
     return (
         <div className="relative flex min-h-dvh w-full flex-col items-center overflow-hidden">
             <div className="relative z-20 mx-auto flex w-full max-w-2xl flex-col items-center px-6 pt-24 text-center md:pt-28">
                 <motion.p {...fadeUp(0)} className={EYEBROW}>
-                    ИИ-репетитор английского
+                    {t("welcome.eyebrow")}
                 </motion.p>
 
                 <motion.h1
                     {...fadeUp(0.06)}
                     className="mt-3 text-4xl font-bold leading-tight tracking-tight text-[#f0f0f5] md:text-5xl"
                 >
-                    Английский в диалоге, а не в учебнике
+                    {t("welcome.title")}
                 </motion.h1>
 
                 <motion.div
@@ -42,8 +45,7 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
                     className={cn(GLASS_SURFACE, LEAF_RADIUS, "mt-[16px] p-6")}
                 >
                     <p className="mx-auto max-w-md text-base leading-relaxed text-[#f0f0f5]/70">
-                        Репетитор подстраивается под твою цель и уровень: от повседневного
-                        разговора до технического собеседования.
+                        {t("welcome.description")}
                     </p>
                     <div className="mt-5 flex flex-wrap items-center justify-center gap-4">
                         <Button
@@ -51,10 +53,10 @@ export function WelcomeStep({ onNext }: WelcomeStepProps) {
                             onClick={onNext}
                             className={PRIMARY_BUTTON}
                         >
-                            Начать
+                            {t("welcome.start")}
                             <ArrowRight className="size-4" />
                         </Button>
-                        <span className={META_LINE}>5 шагов · около 10 минут</span>
+                        <span className={META_LINE}>{t("welcome.meta")}</span>
                     </div>
                 </motion.div>
             </div>

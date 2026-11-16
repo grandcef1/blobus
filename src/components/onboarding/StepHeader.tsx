@@ -4,6 +4,7 @@
 
 import { motion } from "framer-motion";
 import type { Variants } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { EYEBROW, META_LINE, STEP_SUBTITLE, STEP_TITLE } from "@/lib/surfaces";
 
@@ -34,6 +35,7 @@ export function StepHeader({
     align = "center",
     className,
 }: StepHeaderProps) {
+    const { t } = useTranslation("onboarding");
     const isCentered = align === "center";
 
     return (
@@ -62,7 +64,7 @@ export function StepHeader({
 
             {step !== undefined && totalSteps !== undefined && (
                 <motion.p variants={ITEM} className={cn(META_LINE, "mt-4")}>
-                    Шаг {step} из {totalSteps}
+                    {t("shell.step", { step, total: totalSteps })}
                 </motion.p>
             )}
         </motion.header>

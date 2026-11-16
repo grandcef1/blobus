@@ -3,6 +3,7 @@
 // Логика переходов остаётся у шага, здесь только вид.
 
 import { ArrowLeft, ArrowRight } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { GHOST_BUTTON, PRIMARY_BUTTON } from "@/lib/surfaces";
@@ -16,12 +17,14 @@ interface StepNavProps {
 }
 
 export function StepNav({ onBack, onNext, nextLabel, disabled, className }: StepNavProps) {
+    const { t } = useTranslation("onboarding");
+
     return (
         <div className={cn("mt-8 flex items-center justify-between gap-4", className)}>
             {onBack ? (
                 <Button type="button" variant="ghost" onClick={onBack} className={GHOST_BUTTON}>
                     <ArrowLeft className="size-4" aria-hidden="true" />
-                    Назад
+                    {t("shell.back")}
                 </Button>
             ) : (
                 <span />

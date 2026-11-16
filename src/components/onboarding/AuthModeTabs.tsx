@@ -3,6 +3,7 @@
 // ARCHITECT: поверхность таба — из lib/surfaces (стекло вместо #141416),
 // активный таб использует общий токен заливки SELECTED_FILL.
 
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { GLASS_SURFACE, SELECTED_FILL } from "@/lib/surfaces";
 
@@ -13,14 +14,16 @@ interface AuthModeTabsProps {
     onChange: (mode: AuthMode) => void;
 }
 
-const TABS: { id: AuthMode; label: string }[] = [
-    { id: "register", label: "Регистрация" },
-    { id: "login", label: "Вход" },
-];
+const TABS = [
+    { id: "register", labelKey: "auth.tabRegister" },
+    { id: "login", labelKey: "auth.tabLogin" },
+] as const;
 
 export function AuthModeTabs({ mode, onChange }: AuthModeTabsProps) {
+    const { t } = useTranslation("onboarding");
+
     return (
-        <div className={cn("mb-6 flex rounded-xl p-1", GLASS_SURFACE)} role="tablist" aria-label="Способ входа">
+        <div className={cn("mb-6 flex rounded-xl p-1", GLASS_SURFACE)} role="tablist" aria-label={t("auth.tabsLabel")}>
             {TABS.map((tab) => (
                 <button
                     key={tab.id}
@@ -35,7 +38,7 @@ export function AuthModeTabs({ mode, onChange }: AuthModeTabsProps) {
                             : "text-[#f0f0f5]/50 hover:text-[#f0f0f5]/80"
                     )}
                 >
-                    {tab.label}
+                    {t(tab.labelKey)}
                 </button>
             ))}
         </div>

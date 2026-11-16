@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { Loader2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import { GLASS_SURFACE } from "@/lib/surfaces";
 import { GoogleIcon } from "./GoogleIcon";
@@ -14,6 +15,7 @@ interface GoogleAuthButtonProps {
 }
 
 export function GoogleAuthButton({ onAuthenticated }: GoogleAuthButtonProps) {
+    const { t } = useTranslation("onboarding");
     const [isLoading, setIsLoading] = useState(false);
 
     const handleClick = () => {
@@ -37,7 +39,7 @@ export function GoogleAuthButton({ onAuthenticated }: GoogleAuthButtonProps) {
             ) : (
                 <GoogleIcon className="size-4.5" />
             )}
-            {isLoading ? "Подключаемся…" : "Продолжить с Google"}
+            {isLoading ? t("auth.googleLoading") : t("auth.googleContinue")}
         </button>
     );
 }

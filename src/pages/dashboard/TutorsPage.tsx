@@ -14,7 +14,8 @@ import { TutorsSkeleton } from "@/components/dashboard/skeletons/TutorsSkeleton"
 import { EmptyState } from "@/components/shared/EmptyState";
 
 export function TutorsPage() {
-    const { t } = useTranslation();
+    const { t } = useTranslation("dashboard");
+    const { t: tCommon } = useTranslation("common");
     const { data: tutors, isLoading } = useMockQuery(fetchTutors);
 
     if (isLoading || tutors === null) return <TutorsSkeleton />;
@@ -28,17 +29,17 @@ export function TutorsPage() {
                     transition={{ duration: 0.2 }}
                     className="mb-5"
                 >
-                    <h1 className="text-xl font-semibold text-[#f0f0f5]">Наши репетиторы</h1>
+                    <h1 className="text-xl font-semibold text-[#f0f0f5]">{t("tutors.title")}</h1>
                     <p className="mt-1 text-sm text-[#f0f0f5]/50">
-                        Характер и стиль каждого — выберите подходящего
+                        {t("tutors.subtitle")}
                     </p>
                 </motion.header>
 
                 {tutors.length === 0 ? (
                     <EmptyState
                         icon={Users}
-                        title={t("states.empty.tutors.title")}
-                        description={t("states.empty.tutors.description")}
+                        title={tCommon("states.empty.tutors.title")}
+                        description={tCommon("states.empty.tutors.description")}
                     />
                 ) : (
                     <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">

@@ -8,7 +8,8 @@ import { VocabularySkeleton } from "@/components/dashboard/skeletons/VocabularyS
 import { EmptyState } from "@/components/shared/EmptyState";
 
 export function VocabularyPage() {
-    const { t } = useTranslation();
+    const { t } = useTranslation("dashboard");
+    const { t: tCommon } = useTranslation("common");
     const [searchQuery, setSearchQuery] = useState("");
     const { data: words, isLoading } = useMockQuery(fetchVocabulary);
 
@@ -30,14 +31,14 @@ export function VocabularyPage() {
                     className="mb-5 flex items-center justify-between"
                 >
                     <div>
-                        <h1 className="text-xl font-semibold text-[#f0f0f5]">Словарь</h1>
+                        <h1 className="text-xl font-semibold text-[#f0f0f5]">{t("vocabulary.title")}</h1>
                         <p className="mt-1 text-sm text-[#f0f0f5]/50">
-                            {words.length} слов в коллекции
+                            {t("vocabulary.count", { total: words.length })}
                         </p>
                     </div>
                     <button className="flex items-center gap-2 rounded-xl bg-[#f0f0f5] px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#f0f0f5]/90">
                         <RotateCcw className="size-4" />
-                        Повторить
+                        {t("vocabulary.review")}
                     </button>
                 </motion.header>
 
@@ -47,7 +48,7 @@ export function VocabularyPage() {
                         type="text"
                         value={searchQuery}
                         onChange={(e) => setSearchQuery(e.target.value)}
-                        placeholder="Поиск слова или перевода"
+                        placeholder={t("vocabulary.searchPlaceholder")}
                         className="w-full rounded-xl bg-[#141416] py-2.5 pl-10 pr-4 text-sm text-[#f0f0f5] placeholder:text-[#f0f0f5]/30 focus:outline-none focus:ring-2 focus:ring-[#f0f0f5]/20"
                     />
                 </div>
@@ -55,14 +56,14 @@ export function VocabularyPage() {
                 {words.length === 0 ? (
                     <EmptyState
                         icon={BookOpen}
-                        title={t("states.empty.vocabulary.title")}
-                        description={t("states.empty.vocabulary.description")}
+                        title={tCommon("states.empty.vocabulary.title")}
+                        description={tCommon("states.empty.vocabulary.description")}
                     />
                 ) : filteredWords.length === 0 ? (
                     /* ARCHITECT: пустой словарь и отсутствие совпадений — разные состояния: первое
                        лечится добавлением слов, второе — сбросом запроса, поэтому и тексты разные. */
                     <p className="rounded-2xl bg-[#111113] p-5 text-sm text-[#f0f0f5]/60">
-                        {t("states.search.empty")}
+                        {tCommon("states.search.empty")}
                     </p>
                 ) : (
                     <div className="space-y-2">
@@ -81,7 +82,7 @@ export function VocabularyPage() {
                                                 {word.word}
                                             </h3>
                                             <button
-                                                aria-label={`Произнести ${word.word}`}
+                                                aria-label={t("vocabulary.pronounce", { word: word.word })}
                                                 className="shrink-0 text-[#f0f0f5]/30 transition-colors hover:text-[#f0f0f5]/60"
                                             >
                                                 <Volume2 className="size-3.5" />

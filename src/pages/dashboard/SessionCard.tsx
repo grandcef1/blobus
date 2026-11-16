@@ -5,6 +5,7 @@
 // «завершена, но пройдено 3 из 10» невозможно по конструкции.
 
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
@@ -19,6 +20,7 @@ interface SessionCardProps {
 }
 
 export function SessionCard({ session }: SessionCardProps) {
+    const { t } = useTranslation("dashboard");
     const repetitor = getBlobatarById(session.repetitorId);
     const mode = MOCK_LEARNING_MODES.find((item) => item.id === session.learningMode);
 
@@ -40,12 +42,12 @@ export function SessionCard({ session }: SessionCardProps) {
                 <div className="min-w-0 flex-1">
                     <h2 className="truncate text-sm font-medium text-[#f0f0f5] md:text-base">{session.title}</h2>
                     <p className="mt-0.5 truncate text-xs text-[#f0f0f5]/40">
-                        {repetitor?.name ?? "Репетитор"} · {mode?.label ?? session.learningMode}
+                        {repetitor?.name ?? t("sessions.card.tutorFallback")} · {mode?.label ?? session.learningMode}
                     </p>
                 </div>
 
                 <StatusMarker
-                    label={isCompleted ? "Завершена" : "В процессе"}
+                    label={isCompleted ? t("sessions.card.completed") : t("sessions.card.inProgress")}
                     emphasis={isCompleted ? "faint" : "solid"}
                     className="shrink-0"
                 />
@@ -54,13 +56,18 @@ export function SessionCard({ session }: SessionCardProps) {
             <div className="flex items-center gap-3">
                 <ProgressBar value={percent} className="flex-1" />
                 <span className="shrink-0 text-xs tabular-nums text-[#f0f0f5]/40">
-                    {completedLessons} из {totalLessons}
+                    {t("sessions.card.lessonsProgress", {
+                        completed: completedLessons,
+                        total: totalLessons,
+                    })}
                 </span>
             </div>
 
             <div className="flex items-center justify-between gap-3 text-xs text-[#f0f0f5]/35">
                 <span className="truncate tabular-nums">
-                    {session.targetLevel ? `Уровень ${session.targetLevel}` : "Уровень не задан"}
+                    {session.targetLevel
+                        ? t("sessions.card.level", { level: session.targetLevel })
+                        : t("sessions.card.levelUnknown")}
                 </span>
                 <span className="shrink-0">{formatRelativeTime(session.lastActivityAt)}</span>
             </div>

@@ -6,11 +6,15 @@
 
 import { Link } from "react-router-dom";
 import { Volume2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { getResult } from "@/api/placement";
 import { FOCUS_RING, PRIMARY_BUTTON } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 
 export function ListeningPromptCard() {
+    // ARCHITECT: хук вызывается до раннего возврата, поэтому порядок хуков постоянен между рендерами.
+    const { t } = useTranslation("dashboard");
+
     if (getResult()?.listening) return null;
 
     return (
@@ -24,15 +28,15 @@ export function ListeningPromptCard() {
                     className="flex items-center gap-2 text-base font-medium text-[#f0f0f5]/80"
                 >
                     <Volume2 className="size-4 text-[#f0f0f5]/60" strokeWidth={1.5} aria-hidden="true" />
-                    Аудирование не проверено
+                    {t("overview.listening.title")}
                 </h2>
                 <p className="mt-1 text-sm leading-[1.6] text-[#f0f0f5]/50">
-                    Шесть коротких заданий на понимание на слух. Два прослушивания на задание.
+                    {t("overview.listening.description")}
                 </p>
             </div>
 
             <Link to="/listening" className={cn(PRIMARY_BUTTON, FOCUS_RING, "shrink-0")}>
-                Проверить
+                {t("overview.listening.action")}
             </Link>
         </section>
     );

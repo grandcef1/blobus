@@ -18,7 +18,8 @@ import { cn } from "@/lib/utils";
 import { SessionCard } from "./SessionCard";
 
 export function SessionsPage() {
-    const { t } = useTranslation();
+    const { t } = useTranslation("dashboard");
+    const { t: tCommon } = useTranslation("common");
     const { data: sessions, isLoading } = useMockQuery(fetchSessions);
 
     if (isLoading || sessions === null) return <SessionsSkeleton />;
@@ -32,18 +33,18 @@ export function SessionsPage() {
                     transition={{ duration: 0.2 }}
                     className="mb-5"
                 >
-                    <h1 className="text-xl font-semibold text-[#f0f0f5]">Сессии</h1>
-                    <p className="mt-1 text-sm text-[#f0f0f5]/50">Диалоги с репетитором, свежие сверху</p>
+                    <h1 className="text-xl font-semibold text-[#f0f0f5]">{t("sessions.title")}</h1>
+                    <p className="mt-1 text-sm text-[#f0f0f5]/50">{t("sessions.subtitle")}</p>
                 </motion.header>
 
                 {sessions.length === 0 ? (
                     <EmptyState
                         icon={MessagesSquare}
-                        title={t("states.empty.sessions.title")}
-                        description={t("states.empty.sessions.description")}
+                        title={tCommon("states.empty.sessions.title")}
+                        description={tCommon("states.empty.sessions.description")}
                         action={
                             <Link to="/session/new" className={cn(PRIMARY_BUTTON, FOCUS_RING)}>
-                                {t("states.empty.sessions.action")}
+                                {tCommon("states.empty.sessions.action")}
                             </Link>
                         }
                     />

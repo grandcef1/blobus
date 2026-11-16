@@ -1,0 +1,103 @@
+{
+  "welcome": {
+    "eyebrow": "AI English tutor",
+    "title": "English through dialogue, not a textbook",
+    "description": "The tutor adapts to your goal and level: from everyday conversation to a technical interview.",
+    "start": "Get started",
+    "meta": "5 steps · about 10 minutes"
+  },
+  "auth": {
+    "titleRegister": "Create an account",
+    "titleLogin": "Sign in to your account",
+    "subtitleRegister": "Your progress and tutor stay with you across devices",
+    "subtitleLogin": "Pick up where you left off",
+    "tabRegister": "Sign up",
+    "tabLogin": "Sign in",
+    "tabsLabel": "Sign-in method",
+    "googleLoading": "Connecting…",
+    "googleContinue": "Continue with Google"
+  },
+  "goals": {
+    "title": "What do you want to focus on?",
+    "subtitle": "You can add or change modes later. To start, pick your main goal."
+  },
+  "schedule": {
+    "title": "How often will you study?",
+    "subtitle": "Consistency matters more than intensity: pick a pace you can keep.",
+    "frequencyTitle": "Lesson frequency",
+    "durationTitle": "Lesson length",
+    "start": "Start learning",
+    "frequency": {
+      "daily": {
+        "label": "Every day",
+        "description": "Build a habit"
+      },
+      "everyOtherDay": {
+        "label": "Every other day",
+        "description": "A balanced pace"
+      },
+      "threeTimesWeek": {
+        "label": "3 times a week",
+        "description": "Steady progress"
+      },
+      "weekly": {
+        "label": "Once a week",
+        "description": "Light practice"
+      }
+    },
+    "duration": {
+      "min15": {
+        "label": "15 min",
+        "description": "Quick lessons"
+      },
+      "min30": {
+        "label": "30 min",
+        "description": "Recommended"
+      },
+      "min45": {
+        "label": "45 min",
+        "description": "Deep focus"
+      },
+      "min60": {
+        "label": "60 min",
+        "description": "Intensive"
+      }
+    }
+  },
+  "lesson": {
+    "title": "Everything is ready for your first lesson",
+    "subtitle": "The session opens right away: the tutor starts with the topic of your goal.",
+    "goalLabel": "Goal",
+    "goalNotSelected": "not selected",
+    "levelLabel": "Level from the test",
+    "levelUnknown": "not determined",
+    "scheduleLabel": "Schedule",
+    "scheduleNotSelected": "not selected",
+    "scheduleValue": "{{frequency}} · {{minutes}} min",
+    "start": "Start lesson",
+    "frequency": {
+      "daily": "every day",
+      "everyOtherDay": "every other day",
+      "threeTimesWeek": "3 times a week",
+      "weekly": "once a week"
+    }
+  },
+  "repetitor": {
+    "eyebrow": "Tutor",
+    "title": "Choose a tutor",
+    "subtitle": "Each one has their own character and teaching style",
+    "empty": "The tutor list is unavailable",
+    "groupLabel": "Tutor selection",
+    "recommended": "Recommended for your goal",
+    "history": "History",
+    "collapseHistory": "Hide",
+    "historyLabel": "History: {{name}}",
+    "closeHistory": "Hide history",
+    "selected": "Tutor selected: {{name}}"
+  },
+  "shell": {
+    "back": "Back",
+    "next": "Continue",
+    "step": "Step {{step}} of {{total}}"
+  }
+}

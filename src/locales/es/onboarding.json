@@ -1,0 +1,103 @@
+{
+  "welcome": {
+    "eyebrow": "Tutor de inglés con IA",
+    "title": "Inglés en diálogo, no en un libro de texto",
+    "description": "El tutor se adapta a tu objetivo y tu nivel: desde una conversación cotidiana hasta una entrevista técnica.",
+    "start": "Empezar",
+    "meta": "5 pasos · unos 10 minutos"
+  },
+  "auth": {
+    "titleRegister": "Crear una cuenta",
+    "titleLogin": "Inicia sesión",
+    "subtitleRegister": "Tu progreso y tu tutor se mantienen en todos tus dispositivos",
+    "subtitleLogin": "Continúa donde lo dejaste",
+    "tabRegister": "Registro",
+    "tabLogin": "Entrar",
+    "tabsLabel": "Método de acceso",
+    "googleLoading": "Conectando…",
+    "googleContinue": "Continuar con Google"
+  },
+  "goals": {
+    "title": "¿En qué quieres centrarte?",
+    "subtitle": "Puedes añadir o cambiar modos más adelante. Para empezar, elige tu objetivo principal."
+  },
+  "schedule": {
+    "title": "¿Con qué frecuencia vas a practicar?",
+    "subtitle": "La constancia importa más que la intensidad: elige un ritmo que puedas mantener.",
+    "frequencyTitle": "Frecuencia de las clases",
+    "durationTitle": "Duración de la clase",
+    "start": "Empezar a aprender",
+    "frequency": {
+      "daily": {
+        "label": "Cada día",
+        "description": "Crea el hábito"
+      },
+      "everyOtherDay": {
+        "label": "Día por medio",
+        "description": "Un ritmo equilibrado"
+      },
+      "threeTimesWeek": {
+        "label": "3 veces por semana",
+        "description": "Progreso estable"
+      },
+      "weekly": {
+        "label": "Una vez por semana",
+        "description": "Práctica ligera"
+      }
+    },
+    "duration": {
+      "min15": {
+        "label": "15 min",
+        "description": "Clases rápidas"
+      },
+      "min30": {
+        "label": "30 min",
+        "description": "Recomendado"
+      },
+      "min45": {
+        "label": "45 min",
+        "description": "Inmersión profunda"
+      },
+      "min60": {
+        "label": "60 min",
+        "description": "Intensivo"
+      }
+    }
+  },
+  "lesson": {
+    "title": "Todo listo para tu primera clase",
+    "subtitle": "La sesión se abre enseguida: el tutor empieza con el tema de tu objetivo.",
+    "goalLabel": "Objetivo",
+    "goalNotSelected": "sin elegir",
+    "levelLabel": "Nivel de la prueba",
+    "levelUnknown": "sin determinar",
+    "scheduleLabel": "Horario",
+    "scheduleNotSelected": "sin elegir",
+    "scheduleValue": "{{frequency}} · {{minutes}} min",
+    "start": "Empezar la clase",
+    "frequency": {
+      "daily": "cada día",
+      "everyOtherDay": "día por medio",
+      "threeTimesWeek": "3 veces por semana",
+      "weekly": "una vez por semana"
+    }
+  },
+  "repetitor": {
+    "eyebrow": "Tutor",
+    "title": "Elige un tutor",
+    "subtitle": "Cada uno tiene su carácter y su estilo de enseñanza",
+    "empty": "La lista de tutores no está disponible",
+    "groupLabel": "Selección de tutor",
+    "recommended": "Recomendado para tu objetivo",
+    "history": "Historial",
+    "collapseHistory": "Ocultar",
+    "historyLabel": "Historial: {{name}}",
+    "closeHistory": "Ocultar el historial",
+    "selected": "Tutor elegido: {{name}}"
+  },
+  "shell": {
+    "back": "Atrás",
+    "next": "Continuar",
+    "step": "Paso {{step}} de {{total}}"
+  }
+}

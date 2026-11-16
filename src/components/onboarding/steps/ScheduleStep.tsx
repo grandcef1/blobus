@@ -5,9 +5,10 @@
 
 import { useState } from 'react';
 import { Clock, Calendar } from 'lucide-react';
+import { useTranslation } from 'react-i18next';
 import { StepHeader } from '@/components/onboarding/StepHeader';
 import { StepNav } from '@/components/onboarding/StepNav';
-import { ONBOARDING_STEP_TITLES } from '@/types/onboarding';
+import { ONBOARDING_STEP_TITLE_KEYS } from '@/types/onboarding';
 import type { SchedulePreference } from '@/types/onboarding';
 import { tileClasses } from '@/lib/surfaces';
 
@@ -20,21 +21,24 @@ interface ScheduleStepProps {
     totalSteps: number;
 }
 
-const FREQUENCY_OPTIONS = [
-    { id: 'daily', label: 'Каждый день', description: 'Выработай привычку' },
-    { id: 'every-other-day', label: 'Через день', description: 'Сбалансированный темп' },
-    { id: '3-times-week', label: '3 раза в неделю', description: 'Стабильный прогресс' },
-    { id: 'weekly', label: 'Раз в неделю', description: 'Лёгкая практика' },
+// ARCHITECT: карта хранит ключи, а не подписи: t() резолвит их в рендере, поэтому смена языка обновляет плитки.
+const FREQUENCY_KEYS = [
+    { id: 'daily', labelKey: 'schedule.frequency.daily.label', descriptionKey: 'schedule.frequency.daily.description' },
+    { id: 'every-other-day', labelKey: 'schedule.frequency.everyOtherDay.label', descriptionKey: 'schedule.frequency.everyOtherDay.description' },
+    { id: '3-times-week', labelKey: 'schedule.frequency.threeTimesWeek.label', descriptionKey: 'schedule.frequency.threeTimesWeek.description' },
+    { id: 'weekly', labelKey: 'schedule.frequency.weekly.label', descriptionKey: 'schedule.frequency.weekly.description' },
 ] as const;
 
-const DURATION_OPTIONS = [
-    { id: 15, label: '15 мин', description: 'Быстрые занятия' },
-    { id: 30, label: '30 мин', description: 'Рекомендуем' },
-    { id: 45, label: '45 мин', description: 'Глубокое погружение' },
-    { id: 60, label: '60 мин', description: 'Интенсив' },
+const DURATION_KEYS = [
+    { id: 15, labelKey: 'schedule.duration.min15.label', descriptionKey: 'schedule.duration.min15.description' },
+    { id: 30, labelKey: 'schedule.duration.min30.label', descriptionKey: 'schedule.duration.min30.description' },
+    { id: 45, labelKey: 'schedule.duration.min45.label', descriptionKey: 'schedule.duration.min45.description' },
+    { id: 60, labelKey: 'schedule.duration.min60.label', descriptionKey: 'schedule.duration.min60.description' },
 ] as const;
 
 export function ScheduleStep({ schedule, onUpdate, onNext, onBack, step, totalSteps }: ScheduleStepProps) {
+    const { t } = useTranslation('onboarding');
+    const { t: tCommon } = useTranslation('common');
     const [frequency, setFrequency] = useState<SchedulePreference['frequency']>(
         schedule?.frequency ?? 'daily'
     );
@@ -54,9 +58,9 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack, step, totalSt
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
-                eyebrow={ONBOARDING_STEP_TITLES.schedule}
-                title="Как часто будешь заниматься?"
-                subtitle="Регулярность важнее интенсивности: выбери темп, который удобно держать."
+                eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.schedule)}
+                title={t('schedule.title')}
+                subtitle={t('schedule.subtitle')}
                 step={step}
                 totalSteps={totalSteps}
             />
@@ -67,19 +71,19 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack, step, totalSt
                 <div className="flex flex-col gap-4">
                     <h3 className="flex items-center gap-2 text-sm font-medium text-[#f0f0f5]/70">
                         <Calendar className="size-4" aria-hidden="true" />
-                        Частота занятий
+                        {t('schedule.frequencyTitle')}
                     </h3>
                     <div className="grid grid-cols-2 gap-4">
-                        {FREQUENCY_OPTIONS.map((option) => (
+                        {FREQUENCY_KEYS.map((option) => (
                             <button
                                 key={option.id}
                                 type="button"
                                 onClick={() => setFrequency(option.id)}
                                 className={tileClasses(frequency === option.id, 'p-5 text-left')}
                             >
-                                <span className="block font-medium text-[#f0f0f5]">{option.label}</span>
+                                <span className="block font-medium text-[#f0f0f5]">{t(option.labelKey)}</span>
                                 <span className="block text-xs text-[#f0f0f5]/50">
-                                    {option.description}
+                                    {t(option.descriptionKey)}
                                 </span>
                             </button>
                         ))}
@@ -89,10 +93,10 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack, step, totalSt
                 <div className="flex flex-col gap-4">
                     <h3 className="flex items-center gap-2 text-sm font-medium text-[#f0f0f5]/70">
                         <Clock className="size-4" aria-hidden="true" />
-                        Длительность занятия
+                        {t('schedule.durationTitle')}
                     </h3>
                     <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
-                        {DURATION_OPTIONS.map((option) => (
+                        {DURATION_KEYS.map((option) => (
                             <button
                                 key={option.id}
                                 type="button"
@@ -100,10 +104,10 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack, step, totalSt
                                 className={tileClasses(duration === option.id, 'p-5 text-center')}
                             >
                                 <span className="block text-lg font-semibold text-[#f0f0f5]">
-                                    {option.label}
+                                    {t(option.labelKey)}
                                 </span>
                                 <span className="block text-xs leading-snug text-[#f0f0f5]/50">
-                                    {option.description}
+                                    {t(option.descriptionKey)}
                                 </span>
                             </button>
                         ))}
@@ -111,7 +115,7 @@ export function ScheduleStep({ schedule, onUpdate, onNext, onBack, step, totalSt
                 </div>
             </div>
 
-            <StepNav onBack={onBack} onNext={handleNext} nextLabel="Начать обучение" />
+            <StepNav onBack={onBack} onNext={handleNext} nextLabel={t('schedule.start')} />
         </div>
     );
 }

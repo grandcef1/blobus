@@ -3,6 +3,7 @@
 // ARCHITECT: создание сессии и переход в чат остаются в Onboarding: состояние мастера живёт в одном
 // месте, и шаг не знает про маршруты.
 
+import { useTranslation } from "react-i18next";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { StepCard } from "@/components/onboarding/StepCard";
 import { StepHeader } from "@/components/onboarding/StepHeader";
@@ -10,7 +11,7 @@ import { StepNav } from "@/components/onboarding/StepNav";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import type { OnboardingData, SchedulePreference } from "@/types/onboarding";
-import { ONBOARDING_STEP_TITLES } from "@/types/onboarding";
+import { ONBOARDING_STEP_TITLE_KEYS } from "@/types/onboarding";
 
 interface LessonStepProps {
     data: OnboardingData;
@@ -20,35 +21,39 @@ interface LessonStepProps {
     totalSteps: number;
 }
 
-const FREQUENCY_LABELS: Record<SchedulePreference["frequency"], string> = {
-    daily: "каждый день",
-    "every-other-day": "через день",
-    "3-times-week": "3 раза в неделю",
-    weekly: "раз в неделю",
-};
-
-function describeSchedule(schedule: SchedulePreference | null): string {
-    if (schedule === null) return "не выбрано";
-
-    return `${FREQUENCY_LABELS[schedule.frequency]} · ${schedule.durationMinutes} мин`;
-}
+const FREQUENCY_LABEL_KEYS = {
+    daily: "lesson.frequency.daily",
+    "every-other-day": "lesson.frequency.everyOtherDay",
+    "3-times-week": "lesson.frequency.threeTimesWeek",
+    weekly: "lesson.frequency.weekly",
+} as const satisfies Record<SchedulePreference["frequency"], string>;
 
 export function LessonStep({ data, onNext, onBack, step, totalSteps }: LessonStepProps) {
+    const { t } = useTranslation("onboarding");
+    const { t: tCommon } = useTranslation("common");
     const repetitor = data.blobatarId === null ? undefined : getBlobatarById(data.blobatarId);
     const mode = MOCK_LEARNING_MODES.find((item) => item.id === data.learningMode);
 
+    const describeSchedule = (schedule: SchedulePreference | null): string =>
+        schedule === null
+            ? t("lesson.scheduleNotSelected")
+            : t("lesson.scheduleValue", {
+                  frequency: t(FREQUENCY_LABEL_KEYS[schedule.frequency]),
+                  minutes: schedule.durationMinutes,
+              });
+
     const rows = [
-        { id: "mode", label: "Цель", value: mode?.label ?? "не выбрана" },
-        { id: "level", label: "Уровень из теста", value: data.englishLevel ?? "не определён" },
-        { id: "schedule", label: "Расписание", value: describeSchedule(data.schedule) },
+        { id: "mode", label: t("lesson.goalLabel"), value: mode?.label ?? t("lesson.goalNotSelected") },
+        { id: "level", label: t("lesson.levelLabel"), value: data.englishLevel ?? t("lesson.levelUnknown") },
+        { id: "schedule", label: t("lesson.scheduleLabel"), value: describeSchedule(data.schedule) },
     ];
 
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
-                eyebrow={ONBOARDING_STEP_TITLES.lesson}
-                title="Всё готово к первому уроку"
-                subtitle="Сессия откроется сразу: репетитор начнёт с темы выбранной цели."
+                eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.lesson)}
+                title={t("lesson.title")}
+                subtitle={t("lesson.subtitle")}
                 step={step}
                 totalSteps={totalSteps}
             />
@@ -76,7 +81,7 @@ export function LessonStep({ data, onNext, onBack, step, totalSteps }: LessonSte
                 </dl>
             </StepCard>
 
-            <StepNav onBack={onBack} onNext={onNext} nextLabel="Начать урок" />
+            <StepNav onBack={onBack} onNext={onNext} nextLabel={t("lesson.start")} />
         </div>
     );
 }

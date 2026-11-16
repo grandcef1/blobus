@@ -1,62 +1,39 @@
-/* eslint-disable react-refresh/only-export-components -- дерево маршрутов отдаётся константой, а не компонентом, поэтому правило про fast-refresh тут неприменимо */
 // ARCHITECT: маршруты отдаются константой-фрагментом, а не компонентом: <Routes> разворачивает
 // только Fragment и Route, поэтому обёртка вида <PublicRoutes /> сломала бы роутинг.
 
-import { lazy, Suspense } from 'react';
+import { Suspense } from 'react';
 import { Route } from 'react-router-dom';
 import { Landing } from '@/pages/Landing';
-import { Onboarding } from '@/pages/Onboarding';
-import { ListeningFlow } from '@/pages/ListeningFlow';
 import { LegalSkeleton } from '@/components/shared/skeletons/LegalSkeleton';
 import { LoginSkeleton } from '@/components/shared/skeletons/LoginSkeleton';
 import { HelpSkeleton } from '@/components/dashboard/skeletons/HelpSkeleton';
-
-const Login = lazy(() =>
-  import('@/pages/Login').then((module) => ({ default: module.Login }))
-);
-
-const HelpPage = lazy(() =>
-  import('@/pages/HelpPage').then((module) => ({ default: module.HelpPage }))
-);
-
-// ARCHITECT: правовые документы ленивы, как и остальные страницы вне критического пути: на лендинг
-// они не входят, а чанк нужен только при переходе по ссылке из футера.
-const PrivacyPage = lazy(() =>
-  import('@/pages/legal/PrivacyPage').then((module) => ({ default: module.PrivacyPage }))
-);
-
-const TermsPage = lazy(() =>
-  import('@/pages/legal/TermsPage').then((module) => ({ default: module.TermsPage }))
-);
-
-const CookiesPage = lazy(() =>
-  import('@/pages/legal/CookiesPage').then((module) => ({ default: module.CookiesPage }))
-);
-
-// ARCHITECT: контакты — публичная страница вне критического пути: чанк нужен только при переходе
-// по ссылке из футера, поэтому грузится лениво, как правовые документы.
-const ContactsPage = lazy(() =>
-  import('@/pages/ContactsPage').then((module) => ({ default: module.ContactsPage }))
-);
-
-// ARCHITECT: восстановление доступа — тоже ленивые публичные маршруты: чанк нужен только тем, кто
-// потерял пароль или подтверждает почту, и в основной бандл он не попадает.
-const ForgotPasswordPage = lazy(() =>
-  import('@/pages/ForgotPasswordPage').then((module) => ({ default: module.ForgotPasswordPage }))
-);
-
-const ResetPasswordPage = lazy(() =>
-  import('@/pages/ResetPasswordPage').then((module) => ({ default: module.ResetPasswordPage }))
-);
-
-const VerifyEmailPage = lazy(() =>
-  import('@/pages/VerifyEmailPage').then((module) => ({ default: module.VerifyEmailPage }))
-);
+import {
+  ContactsPage,
+  CookiesPage,
+  ForgotPasswordPage,
+  HelpPage,
+  ListeningFlow,
+  Login,
+  Onboarding,
+  PrivacyPage,
+  ResetPasswordPage,
+  TermsPage,
+  VerifyEmailPage,
+} from './publicLazy';
 
 export const publicRoutes = (
   <>
     <Route path="/" element={<Landing />} />
-    <Route path="/onboarding" element={<Onboarding />} />
+    {/* ARCHITECT: у мастера и аудирования fallback — скелетон оболочки мастера: обе страницы
+        рендерятся в OnboardingShell, поэтому до загрузки чанка виден тот же каркас, что у /login. */}
+    <Route
+      path="/onboarding"
+      element={
+        <Suspense fallback={<LoginSkeleton />}>
+          <Onboarding />
+        </Suspense>
+      }
+    />
     {/* ARCHITECT: вход существующего пользователя — без шагов мастера */}
     <Route
       path="/login"
@@ -137,9 +114,23 @@ export const publicRoutes = (
         </Suspense>
       }
     />
-    <Route path="/session/new" element={<Onboarding flow="session" />} />
+    <Route
+      path="/session/new"
+      element={
+        <Suspense fallback={<LoginSkeleton />}>
+          <Onboarding flow="session" />
+        </Suspense>
+      }
+    />
     {/* ARCHITECT: /listening — отложенная проверка аудирования в интерфейсе мастера, вне
         приложения: полосы прогресса здесь нет, а возврат ведёт в «Обзор» */}
-    <Route path="/listening" element={<ListeningFlow />} />
+    <Route
+      path="/listening"
+      element={
+        <Suspense fallback={<LoginSkeleton />}>
+          <ListeningFlow />
+        </Suspense>
+      }
+    />
   </>
 );

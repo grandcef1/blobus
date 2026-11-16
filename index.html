@@ -1,10 +1,10 @@
 <!doctype html>
 <html lang="ru" class="dark" data-theme="dark">
   <head>
-    <!-- ARCHITECT: inline-стиль применяется до внешнего CSS, поэтому первый кадр чёрный, а нестилизованный
-         текст prerender-разметки не показывается; раскрытие #root делает main CSS (правило html #root). -->
+    <!-- ARCHITECT: прячем body, а не #root: механизм работает независимо от того, куда prerender положил разметку;
+         первый кадр чёрный (background + color-scheme), текст не показывается до применения основного CSS. -->
     <style>
-      html{background:#000;color-scheme:dark}body{margin:0}#root{visibility:hidden}
+      html{background:#000;color-scheme:dark}body{margin:0;visibility:hidden}
     </style>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />

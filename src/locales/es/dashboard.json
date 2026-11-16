@@ -1,0 +1,189 @@
+{
+  "nav": {
+    "overview": "Resumen",
+    "sessions": "Sesiones",
+    "vocabulary": "Vocabulario",
+    "tutors": "Tutores",
+    "help": "Centro de ayuda",
+    "settings": "Ajustes",
+    "billing": "Suscripción",
+    "admin": "Admin",
+    "profile": "Perfil",
+    "newSession": "Nueva sesión",
+    "recentSessions": "Sesiones recientes",
+    "mainNav": "Navegación principal",
+    "appMenu": "Menú de la aplicación",
+    "openMenu": "Abrir menú",
+    "expandMenu": "Expandir menú",
+    "collapseMenu": "Contraer menú"
+  },
+  "shell": {
+    "profile": "Perfil",
+    "signOut": "Cerrar sesión"
+  },
+  "modes": {
+    "interview": "Entrevistas",
+    "speaking": "Conversación",
+    "grammar": "Gramática",
+    "general": "General"
+  },
+  "overview": {
+    "title": "Resumen",
+    "subtitle": "Progreso por modo y últimas lecciones",
+    "continueLearning": "Continuar aprendiendo",
+    "metrics": {
+      "streak": "Días seguidos",
+      "words": "Palabras aprendidas",
+      "minutes": "Minutos de estudio",
+      "achievements": "Logros"
+    },
+    "progress": {
+      "title": "Progreso por modo",
+      "lessonsWords": "{{lessons}} lecciones · {{words}} palabras"
+    },
+    "recent": {
+      "title": "Últimas lecciones",
+      "viewAll": "Ver todas",
+      "empty": "Todavía no hay lecciones completadas",
+      "duration": "{{minutes}} min"
+    },
+    "listening": {
+      "title": "Comprensión auditiva sin comprobar",
+      "description": "Seis tareas cortas de comprensión auditiva. Dos escuchas por tarea.",
+      "action": "Comprobar"
+    }
+  },
+  "sessions": {
+    "title": "Sesiones",
+    "subtitle": "Diálogos con el tutor, los más recientes primero",
+    "card": {
+      "completed": "Completada",
+      "inProgress": "En curso",
+      "lessonsProgress": "{{completed}} de {{total}}",
+      "level": "Nivel {{level}}",
+      "levelUnknown": "Nivel no definido",
+      "tutorFallback": "Tutor"
+    },
+    "notFound": {
+      "title": "Sesión no encontrada",
+      "action": "Todas las sesiones"
+    }
+  },
+  "profile": {
+    "title": "Perfil",
+    "stats": {
+      "achievements": "Logros",
+      "words": "Palabras en total"
+    },
+    "skills": {
+      "title": "Nivel por destreza",
+      "overall": "General",
+      "grammar": "Gramática",
+      "speaking": "Práctica de conversación",
+      "listening": "Comprensión auditiva",
+      "notChecked": "sin comprobar",
+      "listeningHint": "Una prueba de comprensión auditiva: la tarjeta está en Resumen."
+    },
+    "modes": {
+      "title": "Progreso por modo",
+      "strengths": "Puntos fuertes",
+      "weaknesses": "Qué mejorar"
+    }
+  },
+  "settings": {
+    "title": "Ajustes",
+    "notifications": {
+      "title": "Avisos",
+      "dailyReminder": {
+        "label": "Recordatorios diarios",
+        "description": "Un recordatorio para practicar cada día"
+      },
+      "weeklyProgress": {
+        "label": "Informes semanales",
+        "description": "Un resumen del progreso de la semana"
+      },
+      "newFeatures": {
+        "label": "Nuevas funciones",
+        "description": "Avisos sobre nuevas funciones"
+      },
+      "marketingEmails": {
+        "label": "Correos de marketing",
+        "description": "Consejos y ofertas especiales"
+      }
+    },
+    "preferences": {
+      "title": "Preferencias",
+      "theme": {
+        "label": "Tema",
+        "dark": "Oscuro",
+        "light": "Claro",
+        "system": "Sistema"
+      },
+      "soundEffects": {
+        "label": "Efectos de sonido",
+        "description": "Sonidos en avisos y acciones"
+      },
+      "language": {
+        "label": "Idioma",
+        "ru": "Ruso",
+        "en": "Inglés",
+        "es": "Español"
+      },
+      "autoCorrection": {
+        "label": "Autocorrección",
+        "description": "Corregir los errores del chat automáticamente"
+      }
+    }
+  },
+  "vocabulary": {
+    "title": "Vocabulario",
+    "count": "{{total}} palabras en la colección",
+    "review": "Repasar",
+    "searchPlaceholder": "Buscar una palabra o su traducción",
+    "pronounce": "Pronunciar {{word}}",
+    "searchEmpty": "Nada encontrado"
+  },
+  "tutors": {
+    "title": "Nuestros tutores",
+    "subtitle": "El carácter y el estilo de cada uno: elige el que te encaje",
+    "details": "Ver más"
+  },
+  "admin": {
+    "title": "Admin",
+    "subtitle": "Estado de las cuentas y las solicitudes",
+    "metrics": {
+      "users": "Usuarios",
+      "active": "Activos hoy",
+      "tickets": "Tickets abiertos",
+      "critical": "Críticos"
+    },
+    "users": {
+      "title": "Usuarios",
+      "export": "Exportar",
+      "searchPlaceholder": "Buscar",
+      "searchLabel": "Buscar usuarios",
+      "planFilterLabel": "Filtro por plan",
+      "allPlans": "Todos los planes",
+      "issues": "{{count}} a soporte",
+      "status": {
+        "active": "Activo",
+        "suspended": "Bloqueado",
+        "pending": "Pendiente"
+      }
+    },
+    "tickets": {
+      "title": "Últimos tickets",
+      "actions": "Acciones del ticket",
+      "status": {
+        "open": "Abierto",
+        "inProgress": "En curso",
+        "resolved": "Resuelto"
+      },
+      "priority": {
+        "high": "Alta",
+        "medium": "Media",
+        "low": "Baja"
+      }
+    }
+  }
+}

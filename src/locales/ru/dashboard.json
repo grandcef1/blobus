@@ -1,0 +1,189 @@
+{
+  "nav": {
+    "overview": "Обзор",
+    "sessions": "Сессии",
+    "vocabulary": "Словарь",
+    "tutors": "Репетиторы",
+    "help": "Центр помощи",
+    "settings": "Настройки",
+    "billing": "Подписка",
+    "admin": "Админ",
+    "profile": "Профиль",
+    "newSession": "Новая сессия",
+    "recentSessions": "Недавние сессии",
+    "mainNav": "Главная навигация",
+    "appMenu": "Меню приложения",
+    "openMenu": "Открыть меню",
+    "expandMenu": "Развернуть меню",
+    "collapseMenu": "Свернуть меню"
+  },
+  "shell": {
+    "profile": "Профиль",
+    "signOut": "Выйти из аккаунта"
+  },
+  "modes": {
+    "interview": "Собеседования",
+    "speaking": "Разговор",
+    "grammar": "Грамматика",
+    "general": "Общий"
+  },
+  "overview": {
+    "title": "Обзор",
+    "subtitle": "Прогресс по направлениям и последние занятия",
+    "continueLearning": "Продолжить обучение",
+    "metrics": {
+      "streak": "Дней подряд",
+      "words": "Слов выучено",
+      "minutes": "Минут занятий",
+      "achievements": "Достижений"
+    },
+    "progress": {
+      "title": "Прогресс по направлениям",
+      "lessonsWords": "{{lessons}} уроков · {{words}} слов"
+    },
+    "recent": {
+      "title": "Последние уроки",
+      "viewAll": "Смотреть все",
+      "empty": "Пока нет завершённых уроков",
+      "duration": "{{minutes}} мин"
+    },
+    "listening": {
+      "title": "Аудирование не проверено",
+      "description": "Шесть коротких заданий на понимание на слух. Два прослушивания на задание.",
+      "action": "Проверить"
+    }
+  },
+  "sessions": {
+    "title": "Сессии",
+    "subtitle": "Диалоги с репетитором, свежие сверху",
+    "card": {
+      "completed": "Завершена",
+      "inProgress": "В процессе",
+      "lessonsProgress": "{{completed}} из {{total}}",
+      "level": "Уровень {{level}}",
+      "levelUnknown": "Уровень не задан",
+      "tutorFallback": "Репетитор"
+    },
+    "notFound": {
+      "title": "Сессия не найдена",
+      "action": "Ко всем сессиям"
+    }
+  },
+  "profile": {
+    "title": "Профиль",
+    "stats": {
+      "achievements": "Достижения",
+      "words": "Всего слов"
+    },
+    "skills": {
+      "title": "Уровень по навыкам",
+      "overall": "Общий",
+      "grammar": "Грамматика",
+      "speaking": "Разговорная практика",
+      "listening": "Аудирование",
+      "notChecked": "не проверено",
+      "listeningHint": "Проверка на понимание на слух — карточка в «Обзоре»."
+    },
+    "modes": {
+      "title": "Прогресс по направлениям",
+      "strengths": "Сильные стороны",
+      "weaknesses": "Что улучшить"
+    }
+  },
+  "settings": {
+    "title": "Настройки",
+    "notifications": {
+      "title": "Уведомления",
+      "dailyReminder": {
+        "label": "Ежедневные напоминания",
+        "description": "Напоминание заниматься каждый день"
+      },
+      "weeklyProgress": {
+        "label": "Еженедельные отчёты",
+        "description": "Сводка прогресса за неделю"
+      },
+      "newFeatures": {
+        "label": "Новые функции",
+        "description": "Уведомления о запуске возможностей"
+      },
+      "marketingEmails": {
+        "label": "Маркетинговые письма",
+        "description": "Советы и специальные предложения"
+      }
+    },
+    "preferences": {
+      "title": "Предпочтения",
+      "theme": {
+        "label": "Тема",
+        "dark": "Тёмная",
+        "light": "Светлая",
+        "system": "Системная"
+      },
+      "soundEffects": {
+        "label": "Звуковые эффекты",
+        "description": "Звуки при уведомлениях и действиях"
+      },
+      "language": {
+        "label": "Язык",
+        "ru": "Русский",
+        "en": "English",
+        "es": "Español"
+      },
+      "autoCorrection": {
+        "label": "Автокоррекция",
+        "description": "Исправлять ошибки в чате автоматически"
+      }
+    }
+  },
+  "vocabulary": {
+    "title": "Словарь",
+    "count": "{{total}} слов в коллекции",
+    "review": "Повторить",
+    "searchPlaceholder": "Поиск слова или перевода",
+    "pronounce": "Произнести {{word}}",
+    "searchEmpty": "Ничего не найдено"
+  },
+  "tutors": {
+    "title": "Наши репетиторы",
+    "subtitle": "Характер и стиль каждого — выберите подходящего",
+    "details": "Подробнее"
+  },
+  "admin": {
+    "title": "Админ",
+    "subtitle": "Состояние аккаунтов и обращений",
+    "metrics": {
+      "users": "Пользователей",
+      "active": "Активных сегодня",
+      "tickets": "Открытых тикетов",
+      "critical": "Критических"
+    },
+    "users": {
+      "title": "Пользователи",
+      "export": "Экспорт",
+      "searchPlaceholder": "Поиск",
+      "searchLabel": "Поиск пользователей",
+      "planFilterLabel": "Фильтр по тарифу",
+      "allPlans": "Все тарифы",
+      "issues": "{{count}} в поддержку",
+      "status": {
+        "active": "Активен",
+        "suspended": "Заблокирован",
+        "pending": "Ожидает"
+      }
+    },
+    "tickets": {
+      "title": "Последние тикеты",
+      "actions": "Действия с тикетом",
+      "status": {
+        "open": "Открыт",
+        "inProgress": "В работе",
+        "resolved": "Решён"
+      },
+      "priority": {
+        "high": "Высокий",
+        "medium": "Средний",
+        "low": "Низкий"
+      }
+    }
+  }
+}

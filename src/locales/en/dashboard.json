@@ -1,0 +1,189 @@
+{
+  "nav": {
+    "overview": "Overview",
+    "sessions": "Sessions",
+    "vocabulary": "Vocabulary",
+    "tutors": "Tutors",
+    "help": "Help centre",
+    "settings": "Settings",
+    "billing": "Subscription",
+    "admin": "Admin",
+    "profile": "Profile",
+    "newSession": "New session",
+    "recentSessions": "Recent sessions",
+    "mainNav": "Main navigation",
+    "appMenu": "App menu",
+    "openMenu": "Open menu",
+    "expandMenu": "Expand menu",
+    "collapseMenu": "Collapse menu"
+  },
+  "shell": {
+    "profile": "Profile",
+    "signOut": "Sign out"
+  },
+  "modes": {
+    "interview": "Interview prep",
+    "speaking": "Conversation",
+    "grammar": "Grammar",
+    "general": "General"
+  },
+  "overview": {
+    "title": "Overview",
+    "subtitle": "Progress by mode and recent lessons",
+    "continueLearning": "Continue learning",
+    "metrics": {
+      "streak": "Day streak",
+      "words": "Words learned",
+      "minutes": "Minutes studied",
+      "achievements": "Achievements"
+    },
+    "progress": {
+      "title": "Progress by mode",
+      "lessonsWords": "{{lessons}} lessons · {{words}} words"
+    },
+    "recent": {
+      "title": "Recent lessons",
+      "viewAll": "View all",
+      "empty": "No completed lessons yet",
+      "duration": "{{minutes}} min"
+    },
+    "listening": {
+      "title": "Listening not checked",
+      "description": "Six short listening tasks. Two plays per task.",
+      "action": "Check"
+    }
+  },
+  "sessions": {
+    "title": "Sessions",
+    "subtitle": "Dialogues with your tutor, newest first",
+    "card": {
+      "completed": "Completed",
+      "inProgress": "In progress",
+      "lessonsProgress": "{{completed}} of {{total}}",
+      "level": "Level {{level}}",
+      "levelUnknown": "No level set",
+      "tutorFallback": "Tutor"
+    },
+    "notFound": {
+      "title": "Session not found",
+      "action": "All sessions"
+    }
+  },
+  "profile": {
+    "title": "Profile",
+    "stats": {
+      "achievements": "Achievements",
+      "words": "Total words"
+    },
+    "skills": {
+      "title": "Level by skill",
+      "overall": "Overall",
+      "grammar": "Grammar",
+      "speaking": "Speaking practice",
+      "listening": "Listening",
+      "notChecked": "not checked",
+      "listeningHint": "A listening check — the card sits in Overview."
+    },
+    "modes": {
+      "title": "Progress by mode",
+      "strengths": "Strengths",
+      "weaknesses": "What to improve"
+    }
+  },
+  "settings": {
+    "title": "Settings",
+    "notifications": {
+      "title": "Notifications",
+      "dailyReminder": {
+        "label": "Daily reminders",
+        "description": "A reminder to practise every day"
+      },
+      "weeklyProgress": {
+        "label": "Weekly reports",
+        "description": "A summary of your progress for the week"
+      },
+      "newFeatures": {
+        "label": "New features",
+        "description": "Updates about new capabilities"
+      },
+      "marketingEmails": {
+        "label": "Marketing emails",
+        "description": "Tips and special offers"
+      }
+    },
+    "preferences": {
+      "title": "Preferences",
+      "theme": {
+        "label": "Theme",
+        "dark": "Dark",
+        "light": "Light",
+        "system": "System"
+      },
+      "soundEffects": {
+        "label": "Sound effects",
+        "description": "Sounds for notifications and actions"
+      },
+      "language": {
+        "label": "Language",
+        "ru": "Russian",
+        "en": "English",
+        "es": "Spanish"
+      },
+      "autoCorrection": {
+        "label": "Auto-correction",
+        "description": "Fix mistakes in chat automatically"
+      }
+    }
+  },
+  "vocabulary": {
+    "title": "Vocabulary",
+    "count": "{{total}} words in your collection",
+    "review": "Review",
+    "searchPlaceholder": "Search a word or translation",
+    "pronounce": "Pronounce {{word}}",
+    "searchEmpty": "Nothing found"
+  },
+  "tutors": {
+    "title": "Our tutors",
+    "subtitle": "Character and style of each — pick the one that fits",
+    "details": "Read more"
+  },
+  "admin": {
+    "title": "Admin",
+    "subtitle": "Account and request status",
+    "metrics": {
+      "users": "Users",
+      "active": "Active today",
+      "tickets": "Open tickets",
+      "critical": "Critical"
+    },
+    "users": {
+      "title": "Users",
+      "export": "Export",
+      "searchPlaceholder": "Search",
+      "searchLabel": "Search users",
+      "planFilterLabel": "Plan filter",
+      "allPlans": "All plans",
+      "issues": "{{count}} to support",
+      "status": {
+        "active": "Active",
+        "suspended": "Suspended",
+        "pending": "Pending"
+      }
+    },
+    "tickets": {
+      "title": "Recent tickets",
+      "actions": "Ticket actions",
+      "status": {
+        "open": "Open",
+        "inProgress": "In progress",
+        "resolved": "Resolved"
+      },
+      "priority": {
+        "high": "High",
+        "medium": "Medium",
+        "low": "Low"
+      }
+    }
+  }
+}

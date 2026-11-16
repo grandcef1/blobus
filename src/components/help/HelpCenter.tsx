@@ -4,6 +4,7 @@
 
 import { useState } from "react";
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { ArrowLeft, Plus } from "lucide-react";
 import { getTicketById, getTickets } from "@/api/support";
 import { useAuthStore } from "@/store/auth";
@@ -21,6 +22,7 @@ interface HelpCenterProps {
 }
 
 export function HelpCenter({ faqItems }: HelpCenterProps) {
+    const { t } = useTranslation("common");
     const user = useAuthStore((state) => state.user);
     const [selectedTicketId, setSelectedTicketId] = useState<string | null>(null);
     const [isNewTicketOpen, setIsNewTicketOpen] = useState(false);
@@ -31,9 +33,9 @@ export function HelpCenter({ faqItems }: HelpCenterProps) {
         <div className="flex flex-col gap-6">
             <header className="flex flex-wrap items-end justify-between gap-4">
                 <div>
-                    <h1 className="text-xl font-semibold text-[#f0f0f5]">Центр помощи</h1>
+                    <h1 className="text-xl font-semibold text-[#f0f0f5]">{t("help.title")}</h1>
                     <p className="mt-1 text-sm text-[#f0f0f5]/50">
-                        Ответы на частые вопросы и связь с поддержкой
+                        {t("help.lead")}
                     </p>
                 </div>
 
@@ -44,7 +46,7 @@ export function HelpCenter({ faqItems }: HelpCenterProps) {
                         className={cn(PRIMARY_BUTTON, FOCUS_RING)}
                     >
                         <Plus className="size-4" aria-hidden="true" />
-                        Новое обращение
+                        {t("help.newTicket")}
                     </button>
                 )}
             </header>
@@ -60,7 +62,7 @@ export function HelpCenter({ faqItems }: HelpCenterProps) {
                         )}
                     >
                         <ArrowLeft className="size-4" aria-hidden="true" />
-                        К обращениям
+                        {t("help.backToTickets")}
                     </button>
 
                     {/* ARCHITECT: key по id — при переходе между тредами состояние ленты не переносится */}
@@ -78,10 +80,10 @@ export function HelpCenter({ faqItems }: HelpCenterProps) {
                     ) : (
                         <section className="rounded-2xl border border-white/5 bg-[#111113] p-4 md:p-5">
                             <p className="text-sm text-[#f0f0f5]/60">
-                                Войдите, чтобы видеть обращения и писать в поддержку
+                                {t("help.loginPrompt")}
                             </p>
                             <Link to="/login" className={cn(PRIMARY_BUTTON, FOCUS_RING, "mt-4")}>
-                                Войти
+                                {t("actions.login")}
                             </Link>
                         </section>
                     )}

@@ -15,6 +15,7 @@ import { findSectionTitle } from "@/components/layout/navigation";
 import { useDocumentTitle } from "@/hooks/useDocumentTitle";
 import { useMediaQuery } from "@/hooks/useMediaQuery";
 import { Seo } from "@/components/shared/Seo";
+import { RouteErrorBoundary } from "@/components/shared/RouteErrorBoundary";
 import { cn } from "@/lib/utils";
 
 const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
@@ -70,12 +71,19 @@ export function AppLayout() {
                 {!isDesktop && <MobileTopBar onOpenMenu={() => setIsDrawerOpen(true)} />}
 
                 <main
+                    id="main"
+                    tabIndex={-1}
                     className={cn(
                         "min-w-0 flex-1 transition-[margin] duration-[250ms] ease-in-out",
                         isSidebarCollapsed ? "md:ml-[72px]" : "md:ml-[280px]"
                     )}
                 >
-                    <Outlet />
+                    {/* ARCHITECT: граница обёрнута вокруг Outlet, а не вокруг каждой страницы: один
+                        узел покрывает все дочерние маршруты /app, сайдбар и топбар остаются живыми, а
+                        key по pathname сбрасывает ошибку при уходе на другой маршрут. */}
+                    <RouteErrorBoundary key={pathname}>
+                        <Outlet />
+                    </RouteErrorBoundary>
                 </main>
             </div>
         </div>

@@ -5,15 +5,23 @@
 
 export type SupportTicketStatus = "open" | "in_progress" | "resolved";
 
+export const TICKET_STATUS_KEYS = {
+    open: "help.ticketStatus.open",
+    in_progress: "help.ticketStatus.in_progress",
+    resolved: "help.ticketStatus.resolved",
+} as const satisfies Record<SupportTicketStatus, string>;
+
 export type TicketCategory = "billing" | "technical" | "lessons" | "account" | "other";
 
-export const TICKET_CATEGORY_LABELS: Record<TicketCategory, string> = {
-    billing: "Оплата и подписка",
-    technical: "Техническая проблема",
-    lessons: "Уроки и режимы",
-    account: "Аккаунт",
-    other: "Другое",
-};
+// ARCHITECT: категории хранят ключи словаря, а не текст — иначе в английском интерфейсе остались бы
+// русские пункты. Тип значения — литерал, поэтому t() проверяет ключ при сборке.
+export const TICKET_CATEGORY_KEYS = {
+    billing: "help.ticketCategories.billing",
+    technical: "help.ticketCategories.technical",
+    lessons: "help.ticketCategories.lessons",
+    account: "help.ticketCategories.account",
+    other: "help.ticketCategories.other",
+} as const satisfies Record<TicketCategory, string>;
 
 export interface SupportMessage {
     id: string;
@@ -34,13 +42,13 @@ export interface SupportTicket {
 
 export type HelpFaqCategory = "start" | "learning" | "billing" | "account" | "tech";
 
-export const HELP_FAQ_CATEGORY_LABELS: Record<HelpFaqCategory, string> = {
-    start: "Начало работы",
-    learning: "Уроки и режимы",
-    billing: "Тарифы и оплата",
-    account: "Аккаунт и данные",
-    tech: "Технические вопросы",
-};
+export const HELP_FAQ_CATEGORY_KEYS = {
+    start: "help.faqCategories.start",
+    learning: "help.faqCategories.learning",
+    billing: "help.faqCategories.billing",
+    account: "help.faqCategories.account",
+    tech: "help.faqCategories.tech",
+} as const satisfies Record<HelpFaqCategory, string>;
 
 // ARCHITECT: порядок категорий задаётся здесь, а не порядком ключей в объекте: именно он задаёт
 // последовательность групп в списке вопросов, и его же читает фильтр.

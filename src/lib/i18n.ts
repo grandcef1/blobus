@@ -1,8 +1,8 @@
 // ARCHITECT: единая точка инициализации i18n. Словари бандлятся локально (без http-backend):
 // они весят десятки килобайт, а сетевой запрос за словарём давал бы вспышку непереведённого
 // интерфейса на старте.
-// ARCHITECT: выбранный язык хранит детектор в localStorage под ключом blobus-lang — смена языка и
-// его сохранение это одна операция, отдельного persist-слоя не нужно.
+// ARCHITECT: ручной выбор языка пишет стор языка в localStorage под ключом blobus-lang, а детектор
+// читает его на старте. Автоопределённый язык в хранилище не попадает (caches пустой).
 
 import i18n from "i18next";
 import LanguageDetector from "i18next-browser-languagedetector";
@@ -68,17 +68,29 @@ void i18n
         resources,
         supportedLngs: [...SUPPORTED_LANGUAGES],
         fallbackLng: DEFAULT_LANGUAGE,
+        load: "languageOnly",
         ns: [...NAMESPACES],
         defaultNS: "common",
         // ARCHITECT: React экранирует текст сам; повторное экранирование ломало бы апострофы и
         // кавычки в переводах.
         interpolation: { escapeValue: false },
+        // ARCHITECT: caches пустой — авто-определённый язык не записывается в localStorage, поэтому
+        // смена языка браузера продолжает учитываться. В хранилище попадает только ручной выбор.
+        // load: languageOnly приводит en-US/en-GB к en; неподдерживаемые языки падают в ru.
         detection: {
             order: ["localStorage", "navigator"],
-            caches: ["localStorage"],
+            caches: [],
             lookupLocalStorage: LANGUAGE_STORAGE_KEY,
         },
+    })
+    .then(() => {
+        document.documentElement.lang = i18n.resolvedLanguage ?? DEFAULT_LANGUAGE;
     });
+
+// ARCHITECT: <html lang> следует за языком интерфейса при любом переключении, не только на старте.
+i18n.on("languageChanged", (lng) => {
+    document.documentElement.lang = lng;
+});
 
 // ARCHITECT: ключи t() типизированы по ru-словарю — опечатка в ключе становится ошибкой сборки, а не
 // пустой строкой в интерфейсе. ru выбран эталоном: он основной язык продукта.

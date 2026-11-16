@@ -48,6 +48,7 @@ const absoluteUrl = (path) => (path === "/" ? `${SITE_URL}/` : `${SITE_URL}${pat
 const routes = await readJson("src/lib/seo-routes.json");
 const landing = await readJson("src/locales/ru/landing.json");
 const legal = await readJson("src/locales/ru/legal.json");
+const common = await readJson("src/locales/ru/common.json");
 const legalSource = await readText("src/lib/legal.ts");
 
 // ARCHITECT: имя оператора и адрес поддержки — тот же источник, что у самих страниц: копии констант
@@ -140,9 +141,28 @@ const helpHtml = (route) => `
 ${helpFaq.map((item) => `<h3>${escapeHtml(item.question)}</h3><p>${escapeHtml(item.answer)}</p>`).join("")}
 </article>`;
 
+// ARCHITECT: контакты собираются из common.json и того же адреса поддержки, что и сама страница:
+// статический HTML не может разойтись с React-экраном.
+const contactsHtml = () => {
+    const contacts = common.contacts;
+    const email = readConst("OPERATOR_CONTACT_EMAIL");
+
+    return `<article>
+<h1>${escapeHtml(contacts.title)}</h1>
+<p>${escapeHtml(contacts.lead)}</p>
+<h2>${escapeHtml(contacts.emailLabel)}</h2>
+<p>${escapeHtml(contacts.emailHint)} <a href="mailto:${escapeHtml(email)}">${escapeHtml(email)}</a></p>
+<h2>${escapeHtml(contacts.help.title)}</h2>
+<p>${escapeHtml(contacts.help.body)} <a href="/help">${escapeHtml(contacts.help.link)}</a></p>
+<h2>${escapeHtml(contacts.privacy.title)}</h2>
+<p>${escapeHtml(contacts.privacy.body)} <a href="/privacy">${escapeHtml(contacts.privacy.link)}</a></p>
+</article>`;
+};
+
 const BODIES = {
     "/": landingHtml,
     "/help": helpHtml,
+    "/contacts": contactsHtml,
     "/privacy": () => legalHtml("privacy"),
     "/terms": () => legalHtml("terms"),
     "/cookies": () => legalHtml("cookies"),

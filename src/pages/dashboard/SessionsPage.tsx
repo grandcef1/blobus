@@ -7,7 +7,10 @@
 
 import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
+import { MessagesSquare } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { fetchSessions } from "@/api/sessions";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { useMockQuery } from "@/hooks/useMockQuery";
 import { SessionsSkeleton } from "@/components/dashboard/skeletons/SessionsSkeleton";
 import { FOCUS_RING, PRIMARY_BUTTON } from "@/lib/surfaces";
@@ -15,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { SessionCard } from "./SessionCard";
 
 export function SessionsPage() {
+    const { t } = useTranslation();
     const { data: sessions, isLoading } = useMockQuery(fetchSessions);
 
     if (isLoading || sessions === null) return <SessionsSkeleton />;
@@ -33,12 +37,16 @@ export function SessionsPage() {
                 </motion.header>
 
                 {sessions.length === 0 ? (
-                    <div className="rounded-2xl bg-[#111113] p-4 md:p-5">
-                        <p className="text-sm text-[#f0f0f5]/50">Пока нет ни одной сессии</p>
-                        <Link to="/session/new" className={cn(PRIMARY_BUTTON, FOCUS_RING, "mt-4")}>
-                            Новая сессия
-                        </Link>
-                    </div>
+                    <EmptyState
+                        icon={MessagesSquare}
+                        title={t("states.empty.sessions.title")}
+                        description={t("states.empty.sessions.description")}
+                        action={
+                            <Link to="/session/new" className={cn(PRIMARY_BUTTON, FOCUS_RING)}>
+                                {t("states.empty.sessions.action")}
+                            </Link>
+                        }
+                    />
                 ) : (
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                         {sessions.map((session) => (

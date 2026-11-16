@@ -7,9 +7,10 @@
 // эффекте — эффект дал бы кадр с прошлым текстом в уже открытом диалоге.
 
 import { useState, type FormEvent } from "react";
+import { useTranslation } from "react-i18next";
 import { createTicket } from "@/api/support";
 import { toast } from "@/store/toast";
-import { TICKET_CATEGORY_LABELS } from "@/types/support";
+import { TICKET_CATEGORY_KEYS } from "@/types/support";
 import type { TicketCategory } from "@/types/support";
 import { Button } from "@/components/ui/button";
 import { Dialog, DialogContent, DialogDescription, DialogFooter, DialogTitle } from "@/components/ui/dialog";
@@ -20,7 +21,7 @@ const SUBJECT_MIN = 5;
 const SUBJECT_MAX = 80;
 const MESSAGE_MIN = 20;
 const MESSAGE_MAX = 2000;
-const CATEGORIES = Object.keys(TICKET_CATEGORY_LABELS) as TicketCategory[];
+const CATEGORIES = Object.keys(TICKET_CATEGORY_KEYS) as TicketCategory[];
 const FIELD_LABEL = "mb-1.5 block text-sm text-[#f0f0f5]/70";
 const FIELD_ERROR = "mt-1.5 text-xs text-red-300";
 const FIELD_VALID = "focus:ring-[#f0f0f5]/20";
@@ -40,15 +41,19 @@ interface NewTicketDialogProps {
     onCreated: (ticketId: string) => void;
 }
 
-function lengthError(value: string, min: number, max: number): string | undefined {
+// ARCHITECT: валидатор возвращает ключ словаря, а не текст — перевод делает компонент.
+type LengthErrorKey = "help.newTicketDialog.minLength" | "help.newTicketDialog.maxLength";
+
+function lengthError(value: string, min: number, max: number): LengthErrorKey | undefined {
     const length = value.trim().length;
     if (length === 0) return undefined;
-    if (length < min) return `Минимум ${min} символов`;
-    if (length > max) return `Максимум ${max} символов`;
+    if (length < min) return "help.newTicketDialog.minLength";
+    if (length > max) return "help.newTicketDialog.maxLength";
     return undefined;
 }
 
 export function NewTicketDialog({ open, onOpenChange, onCreated }: NewTicketDialogProps) {
+    const { t } = useTranslation("common");
     const [draft, setDraft] = useState<TicketDraft>(EMPTY_DRAFT);
     const [lastOpen, setLastOpen] = useState(open);
 
@@ -75,7 +80,7 @@ export function NewTicketDialog({ open, onOpenChange, onCreated }: NewTicketDial
             message: trimmedMessage,
         });
         onOpenChange(false);
-        toast.success("Обращение создано");
+        toast.success(t("help.newTicketDialog.created"));
         onCreated(ticket.id);
     };
 
@@ -83,14 +88,14 @@ export function NewTicketDialog({ open, onOpenChange, onCreated }: NewTicketDial
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent>
-                <DialogTitle>Новое обращение</DialogTitle>
+                <DialogTitle>{t("help.newTicketDialog.title")}</DialogTitle>
                 <DialogDescription>
-                    Опишите вопрос подробнее: так поддержке не придётся уточнять детали.
+                    {t("help.newTicketDialog.description")}
                 </DialogDescription>
 
                 <form onSubmit={handleSubmit} noValidate className="mt-4 flex flex-col gap-4">
                     <div>
-                        <label htmlFor="ticket-subject" className={FIELD_LABEL}>Тема</label>
+                        <label htmlFor="ticket-subject" className={FIELD_LABEL}>{t("help.newTicketDialog.subject")}</label>
                         <input
                             id="ticket-subject"
                             value={draft.subject}
@@ -99,11 +104,15 @@ export function NewTicketDialog({ open, onOpenChange, onCreated }: NewTicketDial
                             aria-describedby={subjectError ? "ticket-subject-error" : undefined}
                             className={cn(INPUT_SURFACE, subjectError ? FIELD_INVALID : FIELD_VALID)}
                         />
-                        {subjectError && <p id="ticket-subject-error" className={FIELD_ERROR}>{subjectError}</p>}
+                        {subjectError && (
+                            <p id="ticket-subject-error" className={FIELD_ERROR}>
+                                {t(subjectError, { min: SUBJECT_MIN, max: SUBJECT_MAX })}
+                            </p>
+                        )}
                     </div>
 
                     <div>
-                        <label htmlFor="ticket-category" className={FIELD_LABEL}>Категория</label>
+                        <label htmlFor="ticket-category" className={FIELD_LABEL}>{t("help.newTicketDialog.category")}</label>
                         <select
                             id="ticket-category"
                             value={draft.category}
@@ -111,13 +120,13 @@ export function NewTicketDialog({ open, onOpenChange, onCreated }: NewTicketDial
                             className={cn(INPUT_SURFACE, FIELD_VALID)}
                         >
                             {CATEGORIES.map((value) => (
-                                <option key={value} value={value}>{TICKET_CATEGORY_LABELS[value]}</option>
+                                <option key={value} value={value}>{t(TICKET_CATEGORY_KEYS[value])}</option>
                             ))}
                         </select>
                     </div>
 
                     <div>
-                        <label htmlFor="ticket-message" className={FIELD_LABEL}>Сообщение</label>
+                        <label htmlFor="ticket-message" className={FIELD_LABEL}>{t("help.newTicketDialog.message")}</label>
                         <textarea
                             id="ticket-message"
                             rows={4}
@@ -127,7 +136,11 @@ export function NewTicketDialog({ open, onOpenChange, onCreated }: NewTicketDial
                             aria-describedby={messageError ? "ticket-message-error" : undefined}
                             className={cn(INPUT_SURFACE, "resize-none", messageError ? FIELD_INVALID : FIELD_VALID)}
                         />
-                        {messageError && <p id="ticket-message-error" className={FIELD_ERROR}>{messageError}</p>}
+                        {messageError && (
+                            <p id="ticket-message-error" className={FIELD_ERROR}>
+                                {t(messageError, { min: MESSAGE_MIN, max: MESSAGE_MAX })}
+                            </p>
+                        )}
                     </div>
 
                     <DialogFooter>
@@ -137,10 +150,10 @@ export function NewTicketDialog({ open, onOpenChange, onCreated }: NewTicketDial
                             className={GHOST_BUTTON}
                             onClick={() => onOpenChange(false)}
                         >
-                            Отмена
+                            {t("help.newTicketDialog.cancel")}
                         </Button>
                         <Button type="submit" disabled={!isValid} className={PRIMARY_BUTTON}>
-                            Отправить
+                            {t("help.newTicketDialog.submit")}
                         </Button>
                     </DialogFooter>
                 </form>

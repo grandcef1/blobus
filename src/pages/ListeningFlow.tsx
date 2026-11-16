@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { LISTENING_ITEMS } from "@/api/mocks/listeningTest";
 import { saveListeningResult } from "@/api/placement";
 import { Seo } from "@/components/shared/Seo";
@@ -17,6 +18,7 @@ import { ListeningResultSummary } from "@/components/placement/ListeningResultSu
 import type { ListeningResult } from "@/types/placement";
 
 export function ListeningFlow() {
+    const { t } = useTranslation("common");
     const navigate = useNavigate();
     const [result, setResult] = useState<ListeningResult | null>(null);
 
@@ -30,7 +32,7 @@ export function ListeningFlow() {
     return (
         <OnboardingShell showProgress={false}>
             {/* ARCHITECT: проверка аудирования — служебный экран вне приложения: noindex. */}
-            <Seo indexable={false} title="Проверка аудирования" />
+            <Seo indexable={false} title={t("listening.title")} />
             <div className="mx-auto w-full max-w-xl px-6 py-16">
                 {result === null ? (
                     <ListeningTest

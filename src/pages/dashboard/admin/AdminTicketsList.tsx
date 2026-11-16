@@ -3,8 +3,10 @@
 // текст вместо цветных плашек, различие в насыщенности маркера.
 // ARCHITECT: кнопка «Все» удалена: обработчика не было, а страницы со всеми тикетами нет.
 
-import { MoreHorizontal } from "lucide-react";
+import { MoreHorizontal, LifeBuoy } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { StatusMarker } from "@/components/shared/StatusMarker";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ADMIN_TICKETS, PRIORITY_LABELS, TICKET_STATUS_LABELS, formatAdminDate } from "./adminData";
 import type { AdminTicket } from "./adminData";
 
@@ -23,6 +25,8 @@ const PRIORITY_EMPHASIS: Record<AdminTicket["priority"], Emphasis> = {
 };
 
 export function AdminTicketsList() {
+    const { t } = useTranslation();
+
     return (
         <section aria-labelledby="admin-tickets-title" className="rounded-2xl bg-[#111113] p-4 md:p-5">
             <h2 id="admin-tickets-title" className="mb-4 text-base font-medium text-[#f0f0f5]/80">
@@ -30,6 +34,16 @@ export function AdminTicketsList() {
             </h2>
 
             <div className="space-y-2">
+                {/* ARCHITECT: пустой список тикетов в админке читается тем же текстом, что и
+                    обращения в центре помощи: это одно и то же состояние данных. */}
+                {ADMIN_TICKETS.length === 0 && (
+                    <EmptyState
+                        className="bg-transparent p-0"
+                        icon={LifeBuoy}
+                        title={t("states.empty.tickets.title")}
+                        description={t("states.empty.tickets.description")}
+                    />
+                )}
                 {ADMIN_TICKETS.map((ticket) => (
                     <article
                         key={ticket.id}

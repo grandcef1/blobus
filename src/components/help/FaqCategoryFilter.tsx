@@ -6,11 +6,15 @@
 
 import { useRef } from "react";
 import type { KeyboardEvent } from "react";
-import { HELP_FAQ_CATEGORY_LABELS, HELP_FAQ_CATEGORY_ORDER } from "@/types/support";
+import { useTranslation } from "react-i18next";
+import { HELP_FAQ_CATEGORY_KEYS, HELP_FAQ_CATEGORY_ORDER } from "@/types/support";
 import type { HelpFaqCategory } from "@/types/support";
 import { cn } from "@/lib/utils";
 
 export type FaqCategoryValue = HelpFaqCategory | "all";
+
+// ARCHITECT: тип ключа — объединение литералов, иначе t() не проверит его по словарю.
+type CategoryKey = (typeof HELP_FAQ_CATEGORY_KEYS)[HelpFaqCategory] | "help.faqCategories.all";
 
 interface FaqCategoryFilterProps {
     value: FaqCategoryValue;
@@ -21,11 +25,12 @@ const TAB =
     "min-h-11 whitespace-nowrap border-b-2 px-3 py-2.5 text-sm transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]";
 
 export function FaqCategoryFilter({ value, onChange }: FaqCategoryFilterProps) {
+    const { t } = useTranslation("common");
     const tabRefs = useRef<Array<HTMLButtonElement | null>>([]);
 
-    const options: { id: FaqCategoryValue; label: string }[] = [
-        { id: "all", label: "Все" },
-        ...HELP_FAQ_CATEGORY_ORDER.map((id) => ({ id, label: HELP_FAQ_CATEGORY_LABELS[id] })),
+    const options: { id: FaqCategoryValue; labelKey: CategoryKey }[] = [
+        { id: "all", labelKey: "help.faqCategories.all" },
+        ...HELP_FAQ_CATEGORY_ORDER.map((id) => ({ id, labelKey: HELP_FAQ_CATEGORY_KEYS[id] })),
     ];
 
     const activeIndex = options.findIndex((option) => option.id === value);
@@ -44,7 +49,7 @@ export function FaqCategoryFilter({ value, onChange }: FaqCategoryFilterProps) {
     return (
         <div
             role="tablist"
-            aria-label="Категории вопросов"
+            aria-label={t("help.faq.categoriesLabel")}
             onKeyDown={handleKeyDown}
             className="thin-scroll flex gap-1 overflow-x-auto border-b border-white/5"
         >
@@ -69,7 +74,7 @@ export function FaqCategoryFilter({ value, onChange }: FaqCategoryFilterProps) {
                                 : "border-transparent text-[#f0f0f5]/50 hover:text-[#f0f0f5]/80"
                         )}
                     >
-                        {option.label}
+                        {t(option.labelKey)}
                     </button>
                 );
             })}

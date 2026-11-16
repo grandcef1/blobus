@@ -1,0 +1,268 @@
+﻿C:\Users\gerst\blobus\src\components\onboarding\steps\AuthStep.tsx:9: import { useNavigate } from "react-router-dom";
+C:\Users\gerst\blobus\src\components\onboarding\steps\AuthStep.tsx:10: import { ArrowLeft } from "lucide-react";
+C:\Users\gerst\blobus\src\components\onboarding\steps\AuthStep.tsx:42: <div className="mx-auto w-full max-w-xl">
+C:\Users\gerst\blobus\src\components\onboarding\steps\AuthStep.tsx:45: title={mode === "register" ? "Создать аккаунт" : "Вход в аккаунт"}
+C:\Users\gerst\blobus\src\components\onboarding\steps\AuthStep.tsx:48: ? "Прогресс и репетитор сохранятся между устройствами"
+C:\Users\gerst\blobus\src\components\onboarding\steps\AuthStep.tsx:49: : "Продолжи с места, где остановился"
+C:\Users\gerst\blobus\src\components\onboarding\steps\AuthStep.tsx:63: <div className="mt-4 flex">
+C:\Users\gerst\blobus\src\components\onboarding\steps\AuthStep.tsx:65: <ArrowLeft className="size-4" aria-hidden="true" />
+C:\Users\gerst\blobus\src\components\onboarding\steps\AuthStep.tsx:66: Назад
+C:\Users\gerst\blobus\src\components\onboarding\steps\GoalsStep.tsx:7: import { motion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\steps\IntroStep.tsx:7: import { motion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\steps\IntroStep.tsx:45: className="mx-auto w-full max-w-4xl px-6 py-16"
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:24: daily: "каждый день",
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:25: "every-other-day": "через день",
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:26: "3-times-week": "3 раза в неделю",
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:27: weekly: "раз в неделю",
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:31: if (schedule === null) return "не выбрано";
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:33: return `${FREQUENCY_LABELS[schedule.frequency]} · ${schedule.durationMinutes} мин`;
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:41: { id: "mode", label: "Цель", value: mode?.label ?? "не выбрана" },
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:42: { id: "level", label: "Уровень из теста", value: data.englishLevel ?? "не определён" },
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:43: { id: "schedule", label: "Расписание", value: describeSchedule(data.schedule) },
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:47: <div className="mx-auto w-full max-w-xl">
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:50: title="Всё готово к первому уроку"
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:51: subtitle="Сессия откроется сразу: репетитор начнёт с темы выбранной цели."
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:56: <StepCard className="flex flex-col gap-4">
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:58: <div className="flex items-center gap-3">
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:59: <BlobatarAvatar id={repetitor.id} className="size-11" />
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:60: <div className="min-w-0">
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:61: <p className="text-sm font-medium text-[#f0f0f5]">{repetitor.name}</p>
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:62: <p className="text-xs leading-[1.6] text-[#f0f0f5]/50">
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:69: <dl className="flex flex-col gap-3 border-t border-white/5 pt-4 text-sm">
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:71: <div key={row.id} className="flex items-baseline justify-between gap-4">
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:72: <dt className="text-[#f0f0f5]/50">{row.label}</dt>
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:73: <dd className="text-right text-[#f0f0f5]">{row.value}</dd>
+C:\Users\gerst\blobus\src\components\onboarding\steps\LessonStep.tsx:79: <StepNav onBack={onBack} onNext={onNext} nextLabel="Начать урок" />
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:6: import { motion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:7: import { Check, Briefcase, MessageCircle, BookOpen, Globe } from "lucide-react";
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:41: <div className="mx-auto w-full max-w-3xl">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:44: title="На чём хочешь сосредоточиться?"
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:45: subtitle="Режимы можно добавить и сменить позже. Для начала выбери главную цель."
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:50: <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 sm:gap-6">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:66: "relative flex h-full items-start gap-4 p-5 text-left"
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:73: className="absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-[#f0f0f5]"
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:76: className="size-3 text-black"
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:78: aria-hidden="true"
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:85: "flex size-12 shrink-0 items-center justify-center rounded-xl",
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:86: isSelected ? SELECTED_FILL : "bg-white/5"
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:89: <Icon className="size-6 text-[#f0f0f5]" aria-hidden="true" />
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:92: {/* ARCHITECT: label и description — span, а не h3/p: внутри <button>
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:93: допустим только phrasing content. */}
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:94: <span className="min-w-0">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:95: <span className="mb-1 block text-lg font-semibold text-[#f0f0f5]">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:98: <span className="block text-sm leading-relaxed text-[#f0f0f5]/50 line-clamp-2">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ModeSelectionStep.tsx:107: <StepNav onBack={onBack} onNext={onNext} nextLabel="Продолжить" disabled={!selectedMode} />
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:10: import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:38: eyebrow = "Репетитор",
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:52: initialIndex: Math.max(selectedId === null ? -1 : ROSTER_IDS.indexOf(selectedId), 0),
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:98: key="history-slot"
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:100: className="col-span-full"
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:117: <div className="w-full" onKeyDown={handleStepKeyDown}>
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:120: title="Выбери репетитора"
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:121: subtitle="У каждого свой характер и стиль преподавания"
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:128: <p className="text-sm text-[#f0f0f5]/60">Список репетиторов недоступен</p>
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:131: оказывается внутри группы. Это цена вставки панели под ряд: вынести её за
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:132: пределы группы нельзя, не потеряв строку вставки. */
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:135: aria-label="Выбор репетитора"
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:137: className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3"
+C:\Users\gerst\blobus\src\components\onboarding\steps\RepetitorSelectionStep.tsx:145: <StepNav onBack={onBack} onNext={onNext} nextLabel="Продолжить" disabled={!selectedId} />
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:7: import { Clock, Calendar } from 'lucide-react';
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:24: { id: 'daily', label: 'Каждый день', description: 'Выработай привычку' },
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:25: { id: 'every-other-day', label: 'Через день', description: 'Сбалансированный темп' },
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:26: { id: '3-times-week', label: '3 раза в неделю', description: 'Стабильный прогресс' },
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:27: { id: 'weekly', label: 'Раз в неделю', description: 'Лёгкая практика' },
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:31: { id: 15, label: '15 мин', description: 'Быстрые занятия' },
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:32: { id: 30, label: '30 мин', description: 'Рекомендуем' },
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:33: { id: 45, label: '45 мин', description: 'Глубокое погружение' },
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:34: { id: 60, label: '60 мин', description: 'Интенсив' },
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:55: <div className="mx-auto w-full max-w-xl">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:58: title="Как часто будешь заниматься?"
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:59: subtitle="Регулярность важнее интенсивности: выбери темп, который удобно держать."
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:64: {/* ARCHITECT: два смысловых блока разделены gap-8, внутри блока заголовок и сетка
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:65: плиток — gap-4: так шаг читается как форма, а не как сплошной список. */}
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:66: <div className="flex flex-col gap-8">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:67: <div className="flex flex-col gap-4">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:68: <h3 className="flex items-center gap-2 text-sm font-medium text-[#f0f0f5]/70">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:69: <Calendar className="size-4" aria-hidden="true" />
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:70: Частота занятий
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:72: <div className="grid grid-cols-2 gap-4">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:78: className={tileClasses(frequency === option.id, 'p-5 text-left')}
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:80: <span className="block font-medium text-[#f0f0f5]">{option.label}</span>
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:81: <span className="block text-xs text-[#f0f0f5]/50">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:89: <div className="flex flex-col gap-4">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:90: <h3 className="flex items-center gap-2 text-sm font-medium text-[#f0f0f5]/70">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:91: <Clock className="size-4" aria-hidden="true" />
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:92: Длительность занятия
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:94: <div className="grid grid-cols-2 gap-4 sm:grid-cols-4">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:100: className={tileClasses(duration === option.id, 'p-5 text-center')}
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:102: <span className="block text-lg font-semibold text-[#f0f0f5]">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:105: <span className="block text-xs leading-snug text-[#f0f0f5]/50">
+C:\Users\gerst\blobus\src\components\onboarding\steps\ScheduleStep.tsx:114: <StepNav onBack={onBack} onNext={handleNext} nextLabel="Начать обучение" />
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:16: import { useReducedMotion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:26: from: 1 | -1;
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:40: const DESKTOP_MEDIA_QUERY = "(min-width: 768px)";
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:47: draw: { from: -1, delay: 0, duration: 1600 },
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:48: drawVars: "[--globe-offset:-1000] [--globe-delay:0ms] [--globe-duration:1600ms]",
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:55: drawVars: "[--globe-offset:1000] [--globe-delay:200ms] [--globe-duration:1500ms]",
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:60: draw: { from: -1, delay: 350, duration: 1300 },
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:61: drawVars: "[--globe-offset:-1000] [--globe-delay:350ms] [--globe-duration:1300ms]",
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:67: draw: { from: -1, delay: 450, duration: 1200 },
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:68: drawVars: "[--globe-offset:-1000] [--globe-delay:450ms] [--globe-duration:1200ms]",
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:75: drawVars: "[--globe-offset:1000] [--globe-delay:600ms] [--globe-duration:1200ms]",
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:80: draw: { from: -1, delay: 750, duration: 1100 },
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:81: drawVars: "[--globe-offset:-1000] [--globe-delay:750ms] [--globe-duration:1100ms]",
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:87: drawVars: "[--globe-offset:1000] [--globe-delay:850ms] [--globe-duration:900ms]",
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:93: draw: { from: -1, delay: 1000, duration: 1300 },
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:94: drawVars: "[--globe-offset:-1000] [--globe-delay:1000ms] [--globe-duration:1300ms]",
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:98: const GLOW_FILTER = "[filter:drop-shadow(0_0_18px_rgba(240,240,245,0.35))]";
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:110: aria-hidden="true"
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:124: className={cn(!isStatic && "globe-line", !isStatic && element.drawVars)}
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:128: {/* ARCHITECT: статичный слой свечения — та же геометрия без анимации линий. */}
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeGlobe.tsx:130: className={cn(GLOW_FILTER, !isStatic && "globe-glow")}
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:8: import { motion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:9: import { ArrowRight } from "lucide-react";
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:27: <div className="relative flex min-h-dvh w-full flex-col items-center overflow-hidden">
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:28: <div className="relative z-20 mx-auto flex w-full max-w-2xl flex-col items-center px-6 pt-24 text-center md:pt-28">
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:30: ИИ-репетитор английского
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:35: className="mt-3 text-4xl font-bold leading-tight tracking-tight text-[#f0f0f5] md:text-5xl"
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:37: Английский в диалоге, а не в учебнике
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:42: className={cn(GLASS_SURFACE, LEAF_RADIUS, "mt-[16px] p-6")}
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:44: <p className="mx-auto max-w-md text-base leading-relaxed text-[#f0f0f5]/70">
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:45: Репетитор подстраивается под твою цель и уровень: от повседневного
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:46: разговора до технического собеседования.
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:48: <div className="mt-5 flex flex-wrap items-center justify-center gap-4">
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:54: Начать
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:55: <ArrowRight className="size-4" />
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:57: <span className={META_LINE}>5 шагов · около 10 минут</span>
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:62: <div className="absolute inset-x-0 bottom-0 z-0" aria-hidden="true">
+C:\Users\gerst\blobus\src\components\onboarding\steps\WelcomeStep.tsx:63: <WelcomeGlobe className="h-[max(30svh,30vw)] w-full" />
+C:\Users\gerst\blobus\src\components\onboarding\AuthModeTabs.tsx:17: { id: "register", label: "Регистрация" },
+C:\Users\gerst\blobus\src\components\onboarding\AuthModeTabs.tsx:18: { id: "login", label: "Вход" },
+C:\Users\gerst\blobus\src\components\onboarding\AuthModeTabs.tsx:23: <div className={cn("mb-6 flex rounded-xl p-1", GLASS_SURFACE)} role="tablist" aria-label="Способ входа">
+C:\Users\gerst\blobus\src\components\onboarding\AuthModeTabs.tsx:29: aria-selected={mode === tab.id}
+C:\Users\gerst\blobus\src\components\onboarding\AuthModeTabs.tsx:32: "min-h-11 flex-1 rounded-lg text-sm font-medium transition-colors",
+C:\Users\gerst\blobus\src\components\onboarding\AuthModeTabs.tsx:34: ? cn(SELECTED_FILL, "text-[#f0f0f5]")
+C:\Users\gerst\blobus\src\components\onboarding\AuthModeTabs.tsx:35: : "text-[#f0f0f5]/50 hover:text-[#f0f0f5]/80"
+C:\Users\gerst\blobus\src\components\onboarding\GoogleAuthButton.tsx:7: import { Loader2 } from "lucide-react";
+C:\Users\gerst\blobus\src\components\onboarding\GoogleAuthButton.tsx:31: "flex min-h-11 w-full items-center justify-center gap-2.5 rounded-full text-sm font-medium text-[#f0f0f5] transition-colors hover:border-white/15 hover:bg-white/[0.03] disabled:opacity-60",
+C:\Users\gerst\blobus\src\components\onboarding\GoogleAuthButton.tsx:36: <Loader2 className="size-4 animate-spin" aria-hidden="true" />
+C:\Users\gerst\blobus\src\components\onboarding\GoogleAuthButton.tsx:38: <GoogleIcon className="size-4.5" />
+C:\Users\gerst\blobus\src\components\onboarding\GoogleAuthButton.tsx:40: {isLoading ? "Подключаемся…" : "Продолжить с Google"}
+C:\Users\gerst\blobus\src\components\onboarding\GoogleIcon.tsx:10: <svg viewBox="0 0 18 18" className={className} aria-hidden="true" focusable="false">
+C:\Users\gerst\blobus\src\components\onboarding\GoogleIcon.tsx:13: d="M17.64 9.2c0-.64-.06-1.25-.16-1.84H9v3.48h4.84a4.14 4.14 0 0 1-1.8 2.72v2.26h2.92a8.78 8.78 0 0 0 2.68-6.62z"
+C:\Users\gerst\blobus\src\components\onboarding\GoogleIcon.tsx:17: d="M9 18c2.43 0 4.47-.8 5.96-2.18l-2.92-2.26c-.8.54-1.84.86-3.04.86-2.34 0-4.32-1.58-5.04-3.7H.96v2.34A9 9 0 0 0 9 18z"
+C:\Users\gerst\blobus\src\components\onboarding\GoogleIcon.tsx:21: d="M3.96 10.72A5.41 5.41 0 0 1 3.68 9c0-.6.1-1.18.28-1.72V4.94H.96A9 9 0 0 0 0 9c0 1.46.35 2.84.96 4.06l3-2.34z"
+C:\Users\gerst\blobus\src\components\onboarding\GoogleIcon.tsx:25: d="M9 3.58c1.32 0 2.5.46 3.44 1.35l2.58-2.58C13.46.9 11.42 0 9 0A9 9 0 0 0 .96 4.94l3 2.34C4.68 5.16 6.66 3.58 9 3.58z"
+C:\Users\gerst\blobus\src\components\onboarding\OnboardingShell.tsx:12: import { motion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\OnboardingShell.tsx:25: <div className="relative flex min-h-dvh w-full flex-col overflow-hidden bg-black">
+C:\Users\gerst\blobus\src\components\onboarding\OnboardingShell.tsx:29: className="pointer-events-none absolute inset-x-0 top-0 z-10 h-2/3 bg-gradient-to-b from-black via-black/30 to-transparent"
+C:\Users\gerst\blobus\src\components\onboarding\OnboardingShell.tsx:30: aria-hidden="true"
+C:\Users\gerst\blobus\src\components\onboarding\OnboardingShell.tsx:34: <div className="fixed left-0 top-0 z-50 h-1 w-full bg-white/5">
+C:\Users\gerst\blobus\src\components\onboarding\OnboardingShell.tsx:36: className="h-full bg-[#f0f0f5]"
+C:\Users\gerst\blobus\src\components\onboarding\OnboardingShell.tsx:44: <main id="main" tabIndex={-1} className="relative z-30 flex flex-1 items-center justify-center">{children}</main>
+C:\Users\gerst\blobus\src\components\onboarding\OnboardingStepView.tsx:88: case "blobatar-selection":
+C:\Users\gerst\blobus\src\components\onboarding\OnboardingStepView.tsx:96: case "mode-selection":
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:5: import { useTranslation } from "react-i18next";
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:6: import { Check } from "lucide-react";
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:16: { bar: "bg-rose-400", text: "text-rose-300", labelKey: "strength.veryWeak" },
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:17: { bar: "bg-rose-400", text: "text-rose-300", labelKey: "strength.weak" },
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:18: { bar: "bg-amber-400", text: "text-amber-300", labelKey: "strength.medium" },
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:19: { bar: "bg-amber-400", text: "text-amber-300", labelKey: "strength.good" },
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:20: { bar: "bg-emerald-400", text: "text-emerald-300", labelKey: "strength.strong" },
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:33: <div className="mt-3 space-y-2">
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:34: <div className="flex items-center gap-3">
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:35: <div className="flex flex-1 gap-1">
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:40: "h-1 flex-1 rounded-full transition-colors",
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:41: index < score ? scoreStyle.bar : "bg-white/10"
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:46: <span className={cn("text-xs", scoreStyle.text)}>{t(scoreStyle.labelKey)}</span>
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:48: <ul className="grid grid-cols-2 gap-x-4 gap-y-1">
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:53: "flex items-center gap-1.5 text-[11px]",
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:54: check.passed ? "text-emerald-300/80" : "text-[#f0f0f5]/30"
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:58: className={cn("size-3 shrink-0", check.passed ? "opacity-100" : "opacity-25")}
+C:\Users\gerst\blobus\src\components\onboarding\PasswordStrengthMeter.tsx:59: aria-hidden="true"
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:8: import { motion, useReducedMotion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:9: import { Check, ChevronDown } from "lucide-react";
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:62: className={tileClasses(isSelected, "relative flex flex-col")}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:69: className="pointer-events-none absolute right-3 top-3 flex size-5 items-center justify-center rounded-full bg-[#f0f0f5]"
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:71: <Check className="size-3 text-black" strokeWidth={3} aria-hidden="true" />
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:75: {/* ARCHITECT: внутри кнопки только фразовое содержимое: h3 и p там недопустимы,
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:76: поэтому блок текста собран из span, разделённых отступами. */}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:80: aria-checked={isSelected}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:81: aria-label={`${blobatar.name}, ${persona.traits.join(", ")}`}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:82: tabIndex={isFocused ? 0 : -1}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:87: "flex w-full flex-col items-start rounded-3xl p-5 text-left",
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:91: <BlobatarAvatar id={blobatar.id} className="size-20 bg-transparent sm:size-24" />
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:93: <span className="mt-4 block w-full">
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:95: <span className="mb-1 block text-[11px] text-[#f0f0f5]/45">
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:96: Рекомендуем под цель
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:99: <span className="block text-base font-medium text-[#f0f0f5]">
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:102: <span className="mt-1 block text-xs text-[#f0f0f5]/55">
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:105: <span className="mt-3 line-clamp-3 text-sm leading-relaxed text-[#f0f0f5]/70">
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:111: {/* ARCHITECT: mt-auto прижимает кнопку к низу карточки, поэтому в ряду сетки они
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:112: стоят на одной линии, а открытие панели истории карточку не растягивает. */}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:116: aria-expanded={isHistoryOpen}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:117: aria-controls={REPETITOR_HISTORY_PANEL_ID}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:120: "mt-auto flex min-h-11 w-full items-center justify-between gap-2 border-t border-white/5 px-5 text-sm text-[#f0f0f5]/60 transition-colors hover:text-[#f0f0f5]",
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:124: <span>{isHistoryOpen ? "Свернуть" : "История"}</span>
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:127: "size-4 shrink-0 transition-transform duration-200",
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:128: isHistoryOpen && "rotate-180",
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:129: shouldReduceMotion && "transition-none"
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorCard.tsx:131: aria-hidden="true"
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:7: import { motion, useReducedMotion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:8: import { X } from "lucide-react";
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:15: export const REPETITOR_HISTORY_PANEL_ID = "repetitor-history-panel";
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:43: const pointerLeft = `calc((100% - ${GRID_GAP_PX * (columns - 1)}px) / ${columns} * ${
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:45: } + ${GRID_GAP_PX * columnIndex}px - 6px)`;
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:49: {/* ARCHITECT: указатель — хвост реплики: он показывает, чья история открыта, без
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:50: второго имени и аватара. Стороны повёрнутого квадрата ложатся ровно на верхнюю
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:51: границу полосы, а z-10 нужен, чтобы его нижняя половина перекрыла линию границы
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:52: под собой: так хвост читается как продолжение полосы, а не как отдельная метка. */}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:54: aria-hidden="true"
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:59: className="absolute -top-1.5 z-10 block size-3"
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:62: <span className="block size-3 rotate-45 border-l border-t border-white/5 bg-[#111113]" />
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:71: tabIndex={-1}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:72: aria-label={`История: ${blobatar.name}`}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:79: "relative overflow-hidden border border-white/5 bg-[#111113] p-5 md:p-6"
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:85: aria-label="Свернуть историю"
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:87: "absolute right-2 top-2 flex size-11 items-center justify-center rounded-full text-[#f0f0f5]/55 transition-colors hover:bg-white/[0.06] hover:text-[#f0f0f5]",
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:91: <X className="size-4" aria-hidden="true" />
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:94: {/* ARCHITECT: ключ по персонажу даёт короткий кроссфейд текста при переносе
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:95: полосы на другую карточку; высота при этом не переигрывается. */}
+C:\Users\gerst\blobus\src\components\onboarding\RepetitorHistoryPanel.tsx:104: className="max-w-prose pr-12 text-base leading-relaxed text-[#f0f0f5]/70"
+C:\Users\gerst\blobus\src\components\onboarding\SelectionStatusLine.tsx:16: aria-live="polite"
+C:\Users\gerst\blobus\src\components\onboarding\SelectionStatusLine.tsx:17: className="mt-6 flex min-h-6 items-center gap-2 text-sm text-[#f0f0f5]/70"
+C:\Users\gerst\blobus\src\components\onboarding\SelectionStatusLine.tsx:21: <BlobatarAvatar id={blobatar.id} className="size-6" />
+C:\Users\gerst\blobus\src\components\onboarding\SelectionStatusLine.tsx:22: <span>Выбран репетитор: {blobatar.name}</span>
+C:\Users\gerst\blobus\src\components\onboarding\StepCard.tsx:18: <div className={cn(GLASS_SURFACE, shape === "leaf" ? LEAF_RADIUS : CARD_RADIUS, "p-6", className)}>
+C:\Users\gerst\blobus\src\components\onboarding\StepHeader.tsx:5: import { motion } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\StepHeader.tsx:6: import type { Variants } from "framer-motion";
+C:\Users\gerst\blobus\src\components\onboarding\StepHeader.tsx:44: className={cn("mb-8", isCentered && "text-center", className)}
+C:\Users\gerst\blobus\src\components\onboarding\StepHeader.tsx:50: <motion.h2 variants={ITEM} className={cn(STEP_TITLE, "mt-3")}>
+C:\Users\gerst\blobus\src\components\onboarding\StepHeader.tsx:57: className={cn(STEP_SUBTITLE, "mt-3", isCentered && "mx-auto max-w-2xl")}
+C:\Users\gerst\blobus\src\components\onboarding\StepHeader.tsx:64: <motion.p variants={ITEM} className={cn(META_LINE, "mt-4")}>
+C:\Users\gerst\blobus\src\components\onboarding\StepHeader.tsx:65: Шаг {step} из {totalSteps}
+C:\Users\gerst\blobus\src\components\onboarding\StepNav.tsx:5: import { ArrowLeft, ArrowRight } from "lucide-react";
+C:\Users\gerst\blobus\src\components\onboarding\StepNav.tsx:20: <div className={cn("mt-8 flex items-center justify-between gap-4", className)}>
+C:\Users\gerst\blobus\src\components\onboarding\StepNav.tsx:23: <ArrowLeft className="size-4" aria-hidden="true" />
+C:\Users\gerst\blobus\src\components\onboarding\StepNav.tsx:24: Назад
+C:\Users\gerst\blobus\src\components\onboarding\StepNav.tsx:32: <ArrowRight className="size-4" aria-hidden="true" />
+C:\Users\gerst\blobus\src\components\onboarding\TextField.tsx:42: const errorId = `${id}-error`;
+C:\Users\gerst\blobus\src\components\onboarding\TextField.tsx:46: <label htmlFor={id} className="mb-1.5 block text-sm text-[#f0f0f5]/70">
+C:\Users\gerst\blobus\src\components\onboarding\TextField.tsx:60: aria-invalid={error ? true : undefined}
+C:\Users\gerst\blobus\src\components\onboarding\TextField.tsx:61: aria-describedby={error ? errorId : undefined}
+C:\Users\gerst\blobus\src\components\onboarding\TextField.tsx:64: children && "pr-14",
+C:\Users\gerst\blobus\src\components\onboarding\TextField.tsx:66: ? "border-rose-400/40 ring-1 ring-rose-400/50 focus:ring-rose-400/60"
+C:\Users\gerst\blobus\src\components\onboarding\TextField.tsx:67: : "focus:ring-[#f0f0f5]/20"
+C:\Users\gerst\blobus\src\components\onboarding\TextField.tsx:71: <div className="absolute right-1 top-1/2 -translate-y-1/2">{children}</div>
+C:\Users\gerst\blobus\src\components\onboarding\TextField.tsx:75: <p id={errorId} className="mt-1.5 text-xs text-rose-300">
+src/lib/validation.ts:30: const NAME_RE = /^[\p{L}][\p{L}\s'-]*$/u;
+src/api/client.ts:9: import { isReportingInFlight, reportError } from "@/lib/observability/report-error";
+src/api/client.ts:89: "Content-Type": "application/json",
+src/types/onboarding.ts:10: frequency: "daily" | "every-other-day" | "3-times-week" | "weekly";
+src/types/onboarding.ts:29: | "blobatar-selection"
+src/types/onboarding.ts:30: | "mode-selection"
+src/types/onboarding.ts:41: intro: "Знакомство",
+src/types/onboarding.ts:42: assessment: "Тест",
+src/types/onboarding.ts:43: goals: "Цели",
+src/types/onboarding.ts:44: schedule: "Расписание",
+src/types/onboarding.ts:45: lesson: "Урок",

@@ -41,7 +41,7 @@ export function OnboardingShell({ progress = 0, showProgress = true, children }:
                 </div>
             )}
 
-            <div className="relative z-30 flex flex-1 items-center justify-center">{children}</div>
+            <main id="main" tabIndex={-1} className="relative z-30 flex flex-1 items-center justify-center">{children}</main>
         </div>
     );
 }

@@ -1,11 +1,14 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Search, RotateCcw, Volume2 } from "lucide-react";
+import { BookOpen, Search, RotateCcw, Volume2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { fetchVocabulary } from "@/api/progress";
 import { useMockQuery } from "@/hooks/useMockQuery";
 import { VocabularySkeleton } from "@/components/dashboard/skeletons/VocabularySkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 export function VocabularyPage() {
+    const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState("");
     const { data: words, isLoading } = useMockQuery(fetchVocabulary);
 
@@ -49,10 +52,18 @@ export function VocabularyPage() {
                     />
                 </div>
 
-                {filteredWords.length === 0 ? (
-                    <div className="rounded-2xl bg-[#111113] p-8 text-center">
-                        <p className="text-sm text-[#f0f0f5]/40">Ничего не найдено</p>
-                    </div>
+                {words.length === 0 ? (
+                    <EmptyState
+                        icon={BookOpen}
+                        title={t("states.empty.vocabulary.title")}
+                        description={t("states.empty.vocabulary.description")}
+                    />
+                ) : filteredWords.length === 0 ? (
+                    /* ARCHITECT: пустой словарь и отсутствие совпадений — разные состояния: первое
+                       лечится добавлением слов, второе — сбросом запроса, поэтому и тексты разные. */
+                    <p className="rounded-2xl bg-[#111113] p-5 text-sm text-[#f0f0f5]/60">
+                        {t("states.search.empty")}
+                    </p>
                 ) : (
                     <div className="space-y-2">
                         {filteredWords.map((word, index) => (

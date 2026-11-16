@@ -1,0 +1,77 @@
+WelcomeStep.tsx:30: ИИ-репетитор английского
+WelcomeStep.tsx:37: Английский в диалоге, а не в учебнике
+WelcomeStep.tsx:45: Репетитор подстраивается под твою цель и уровень: от повседневного
+WelcomeStep.tsx:46: разговора до технического собеседования.
+WelcomeStep.tsx:54: Начать
+WelcomeStep.tsx:57: <span className={META_LINE}>5 шагов · около 10 минут</span>
+WelcomeGlobe.tsx:128: {/* ARCHITECT: статичный слой свечения — та же геометрия без анимации линий. */}
+AuthStep.tsx:45: title={mode === "register" ? "Создать аккаунт" : "Вход в аккаунт"}
+AuthStep.tsx:48: ? "Прогресс и репетитор сохранятся между устройствами"
+AuthStep.tsx:49: : "Продолжи с места, где остановился"
+AuthStep.tsx:66: Назад
+ModeSelectionStep.tsx:44: title="На чём хочешь сосредоточиться?"
+ModeSelectionStep.tsx:45: subtitle="Режимы можно добавить и сменить позже. Для начала выбери главную цель."
+ModeSelectionStep.tsx:92: {/* ARCHITECT: label и description — span, а не h3/p: внутри <button>
+ModeSelectionStep.tsx:93: допустим только phrasing content. */}
+ModeSelectionStep.tsx:107: <StepNav onBack={onBack} onNext={onNext} nextLabel="Продолжить" disabled={!selectedMode} />
+LessonStep.tsx:24: daily: "каждый день",
+LessonStep.tsx:25: "every-other-day": "через день",
+LessonStep.tsx:26: "3-times-week": "3 раза в неделю",
+LessonStep.tsx:27: weekly: "раз в неделю",
+LessonStep.tsx:31: if (schedule === null) return "не выбрано";
+LessonStep.tsx:33: return `${FREQUENCY_LABELS[schedule.frequency]} · ${schedule.durationMinutes} мин`;
+LessonStep.tsx:41: { id: "mode", label: "Цель", value: mode?.label ?? "не выбрана" },
+LessonStep.tsx:42: { id: "level", label: "Уровень из теста", value: data.englishLevel ?? "не определён" },
+LessonStep.tsx:43: { id: "schedule", label: "Расписание", value: describeSchedule(data.schedule) },
+LessonStep.tsx:50: title="Всё готово к первому уроку"
+LessonStep.tsx:51: subtitle="Сессия откроется сразу: репетитор начнёт с темы выбранной цели."
+LessonStep.tsx:79: <StepNav onBack={onBack} onNext={onNext} nextLabel="Начать урок" />
+ScheduleStep.tsx:24: { id: 'daily', label: 'Каждый день', description: 'Выработай привычку' },
+ScheduleStep.tsx:25: { id: 'every-other-day', label: 'Через день', description: 'Сбалансированный темп' },
+ScheduleStep.tsx:26: { id: '3-times-week', label: '3 раза в неделю', description: 'Стабильный прогресс' },
+ScheduleStep.tsx:27: { id: 'weekly', label: 'Раз в неделю', description: 'Лёгкая практика' },
+ScheduleStep.tsx:31: { id: 15, label: '15 мин', description: 'Быстрые занятия' },
+ScheduleStep.tsx:32: { id: 30, label: '30 мин', description: 'Рекомендуем' },
+ScheduleStep.tsx:33: { id: 45, label: '45 мин', description: 'Глубокое погружение' },
+ScheduleStep.tsx:34: { id: 60, label: '60 мин', description: 'Интенсив' },
+ScheduleStep.tsx:58: title="Как часто будешь заниматься?"
+ScheduleStep.tsx:59: subtitle="Регулярность важнее интенсивности: выбери темп, который удобно держать."
+ScheduleStep.tsx:64: {/* ARCHITECT: два смысловых блока разделены gap-8, внутри блока заголовок и сетка
+ScheduleStep.tsx:65: плиток — gap-4: так шаг читается как форма, а не как сплошной список. */}
+ScheduleStep.tsx:70: Частота занятий
+ScheduleStep.tsx:92: Длительность занятия
+ScheduleStep.tsx:114: <StepNav onBack={onBack} onNext={handleNext} nextLabel="Начать обучение" />
+RepetitorSelectionStep.tsx:38: eyebrow = "Репетитор",
+RepetitorSelectionStep.tsx:120: title="Выбери репетитора"
+RepetitorSelectionStep.tsx:121: subtitle="У каждого свой характер и стиль преподавания"
+RepetitorSelectionStep.tsx:128: <p className="text-sm text-[#f0f0f5]/60">Список репетиторов недоступен</p>
+RepetitorSelectionStep.tsx:131: оказывается внутри группы. Это цена вставки панели под ряд: вынести её за
+RepetitorSelectionStep.tsx:132: пределы группы нельзя, не потеряв строку вставки. */
+RepetitorSelectionStep.tsx:135: aria-label="Выбор репетитора"
+RepetitorSelectionStep.tsx:145: <StepNav onBack={onBack} onNext={onNext} nextLabel="Продолжить" disabled={!selectedId} />
+AuthModeTabs.tsx:17: { id: "register", label: "Регистрация" },
+AuthModeTabs.tsx:18: { id: "login", label: "Вход" },
+AuthModeTabs.tsx:23: <div className={cn("mb-6 flex rounded-xl p-1", GLASS_SURFACE)} role="tablist" aria-label="Способ входа">
+GoogleAuthButton.tsx:40: {isLoading ? "Подключаемся…" : "Продолжить с Google"}
+RepetitorCard.tsx:75: {/* ARCHITECT: внутри кнопки только фразовое содержимое: h3 и p там недопустимы,
+RepetitorCard.tsx:76: поэтому блок текста собран из span, разделённых отступами. */}
+RepetitorCard.tsx:96: Рекомендуем под цель
+RepetitorCard.tsx:111: {/* ARCHITECT: mt-auto прижимает кнопку к низу карточки, поэтому в ряду сетки они
+RepetitorCard.tsx:112: стоят на одной линии, а открытие панели истории карточку не растягивает. */}
+RepetitorCard.tsx:124: <span>{isHistoryOpen ? "Свернуть" : "История"}</span>
+RepetitorHistoryPanel.tsx:49: {/* ARCHITECT: указатель — хвост реплики: он показывает, чья история открыта, без
+RepetitorHistoryPanel.tsx:50: второго имени и аватара. Стороны повёрнутого квадрата ложатся ровно на верхнюю
+RepetitorHistoryPanel.tsx:51: границу полосы, а z-10 нужен, чтобы его нижняя половина перекрыла линию границы
+RepetitorHistoryPanel.tsx:52: под собой: так хвост читается как продолжение полосы, а не как отдельная метка. */}
+RepetitorHistoryPanel.tsx:72: aria-label={`История: ${blobatar.name}`}
+RepetitorHistoryPanel.tsx:85: aria-label="Свернуть историю"
+RepetitorHistoryPanel.tsx:94: {/* ARCHITECT: ключ по персонажу даёт короткий кроссфейд текста при переносе
+RepetitorHistoryPanel.tsx:95: полосы на другую карточку; высота при этом не переигрывается. */}
+SelectionStatusLine.tsx:22: <span>Выбран репетитор: {blobatar.name}</span>
+StepHeader.tsx:65: Шаг {step} из {totalSteps}
+StepNav.tsx:24: Назад
+onboarding.ts:41: intro: "Знакомство",
+onboarding.ts:42: assessment: "Тест",
+onboarding.ts:43: goals: "Цели",
+onboarding.ts:44: schedule: "Расписание",
+onboarding.ts:45: lesson: "Урок",

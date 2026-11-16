@@ -23,8 +23,13 @@ import { AdminRoute } from '@/components/auth/AdminRoute';
 import { AppIndexRedirect } from '@/pages/dashboard/AppIndexRedirect';
 import { ScrollToTopButton } from '@/components/shared/ScrollToTopButton';
 import { Toaster } from '@/components/shared/Toaster';
+import { SkipToContent } from '@/components/shared/SkipToContent';
+import { RouteAnnouncer } from '@/components/shared/RouteAnnouncer';
 import { Observability } from '@/components/shared/Observability';
 import { CookieConsent } from '@/components/shared/CookieConsent';
+import { OfflineBanner } from '@/components/shared/OfflineBanner';
+import { useNetworkStatus } from '@/hooks/useNetworkStatus';
+import { useAuthStorageSync } from '@/hooks/useAuthStorageSync';
 import { LegalSkeleton } from '@/components/shared/skeletons/LegalSkeleton';
 import { LoginSkeleton } from '@/components/shared/skeletons/LoginSkeleton';
 import { HelpSkeleton } from '@/components/dashboard/skeletons/HelpSkeleton';
@@ -88,6 +93,12 @@ const CookiesPage = lazy(() =>
   import('@/pages/legal/CookiesPage').then((module) => ({ default: module.CookiesPage }))
 );
 
+// ARCHITECT: контакты — публичная страница вне критического пути: чанк нужен только при переходе
+// по ссылке из футера, поэтому грузится лениво, как правовые документы.
+const ContactsPage = lazy(() =>
+  import('@/pages/ContactsPage').then((module) => ({ default: module.ContactsPage }))
+);
+
 // ARCHITECT: восстановление доступа — тоже ленивые публичные маршруты: чанк нужен только тем, кто
 // потерял пароль или подтверждает почту, и в основной бандл он не попадает.
 const ForgotPasswordPage = lazy(() =>
@@ -108,6 +119,12 @@ const AdminPage = lazy(() =>
 );
 
 function App() {
+  // ARCHITECT: сеть и межвкладочная синхронизация не зависят от роутера, поэтому живут в корне
+  // приложения: баннер офлайна виден на любом экране, а чужой выход или отзыв согласия
+  // применяется к локальным сторам независимо от текущего маршрута.
+  const isOnline = useNetworkStatus();
+  useAuthStorageSync();
+
   return (
     // ARCHITECT: reducedMotion="user" гасит только transform/layout-анимации, когда система
     // просит меньше движения; opacity остаётся, поэтому появление элементов не исчезает.
@@ -117,6 +134,7 @@ function App() {
           BrowserRouter уходит на экран ErrorBoundary, а не на белый лист. */}
       <ErrorBoundary>
         <BrowserRouter>
+        <SkipToContent />
         <Routes>
           <Route path="/" element={<Landing />} />
           <Route path="/onboarding" element={<Onboarding />} />
@@ -162,6 +180,15 @@ function App() {
             element={
               <Suspense fallback={<LegalSkeleton />}>
                 <CookiesPage />
+              </Suspense>
+            }
+          />
+          {/* ARCHITECT: контакты делят оболочку с правовыми документами, поэтому скелетон тот же. */}
+          <Route
+            path="/contacts"
+            element={
+              <Suspense fallback={<LegalSkeleton />}>
+                <ContactsPage />
               </Suspense>
             }
           />
@@ -271,10 +298,14 @@ function App() {
               попадает на брендированную 404 вместо пустого экрана. */}
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
+        <RouteAnnouncer />
         {/* ARCHITECT: монтируется один раз в корне — работает и на лендинге, и внутри приложения */}
         <ScrollToTopButton />
         {/* ARCHITECT: тосты тоже живут в корне: сообщение должно быть видно на любом экране */}
         <Toaster />
+        {/* ARCHITECT: баннер офлайна монтируется один раз в корне и только когда сети нет:
+            постоянный узел в DOM дублировал бы объявление о состоянии связи. */}
+        {!isOnline && <OfflineBanner />}
         {/* ARCHITECT: баннер согласия монтируется один раз в корне и виден на любом экране: решение
             о cookie нельзя терять при переходах между лендингом, документами и приложением. */}
         <CookieConsent />

@@ -11,6 +11,10 @@ import {
 } from "@/api/auth";
 import type { AuthUser } from "@/api/auth";
 
+// ARCHITECT: ключ persist вынесен константой: его читает и межвкладочная синхронизация
+// (useAuthStorageSync), а строка в двух местах разошлась бы при первом же переименовании.
+export const AUTH_STORAGE_KEY = "blobus-auth";
+
 interface AuthState {
     user: AuthUser | null;
     signIn: (email: string, password: string) => Promise<AuthUser>;
@@ -50,6 +54,6 @@ export const useAuthStore = create<AuthState>()(
                         : { user: { ...state.user, emailVerified: true } }
                 ),
         }),
-        { name: "blobus-auth" }
+        { name: AUTH_STORAGE_KEY }
     )
 );

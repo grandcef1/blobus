@@ -3,9 +3,10 @@
 // провайдер, поэтому клиентская копия — только подтверждение оплаты.
 
 import { useTranslation } from "react-i18next";
-import { Download } from "lucide-react";
+import { Download, Receipt } from "lucide-react";
 import { downloadTextFile } from "@/lib/download";
 import { formatDate, formatUsd } from "@/lib/format";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { toast } from "@/store/toast";
 import type { Invoice } from "@/types/billing";
 
@@ -43,7 +44,13 @@ export function InvoicesList({ invoices }: InvoicesListProps) {
             <h2 className="text-base font-medium text-[#f0f0f5]/80">{t("invoices.title")}</h2>
 
             {invoices.length === 0 ? (
-                <p className="mt-3 text-xs text-[#f0f0f5]/40">{t("invoices.empty")}</p>
+                /* ARCHITECT: пустое состояние — общий компонент, текст — доменный ключ биллинга:
+                    формулировка не должна разойтись с остальной страницей. */
+                <EmptyState
+                    className="mt-3 bg-transparent p-0"
+                    icon={Receipt}
+                    title={t("invoices.empty")}
+                />
             ) : (
                 <ul className="mt-3 space-y-2">
                     {invoices.map((invoice) => (

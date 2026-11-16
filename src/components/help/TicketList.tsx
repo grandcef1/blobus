@@ -1,9 +1,12 @@
 // ARCHITECT: список обращений. Строка — кнопка, а не div: переход в тред обязан работать с
 // клавиатуры. Тема усечена, время относительное — абсолютная дата в списке читается хуже.
 
+import { useTranslation } from "react-i18next";
+import { LifeBuoy } from "lucide-react";
 import { formatRelativeTime } from "@/lib/relativeTime";
 import { FOCUS_RING } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { TicketStatusBadge } from "./TicketStatusBadge";
 import type { SupportTicket } from "@/types/support";
 
@@ -13,17 +16,26 @@ interface TicketListProps {
 }
 
 export function TicketList({ tickets, onSelect }: TicketListProps) {
+    const { t } = useTranslation();
+
     return (
         <section
             aria-labelledby="help-tickets-title"
             className="rounded-2xl border border-white/5 bg-[#111113] p-4 md:p-5"
         >
             <h2 id="help-tickets-title" className="text-base font-medium text-[#f0f0f5]">
-                Мои обращения
+                {t("help.tickets.title")}
             </h2>
 
             {tickets.length === 0 ? (
-                <p className="mt-4 text-sm text-[#f0f0f5]/40">Обращений пока нет</p>
+                /* ARCHITECT: пустое состояние внутри карточки: поверхность и отступы берём у самой
+                   карточки, иначе получилась бы коробка в коробке. */
+                <EmptyState
+                    className="mt-4 bg-transparent p-0"
+                    icon={LifeBuoy}
+                    title={t("states.empty.tickets.title")}
+                    description={t("states.empty.tickets.description")}
+                />
             ) : (
                 <ul className="mt-3 flex flex-col gap-1">
                     {tickets.map((ticket) => (

@@ -33,7 +33,7 @@ export function LegalLayout({ title, intro, children }: LegalLayoutProps) {
                 передают только текст, поэтому разойтись по заголовкам они не могут. */}
             <Seo path={pathname} jsonLd={breadcrumbForRoute(pathname)} />
 
-            <main className="min-h-dvh w-full bg-black px-6 py-20 sm:px-8 sm:py-28">
+            <main id="main" tabIndex={-1} className="min-h-dvh w-full bg-black px-6 py-20 sm:px-8 sm:py-28">
             <article className="mx-auto w-full max-w-3xl">
                 <Link to="/" className={cn(LEGAL_PILL, "text-xs")}>
                     {t("legal.layout.home")}

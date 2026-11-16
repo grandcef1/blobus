@@ -12,7 +12,8 @@
     "mainNav": "Main navigation",
     "mobileNav": "Mobile navigation",
     "siteNav": "Site navigation",
-    "homeLink": "Go to the home page"
+    "homeLink": "Go to the home page",
+    "skipToContent": "Skip to main content"
   },
   "language": {
     "selectLabel": "Interface language",
@@ -65,5 +66,124 @@
     "goals": "Goals",
     "schedule": "Schedule",
     "lesson": "Lesson"
+  },
+  "states": {
+    "error": {
+      "title": "Could not load the data",
+      "description": "Check your connection and try again.",
+      "reload": "Reload",
+      "toOverview": "Go to overview"
+    },
+    "empty": {
+      "sessions": {
+        "title": "No sessions yet",
+        "description": "Start a dialogue with a tutor and it will show up here.",
+        "action": "New session"
+      },
+      "vocabulary": {
+        "title": "Your vocabulary is empty",
+        "description": "Words are added from lessons and reviews."
+      },
+      "tutors": {
+        "title": "No tutors to show",
+        "description": "Characters will appear once the catalogue is available."
+      },
+      "tickets": {
+        "title": "No requests yet",
+        "description": "Write to support and the reply will land in this list."
+      },
+      "users": {
+        "title": "No users",
+        "description": "Accounts will appear in this list."
+      }
+    },
+    "search": {
+      "empty": "Nothing found"
+    }
+  },
+  "contacts": {
+    "title": "Contact us",
+    "lead": "Write to us — Blobus support answers questions about lessons, your account and your data.",
+    "emailLabel": "Support email",
+    "emailHint": "We reply within two business days. Describe what happened and include the steps you already tried.",
+    "help": {
+      "title": "Help centre",
+      "body": "Many questions are already answered in the articles — start there to avoid waiting for a reply.",
+      "link": "Open the help centre"
+    },
+    "privacy": {
+      "title": "Privacy policy",
+      "body": "It explains what data Blobus collects and how to manage it.",
+      "link": "Read the policy"
+    }
+  },
+  "offline": {
+    "message": "No network connection. The data may be out of date."
+  },
+  "notFound": {
+    "title": "Page not found",
+    "heading": "Route not found",
+    "description": "Looks like this page drifted off into space. Shall we get back to learning?",
+    "home": "Back to home"
+  },
+  "help": {
+    "title": "Help centre",
+    "lead": "Answers to common questions and a way to reach support",
+    "newTicket": "New request",
+    "backToTickets": "Back to requests",
+    "loginPrompt": "Sign in to see your requests and write to support",
+    "faq": {
+      "title": "Common questions",
+      "search": "Search questions",
+      "categoriesLabel": "Question categories"
+    },
+    "faqCategories": {
+      "all": "All",
+      "start": "Getting started",
+      "learning": "Lessons and modes",
+      "billing": "Plans and billing",
+      "account": "Account and data",
+      "tech": "Technical questions"
+    },
+    "tickets": {
+      "title": "My requests"
+    },
+    "ticketCategories": {
+      "billing": "Billing and subscription",
+      "technical": "Technical problem",
+      "lessons": "Lessons and modes",
+      "account": "Account",
+      "other": "Other"
+    },
+    "ticketStatus": {
+      "open": "Open",
+      "in_progress": "In progress",
+      "resolved": "Resolved"
+    },
+    "thread": {
+      "sent": "Message sent",
+      "placeholder": "Write a message",
+      "inputLabel": "Message to support",
+      "send": "Send message"
+    },
+    "newTicketDialog": {
+      "title": "New request",
+      "description": "Describe the issue in detail — support won't have to ask follow-up questions.",
+      "subject": "Subject",
+      "category": "Category",
+      "message": "Message",
+      "cancel": "Cancel",
+      "submit": "Send",
+      "created": "Request created",
+      "minLength": "At least {{min}} characters",
+      "maxLength": "At most {{max}} characters"
+    }
+  },
+  "listening": {
+    "title": "Listening check"
+  },
+  "onboarding": {
+    "seoNewSession": "New session",
+    "seoSetup": "Learning setup"
   }
 }

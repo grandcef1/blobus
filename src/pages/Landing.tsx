@@ -53,7 +53,7 @@ export function Landing() {
                 prerender'а. Поэтому title больше не берётся из словаря: язык SEO — ru. */}
             <Seo path="/" jsonLd={HOME_JSON_LD} />
             <Header />
-            <main className="min-h-dvh w-full max-w-full overflow-x-hidden bg-black">
+            <main id="main" tabIndex={-1} className="min-h-dvh w-full max-w-full overflow-x-hidden bg-black">
                 <HeroSection />
                 <FeaturesSection />
                 <HowItWorksSection />

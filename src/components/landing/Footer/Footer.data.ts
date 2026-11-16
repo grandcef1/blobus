@@ -21,19 +21,11 @@ export const FOOTER_COLUMNS: readonly FooterColumnItem[] = [
     },
     {
         titleKey: 'columns.resources.title',
-        links: [
-            { labelKey: 'columns.resources.docs', href: '/docs' },
-            { labelKey: 'columns.resources.api', href: '/api-docs' },
-            { labelKey: 'columns.resources.changelog', href: '/changelog' },
-            { labelKey: 'columns.resources.status', href: '/status' },
-        ],
+        links: [{ labelKey: 'columns.resources.docs', href: '/docs' }],
     },
     {
         titleKey: 'columns.company.title',
-        links: [
-            { labelKey: 'columns.company.contacts', href: '/contacts' },
-            { labelKey: 'columns.company.blog', href: '/blog' },
-        ],
+        links: [{ labelKey: 'columns.company.contacts', href: '/contacts' }],
     },
     {
         titleKey: 'columns.legal.title',
@@ -48,10 +40,7 @@ export const FOOTER_COLUMNS: readonly FooterColumnItem[] = [
 ];
 
 export const FOOTER_SOCIAL: readonly FooterLinkItem[] = [
-    { label: 'Twitter', href: 'https://twitter.com/blobus_ai', external: true },
-    { label: 'LinkedIn', href: 'https://linkedin.com/company/blobus', external: true },
     { label: 'GitHub', href: 'https://github.com/grandcef1/blobus', external: true },
-    { label: 'Discord', href: 'https://discord.gg/blobus', external: true },
 ];
 
 // ARCHITECT: подписи рассылки — ключи: их читают Footer и NewsletterForm, а перевод живёт в словаре.

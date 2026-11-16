@@ -11,7 +11,12 @@
 // #0d0d0d — существующий тёмный токен. При alpha 0.42 пик композита ~45/255, поэтому
 // заголовок держит 12:1 над самой светлой зоной, а glow блобатара не глохнет.
 
-import { MeshGradient } from "@paper-design/shaders-react";
+import { lazy, Suspense } from "react";
+
+// ARCHITECT: WebGL-шейдеры не должны блокировать первый кадр; фон появляется после гидрации.
+const MeshGradient = lazy(() =>
+    import("@paper-design/shaders-react").then((m) => ({ default: m.MeshGradient }))
+);
 
 interface AmbientMeshFieldProps {
     /** Потолок физических пикселей — держит DPR в бюджете слоя. */
@@ -28,21 +33,23 @@ const MESH_COLORS: string[] = ["#2626276b", "#1d1d1f6b", "#0d0d0d6b"];
 
 export function AmbientMeshField({ maxPixelCount, minPixelRatio, speed }: AmbientMeshFieldProps) {
     return (
-        <MeshGradient
-            className="absolute inset-0 h-full w-full"
-            colors={MESH_COLORS}
-            speed={speed}
-            fit="contain"
-            scale={1.15}
-            rotation={-10}
-            offsetX={-0.17}
-            offsetY={-0.08}
-            distortion={0.85}
-            swirl={0.22}
-            grainMixer={0.15}
-            grainOverlay={0.06}
-            minPixelRatio={minPixelRatio}
-            maxPixelCount={maxPixelCount}
-        />
+        <Suspense fallback={null}>
+            <MeshGradient
+                className="absolute inset-0 h-full w-full"
+                colors={MESH_COLORS}
+                speed={speed}
+                fit="contain"
+                scale={1.15}
+                rotation={-10}
+                offsetX={-0.17}
+                offsetY={-0.08}
+                distortion={0.85}
+                swirl={0.22}
+                grainMixer={0.15}
+                grainOverlay={0.06}
+                minPixelRatio={minPixelRatio}
+                maxPixelCount={maxPixelCount}
+            />
+        </Suspense>
     );
 }

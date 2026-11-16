@@ -12,7 +12,8 @@
     "mainNav": "Navegación principal",
     "mobileNav": "Navegación móvil",
     "siteNav": "Navegación del sitio",
-    "homeLink": "Ir a la página de inicio"
+    "homeLink": "Ir a la página de inicio",
+    "skipToContent": "Ir al contenido principal"
   },
   "language": {
     "selectLabel": "Idioma de la interfaz",
@@ -65,5 +66,124 @@
     "goals": "Objetivos",
     "schedule": "Horario",
     "lesson": "Lección"
+  },
+  "states": {
+    "error": {
+      "title": "No se pudieron cargar los datos",
+      "description": "Comprueba la conexión e inténtalo de nuevo.",
+      "reload": "Actualizar",
+      "toOverview": "Ir al resumen"
+    },
+    "empty": {
+      "sessions": {
+        "title": "Todavía no hay sesiones",
+        "description": "Empieza un diálogo con un tutor y aparecerá aquí.",
+        "action": "Nueva sesión"
+      },
+      "vocabulary": {
+        "title": "Tu vocabulario está vacío",
+        "description": "Las palabras se añaden desde las lecciones y los repasos."
+      },
+      "tutors": {
+        "title": "No hay tutores",
+        "description": "Los personajes aparecerán cuando el catálogo esté disponible."
+      },
+      "tickets": {
+        "title": "Todavía no hay solicitudes",
+        "description": "Escribe al soporte y la respuesta llegará a esta lista."
+      },
+      "users": {
+        "title": "No hay usuarios",
+        "description": "Las cuentas aparecerán en esta lista."
+      }
+    },
+    "search": {
+      "empty": "Nada encontrado"
+    }
+  },
+  "contacts": {
+    "title": "Contacto",
+    "lead": "Escríbenos: el soporte de Blobus responde a preguntas sobre las lecciones, tu cuenta y tus datos.",
+    "emailLabel": "Correo de soporte",
+    "emailHint": "Respondemos en un plazo de dos días laborables. Cuéntanos qué pasó e incluye los pasos que ya probaste.",
+    "help": {
+      "title": "Centro de ayuda",
+      "body": "Muchas preguntas ya están resueltas en los artículos: empieza por ahí para no esperar respuesta.",
+      "link": "Abrir el centro de ayuda"
+    },
+    "privacy": {
+      "title": "Política de privacidad",
+      "body": "Explica qué datos recoge Blobus y cómo gestionarlos.",
+      "link": "Leer la política"
+    }
+  },
+  "offline": {
+    "message": "Sin conexión a la red. Los datos pueden estar desactualizados."
+  },
+  "notFound": {
+    "title": "Página no encontrada",
+    "heading": "Ruta no encontrada",
+    "description": "Parece que esta página se perdió en el espacio. ¿Volvemos al aprendizaje?",
+    "home": "Volver al inicio"
+  },
+  "help": {
+    "title": "Centro de ayuda",
+    "lead": "Respuestas a las preguntas frecuentes y contacto con el soporte",
+    "newTicket": "Nueva solicitud",
+    "backToTickets": "Volver a las solicitudes",
+    "loginPrompt": "Inicia sesión para ver tus solicitudes y escribir al soporte",
+    "faq": {
+      "title": "Preguntas frecuentes",
+      "search": "Buscar preguntas",
+      "categoriesLabel": "Categorías de preguntas"
+    },
+    "faqCategories": {
+      "all": "Todas",
+      "start": "Primeros pasos",
+      "learning": "Lecciones y modos",
+      "billing": "Tarifas y pagos",
+      "account": "Cuenta y datos",
+      "tech": "Cuestiones técnicas"
+    },
+    "tickets": {
+      "title": "Mis solicitudes"
+    },
+    "ticketCategories": {
+      "billing": "Pago y suscripción",
+      "technical": "Problema técnico",
+      "lessons": "Lecciones y modos",
+      "account": "Cuenta",
+      "other": "Otro"
+    },
+    "ticketStatus": {
+      "open": "Abierta",
+      "in_progress": "En curso",
+      "resolved": "Resuelta"
+    },
+    "thread": {
+      "sent": "Mensaje enviado",
+      "placeholder": "Escribe un mensaje",
+      "inputLabel": "Mensaje al soporte",
+      "send": "Enviar mensaje"
+    },
+    "newTicketDialog": {
+      "title": "Nueva solicitud",
+      "description": "Describe el problema con detalle: así el soporte no tendrá que pedirte aclaraciones.",
+      "subject": "Asunto",
+      "category": "Categoría",
+      "message": "Mensaje",
+      "cancel": "Cancelar",
+      "submit": "Enviar",
+      "created": "Solicitud creada",
+      "minLength": "Mínimo {{min}} caracteres",
+      "maxLength": "Máximo {{max}} caracteres"
+    }
+  },
+  "listening": {
+    "title": "Prueba de comprensión auditiva"
+  },
+  "onboarding": {
+    "seoNewSession": "Nueva sesión",
+    "seoSetup": "Configurar el aprendizaje"
   }
 }

@@ -9,6 +9,7 @@
 // useReducedMotion. При системном reduced-motion текст просто встаёт на место без движения.
 
 import { Link } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, useReducedMotion, type Variants } from "framer-motion";
 import { ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -42,12 +43,13 @@ const HOME_LINK = cn(
 
 export function NotFoundPage() {
     const shouldReduceMotion = useReducedMotion();
+    const { t } = useTranslation("common");
 
     // ARCHITECT: soft-404 SPA гасится noindex: любой неизвестный путь внутри приложения отдаётся
     // одним и тем же index.html, и без этой метки поисковик считал бы его копией лендинга.
     return (
         <main className="relative flex min-h-dvh w-full flex-col items-center justify-center overflow-hidden bg-black px-6 text-center">
-            <Seo indexable={false} title="Страница не найдена" />
+            <Seo indexable={false} title={t("notFound.title")} />
             <div
                 aria-hidden="true"
                 className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_50%_45%,rgba(240,240,245,0.05),transparent_65%)]"
@@ -71,21 +73,21 @@ export function NotFoundPage() {
                     variants={REVEAL}
                     className="mt-8 text-3xl font-normal tracking-tight text-[#f0f0f5] md:text-4xl"
                 >
-                    Маршрут не найден
+                    {t("notFound.heading")}
                 </motion.h1>
 
                 <motion.p
                     variants={REVEAL}
                     className="mt-3 max-w-md text-base leading-relaxed text-[#f0f0f5]/60"
                 >
-                    Похоже, эта страница растворилась в пространстве. Вернёмся к обучению?
+                    {t("notFound.description")}
                 </motion.p>
 
                 <motion.div variants={REVEAL} className="mt-8">
                     <Button asChild variant="outline" size="lg" className={HOME_LINK}>
                         <Link to="/">
                             <ArrowLeft aria-hidden="true" />
-                            Вернуться на главную
+                            {t("notFound.home")}
                         </Link>
                     </Button>
                 </motion.div>

@@ -3,7 +3,12 @@
 // так переключатель не может разойтись с переводами.
 
 import { create } from "zustand";
-import i18n, { DEFAULT_LANGUAGE, SUPPORTED_LANGUAGES, type LanguageCode } from "@/lib/i18n";
+import i18n, {
+    DEFAULT_LANGUAGE,
+    LANGUAGE_STORAGE_KEY,
+    SUPPORTED_LANGUAGES,
+    type LanguageCode,
+} from "@/lib/i18n";
 
 function toSupported(code: string | undefined): LanguageCode {
     const short = (code ?? "").split("-")[0]?.toLowerCase();
@@ -23,9 +28,18 @@ interface LanguageState {
 export const useLanguageStore = create<LanguageState>((set) => ({
     lang: initialLang,
     setLanguage: (code) => {
+        // ARCHITECT: только явный выбор пользователя фиксируется в хранилище: у детектора caches
+        // пустой, поэтому автоопределённый язык туда не попадает.
+        localStorage.setItem(LANGUAGE_STORAGE_KEY, code);
         document.documentElement.lang = code;
         set({ lang: code });
-        // ARCHITECT: детектор запишет выбор в localStorage сам при changeLanguage — своего persist нет.
         void i18n.changeLanguage(code);
     },
 }));
+
+// ARCHITECT: смена языка из любого места синхронизирует стор и <html lang>, иначе переключатель
+// показывал бы прежний язык.
+i18n.on("languageChanged", (lng) => {
+    document.documentElement.lang = lng;
+    useLanguageStore.setState({ lang: toSupported(lng) });
+});

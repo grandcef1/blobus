@@ -4,8 +4,10 @@
 // ARCHITECT: поля ввода text-base на мобильном — 16px отключает автозум iOS при фокусе.
 
 import { useState } from "react";
-import { Download, Search } from "lucide-react";
+import { Download, Search, Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { StatusMarker } from "@/components/shared/StatusMarker";
+import { EmptyState } from "@/components/shared/EmptyState";
 import { ADMIN_USERS, USER_STATUS_LABELS } from "./adminData";
 import type { AdminUser } from "./adminData";
 
@@ -20,6 +22,7 @@ const USER_STATUS_EMPHASIS: Record<AdminUser["status"], Emphasis> = {
 const ALL_PLANS = "all";
 
 export function AdminUsersList() {
+    const { t } = useTranslation();
     const [searchQuery, setSearchQuery] = useState("");
     const [planFilter, setPlanFilter] = useState<string>(ALL_PLANS);
 
@@ -75,8 +78,18 @@ export function AdminUsersList() {
             </div>
 
             <div className="space-y-1">
-                {filteredUsers.length === 0 && (
-                    <p className="px-3 py-2 text-sm text-[#f0f0f5]/40">Ничего не найдено</p>
+                {/* ARCHITECT: поиск без совпадений — отдельный текст, а не пустое состояние: список
+                    существует, изменился только запрос. */}
+                {ADMIN_USERS.length === 0 && (
+                    <EmptyState
+                        className="bg-transparent p-0"
+                        icon={Users}
+                        title={t("states.empty.users.title")}
+                        description={t("states.empty.users.description")}
+                    />
+                )}
+                {filteredUsers.length === 0 && ADMIN_USERS.length > 0 && (
+                    <p className="px-3 py-2 text-sm text-[#f0f0f5]/60">{t("states.search.empty")}</p>
                 )}
 
                 {filteredUsers.map((user) => (

@@ -9,6 +9,7 @@
 
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import type { EnglishLevel, OnboardingData, OnboardingStep } from "@/types/onboarding";
 import { createSession } from "@/api/sessions";
@@ -32,6 +33,7 @@ const STEP_ORDERS: Record<OnboardingFlow, OnboardingStep[]> = {
 };
 
 export function Onboarding({ flow = "full" }: OnboardingProps) {
+    const { t } = useTranslation("common");
     const navigate = useNavigate();
     const stepOrder = STEP_ORDERS[flow];
     const [currentStep, setCurrentStep] = useState<OnboardingStep>(stepOrder[0]);
@@ -132,7 +134,10 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
         <OnboardingShell progress={progress}>
             {/* ARCHITECT: у мастера два входа (/onboarding и /session/new) — заголовок вкладки
                 называет именно тот, куда пришёл пользователь. Индексация закрыта: это мастер. */}
-            <Seo indexable={false} title={flow === "session" ? "Новая сессия" : "Настройка обучения"} />
+            <Seo
+                indexable={false}
+                title={flow === "session" ? t("onboarding.seoNewSession") : t("onboarding.seoSetup")}
+            />
             <AnimatePresence mode="wait">
                 <motion.div
                     key={currentStep}

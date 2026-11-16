@@ -5,12 +5,16 @@
 // поэтому карточки не должны уезжать за горизонтальный скролл.
 
 import { motion } from "framer-motion";
+import { Users } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { fetchTutors } from "@/api/tutors";
 import { useMockQuery } from "@/hooks/useMockQuery";
 import { TutorCard } from "@/components/dashboard/TutorCard";
 import { TutorsSkeleton } from "@/components/dashboard/skeletons/TutorsSkeleton";
+import { EmptyState } from "@/components/shared/EmptyState";
 
 export function TutorsPage() {
+    const { t } = useTranslation();
     const { data: tutors, isLoading } = useMockQuery(fetchTutors);
 
     if (isLoading || tutors === null) return <TutorsSkeleton />;
@@ -30,11 +34,19 @@ export function TutorsPage() {
                     </p>
                 </motion.header>
 
-                <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                    {tutors.map((blobatar) => (
-                        <TutorCard key={blobatar.id} blobatar={blobatar} />
-                    ))}
-                </div>
+                {tutors.length === 0 ? (
+                    <EmptyState
+                        icon={Users}
+                        title={t("states.empty.tutors.title")}
+                        description={t("states.empty.tutors.description")}
+                    />
+                ) : (
+                    <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-3">
+                        {tutors.map((blobatar) => (
+                            <TutorCard key={blobatar.id} blobatar={blobatar} />
+                        ))}
+                    </div>
+                )}
             </div>
         </div>
     );

@@ -7,6 +7,7 @@
 
 import { useState } from "react";
 import { Search } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { HELP_FAQ_CATEGORY_ORDER } from "@/types/support";
 import type { HelpFaqCategory, HelpFaqItem } from "@/types/support";
 import { INPUT_SURFACE } from "@/lib/surfaces";
@@ -26,6 +27,7 @@ interface HelpFaqListProps {
 }
 
 export function HelpFaqList({ items: allItems }: HelpFaqListProps) {
+    const { t } = useTranslation();
     const [query, setQuery] = useState("");
     const [category, setCategory] = useState<FaqCategoryValue>("all");
 
@@ -48,7 +50,7 @@ export function HelpFaqList({ items: allItems }: HelpFaqListProps) {
     return (
         <section aria-labelledby="help-faq-title" className="w-full">
             <h2 id="help-faq-title" className="text-base font-medium text-[#f0f0f5]">
-                Частые вопросы
+                {t("help.faq.title")}
             </h2>
 
             <div className="relative mt-4">
@@ -60,8 +62,8 @@ export function HelpFaqList({ items: allItems }: HelpFaqListProps) {
                     type="search"
                     value={query}
                     onChange={(event) => setQuery(event.target.value)}
-                    placeholder="Поиск по вопросам"
-                    aria-label="Поиск по вопросам"
+                    placeholder={t("help.faq.search")}
+                    aria-label={t("help.faq.search")}
                     className={cn(INPUT_SURFACE, "pl-10 focus:ring-[#f0f0f5]/20")}
                 />
             </div>
@@ -71,7 +73,7 @@ export function HelpFaqList({ items: allItems }: HelpFaqListProps) {
             </div>
 
             {items.length === 0 ? (
-                <p className="mt-4 text-sm text-[#f0f0f5]/40">Ничего не найдено</p>
+                <p className="mt-4 text-sm text-[#f0f0f5]/60">{t("states.search.empty")}</p>
             ) : (
                 /* ARCHITECT: каждый вопрос — отдельный блок с собственными границами, а не строка
                    с hairline-разделителем: на длинных ответах список читается по частям. */

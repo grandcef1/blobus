@@ -1,0 +1,45 @@
+===== src/components/onboarding/steps/WelcomeGlobe.tsx (147 lines) =====
+128:             {/* ARCHITECT: статичный слой свечения — та же геометрия без анимации линий. */}
+===== src/components/onboarding/steps/RepetitorSelectionStep.tsx (150 lines) =====
+38:     eyebrow = "Репетитор",
+120:                 title="Выбери репетитора"
+121:                 subtitle="У каждого свой характер и стиль преподавания"
+128:                 <p className="text-sm text-[#f0f0f5]/60">Список репетиторов недоступен</p>
+131:                    оказывается внутри группы. Это цена вставки панели под ряд: вынести её за
+132:                    пределы группы нельзя, не потеряв строку вставки. */
+135:                     aria-label="Выбор репетитора"
+145:             <StepNav onBack={onBack} onNext={onNext} nextLabel="Продолжить" disabled={!selectedId} />
+===== src/components/onboarding/AuthModeTabs.tsx (43 lines) =====
+17:     { id: "register", label: "Регистрация" },
+18:     { id: "login", label: "Вход" },
+23:         <div className={cn("mb-6 flex rounded-xl p-1", GLASS_SURFACE)} role="tablist" aria-label="Способ входа">
+===== src/components/onboarding/GoogleAuthButton.tsx (43 lines) =====
+40:             {isLoading ? "Подключаемся…" : "Продолжить с Google"}
+===== src/components/onboarding/StepHeader.tsx (71 lines) =====
+65:                     Шаг {step} из {totalSteps}
+===== src/components/onboarding/StepNav.tsx (37 lines) =====
+24:                     Назад
+===== src/components/onboarding/SelectionStatusLine.tsx (28 lines) =====
+22:                     <span>Выбран репетитор: {blobatar.name}</span>
+===== src/components/onboarding/RepetitorCard.tsx (142 lines) =====
+75:             {/* ARCHITECT: внутри кнопки только фразовое содержимое: h3 и p там недопустимы,
+76:                 поэтому блок текста собран из span, разделённых отступами. */}
+96:                             Рекомендуем под цель
+111:             {/* ARCHITECT: mt-auto прижимает кнопку к низу карточки, поэтому в ряду сетки они
+112:                 стоят на одной линии, а открытие панели истории карточку не растягивает. */}
+124:                 <span>{isHistoryOpen ? "Свернуть" : "История"}</span>
+===== src/components/onboarding/RepetitorHistoryPanel.tsx (112 lines) =====
+49:             {/* ARCHITECT: указатель — хвост реплики: он показывает, чья история открыта, без
+50:                 второго имени и аватара. Стороны повёрнутого квадрата ложатся ровно на верхнюю
+51:                 границу полосы, а z-10 нужен, чтобы его нижняя половина перекрыла линию границы
+52:                 под собой: так хвост читается как продолжение полосы, а не как отдельная метка. */}
+72:                 aria-label={`История: ${blobatar.name}`}
+85:                     aria-label="Свернуть историю"
+94:                 {/* ARCHITECT: ключ по персонажу даёт короткий кроссфейд текста при переносе
+95:                     полосы на другую карточку; высота при этом не переигрывается. */}
+===== src/types/onboarding.ts (48 lines) =====
+41:     intro: "Знакомство",
+42:     assessment: "Тест",
+43:     goals: "Цели",
+44:     schedule: "Расписание",
+45:     lesson: "Урок",

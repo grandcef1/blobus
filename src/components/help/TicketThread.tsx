@@ -4,6 +4,7 @@
 // уезжает под клавиатуру при появлении экранной раскладки.
 
 import { useEffect, useRef, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { useReducedMotion } from "framer-motion";
 import { Send } from "lucide-react";
 import { sendTicketMessage } from "@/api/support";
@@ -22,6 +23,7 @@ interface TicketThreadProps {
 }
 
 export function TicketThread({ ticket }: TicketThreadProps) {
+    const { t } = useTranslation("common");
     const shouldReduceMotion = useReducedMotion();
     const [current, setCurrent] = useState(ticket);
     const [draft, setDraft] = useState("");
@@ -41,7 +43,7 @@ export function TicketThread({ ticket }: TicketThreadProps) {
 
         setCurrent(updated);
         setDraft("");
-        toast.success("Сообщение отправлено");
+        toast.success(t("help.thread.sent"));
     };
 
     return (
@@ -92,15 +94,15 @@ export function TicketThread({ ticket }: TicketThreadProps) {
                         }
                     }}
                     rows={1}
-                    placeholder="Напишите сообщение"
-                    aria-label="Сообщение в поддержку"
+                    placeholder={t("help.thread.placeholder")}
+                    aria-label={t("help.thread.inputLabel")}
                     className={COMPOSER}
                 />
                 <button
                     type="button"
                     onClick={handleSend}
                     disabled={!draft.trim()}
-                    aria-label="Отправить сообщение"
+                    aria-label={t("help.thread.send")}
                     className={cn(
                         "flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]",
                         draft.trim()

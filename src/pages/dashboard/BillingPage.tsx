@@ -1,11 +1,11 @@
 // ARCHITECT: страница только собирает секции: данные приходят из query-хуков, действия — из мутаций,
 // поэтому экран не знает ни об api-слое, ни о мок-режиме.
-// ARCHITECT: загрузка показывается скелетоном раскладки, отказ загрузки — панелью с повтором: пустой
-// экран при сбое читается как поломка приложения.
+// ARCHITECT: загрузка показывается скелетоном раскладки, отказ загрузки — общим ErrorState с повтором:
+// пустой экран при сбое читается как поломка приложения.
 
 import { lazy, Suspense } from "react";
 import { useTranslation } from "react-i18next";
-import { BillingErrorPanel } from "@/components/billing/BillingErrorPanel";
+import { ErrorState } from "@/components/shared/ErrorState";
 import { CurrentPlanCard } from "@/components/billing/CurrentPlanCard";
 import { InvoicesList } from "@/components/billing/InvoicesList";
 import { PastDueBanner } from "@/components/billing/PastDueBanner";
@@ -35,7 +35,10 @@ export function BillingPage() {
         return (
             <div className="min-h-screen bg-black p-4 md:p-6">
                 <div className="mx-auto max-w-3xl">
-                    <BillingErrorPanel
+                    <ErrorState
+                        title={t("errors.title")}
+                        description={t("errors.description")}
+                        retryLabel={t("errors.retry")}
                         onRetry={() => {
                             void subscription.refetch();
                             void invoices.refetch();

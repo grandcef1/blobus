@@ -3,9 +3,10 @@
 // ARCHITECT: вид повторяет сводку мастера, но усечён: тот же стеклянный блок, тот же порядок —
 // уровень, объяснение, действие. Маршрут знает страница, поэтому компонент только сообщает о выходе.
 
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { StepCard } from "@/components/onboarding/StepCard";
-import { LEVEL_DESCRIPTIONS } from "@/lib/placement";
+import { LEVEL_DESCRIPTION_KEYS } from "@/lib/placement";
 import { PRIMARY_BUTTON } from "@/lib/surfaces";
 import type { EnglishLevel } from "@/types/onboarding";
 
@@ -22,26 +23,27 @@ export function ListeningResultSummary({
     total,
     onDone,
 }: ListeningResultSummaryProps) {
+    const { t } = useTranslation("placement");
+
     return (
         <StepCard className="flex flex-col gap-5">
-            <h1 className="text-xl font-semibold text-[#f0f0f5]">Аудирование проверено</h1>
+            <h1 className="text-xl font-semibold text-[#f0f0f5]">{t("listening.checked")}</h1>
 
             <div className="flex items-baseline gap-3">
                 <span className="text-3xl font-semibold tabular-nums text-[#f0f0f5]">{level}</span>
-                <span className="text-sm text-[#f0f0f5]/50">уровень аудирования</span>
+                <span className="text-sm text-[#f0f0f5]/50">{t("listening.levelValue")}</span>
             </div>
 
-            <p className="text-sm leading-[1.6] text-[#f0f0f5]/70">{LEVEL_DESCRIPTIONS[level]}</p>
+            <p className="text-sm leading-[1.6] text-[#f0f0f5]/70">{t(LEVEL_DESCRIPTION_KEYS[level])}</p>
 
             <p className="border-t border-white/5 pt-4 text-xs leading-[1.6] text-[#f0f0f5]/50">
-                Верных ответов:{" "}
-                <span className="tabular-nums text-[#f0f0f5]/80">{correctCount}</span> из {total}.
-                Уровень сохранён в профиле и попадёт в следующую сессию.
+                {t("listening.correctCount", { correct: correctCount, total })}{" "}
+                {t("listening.saved")}
             </p>
 
             <div className="flex justify-end">
                 <Button type="button" className={PRIMARY_BUTTON} onClick={onDone}>
-                    Вернуться в Обзор
+                    {t("shell.backToOverview")}
                 </Button>
             </div>
         </StepCard>

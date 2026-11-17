@@ -4,8 +4,9 @@
 // и с экрана результата, и из профиля. Кнопка есть только пока проверки не было: пройденный уровень
 // показывается значением строки, и предлагать его заново нечего.
 
+import { useTranslation } from "react-i18next";
 import type { PlacementResult } from "@/types/placement";
-import { LEVEL_DESCRIPTIONS } from "@/lib/placement";
+import { LEVEL_DESCRIPTION_KEYS } from "@/lib/placement";
 import { StepCard } from "@/components/onboarding/StepCard";
 
 interface PlacementResultViewProps {
@@ -17,9 +18,10 @@ const LINK_BUTTON =
     "mt-2 min-h-11 text-sm text-[#f0f0f5] underline transition-colors hover:no-underline focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]";
 
 export function PlacementResultView({ result, onCheckListening }: PlacementResultViewProps) {
+    const { t } = useTranslation("placement");
     const tracks = [
-        { id: "grammar", label: "Грамматика", level: result.grammar },
-        { id: "general", label: "Общий английский", level: result.general },
+        { id: "grammar", label: t("result.trackGrammar"), level: result.grammar },
+        { id: "general", label: t("result.trackGeneral"), level: result.general },
     ];
 
     return (
@@ -29,12 +31,12 @@ export function PlacementResultView({ result, onCheckListening }: PlacementResul
                     {result.score}
                 </span>
                 <span className="text-sm text-[#f0f0f5]/50">
-                    из 100 · уровень {result.overall}
+                    {t("result.score", { level: result.overall })}
                 </span>
             </div>
 
             <p className="text-sm leading-[1.6] text-[#f0f0f5]/70">
-                {LEVEL_DESCRIPTIONS[result.overall]}
+                {t(LEVEL_DESCRIPTION_KEYS[result.overall])}
             </p>
 
             <dl className="flex flex-col gap-4 border-t border-white/5 pt-4">
@@ -45,7 +47,7 @@ export function PlacementResultView({ result, onCheckListening }: PlacementResul
                             <span className="tabular-nums text-[#f0f0f5]">{track.level}</span>
                         </dt>
                         <dd className="mt-1 text-xs leading-[1.6] text-[#f0f0f5]/50">
-                            {LEVEL_DESCRIPTIONS[track.level]}
+                            {t(LEVEL_DESCRIPTION_KEYS[track.level])}
                         </dd>
                     </div>
                 ))}
@@ -53,20 +55,20 @@ export function PlacementResultView({ result, onCheckListening }: PlacementResul
 
             <div className="border-t border-white/5 pt-4">
                 <p className="flex items-center justify-between gap-3 text-sm text-[#f0f0f5]/80">
-                    Аудирование
+                    {t("listening.name")}
                     <span className="tabular-nums text-[#f0f0f5]">
-                        {result.listening ?? "не проверено"}
+                        {result.listening ?? t("result.listeningNotChecked")}
                     </span>
                 </p>
                 <p className="mt-1 text-xs leading-[1.6] text-[#f0f0f5]/50">
                     {result.listening
-                        ? LEVEL_DESCRIPTIONS[result.listening]
-                        : "Аудирование не проверено: пройти можно здесь или в разделе «Обзор» — карточка ждёт на стартовой странице."}
+                        ? t(LEVEL_DESCRIPTION_KEYS[result.listening])
+                        : t("result.listeningHint")}
                 </p>
 
                 {result.listening === null && (
                     <button type="button" onClick={onCheckListening} className={LINK_BUTTON}>
-                        Проверить аудирование
+                        {t("result.checkListening")}
                     </button>
                 )}
             </div>

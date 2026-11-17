@@ -7,7 +7,7 @@
 import { TrendingUp } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
-import { LEVEL_DESCRIPTIONS } from "@/lib/placement";
+import { LEVEL_DESCRIPTION_KEYS } from "@/lib/placement";
 import type { PlacementResult } from "@/types/placement";
 
 interface ProfileSkillsCardProps {
@@ -23,30 +23,36 @@ interface SkillRow {
 
 export function ProfileSkillsCard({ result }: ProfileSkillsCardProps) {
     const { t } = useTranslation("dashboard");
+    const { t: tPlacement } = useTranslation("placement");
     const level = MOCK_USER_PROGRESS.currentLevel;
     const overall = result?.overall ?? level;
     const listening = result?.listening ?? null;
 
     const rows: readonly SkillRow[] = [
-        { id: "overall", label: t("profile.skills.overall"), value: overall, hint: LEVEL_DESCRIPTIONS[overall] },
+        {
+            id: "overall",
+            label: t("profile.skills.overall"),
+            value: overall,
+            hint: tPlacement(LEVEL_DESCRIPTION_KEYS[overall]),
+        },
         {
             id: "grammar",
             label: t("profile.skills.grammar"),
             value: result?.grammar ?? level,
-            hint: LEVEL_DESCRIPTIONS[result?.grammar ?? level],
+            hint: tPlacement(LEVEL_DESCRIPTION_KEYS[result?.grammar ?? level]),
         },
         {
             id: "speaking",
             label: t("profile.skills.speaking"),
             value: result?.speaking ?? level,
-            hint: LEVEL_DESCRIPTIONS[result?.speaking ?? level],
+            hint: tPlacement(LEVEL_DESCRIPTION_KEYS[result?.speaking ?? level]),
         },
         {
             id: "listening",
             label: t("profile.skills.listening"),
             value: listening ?? t("profile.skills.notChecked"),
             hint: listening
-                ? LEVEL_DESCRIPTIONS[listening]
+                ? tPlacement(LEVEL_DESCRIPTION_KEYS[listening])
                 : t("profile.skills.listeningHint"),
         },
     ];

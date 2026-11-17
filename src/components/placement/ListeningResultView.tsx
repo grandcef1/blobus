@@ -1,7 +1,8 @@
 // ARCHITECT: итог аудирования — уровень и число верных ответов. Оценка мок: реальная проверка
 // понимания на слух и произношения нейросетью появится на бэкенде.
 
-import { LEVEL_DESCRIPTIONS } from "@/lib/placement";
+import { useTranslation } from "react-i18next";
+import { LEVEL_DESCRIPTION_KEYS } from "@/lib/placement";
 import type { EnglishLevel } from "@/types/onboarding";
 
 interface ListeningResultViewProps {
@@ -11,14 +12,16 @@ interface ListeningResultViewProps {
 }
 
 export function ListeningResultView({ level, correctCount, total }: ListeningResultViewProps) {
+    const { t } = useTranslation("placement");
+
     return (
         <div className="mt-4">
             <p className="text-sm text-[#f0f0f5]/80">
-                Уровень аудирования:{" "}
-                <span className="tabular-nums text-[#f0f0f5]">{level}</span>
+                {t("listening.resultLevel", { level })}
             </p>
             <p className="mt-2 text-xs leading-[1.6] text-[#f0f0f5]/50">
-                {LEVEL_DESCRIPTIONS[level]} Верных ответов: {correctCount} из {total}.
+                {t(LEVEL_DESCRIPTION_KEYS[level])}{" "}
+                {t("listening.correctCount", { correct: correctCount, total })}
             </p>
         </div>
     );

@@ -2,9 +2,17 @@
 // ARCHITECT: Монохромные соцсети. Серый → белый на hover. Без цветных акцентов.
 
 import { motion } from 'framer-motion';
+import { useTranslation } from 'react-i18next';
 import type { ComponentType } from 'react';
 import type { FooterLinkItem } from './Footer.types';
-import { XIcon, LinkedInIcon, GitHubIcon, DiscordIcon } from './BrandIcons';
+import {
+    XIcon,
+    LinkedInIcon,
+    GitHubIcon,
+    DiscordIcon,
+    TelegramIcon,
+    InstagramIcon,
+} from './BrandIcons';
 
 interface SocialLinksProps {
     readonly links: readonly FooterLinkItem[];
@@ -19,7 +27,20 @@ const ICON_MAP: Record<string, BrandIconComponent> = {
     Discord: DiscordIcon,
 };
 
+// ARCHITECT: макеты не ссылки, потому что аккаунтов ещё нет, а мёртвые ссылки запрещены;
+// они не фокусируемы и помечены aria-disabled — при появлении URL переезжают в Footer.data.
+const SOCIAL_PLACEHOLDERS: readonly {
+    readonly id: string;
+    readonly label: string;
+    readonly Icon: BrandIconComponent;
+}[] = [
+    { id: 'telegram', label: 'Telegram', Icon: TelegramIcon },
+    { id: 'instagram', label: 'Instagram', Icon: InstagramIcon },
+];
+
 export function SocialLinks({ links }: SocialLinksProps) {
+    const { t } = useTranslation('footer');
+
     return (
         <div className="flex items-center gap-2">
             {links.map((link) => {
@@ -42,6 +63,19 @@ export function SocialLinks({ links }: SocialLinksProps) {
                     </motion.a>
                 );
             })}
+
+            {SOCIAL_PLACEHOLDERS.map(({ id, label, Icon }) => (
+                <span
+                    key={id}
+                    role="img"
+                    aria-label={label}
+                    aria-disabled="true"
+                    title={t('social.comingSoon')}
+                    className="flex h-9 w-9 cursor-default items-center justify-center rounded-full text-zinc-500 opacity-40"
+                >
+                    <Icon className="h-4 w-4" />
+                </span>
+            ))}
         </div>
     );
 }

@@ -31,6 +31,9 @@
       "support": "Support"
     }
   },
+  "social": {
+    "comingSoon": "Coming soon"
+  },
   "newsletter": {
     "title": "Stay in the loop",
     "description": "Product news and new releases — no spam.",

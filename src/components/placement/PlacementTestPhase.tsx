@@ -34,17 +34,18 @@ export function PlacementTestPhase({
     step,
     totalSteps,
 }: PlacementTestPhaseProps) {
+    const { t } = useTranslation("placement");
     const { t: tCommon } = useTranslation("common");
     // ARCHITECT: последний вопрос — ровно двадцатый: граница сравнивается строго с общим числом
     // вопросов, той же величиной, что и счётчик «Вопрос N из total».
     const isLast = number === total;
-    const lastLabel = withListening ? "К аудированию" : "К результатам";
+    const lastLabel = withListening ? t("test.toListening") : t("test.toResults");
 
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
                 eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.assessment)}
-                title="Определим твой уровень"
+                title={t("intro.title")}
                 step={step}
                 totalSteps={totalSteps}
             />
@@ -60,7 +61,7 @@ export function PlacementTestPhase({
             <StepNav
                 onBack={onBack}
                 onNext={onNext}
-                nextLabel={isLast ? lastLabel : "Дальше"}
+                nextLabel={isLast ? lastLabel : t("shell.next")}
                 disabled={selectedOptionId === null}
             />
         </div>

@@ -5,6 +5,7 @@
 // блок под опциями прыгал на строку разбора в момент ответа.
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
+import { useTranslation } from "react-i18next";
 import type { PlacementItem } from "@/types/placement";
 import { QuizOptionButton } from "@/components/shared/QuizOptionButton";
 import type { QuizOptionState } from "@/components/shared/QuizOptionButton";
@@ -28,6 +29,7 @@ export function PlacementQuestion({
     selectedOptionId,
     onSelect,
 }: PlacementQuestionProps) {
+    const { t } = useTranslation("placement");
     const shouldReduceMotion = useReducedMotion();
     const isAnswered = selectedOptionId !== null;
 
@@ -43,12 +45,16 @@ export function PlacementQuestion({
                 и разбор, поэтому скринридер должен получить обновление блока, а не одной строки. */}
             <div aria-live="polite">
                 <p className="text-xs tabular-nums text-[#f0f0f5]/50">
-                    Вопрос {number} из {total}
+                    {t("test.question", { number, total })}
                 </p>
 
                 <p className="mt-4 text-base leading-[1.6] text-[#f0f0f5] md:text-lg">{item.prompt}</p>
 
-                <div className="mt-5 flex flex-col gap-2" role="group" aria-label="Варианты ответа">
+                <div
+                    className="mt-5 flex flex-col gap-2"
+                    role="group"
+                    aria-label={t("test.optionsLabel")}
+                >
                     {item.options.map((option, index) => (
                         <QuizOptionButton
                             key={option.id}

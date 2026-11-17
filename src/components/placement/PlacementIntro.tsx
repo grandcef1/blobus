@@ -19,11 +19,13 @@ interface PlacementIntroProps {
     totalSteps: number;
 }
 
+// ARCHITECT: карта хранит ключи placement-неймспейса, а не подписи: t() резолвит их в рендере, поэтому
+// смена языка обновляет список без перемонтирования.
 const INTRO_POINTS = [
-    "Двадцать вопросов: десять на грамматику и десять на общий английский.",
-    "Около семи минут в спокойном темпе.",
-    "Сложность подстраивается под ответы — тест адаптивный.",
-];
+    "intro.points.questions",
+    "intro.points.duration",
+    "intro.points.adaptive",
+] as const;
 
 export function PlacementIntro({
     withListening,
@@ -34,14 +36,15 @@ export function PlacementIntro({
     step,
     totalSteps,
 }: PlacementIntroProps) {
+    const { t } = useTranslation("placement");
     const { t: tCommon } = useTranslation("common");
 
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
                 eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.assessment)}
-                title="Определим твой уровень"
-                subtitle="Адаптивный тест: сложность подстраивается под ответы. Уровень по CEFR, балл по шкале 0-100."
+                title={t("intro.title")}
+                subtitle={t("intro.subtitle")}
                 step={step}
                 totalSteps={totalSteps}
             />
@@ -54,7 +57,7 @@ export function PlacementIntro({
                                 className="mt-2 size-1 shrink-0 rounded-full bg-[#f0f0f5]/40"
                                 aria-hidden="true"
                             />
-                            {point}
+                            {t(point)}
                         </li>
                     ))}
                 </ul>
@@ -70,11 +73,10 @@ export function PlacementIntro({
                     />
                     <span className="min-w-0">
                         <span className="block text-sm text-[#f0f0f5]">
-                            Добавить проверку аудирования
+                            {t("intro.listeningToggle")}
                         </span>
                         <span className="mt-1 block text-xs leading-[1.6] text-[#f0f0f5]/50">
-                            Шесть коротких заданий на понимание на слух после основных вопросов. Можно
-                            пройти и позже — карточка появится в «Обзоре».
+                            {t("intro.listeningHint")}
                         </span>
                     </span>
                 </label>
@@ -83,7 +85,7 @@ export function PlacementIntro({
             <StepNav
                 onBack={onBack}
                 onNext={onStart}
-                nextLabel={hasProgress ? "Продолжить тест" : "Начать тест"}
+                nextLabel={hasProgress ? t("shell.resumeTest") : t("shell.startTest")}
             />
         </div>
     );

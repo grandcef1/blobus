@@ -20,14 +20,15 @@ export function PlacementListeningPhase({
     totalSteps,
     onComplete,
 }: PlacementListeningPhaseProps) {
+    const { t } = useTranslation("placement");
     const { t: tCommon } = useTranslation("common");
 
     return (
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
                 eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.assessment)}
-                title="Аудирование"
-                subtitle="Шесть заданий на понимание на слух."
+                title={t("listening.name")}
+                subtitle={t("listening.stepSubtitle")}
                 step={step}
                 totalSteps={totalSteps}
             />

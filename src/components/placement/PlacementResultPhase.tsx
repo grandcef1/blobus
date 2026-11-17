@@ -26,6 +26,7 @@ export function PlacementResultPhase({
     onBack,
     onContinue,
 }: PlacementResultPhaseProps) {
+    const { t } = useTranslation("placement");
     const { t: tCommon } = useTranslation("common");
     const navigate = useNavigate();
 
@@ -33,8 +34,8 @@ export function PlacementResultPhase({
         <div className="mx-auto w-full max-w-xl">
             <StepHeader
                 eyebrow={tCommon(ONBOARDING_STEP_TITLE_KEYS.assessment)}
-                title="Уровень определён"
-                subtitle="Уровень попадёт в сводку перед первым уроком и в профиль."
+                title={t("result.title")}
+                subtitle={t("result.subtitle")}
                 step={step}
                 totalSteps={totalSteps}
             />
@@ -44,7 +45,7 @@ export function PlacementResultPhase({
                 onCheckListening={() => navigate("/listening")}
             />
 
-            <StepNav onBack={onBack} onNext={onContinue} nextLabel="Продолжить" />
+            <StepNav onBack={onBack} onNext={onContinue} nextLabel={t("shell.continue")} />
         </div>
     );
 }

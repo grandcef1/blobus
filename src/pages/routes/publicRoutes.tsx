@@ -12,6 +12,7 @@ import {
   ChangelogPage,
   ContactsPage,
   CookiesPage,
+  DocsPage,
   ForgotPasswordPage,
   HelpPage,
   ListeningFlow,
@@ -105,6 +106,16 @@ export const publicRoutes = (
       element={
         <Suspense fallback={<LegalSkeleton />}>
           <ChangelogPage />
+        </Suspense>
+      }
+    />
+    {/* ARCHITECT: /docs использует ту же оболочку (ContentLayout), поэтому скелетон правовых страниц
+        подходит: заголовок, интро и блоки текста на своих местах. */}
+    <Route
+      path="/docs"
+      element={
+        <Suspense fallback={<LegalSkeleton />}>
+          <DocsPage />
         </Suspense>
       }
     />

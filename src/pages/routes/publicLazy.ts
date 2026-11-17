@@ -41,6 +41,10 @@ export const ChangelogPage = lazy(() =>
   import('@/pages/ChangelogPage').then((module) => ({ default: module.ChangelogPage }))
 );
 
+export const DocsPage = lazy(() =>
+  import('@/pages/DocsPage').then((module) => ({ default: module.DocsPage }))
+);
+
 // ARCHITECT: восстановление доступа — тоже ленивые публичные маршруты: чанк нужен только тем, кто
 // потерял пароль или подтверждает почту, и в основной бандл он не попадает.
 export const ForgotPasswordPage = lazy(() =>

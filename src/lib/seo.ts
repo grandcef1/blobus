@@ -6,6 +6,7 @@
 
 import seoRoutes from "./seo-routes.json";
 import commonRu from "@/locales/ru/common.json";
+import docsRu from "@/locales/ru/docs.json";
 
 // ARCHITECT: фоллбэк — реальный прод-домен проекта: canonical/OG/sitemap на мёртвый адрес заставили бы
 // поисковик индексировать несуществующий сайт и обесценили весь SEO-контур. Источник правды один.
@@ -39,6 +40,13 @@ const CLIENT_ROUTES: readonly SeoRoute[] = [
         path: "/changelog",
         title: commonRu.changelog.title,
         description: commonRu.changelog.subtitle,
+        priority: 0.5,
+        changefreq: "weekly",
+    },
+    {
+        path: "/docs",
+        title: docsRu.pageTitle,
+        description: docsRu.pageIntro,
         priority: 0.5,
         changefreq: "weekly",
     },

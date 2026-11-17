@@ -67,9 +67,10 @@ export function DocsPage() {
                         </div>
 
                         {/* ARCHITECT: helpLink есть только у трёх разделов, поэтому поле проверяется через in —
-                            без этого typecheck не сузит union из as const. */}
+                            без этого typecheck не сузит union из as const. inline-block нужен из-за mt-6:
+                            у LEGAL_INLINE_LINK нет display-класса, и отступ на inline-ссылке не работает. */}
                         {"helpLinkKey" in section && (
-                            <Link to="/help" className={cn(LEGAL_INLINE_LINK, "mt-6")}>
+                            <Link to="/help" className={cn(LEGAL_INLINE_LINK, "mt-6 inline-block")}>
                                 {t(section.helpLinkKey)}
                             </Link>
                         )}

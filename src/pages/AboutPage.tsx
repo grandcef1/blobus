@@ -1,16 +1,23 @@
 // ARCHITECT: «О проекте» объясняет назначение продукта и не пересекается с /docs (руководство по
 // использованию) и /help (частые вопросы) — это осознанное разделение контента.
 
+import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { LegalLayout } from "@/components/legal/LegalLayout";
+import { ContentLayout } from "@/components/legal/ContentLayout";
 import { LegalSection } from "@/components/legal/LegalSection";
+import { breadcrumbForRoute } from "@/lib/structured-data";
 
 export function AboutPage() {
     const { t } = useTranslation("common");
+    const { pathname } = useLocation();
 
     return (
-        <LegalLayout title={t("about.title")} intro={t("about.lead")}>
+        <ContentLayout
+            title={t("about.title")}
+            intro={t("about.lead")}
+            jsonLd={breadcrumbForRoute(pathname)}
+        >
             {/* ARCHITECT: в ContactsPage motion нет, поэтому появление — простой fade без сдвигов:
                 страница не «прыгает» и не спорит с типографикой документа. */}
             <motion.div
@@ -28,6 +35,6 @@ export function AboutPage() {
                     <p className="text-sm leading-relaxed text-[#f0f0f5]/70">{t("about.note")}</p>
                 </section>
             </motion.div>
-        </LegalLayout>
+        </ContentLayout>
     );
 }

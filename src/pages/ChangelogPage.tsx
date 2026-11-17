@@ -1,9 +1,11 @@
 // ARCHITECT: лента спроектирована на рост — новый пост = запись в ENTRIES + три ключа в словарях,
 // разметку менять не нужно; дата через Intl по текущему языку, локальный парсинг защищает от сдвига суток.
 
+import { useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion } from "framer-motion";
-import { LegalLayout } from "@/components/legal/LegalLayout";
+import { ContentLayout } from "@/components/legal/ContentLayout";
+import { breadcrumbForRoute } from "@/lib/structured-data";
 
 // ARCHITECT: ключи — строковые литералы (проектный паттерн *_KEYS): t(entry.titleKey) типизируется,
 // конкатенации ключей в рантайме нет. Дата — ISO без времени, часовой пояс добавляется при рендере.
@@ -19,6 +21,7 @@ const ENTRIES = [
 
 export function ChangelogPage() {
     const { t, i18n } = useTranslation("common");
+    const { pathname } = useLocation();
 
     // ARCHITECT: форматтер создаётся в рендере, поэтому смена языка сразу меняет порядок и название
     // месяца; суффикс T00:00:00 обязателен — без него ISO-дата читается как UTC и в отрицательных
@@ -30,7 +33,11 @@ export function ChangelogPage() {
     });
 
     return (
-        <LegalLayout title={t("changelog.title")} intro={t("changelog.subtitle")}>
+        <ContentLayout
+            title={t("changelog.title")}
+            intro={t("changelog.subtitle")}
+            jsonLd={breadcrumbForRoute(pathname)}
+        >
             <motion.div
                 initial={{ opacity: 0 }}
                 animate={{ opacity: 1 }}
@@ -59,6 +66,6 @@ export function ChangelogPage() {
                     </article>
                 ))}
             </motion.div>
-        </LegalLayout>
+        </ContentLayout>
     );
 }

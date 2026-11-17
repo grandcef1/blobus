@@ -31,6 +31,16 @@ export const ContactsPage = lazy(() =>
   import('@/pages/ContactsPage').then((module) => ({ default: module.ContactsPage }))
 );
 
+// ARCHITECT: /about и /changelog — публичные контентные страницы вне критического пути: чанк нужен
+// только при переходе по прямой ссылке, в основной бандл он не попадает.
+export const AboutPage = lazy(() =>
+  import('@/pages/AboutPage').then((module) => ({ default: module.AboutPage }))
+);
+
+export const ChangelogPage = lazy(() =>
+  import('@/pages/ChangelogPage').then((module) => ({ default: module.ChangelogPage }))
+);
+
 // ARCHITECT: восстановление доступа — тоже ленивые публичные маршруты: чанк нужен только тем, кто
 // потерял пароль или подтверждает почту, и в основной бандл он не попадает.
 export const ForgotPasswordPage = lazy(() =>

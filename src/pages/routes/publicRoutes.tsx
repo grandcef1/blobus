@@ -8,6 +8,8 @@ import { LegalSkeleton } from '@/components/shared/skeletons/LegalSkeleton';
 import { LoginSkeleton } from '@/components/shared/skeletons/LoginSkeleton';
 import { HelpSkeleton } from '@/components/dashboard/skeletons/HelpSkeleton';
 import {
+  AboutPage,
+  ChangelogPage,
   ContactsPage,
   CookiesPage,
   ForgotPasswordPage,
@@ -85,6 +87,24 @@ export const publicRoutes = (
       element={
         <Suspense fallback={<LegalSkeleton />}>
           <ContactsPage />
+        </Suspense>
+      }
+    />
+    {/* ARCHITECT: /about и /changelog делят оболочку с контактами и правовыми документами, поэтому
+        скелетон тот же. В prerender они не входят: его список по-прежнему seo-routes.json. */}
+    <Route
+      path="/about"
+      element={
+        <Suspense fallback={<LegalSkeleton />}>
+          <AboutPage />
+        </Suspense>
+      }
+    />
+    <Route
+      path="/changelog"
+      element={
+        <Suspense fallback={<LegalSkeleton />}>
+          <ChangelogPage />
         </Suspense>
       }
     />

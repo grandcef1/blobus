@@ -28,6 +28,15 @@
     "details": "Learn more"
   },
   "errors": {
+    "api": {
+      "timeout": "The server took too long to respond",
+      "linkInvalid": "The link is not valid"
+    },
+    "boundary": {
+      "title": "Something went wrong",
+      "description": "An unexpected interface error. Reload the page — that is usually enough.",
+      "reload": "Reload page"
+    },
     "updateAvailable": {
       "title": "Update available",
       "description": "Part of the interface failed to load: a new version was released.",
@@ -58,7 +67,8 @@
       "sentToastHint": "Check your inbox — the confirmation link is on its way.",
       "errorToast": "We couldn't send the email",
       "errorToastHint": "Check your connection and try again."
-    }
+    },
+    "fallbackName": "Student"
   },
   "steps": {
     "intro": "Intro",
@@ -148,6 +158,7 @@
     "tickets": {
       "title": "My requests"
     },
+    "ticketAutoReply": "Your request has been registered. We will reply within 24 hours on business days.",
     "ticketCategories": {
       "billing": "Billing and subscription",
       "technical": "Technical problem",
@@ -185,5 +196,34 @@
   "onboarding": {
     "seoNewSession": "New session",
     "seoSetup": "Learning setup"
+  },
+  "celebration": {
+    "correct": "Correct"
+  },
+  "correction": {
+    "title": "Correction",
+    "severity": {
+      "minor": "minor fix",
+      "moderate": "moderate fix",
+      "major": "major fix"
+    }
+  },
+  "guards": {
+    "adminTitle": "Access denied",
+    "adminDescription": "This section is only available to administrators.",
+    "authTitle": "Sign-in required",
+    "authDescription": "Open /app only after signing in."
+  },
+  "legal": {
+    "operator": "German Stepanov — independent developer, Blobus project"
+  },
+  "sessions": {
+    "newTitle": "New session · {{mode}}",
+    "opening": {
+      "interview": "Let's start with a typical interview question. Tell me about a time you had to work under deadline pressure.",
+      "speaking": "Let's start with a simple conversation. In English, tell me what you did this week.",
+      "grammar": "Let's start with one rule and apply it right away. Make a sentence in the past simple about yesterday.",
+      "general": "Let's start with an everyday topic. What did you do today? Answer in English and I will correct you if needed."
+    }
   }
 }

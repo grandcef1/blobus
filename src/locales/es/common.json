@@ -28,6 +28,15 @@
     "details": "Más información"
   },
   "errors": {
+    "api": {
+      "timeout": "El servidor tardó demasiado en responder",
+      "linkInvalid": "El enlace no es válido"
+    },
+    "boundary": {
+      "title": "Algo salió mal",
+      "description": "Un error inesperado de la interfaz. Recarga la página: normalmente es suficiente.",
+      "reload": "Recargar la página"
+    },
     "updateAvailable": {
       "title": "Actualización disponible",
       "description": "Parte de la interfaz no se cargó: hay una versión nueva.",
@@ -58,7 +67,8 @@
       "sentToastHint": "Mira tu bandeja: el enlace de confirmación va en camino.",
       "errorToast": "No pudimos enviar el correo",
       "errorToastHint": "Comprueba la conexión e inténtalo de nuevo."
-    }
+    },
+    "fallbackName": "Estudiante"
   },
   "steps": {
     "intro": "Presentación",
@@ -148,6 +158,7 @@
     "tickets": {
       "title": "Mis solicitudes"
     },
+    "ticketAutoReply": "Tu solicitud ha quedado registrada. Responderemos en un plazo de 24 horas en días laborables.",
     "ticketCategories": {
       "billing": "Pago y suscripción",
       "technical": "Problema técnico",
@@ -185,5 +196,34 @@
   "onboarding": {
     "seoNewSession": "Nueva sesión",
     "seoSetup": "Configurar el aprendizaje"
+  },
+  "celebration": {
+    "correct": "Correcto"
+  },
+  "correction": {
+    "title": "Corrección",
+    "severity": {
+      "minor": "corrección leve",
+      "moderate": "corrección moderada",
+      "major": "corrección importante"
+    }
+  },
+  "guards": {
+    "adminTitle": "Sin acceso",
+    "adminDescription": "Esta sección solo está disponible para administradores.",
+    "authTitle": "Se requiere iniciar sesión",
+    "authDescription": "Abre /app solo después de iniciar sesión."
+  },
+  "legal": {
+    "operator": "German Stepanov — desarrollador independiente, proyecto Blobus"
+  },
+  "sessions": {
+    "newTitle": "Nueva sesión · {{mode}}",
+    "opening": {
+      "interview": "Empecemos con una pregunta típica de entrevista. Cuéntame sobre una ocasión en la que tuvieras que trabajar bajo presión de plazo.",
+      "speaking": "Empecemos con una conversación sencilla. Cuéntame en inglés qué hiciste esta semana.",
+      "grammar": "Empecemos con una regla y apliquémosla de inmediato. Forma una oración en pasado simple sobre ayer.",
+      "general": "Empecemos con un tema cotidiano. What did you do today? Responde en inglés y te corregiré si hace falta."
+    }
   }
 }

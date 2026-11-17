@@ -39,11 +39,25 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
             >
                 <BrandBlobatar interactive={false} className="size-9" />
                 {!isCollapsed && (
-                    <span className="relative block h-6 overflow-hidden">
-                        <span className="block text-lg font-semibold tracking-tight text-[#f0f0f5] transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-0 motion-reduce:transition-none">
-                            {t("nav.brand")}
+                    /* ARCHITECT: grid-ячейка вместо absolute inset-0: оба текста лежат в одной
+                       колонке/строке, поэтому ширина контейнера = ширина БОЛЬШЕГО текста и «На главную»
+                       не переносится. leading-none снимает интерлиньяж text-lg (28px > h-6 = 24px),
+                       из-за которого строка обрезалась; px-1 — запас под сдвиг магнитных букв. */
+                    <span className="relative grid h-6 shrink-0 items-center overflow-hidden px-1">
+                        <span
+                            className="fx-magnetic col-start-1 row-start-1 whitespace-nowrap text-lg font-semibold leading-none text-[#f0f0f5] transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-0 motion-reduce:transition-none"
+                            role="img"
+                            aria-label={t("nav.brand")}
+                        >
+                            {t("nav.brand")
+                                .split("")
+                                .map((letter, index) => (
+                                    <b key={`${letter}-${index}`} aria-hidden="true">
+                                        {letter}
+                                    </b>
+                                ))}
                         </span>
-                        <span className="absolute inset-0 block translate-y-full text-lg font-semibold tracking-tight text-[#f0f0f5] opacity-0 transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none">
+                        <span className="col-start-1 row-start-1 translate-y-full whitespace-nowrap text-lg font-semibold leading-none tracking-tight text-[#f0f0f5] opacity-0 transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none">
                             {t("nav.goHome")}
                         </span>
                     </span>

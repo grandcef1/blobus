@@ -1,4 +1,13 @@
 {
+  "about": {
+    "title": "Sobre el proyecto",
+    "lead": "Blobus es un entrenador de inglés donde mantienes un diálogo real con un tutor de IA en lugar de rellenar huecos.",
+    "whyTitle": "Por qué existe",
+    "whyBody": "La mayoría de las aplicaciones llevan a todos por el mismo programa: las mismas lecciones y los mismos errores que nadie explica. Blobus construye la sesión a tu alrededor: tu nivel, tu objetivo, tu ritmo. El tutor mantiene el contexto de la conversación, corrige sobre la marcha y explica la regla en lugar de solo marcarla en rojo.",
+    "howTitle": "Cómo funciona el aprendizaje",
+    "howBody": "Primero un test adaptativo sitúa tu nivel en la escala MCER. Después eliges un modo — conversación, gramática, preparación de entrevistas o inglés general — y un tutor cuyo carácter encaje contigo. Cada sesión termina con una revisión: qué ha funcionado y qué practicar después.",
+    "note": "El proyecto lo desarrolla una sola persona. Los correos de soporte se leen personalmente y los cambios salen a menudo y al grano."
+  },
   "actions": {
     "start": "Empezar",
     "startFree": "Empezar gratis",
@@ -14,6 +23,15 @@
     "siteNav": "Navegación del sitio",
     "homeLink": "Ir a la página de inicio",
     "skipToContent": "Ir al contenido principal"
+  },
+  "changelog": {
+    "title": "Novedades",
+    "subtitle": "Notas breves sobre lo que cambia en el proyecto.",
+    "launch": {
+      "tag": "Lanzamiento",
+      "title": "El proyecto arranca",
+      "body": "Blobus está abierto. En la sandbox funcionan el test de nivel adaptativo, cuatro modos de estudio, la prueba de comprensión auditiva y la corrección de errores dentro del diálogo. Lo próximo: el servidor, los pagos y el modo de voz."
+    }
   },
   "language": {
     "selectLabel": "Idioma de la interfaz",

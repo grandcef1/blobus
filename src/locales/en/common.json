@@ -1,4 +1,13 @@
 {
+  "about": {
+    "title": "About the project",
+    "lead": "Blobus is an English trainer where you hold a live dialogue with an AI tutor instead of filling in blanks.",
+    "whyTitle": "Why it exists",
+    "whyBody": "Most apps put everyone through the same programme: the same lessons and the same mistakes nobody explains. Blobus builds a session around you — your level, your goal, your pace. The tutor keeps the context of the conversation, corrects as you go and explains the rule instead of just marking it red.",
+    "howTitle": "How learning works",
+    "howBody": "An adaptive test first places your level on the CEFR scale. Then you pick a mode — conversation, grammar, interview prep or general English — and a tutor whose character suits you. Every session ends with a review: what worked and what to practise next.",
+    "note": "The project is built by one developer. Support emails are read personally, and updates ship often and on point."
+  },
   "actions": {
     "start": "Get started",
     "startFree": "Start free",
@@ -14,6 +23,15 @@
     "siteNav": "Site navigation",
     "homeLink": "Go to the home page",
     "skipToContent": "Skip to main content"
+  },
+  "changelog": {
+    "title": "What's new",
+    "subtitle": "Short notes on what changes in the project.",
+    "launch": {
+      "tag": "Launch",
+      "title": "The project starts",
+      "body": "Blobus is open. The sandbox runs the adaptive level test, four learning modes, a listening check and error review inside the dialogue. Next: the server side, payments and voice mode."
+    }
   },
   "language": {
     "selectLabel": "Interface language",

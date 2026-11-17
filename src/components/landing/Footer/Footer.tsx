@@ -11,7 +11,7 @@ import { FOOTER_COLUMNS, FOOTER_NEWSLETTER, FOOTER_SOCIAL } from './Footer.data'
 import { FooterColumn } from './FooterColumn';
 import { SocialLinks } from './SocialLinks';
 import { NewsletterForm } from './NewsletterForm';
-import { LanguageSwitcher } from './LanguageSwitcher';
+import { LanguageSwitcher } from '../LanguageSwitcher';
 
 // ARCHITECT: Кастомная кривая Безье "outExpo" — быстрый старт, мягкое завершение.
 const EASE_PREMIUM: Easing = [0.16, 1, 0.3, 1];

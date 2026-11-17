@@ -1,4 +1,7 @@
-// src/components/landing/Footer/LanguageSwitcher.tsx
+// src/components/landing/LanguageSwitcher.tsx
+// ARCHITECT: компонент поднят на уровень landing и обслуживает и хедер, и футер; placement задаёт
+// направление раскрытия (в футере вверх, в хедере вниз с прижатием к правому краю), compact —
+// облегчённый триггер, чтобы не перегружать шапку.
 // ARCHITECT: Флаги заменены кодами языков. Код выведен капсом с трекингом —
 // выглядит как осознанная типографическая деталь, а не как fallback Windows.
 
@@ -7,10 +10,28 @@ import { useTranslation } from 'react-i18next';
 import { motion, AnimatePresence } from 'framer-motion';
 import { Globe, ChevronDown } from 'lucide-react';
 import { useLanguageStore } from '@/store/language';
-import { LANGUAGES } from './Footer.data';
-import type { LanguageCode } from './Footer.types';
+import { cn } from '@/lib/utils';
+import { LANGUAGES } from './Footer/Footer.data';
+import type { LanguageCode } from './Footer/Footer.types';
 
-export function LanguageSwitcher() {
+interface LanguageSwitcherProps {
+    placement?: 'up' | 'down';
+    compact?: boolean;
+    className?: string;
+}
+
+// ARCHITECT: направление раскрытия задаётся строкой класса, а не ветвлением JSX: список один и тот
+// же, различается только позиционирование (в хедере прижимаем к правому краю триггера).
+const LIST_PLACEMENT: Record<'up' | 'down', string> = {
+    up: 'absolute bottom-full left-1/2 z-50 mb-2 min-w-[180px] -translate-x-1/2',
+    down: 'absolute top-full right-0 z-50 mt-2 min-w-[180px]',
+};
+
+export function LanguageSwitcher({
+    placement = 'up',
+    compact = false,
+    className,
+}: LanguageSwitcherProps) {
     const { t } = useTranslation('common');
     // ARCHITECT: язык берётся из общего стора, а не из локального состояния: выбор переключателя
     // меняет переводы всего приложения и сохраняется в localStorage (это делает детектор i18next).
@@ -32,29 +53,51 @@ export function LanguageSwitcher() {
         return () => document.removeEventListener('mousedown', handleClickOutside);
     }, []);
 
+    // ARCHITECT: выпадающий список закрывается по Escape, как и положено listbox.
+    useEffect(() => {
+        const handleKeyDown = (event: KeyboardEvent): void => {
+            if (event.key === 'Escape') setIsOpen(false);
+        };
+
+        document.addEventListener('keydown', handleKeyDown);
+        return () => document.removeEventListener('keydown', handleKeyDown);
+    }, []);
+
     const handleSelect = (code: LanguageCode): void => {
         setLanguage(code);
         setIsOpen(false);
     };
 
     return (
-        <div ref={containerRef} className="relative">
+        <div ref={containerRef} className={cn('relative', className)}>
             <button
                 type="button"
                 onClick={() => setIsOpen((prev) => !prev)}
                 aria-expanded={isOpen}
                 aria-haspopup="listbox"
                 aria-label={t('language.selectLabel')}
-                className="flex items-center gap-2 rounded-md px-3 py-2 text-sm text-zinc-500 transition-colors duration-200 hover:text-white"
+                className={cn(
+                    'flex items-center rounded-md transition-colors duration-200',
+                    compact
+                        ? 'gap-1.5 px-2 py-1.5 text-xs font-medium uppercase tracking-[0.12em] text-[#f0f0f5]/70 hover:text-white'
+                        : 'gap-2 px-3 py-2 text-sm text-zinc-500 hover:text-white',
+                )}
             >
-                <Globe className="h-4 w-4" aria-hidden="true" />
-                {/* ARCHITECT: на мобильных показываем компактный код, на sm+ — название */}
-                <span className="text-xs font-medium uppercase tracking-[0.15em] sm:hidden">
-                    {selected.short}
-                </span>
-                <span className="hidden sm:inline">{selected.label}</span>
+                <Globe className={compact ? 'h-3.5 w-3.5' : 'h-4 w-4'} aria-hidden="true" />
+                {compact ? (
+                    // ARCHITECT: в шапке всегда только код языка — полное название перегружало бы хедер.
+                    <span>{selected.short}</span>
+                ) : (
+                    <>
+                        {/* ARCHITECT: на мобильных показываем компактный код, на sm+ — название */}
+                        <span className="text-xs font-medium uppercase tracking-[0.15em] sm:hidden">
+                            {selected.short}
+                        </span>
+                        <span className="hidden sm:inline">{selected.label}</span>
+                    </>
+                )}
                 <ChevronDown
-                    className={`h-3 w-3 transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
+                    className={`${compact ? 'h-2.5 w-2.5' : 'h-3 w-3'} transition-transform duration-200 ${isOpen ? 'rotate-180' : ''}`}
                     aria-hidden="true"
                 />
             </button>
@@ -68,7 +111,10 @@ export function LanguageSwitcher() {
                         animate={{ opacity: 1, y: 0, scale: 1 }}
                         exit={{ opacity: 0, y: 8, scale: 0.98 }}
                         transition={{ duration: 0.15, ease: 'easeOut' }}
-                        className="absolute bottom-full left-1/2 z-50 mb-2 min-w-[180px] -translate-x-1/2 overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 py-1 shadow-2xl shadow-black/50"
+                        className={cn(
+                            LIST_PLACEMENT[placement],
+                            'overflow-hidden rounded-xl border border-zinc-800 bg-zinc-950 py-1 shadow-2xl shadow-black/50',
+                        )}
                     >
                         {LANGUAGES.map((lang) => {
                             const isActive = lang.code === currentLang;

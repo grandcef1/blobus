@@ -13,6 +13,8 @@ import {
     SheetTrigger,
 } from "@/components/ui/sheet";
 
+import { LanguageSwitcher } from "./LanguageSwitcher";
+
 // ARCHITECT: единый источник навигации — якоря для плавного скролла; подписи лежат ключами в
 // словаре landing, поэтому шапка переводится вместе со страницей.
 const NAV_LINKS = [
@@ -69,6 +71,10 @@ export function Header() {
 
                 {/* ARCHITECT: кнопки справа — видны только на десктопе */}
                 <div className="hidden items-center gap-3 md:flex">
+                    {/* ARCHITECT: переключатель языка живёт в шапке рядом с CTA; разделитель —
+                        тот же тонкий светлый штрих, что и границы хедера. */}
+                    <LanguageSwitcher placement="down" compact />
+                    <span className="h-5 w-px bg-white/10" aria-hidden="true" />
                     <Button
                         variant="outline"
                         onClick={handleLogin}
@@ -118,6 +124,12 @@ export function Header() {
                                 </SheetClose>
                             ))}
                         </nav>
+
+                        {/* ARCHITECT: на мобильных полный переключатель стоит под навигацией и
+                            раскрывается вниз внутри панели Sheet (у SheetContent нет overflow-обрезки). */}
+                        <div className="px-4">
+                            <LanguageSwitcher placement="down" />
+                        </div>
 
                         {/* ARCHITECT: кнопки внутри тёмной панели — тёмные варианты: primary как
                             в шапке (светлая пилюля), secondary — стеклянный ghost с border-white/20. */}

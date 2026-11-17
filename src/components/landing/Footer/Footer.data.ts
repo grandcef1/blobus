@@ -9,6 +9,8 @@ import type {
     LanguageOption,
 } from './Footer.types';
 
+// ARCHITECT: колонки сбалансированы 3/2/2/3, все адресаты реальные и уникальные; документация убрана
+// до появления своей страницы, чтобы не держать мёртвую ссылку.
 export const FOOTER_COLUMNS: readonly FooterColumnItem[] = [
     {
         titleKey: 'columns.product.title',
@@ -16,16 +18,21 @@ export const FOOTER_COLUMNS: readonly FooterColumnItem[] = [
             { labelKey: 'columns.product.features', href: '#features' },
             { labelKey: 'columns.product.howItWorks', href: '#how-it-works' },
             { labelKey: 'columns.product.pricing', href: '#pricing' },
-            { labelKey: 'columns.product.faq', href: '#faq' },
         ],
     },
     {
         titleKey: 'columns.resources.title',
-        links: [{ labelKey: 'columns.resources.docs', href: '/docs' }],
+        links: [
+            { labelKey: 'columns.product.faq', href: '#faq' },
+            { labelKey: 'columns.legal.help', href: '/help' },
+        ],
     },
     {
         titleKey: 'columns.company.title',
-        links: [{ labelKey: 'columns.company.contacts', href: '/contacts' }],
+        links: [
+            { labelKey: 'columns.company.contacts', href: '/contacts' },
+            { labelKey: 'columns.legal.support', href: 'mailto:blobus.support@gmail.com', external: true },
+        ],
     },
     {
         titleKey: 'columns.legal.title',
@@ -33,8 +40,6 @@ export const FOOTER_COLUMNS: readonly FooterColumnItem[] = [
             { labelKey: 'columns.legal.privacy', href: '/privacy' },
             { labelKey: 'columns.legal.terms', href: '/terms' },
             { labelKey: 'columns.legal.cookies', href: '/cookies' },
-            { labelKey: 'columns.legal.help', href: '/help' },
-            { labelKey: 'columns.legal.support', href: 'mailto:blobus.support@gmail.com', external: true },
         ],
     },
 ];

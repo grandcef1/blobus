@@ -1,0 +1,93 @@
+{
+  "gettingStarted": {
+    "title": "Getting started",
+    "intro": "The setup wizard has five steps. The step number and progress bar sit at the top of the screen, and Back returns to the previous step. Later, New session in the sidebar runs a short version of the wizard: tutor and mode.",
+    "step1Title": "Step 1. Intro",
+    "step1Body": "After the welcome screen, create an account on the Sign up tab: name, email and a password (at least 8 characters, with an uppercase letter, a lowercase letter and a digit), or continue with Google. If you already have an account, the Sign in tab opens Overview straight away and skips the other steps.",
+    "step2Title": "Step 2. Level test",
+    "step2Body": "An adaptive test sets your level on the CEFR scale. How it works is covered in the section on finding your level.",
+    "step3Title": "Step 3. Goals",
+    "step3Body": "Pick your main goal first — one of four modes — then a tutor. Tutors that suit the mode are marked “Recommended for your goal”, but you can choose any of the ten, and the History button on a card opens the character’s backstory.",
+    "step4Title": "Step 4. Schedule",
+    "step4Body": "Choose how often you study (every day, every other day, 3 times a week or once a week) and how long a lesson lasts (15, 30, 45 or 60 minutes). The defaults are every day and 30 minutes.",
+    "step5Title": "Step 5. Lesson",
+    "step5Body": "The summary shows your goal, the level from the test and your schedule. Start lesson creates a session and opens the chat; if your email is not confirmed, a screen with a “Continue without confirming” link comes first."
+  },
+  "levelTest": {
+    "title": "Finding your level",
+    "intro": "The test in step 2 sets your level on the CEFR scale, from A1 to C2. The result appears in the summary before your first lesson, in your profile and in the level of new sessions.",
+    "adaptiveTitle": "How the test works",
+    "adaptiveBody": "Twenty questions: ten on grammar and ten on general English, taken in turn. The test starts at A2: a correct answer makes the next question harder, a wrong one makes it easier. You cannot change an answer once chosen, but Back lets you look at earlier questions, and an unfinished test is kept until you close the tab.",
+    "scaleTitle": "Level and score",
+    "scaleBody": "Your overall level is the lower of the two results, so a strong track cannot inflate it. The 0–100 score always falls inside the band for that level: A1 21–30, A2 31–40, B1 41–50, B2 51–60, C1 61–70, C2 71–100. The result screen also shows your grammar and general English levels.",
+    "listeningWhyTitle": "Why there is a listening check",
+    "listeningWhyBody": "The main questions are read, while the listening check tests understanding by ear and appears in your profile as a separate level. It is optional: your level is set without it.",
+    "listeningHowTitle": "How to take the listening check",
+    "listeningHowBody": "Turn on Add a listening check before the test and six tasks follow the main questions. Press Play (each task allows two plays, read aloud by your browser’s English voice) and choose an answer. If you skip it, the Listening not checked card waits in Overview, and Check listening is also on the result screen."
+  },
+  "modes": {
+    "title": "Learning modes",
+    "intro": "The mode sets the topic of a session and its first message; each session has one mode. There are four, and you can change it at any time.",
+    "interviewTitle": "Interview prep",
+    "interviewBody": "Typical interview questions and professional vocabulary. The session opens with a question about working under deadline pressure.",
+    "speakingTitle": "Conversation",
+    "speakingBody": "Fluency through natural dialogue. The session opens by asking you to say in English what you did this week.",
+    "grammarTitle": "Grammar",
+    "grammarBody": "Structured lessons on the rules. The session opens with one rule you apply straight away: write a past simple sentence about yesterday.",
+    "generalTitle": "General",
+    "generalBody": "Everyday English for travel and conversation. The session opens by asking what you did today.",
+    "switchTitle": "How to change the mode",
+    "switchBody": "In the chat, press the Session settings icon in the header, choose Mode and pick the one you want. The change applies at once and the message history stays.",
+    "helpLink": "More in the Help centre"
+  },
+  "tutors": {
+    "title": "Tutors",
+    "intro": "Blobus has ten tutor characters, each with their own personality and style: Miya, for example, goes through mistakes gently, while Nova is strict but explains every remark. You choose a tutor in the Goals step or in the new session wizard, and the name shows in the chat header.",
+    "pageTitle": "The Tutors page",
+    "pageBody": "The sidebar section lists every character: three personality traits, a line about teaching style and a backstory that opens with Read more. The page is read-only. Recommended by mode: Interview prep — Max and Orion; Conversation — Miya and Alex; Grammar — Oscar and Lira; General — Luna and Nova.",
+    "switchTitle": "How to change the tutor",
+    "switchBody": "In the chat, open Session settings, choose Tutor and pick a character; the change applies at once. The list ends with a More about tutors link."
+  },
+  "dialogue": {
+    "title": "Dialogue",
+    "intro": "A session is a chat with your tutor. The header shows the tutor, the mode and a lesson counter, and the three-dot menu has Rename, Copy link, Clear history and Delete session. Session settings also has Reset progress, which zeroes the counters and the day streak but keeps the history.",
+    "sendTitle": "Sending messages",
+    "sendBody": "Write in English and press Enter to send; Shift+Enter starts a new line. When the empty field is focused, four quick prompts appear above it (“Explain this rule”, “Give me more examples”, “Let’s practise a dialogue”, “Quiz me on this topic”): a click only inserts the text, and you send it yourself.",
+    "correctionTitle": "Correction card",
+    "correctionBody": "It shows your sentence with the wrong words highlighted and struck through, the corrected version, the name of the rule and a label for the size of the fix: minor, moderate or major. An explanation follows, and the Examples list opens on demand.",
+    "quizTitle": "Quiz",
+    "quizBody": "Choose one of the options A–D. A correct answer brings an explanation; after a wrong one you can try again, and after the second mistake the card reveals the right answer with its explanation.",
+    "wordTitle": "New word card",
+    "wordBody": "It shows the word, its pronunciation, translation, part of speech, examples and similar words. The Save to vocabulary bookmark marks the word on the card only; it does not yet reach the Vocabulary section.",
+    "helpLink": "More in the Help centre"
+  },
+  "dashboard": {
+    "title": "Dashboard",
+    "intro": "The dashboard opens on Overview. The sidebar has Overview, Sessions, Vocabulary, Tutors, Help centre, Settings and Subscription, and the profile opens from the name block at the bottom of the menu.",
+    "overviewTitle": "Overview and progress",
+    "overviewBody": "The Continue learning card opens your latest session and shows overall progress. Below it come four figures (day streak, words learned, minutes studied, achievements), progress by mode and the three latest lessons with a View all link; if listening is unchecked, a card with a Check button sits here too.",
+    "sessionsTitle": "Sessions",
+    "sessionsBody": "Your dialogues, newest first. Each card shows the tutor and mode, a status (In progress or Completed), the lesson count and the level, and a click opens the chat; the five latest sessions are repeated in the sidebar.",
+    "vocabularyTitle": "Vocabulary and review",
+    "vocabularyBody": "Each word appears with its translation, pronunciation, a mastery percentage and an example. Search works on the word and on its translation, and the Review button does not start anything yet.",
+    "profileTitle": "Profile and skills",
+    "profileBody": "The profile shows your name, email status (with a Confirm button), achievements and total words. Level by skill gives your overall, grammar, speaking practice and listening levels with a short description, and Progress by mode lists strengths and what to improve.",
+    "settingsTitle": "Settings",
+    "settingsBody": "Three options: sound effects, interface language (Russian, English, Spanish) and auto-correction. The language changes at once and is remembered in your browser.",
+    "subscriptionTitle": "Subscription and plans",
+    "subscriptionBody": "Free includes 50 messages with the tutor a month; Pro is unlimited for $3 a month. Switch to Pro starts a 7-day trial; as the status changes, the page offers Pay now, Cancel (access lasts until the period ends), Resume and Switch to Free, and also shows a usage meter and payments with receipts.",
+    "helpLink": "More in the Help centre"
+  },
+  "limits": {
+    "title": "Limits of the current version",
+    "intro": "Blobus is currently a front end without a server: data comes from built-in samples and actions run in your browser. Here is what that means in practice.",
+    "localTitle": "What runs locally",
+    "localBody": "Sign-up, Google sign-in, email confirmation and payments are simulated: any details are accepted and nothing is charged. Your account, language and subscription are kept in the browser, while sessions and the test result live in page memory, so created sessions and the test result are lost on reload. The message counter on the subscription page does not move as you chat.",
+    "chatTitle": "Dialogue and data",
+    "chatBody": "The tutor does not reply yet: sent messages are only added to the history. Correction, quiz and new word cards exist only in two sample sessions, and the Overview figures, lessons and the Vocabulary list come from samples rather than your own practice.",
+    "unfinishedTitle": "What does not work yet",
+    "unfinishedBody": "The voice input, file attachment, Listen, Pronounce and Review buttons are in the interface but do nothing; the sound and auto-correction switches are not saved, and the schedule from the wizard is not used anywhere. Mode names and tutor names, traits and backstories appear in Russian whatever the interface language.",
+    "serverTitle": "What the server side will bring",
+    "serverBody": "Next on the list are a server side, payments and voice mode; the data that now comes from samples should move to the server. There are no dates, and until then behaviour in the browser may differ from what is described here."
+  }
+}

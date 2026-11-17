@@ -1,0 +1,93 @@
+{
+  "gettingStarted": {
+    "title": "Primeros pasos",
+    "intro": "El asistente de configuración tiene cinco pasos. El número del paso y la barra de progreso están arriba en la pantalla, y Atrás vuelve al paso anterior. Más adelante, Nueva sesión en el menú lateral abre una versión corta: tutor y modo.",
+    "step1Title": "Paso 1. Presentación",
+    "step1Body": "Tras la pantalla de bienvenida, crea una cuenta en la pestaña Registro: nombre, correo y una contraseña (mínimo 8 caracteres, con una mayúscula, una minúscula y un número), o continúa con Google. Si ya tienes cuenta, la pestaña Entrar abre Resumen directamente y se salta los demás pasos.",
+    "step2Title": "Paso 2. Nivel",
+    "step2Body": "Un test adaptativo define tu nivel según el MCER. Cómo funciona se explica en la sección sobre cómo definir tu nivel.",
+    "step3Title": "Paso 3. Objetivos",
+    "step3Body": "Primero elige tu objetivo principal, uno de los cuatro modos, y después un tutor. Los tutores que encajan con el modo llevan la etiqueta «Recomendado para tu objetivo», pero puedes elegir a cualquiera de los diez, y el botón Historial de la tarjeta muestra la historia del personaje.",
+    "step4Title": "Paso 4. Horario",
+    "step4Body": "Elige la frecuencia de estudio (cada día, día por medio, 3 veces por semana o una vez por semana) y la duración de la clase (15, 30, 45 o 60 minutos). Por defecto se eligen cada día y 30 minutos.",
+    "step5Title": "Paso 5. Lección",
+    "step5Body": "El resumen muestra tu objetivo, el nivel del test y tu horario. Empezar la clase crea una sesión y abre el chat; si tu correo no está confirmado, antes aparece una pantalla con el enlace «Continuar sin confirmar»."
+  },
+  "levelTest": {
+    "title": "Definir tu nivel",
+    "intro": "El test del paso 2 define tu nivel según el MCER, de A1 a C2. El resultado aparece en el resumen antes de la primera clase, en tu perfil y en el nivel de las sesiones nuevas.",
+    "adaptiveTitle": "Cómo es el test",
+    "adaptiveBody": "Son veinte preguntas: diez de gramática y diez de inglés general, que se alternan. El test empieza en A2: una respuesta correcta hace la siguiente pregunta más difícil y una incorrecta, más fácil. No puedes cambiar una respuesta ya elegida, pero Atrás te deja ver las preguntas anteriores, y un test sin terminar se conserva hasta que cierres la pestaña.",
+    "scaleTitle": "Nivel y puntuación",
+    "scaleBody": "Tu nivel general es el más bajo de los dos resultados, para que una destreza fuerte no lo infle. La puntuación de 0 a 100 siempre cae dentro de la banda de ese nivel: A1 21–30, A2 31–40, B1 41–50, B2 51–60, C1 61–70, C2 71–100. La pantalla de resultados también muestra tus niveles de gramática y de inglés general.",
+    "listeningWhyTitle": "Para qué sirve la comprensión auditiva",
+    "listeningWhyBody": "Las preguntas principales se leen, mientras que la prueba de comprensión auditiva mide cuánto entiendes al oír y aparece en tu perfil como un nivel aparte. Es opcional: tu nivel se define también sin ella.",
+    "listeningHowTitle": "Cómo hacer la prueba de comprensión auditiva",
+    "listeningHowBody": "Activa Añadir una prueba de comprensión auditiva antes del test y tras las preguntas principales llegan seis tareas. Pulsa Escuchar (cada tarea permite dos escuchas, con la voz en inglés de tu navegador) y elige una respuesta. Si la omites, la tarjeta «Comprensión auditiva sin comprobar» te espera en Resumen, y Comprobar comprensión auditiva también está en la pantalla de resultados."
+  },
+  "modes": {
+    "title": "Modos de estudio",
+    "intro": "El modo fija el tema de una sesión y su primer mensaje; cada sesión tiene un solo modo. Hay cuatro y puedes cambiarlo en cualquier momento.",
+    "interviewTitle": "Entrevistas",
+    "interviewBody": "Preguntas típicas de entrevista y vocabulario profesional. La sesión empieza con una pregunta sobre trabajar bajo la presión de un plazo.",
+    "speakingTitle": "Conversación",
+    "speakingBody": "Fluidez a través de diálogos naturales. La sesión empieza pidiéndote que cuentes en inglés qué hiciste esta semana.",
+    "grammarTitle": "Gramática",
+    "grammarBody": "Lecciones estructuradas sobre las reglas. La sesión empieza con una regla que aplicas enseguida: escribe una frase en pasado simple sobre ayer.",
+    "generalTitle": "General",
+    "generalBody": "Inglés cotidiano para viajar y conversar. La sesión empieza preguntándote qué hiciste hoy.",
+    "switchTitle": "Cómo cambiar el modo",
+    "switchBody": "En el chat, pulsa el icono Ajustes de la sesión de la cabecera, elige Modo y la opción que quieras. El cambio se aplica al instante y el historial de mensajes se mantiene.",
+    "helpLink": "Más en el Centro de ayuda"
+  },
+  "tutors": {
+    "title": "Tutores",
+    "intro": "Blobus tiene diez tutores con carácter propio y su propio estilo: Miya, por ejemplo, repasa los errores con delicadeza, mientras que Nova es estricta pero explica cada observación. Eliges tutor en el paso Objetivos o en el asistente de sesión nueva, y su nombre aparece en la cabecera del chat.",
+    "pageTitle": "La página Tutores",
+    "pageBody": "La sección del menú lateral reúne a todos los personajes: tres rasgos de carácter, una línea sobre el estilo de enseñanza y una historia que se abre con Ver más. La página es solo de lectura. Recomendados por modo: Entrevistas — Max y Orion; Conversación — Miya y Alex; Gramática — Oscar y Lira; General — Luna y Nova.",
+    "switchTitle": "Cómo cambiar de tutor",
+    "switchBody": "En el chat, abre Ajustes de la sesión, elige Tutor y el personaje que quieras; el cambio se aplica al instante. La lista termina con el enlace Más sobre los tutores."
+  },
+  "dialogue": {
+    "title": "Diálogo",
+    "intro": "Una sesión es un chat con tu tutor. La cabecera muestra el tutor, el modo y un contador de lecciones, y el menú de tres puntos incluye Renombrar, Copiar enlace, Borrar el historial y Eliminar la sesión. Ajustes de la sesión tiene además Restablecer el progreso, que pone a cero los contadores y la racha de días pero conserva el historial.",
+    "sendTitle": "Enviar mensajes",
+    "sendBody": "Escribe en inglés y pulsa Enter para enviar; Shift+Enter inserta un salto de línea. Cuando el campo vacío tiene el foco, encima aparecen cuatro sugerencias rápidas («Explícame esta regla», «Dame más ejemplos», «Practiquemos un diálogo», «Pregúntame sobre este tema»): al pulsarlas solo se inserta el texto y lo envías tú.",
+    "correctionTitle": "Tarjeta de corrección",
+    "correctionBody": "Muestra tu frase con las palabras erróneas resaltadas y tachadas, la versión corregida, el nombre de la regla y una etiqueta con el tamaño de la corrección: leve, moderada o importante. Debajo va la explicación, y la lista Ejemplos se abre con un botón.",
+    "quizTitle": "Cuestionario",
+    "quizBody": "Elige una de las opciones A–D. Una respuesta correcta trae una explicación; tras una incorrecta puedes reintentarlo, y después del segundo error la tarjeta muestra la respuesta correcta con su explicación.",
+    "wordTitle": "Tarjeta de palabra nueva",
+    "wordBody": "Muestra la palabra, su pronunciación, traducción, categoría gramatical, ejemplos y palabras similares. El marcador Guardar en el vocabulario señala la palabra solo en la tarjeta; todavía no llega a la sección Vocabulario.",
+    "helpLink": "Más en el Centro de ayuda"
+  },
+  "dashboard": {
+    "title": "Panel",
+    "intro": "El panel se abre en Resumen. El menú lateral tiene Resumen, Sesiones, Vocabulario, Tutores, Centro de ayuda, Ajustes y Suscripción, y el perfil se abre desde el bloque con tu nombre al final del menú.",
+    "overviewTitle": "Resumen y progreso",
+    "overviewBody": "La tarjeta Continuar aprendiendo abre tu última sesión y muestra el progreso general. Debajo van cuatro cifras (días seguidos, palabras aprendidas, minutos de estudio, logros), el progreso por modo y las tres últimas lecciones con el enlace Ver todas; si la comprensión auditiva está sin comprobar, aquí también hay una tarjeta con el botón Comprobar.",
+    "sessionsTitle": "Sesiones",
+    "sessionsBody": "Tus diálogos, los más nuevos primero. Cada tarjeta muestra el tutor y el modo, un estado (En curso o Completada), el número de lecciones y el nivel, y al pulsarla se abre el chat; las cinco últimas sesiones se repiten en el menú lateral.",
+    "vocabularyTitle": "Vocabulario y repaso",
+    "vocabularyBody": "Cada palabra aparece con su traducción, pronunciación, un porcentaje de dominio y un ejemplo. La búsqueda funciona por la palabra y por su traducción, y el botón Repasar todavía no inicia nada.",
+    "profileTitle": "Perfil y destrezas",
+    "profileBody": "El perfil muestra tu nombre, el estado del correo (con el botón Confirmar), los logros y el total de palabras. Nivel por destreza da tus niveles general, de gramática, de práctica de conversación y de comprensión auditiva con una breve descripción, y Progreso por modo enumera los puntos fuertes y qué mejorar.",
+    "settingsTitle": "Ajustes",
+    "settingsBody": "Tres opciones: efectos de sonido, idioma de la interfaz (ruso, inglés, español) y autocorrección. El idioma cambia al instante y se recuerda en tu navegador.",
+    "subscriptionTitle": "Suscripción y planes",
+    "subscriptionBody": "Free incluye 50 mensajes al mes con el tutor; Pro no tiene límite y cuesta $3 al mes. Cambiar a Pro inicia una prueba de 7 días; según cambie el estado, la página ofrece Pagar ahora, Cancelar (el acceso dura hasta el final del periodo), Reanudar y Cambiar a Free, y muestra además un contador de uso y los pagos con sus recibos.",
+    "helpLink": "Más en el Centro de ayuda"
+  },
+  "limits": {
+    "title": "Limitaciones de la versión actual",
+    "intro": "Blobus es ahora una parte de cliente sin servidor: los datos salen de ejemplos incorporados y las acciones se ejecutan en tu navegador. Esto es lo que significa en la práctica.",
+    "localTitle": "Qué funciona en local",
+    "localBody": "El registro, el acceso con Google, la confirmación del correo y los pagos son simulados: se aceptan cualquier datos y no se cobra nada. Tu cuenta, el idioma y la suscripción se guardan en el navegador, mientras que las sesiones y el resultado del test viven en la memoria de la página, así que al recargar se pierden las sesiones creadas y el resultado del test. El contador de mensajes de la página Suscripción no avanza mientras chateas.",
+    "chatTitle": "Diálogo y datos",
+    "chatBody": "El tutor todavía no responde: los mensajes enviados solo se añaden al historial. Las tarjetas de corrección, cuestionario y palabra nueva existen solo en dos sesiones de ejemplo, y las cifras de Resumen, las lecciones y la lista de Vocabulario salen de ejemplos, no de tu práctica.",
+    "unfinishedTitle": "Qué todavía no funciona",
+    "unfinishedBody": "Los botones de entrada de voz, adjuntar archivo, Escuchar, Pronunciar y Repasar están en la interfaz pero no hacen nada; los interruptores de sonido y autocorrección no se guardan, y el horario del asistente no se usa en ningún sitio. Los nombres de los modos y los nombres, rasgos e historias de los tutores aparecen en ruso sea cual sea el idioma de la interfaz.",
+    "serverTitle": "Qué traerá la parte de servidor",
+    "serverBody": "Lo siguiente en la lista son una parte de servidor, los pagos y el modo de voz; los datos que ahora salen de ejemplos deberían pasar al servidor. No hay fechas, y hasta entonces el comportamiento en el navegador puede diferir de lo descrito aquí."
+  }
+}

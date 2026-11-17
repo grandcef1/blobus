@@ -17,6 +17,7 @@ import enFooter from "@/locales/en/footer.json";
 import enLanding from "@/locales/en/landing.json";
 import enLegal from "@/locales/en/legal.json";
 import enOnboarding from "@/locales/en/onboarding.json";
+import enPlacement from "@/locales/en/placement.json";
 import esAuth from "@/locales/es/auth.json";
 import esBilling from "@/locales/es/billing.json";
 import esChat from "@/locales/es/chat.json";
@@ -26,6 +27,7 @@ import esFooter from "@/locales/es/footer.json";
 import esLanding from "@/locales/es/landing.json";
 import esLegal from "@/locales/es/legal.json";
 import esOnboarding from "@/locales/es/onboarding.json";
+import esPlacement from "@/locales/es/placement.json";
 import ruAuth from "@/locales/ru/auth.json";
 import ruBilling from "@/locales/ru/billing.json";
 import ruChat from "@/locales/ru/chat.json";
@@ -35,13 +37,14 @@ import ruFooter from "@/locales/ru/footer.json";
 import ruLanding from "@/locales/ru/landing.json";
 import ruLegal from "@/locales/ru/legal.json";
 import ruOnboarding from "@/locales/ru/onboarding.json";
+import ruPlacement from "@/locales/ru/placement.json";
 
 export const SUPPORTED_LANGUAGES = ["ru", "en", "es"] as const;
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number];
 export const DEFAULT_LANGUAGE: LanguageCode = "ru";
 export const LANGUAGE_STORAGE_KEY = "blobus-lang";
 
-const NAMESPACES = ["common", "landing", "footer", "auth", "legal", "billing", "dashboard", "chat", "onboarding"] as const;
+const NAMESPACES = ["common", "landing", "footer", "auth", "legal", "billing", "dashboard", "chat", "onboarding", "placement"] as const;
 
 const resources = {
     ru: {
@@ -54,6 +57,7 @@ const resources = {
         dashboard: ruDashboard,
         chat: ruChat,
         onboarding: ruOnboarding,
+        placement: ruPlacement,
     },
     en: {
         common: enCommon,
@@ -65,6 +69,7 @@ const resources = {
         dashboard: enDashboard,
         chat: enChat,
         onboarding: enOnboarding,
+        placement: enPlacement,
     },
     es: {
         common: esCommon,
@@ -76,6 +81,7 @@ const resources = {
         dashboard: esDashboard,
         chat: esChat,
         onboarding: esOnboarding,
+        placement: esPlacement,
     },
 };
 
@@ -125,6 +131,7 @@ declare module "i18next" {
             dashboard: typeof ruDashboard;
             chat: typeof ruChat;
             onboarding: typeof ruOnboarding;
+            placement: typeof ruPlacement;
         };
     }
 }

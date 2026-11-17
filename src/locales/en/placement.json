@@ -1,0 +1,63 @@
+{
+  "intro": {
+    "title": "Find your level",
+    "subtitle": "Adaptive test: difficulty follows your answers. Level on the CEFR scale, score from 0 to 100.",
+    "points": {
+      "questions": "Twenty questions: ten on grammar and ten on general English.",
+      "duration": "About seven minutes at a calm pace.",
+      "adaptive": "Difficulty adapts to your answers — the test is adaptive."
+    },
+    "listeningToggle": "Add a listening check",
+    "listeningHint": "Six short listening tasks after the main questions. You can also take it later — a card will appear in Overview."
+  },
+  "test": {
+    "question": "Question {{number}} of {{total}}",
+    "optionsLabel": "Answer options",
+    "toListening": "Go to listening",
+    "toResults": "Go to results"
+  },
+  "listening": {
+    "title": "Listening check",
+    "intro": "Listen to the recording before answering. Each clip can be played only twice — answer after listening.",
+    "name": "Listening",
+    "stepSubtitle": "Six listening tasks.",
+    "play": "Play",
+    "playsLeft": "Plays left: {{remaining}}/{{max}}",
+    "playsLimit": "Play limit",
+    "playFirst": "Listen to the recording first.",
+    "checked": "Listening checked",
+    "resultLevel": "Listening level: {{level}}",
+    "levelValue": "listening level",
+    "correctCount": "Correct answers: {{correct}} of {{total}}.",
+    "saved": "The level is saved in your profile and carries into the next session."
+  },
+  "result": {
+    "title": "Level set",
+    "subtitle": "The level appears in the summary before your first lesson and in your profile.",
+    "score": "out of 100 · level {{level}}",
+    "trackGrammar": "Grammar",
+    "trackGeneral": "General English",
+    "listeningNotChecked": "not checked",
+    "listeningHint": "Listening is not checked yet: you can take it here or in Overview — the card waits on the start page.",
+    "checkListening": "Check listening"
+  },
+  "levels": {
+    "a1": "Isolated words and simple phrases about yourself and everyday things.",
+    "a2": "Short phrases in familiar everyday situations.",
+    "b1": "Conversation on familiar topics, describing experience and plans.",
+    "b2": "Fluent discussion of work and abstract topics with arguments.",
+    "c1": "Fluent, flexible speech, complex texts and subtext.",
+    "c2": "Understanding of almost everything, including fine shades of meaning."
+  },
+  "shell": {
+    "start": "Start",
+    "exit": "Exit",
+    "next": "Next",
+    "finish": "Finish",
+    "continue": "Continue",
+    "startTest": "Start test",
+    "resumeTest": "Resume test",
+    "backToOverview": "Back to Overview",
+    "done": "Done"
+  }
+}

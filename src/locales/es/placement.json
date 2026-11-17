@@ -1,0 +1,63 @@
+{
+  "intro": {
+    "title": "Definamos tu nivel",
+    "subtitle": "Test adaptativo: la dificultad se ajusta a tus respuestas. Nivel según el MCER, puntuación de 0 a 100.",
+    "points": {
+      "questions": "Veinte preguntas: diez de gramática y diez de inglés general.",
+      "duration": "Unos siete minutos a un ritmo tranquilo.",
+      "adaptive": "La dificultad se adapta a tus respuestas: el test es adaptativo."
+    },
+    "listeningToggle": "Añadir una prueba de comprensión auditiva",
+    "listeningHint": "Seis tareas cortas de comprensión auditiva después de las preguntas principales. También puedes hacerla más tarde: aparecerá una tarjeta en Resumen."
+  },
+  "test": {
+    "question": "Pregunta {{number}} de {{total}}",
+    "optionsLabel": "Opciones de respuesta",
+    "toListening": "Ir a comprensión auditiva",
+    "toResults": "Ir a resultados"
+  },
+  "listening": {
+    "title": "Prueba de comprensión auditiva",
+    "intro": "Escucha la grabación antes de responder. Cada fragmento se puede escuchar solo dos veces: responde después de escucharlo.",
+    "name": "Comprensión auditiva",
+    "stepSubtitle": "Seis tareas de comprensión auditiva.",
+    "play": "Escuchar",
+    "playsLeft": "Escuchas restantes: {{remaining}}/{{max}}",
+    "playsLimit": "Límite de escuchas",
+    "playFirst": "Primero escucha la grabación.",
+    "checked": "Comprensión auditiva comprobada",
+    "resultLevel": "Nivel de comprensión auditiva: {{level}}",
+    "levelValue": "nivel de comprensión auditiva",
+    "correctCount": "Respuestas correctas: {{correct}} de {{total}}.",
+    "saved": "El nivel se guarda en tu perfil y se usará en la próxima sesión."
+  },
+  "result": {
+    "title": "Nivel definido",
+    "subtitle": "El nivel aparecerá en el resumen antes de la primera lección y en tu perfil.",
+    "score": "de 100 · nivel {{level}}",
+    "trackGrammar": "Gramática",
+    "trackGeneral": "Inglés general",
+    "listeningNotChecked": "sin comprobar",
+    "listeningHint": "La comprensión auditiva no está comprobada: puedes hacerla aquí o en Resumen; la tarjeta espera en la página de inicio.",
+    "checkListening": "Comprobar comprensión auditiva"
+  },
+  "levels": {
+    "a1": "Palabras sueltas y frases sencillas sobre ti y cosas cotidianas.",
+    "a2": "Frases cortas en situaciones cotidianas conocidas.",
+    "b1": "Conversación sobre temas conocidos, descripción de experiencias y planes.",
+    "b2": "Debate fluido de temas laborales y abstractos con argumentos.",
+    "c1": "Discurso fluido y flexible, textos complejos y subtexto.",
+    "c2": "Comprensión de casi todo, incluidos matices finos de significado."
+  },
+  "shell": {
+    "start": "Empezar",
+    "exit": "Salir",
+    "next": "Siguiente",
+    "finish": "Finalizar",
+    "continue": "Continuar",
+    "startTest": "Empezar el test",
+    "resumeTest": "Continuar el test",
+    "backToOverview": "Volver a Resumen",
+    "done": "Listo"
+  }
+}

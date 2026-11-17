@@ -5,6 +5,10 @@ import { readdirSync, readFileSync, statSync } from "node:fs";
 import { join, relative, resolve } from "node:path";
 import { describe, expect, it } from "vitest";
 import { SEO_ROUTES, SITE_URL, absoluteUrl } from "@/lib/seo";
+// ARCHITECT: мета и h1 берутся из разных источников (JSON для пререндера и словари для клиента),
+// тест ловит расхождение при правке копии.
+import ruCommon from "@/locales/ru/common.json";
+import ruDocs from "@/locales/ru/docs.json";
 
 const TITLE_LIMIT = 60;
 const DESCRIPTION_LIMIT = 160;
@@ -75,4 +79,40 @@ describe("SEO маршрутов", () => {
 
         expect(offenders).toEqual([]);
     });
+});
+
+describe("мета контентных страниц совпадает со словарями", () => {
+    const CASES = [
+        {
+            path: "/about",
+            source: "common.about",
+            title: ruCommon.about.title,
+            description: ruCommon.about.lead,
+        },
+        {
+            path: "/changelog",
+            source: "common.changelog",
+            title: ruCommon.changelog.title,
+            description: ruCommon.changelog.subtitle,
+        },
+        {
+            path: "/docs",
+            source: "docs",
+            title: ruDocs.pageTitle,
+            description: ruDocs.pageIntro,
+        },
+    ] as const;
+
+    for (const testCase of CASES) {
+        it(`${testCase.path}: title и description не разошлись с ${testCase.source}`, () => {
+            const route = SEO_ROUTES.find((item) => item.path === testCase.path);
+            expect(route, `${testCase.path}: маршрут отсутствует в seo-routes.json`).toBeDefined();
+            expect(route?.title, `${testCase.path}: title должен совпадать с ${testCase.source}`).toBe(
+                testCase.title
+            );
+            expect(route?.description, `${testCase.path}: description должен совпадать с ${testCase.source}`).toBe(
+                testCase.description
+            );
+        });
+    }
 });

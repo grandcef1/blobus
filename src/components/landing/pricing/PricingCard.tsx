@@ -8,6 +8,7 @@
 
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { AuthAwareCta } from "@/components/landing/AuthAwareCta";
 import type { PricingPlan, BillingPeriod } from "./data";
 import { FEATURES } from "./data";
 import { FeatureTable } from "./FeatureTable";
@@ -104,16 +105,20 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                         </div>
 
                         <div className="mt-auto flex flex-col items-center gap-2">
-                            <button
-                                type="button"
-                                onClick={handleCTA}
-                                className={`w-full rounded-full px-6 py-3 text-sm font-medium transition-colors duration-200 ${plan.highlighted
-                                        ? "bg-[#f0f0f5] text-black hover:bg-white"
-                                        : "border border-white/20 bg-transparent text-[#f0f0f5] hover:border-white/40 hover:bg-white/5"
-                                    }`}
-                            >
-                                {t(plan.ctaKey)}
-                            </button>
+                            {/* ARCHITECT: у вошедшего плашка заменяет CTA тарифа и ведёт в кабинет;
+                                у гостя кнопка плана остаётся дословно прежней. */}
+                            <AuthAwareCta className="w-full">
+                                <button
+                                    type="button"
+                                    onClick={handleCTA}
+                                    className={`w-full rounded-full px-6 py-3 text-sm font-medium transition-colors duration-200 ${plan.highlighted
+                                            ? "bg-[#f0f0f5] text-black hover:bg-white"
+                                            : "border border-white/20 bg-transparent text-[#f0f0f5] hover:border-white/40 hover:bg-white/5"
+                                        }`}
+                                >
+                                    {t(plan.ctaKey)}
+                                </button>
+                            </AuthAwareCta>
                             <span className="text-xs text-[#f0f0f5]/40">
                                 {t(plan.ctaSecondaryKey)}
                             </span>

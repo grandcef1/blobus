@@ -92,33 +92,8 @@
   },
   "settings": {
     "title": "Settings",
-    "notifications": {
-      "title": "Notifications",
-      "dailyReminder": {
-        "label": "Daily reminders",
-        "description": "A reminder to practise every day"
-      },
-      "weeklyProgress": {
-        "label": "Weekly reports",
-        "description": "A summary of your progress for the week"
-      },
-      "newFeatures": {
-        "label": "New features",
-        "description": "Updates about new capabilities"
-      },
-      "marketingEmails": {
-        "label": "Marketing emails",
-        "description": "Tips and special offers"
-      }
-    },
     "preferences": {
       "title": "Preferences",
-      "theme": {
-        "label": "Theme",
-        "dark": "Dark",
-        "light": "Light",
-        "system": "System"
-      },
       "soundEffects": {
         "label": "Sound effects",
         "description": "Sounds for notifications and actions"

@@ -92,33 +92,8 @@
   },
   "settings": {
     "title": "Ajustes",
-    "notifications": {
-      "title": "Avisos",
-      "dailyReminder": {
-        "label": "Recordatorios diarios",
-        "description": "Un recordatorio para practicar cada día"
-      },
-      "weeklyProgress": {
-        "label": "Informes semanales",
-        "description": "Un resumen del progreso de la semana"
-      },
-      "newFeatures": {
-        "label": "Nuevas funciones",
-        "description": "Avisos sobre nuevas funciones"
-      },
-      "marketingEmails": {
-        "label": "Correos de marketing",
-        "description": "Consejos y ofertas especiales"
-      }
-    },
     "preferences": {
       "title": "Preferencias",
-      "theme": {
-        "label": "Tema",
-        "dark": "Oscuro",
-        "light": "Claro",
-        "system": "Sistema"
-      },
       "soundEffects": {
         "label": "Efectos de sonido",
         "description": "Sonidos en avisos y acciones"

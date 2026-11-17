@@ -92,33 +92,8 @@
   },
   "settings": {
     "title": "Настройки",
-    "notifications": {
-      "title": "Уведомления",
-      "dailyReminder": {
-        "label": "Ежедневные напоминания",
-        "description": "Напоминание заниматься каждый день"
-      },
-      "weeklyProgress": {
-        "label": "Еженедельные отчёты",
-        "description": "Сводка прогресса за неделю"
-      },
-      "newFeatures": {
-        "label": "Новые функции",
-        "description": "Уведомления о запуске возможностей"
-      },
-      "marketingEmails": {
-        "label": "Маркетинговые письма",
-        "description": "Советы и специальные предложения"
-      }
-    },
     "preferences": {
       "title": "Предпочтения",
-      "theme": {
-        "label": "Тема",
-        "dark": "Тёмная",
-        "light": "Светлая",
-        "system": "Системная"
-      },
       "soundEffects": {
         "label": "Звуковые эффекты",
         "description": "Звуки при уведомлениях и действиях"

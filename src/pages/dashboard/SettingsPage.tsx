@@ -32,14 +32,6 @@ export function SettingsPage() {
 
     if (isLoading || settings === null) return <SettingsSkeleton />;
 
-    const updateNotification = (key: keyof SettingsState["notifications"], value: boolean) => {
-        setSettings((previous) =>
-            previous === null
-                ? previous
-                : { ...previous, notifications: { ...previous.notifications, [key]: value } }
-        );
-    };
-
     const updatePreference = (key: keyof SettingsState["preferences"], value: string | boolean) => {
         setSettings((previous) =>
             previous === null
@@ -63,51 +55,9 @@ export function SettingsPage() {
                 <div className="space-y-4">
                     <div className="rounded-2xl bg-[#111113] p-5">
                         <h2 className="mb-4 text-base font-medium text-[#f0f0f5]/80">
-                            {t("settings.notifications.title")}
-                        </h2>
-                        <div className="space-y-2">
-                            <SettingToggle
-                                label={t("settings.notifications.dailyReminder.label")}
-                                description={t("settings.notifications.dailyReminder.description")}
-                                checked={settings.notifications.dailyReminder}
-                                onChange={(checked) => updateNotification("dailyReminder", checked)}
-                            />
-                            <SettingToggle
-                                label={t("settings.notifications.weeklyProgress.label")}
-                                description={t("settings.notifications.weeklyProgress.description")}
-                                checked={settings.notifications.weeklyProgress}
-                                onChange={(checked) => updateNotification("weeklyProgress", checked)}
-                            />
-                            <SettingToggle
-                                label={t("settings.notifications.newFeatures.label")}
-                                description={t("settings.notifications.newFeatures.description")}
-                                checked={settings.notifications.newFeatures}
-                                onChange={(checked) => updateNotification("newFeatures", checked)}
-                            />
-                            <SettingToggle
-                                label={t("settings.notifications.marketingEmails.label")}
-                                description={t("settings.notifications.marketingEmails.description")}
-                                checked={settings.notifications.marketingEmails}
-                                onChange={(checked) => updateNotification("marketingEmails", checked)}
-                            />
-                        </div>
-                    </div>
-
-                    <div className="rounded-2xl bg-[#111113] p-5">
-                        <h2 className="mb-4 text-base font-medium text-[#f0f0f5]/80">
                             {t("settings.preferences.title")}
                         </h2>
                         <div className="space-y-2">
-                            <SettingSelect
-                                label={t("settings.preferences.theme.label")}
-                                value={settings.preferences.theme}
-                                onChange={(value) => updatePreference("theme", value)}
-                                options={[
-                                    { value: "dark", label: t("settings.preferences.theme.dark") },
-                                    { value: "light", label: t("settings.preferences.theme.light") },
-                                    { value: "system", label: t("settings.preferences.theme.system") },
-                                ]}
-                            />
                             <SettingToggle
                                 label={t("settings.preferences.soundEffects.label")}
                                 description={t("settings.preferences.soundEffects.description")}

@@ -13,7 +13,6 @@
     "recentSessions": "Recent sessions",
     "mainNav": "Main navigation",
     "appMenu": "App menu",
-    "openMenu": "Open menu",
     "expandMenu": "Expand menu",
     "collapseMenu": "Collapse menu",
     "brand": "Blobus",
@@ -117,8 +116,7 @@
     "count": "{{total}} words in your collection",
     "review": "Review",
     "searchPlaceholder": "Search a word or translation",
-    "pronounce": "Pronounce {{word}}",
-    "searchEmpty": "Nothing found"
+    "pronounce": "Pronounce {{word}}"
   },
   "tutors": {
     "title": "Our tutors",

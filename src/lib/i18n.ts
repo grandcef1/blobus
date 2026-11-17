@@ -5,31 +5,8 @@
 // читает его на старте. Автоопределённый язык в хранилище не попадает (caches пустой).
 
 import i18n from "i18next";
-import LanguageDetector from "i18next-browser-languagedetector";
 import { initReactI18next } from "react-i18next";
 
-import enAuth from "@/locales/en/auth.json";
-import enBilling from "@/locales/en/billing.json";
-import enChat from "@/locales/en/chat.json";
-import enCommon from "@/locales/en/common.json";
-import enDashboard from "@/locales/en/dashboard.json";
-import enDocs from "@/locales/en/docs.json";
-import enFooter from "@/locales/en/footer.json";
-import enLanding from "@/locales/en/landing.json";
-import enLegal from "@/locales/en/legal.json";
-import enOnboarding from "@/locales/en/onboarding.json";
-import enPlacement from "@/locales/en/placement.json";
-import esAuth from "@/locales/es/auth.json";
-import esBilling from "@/locales/es/billing.json";
-import esChat from "@/locales/es/chat.json";
-import esCommon from "@/locales/es/common.json";
-import esDashboard from "@/locales/es/dashboard.json";
-import esDocs from "@/locales/es/docs.json";
-import esFooter from "@/locales/es/footer.json";
-import esLanding from "@/locales/es/landing.json";
-import esLegal from "@/locales/es/legal.json";
-import esOnboarding from "@/locales/es/onboarding.json";
-import esPlacement from "@/locales/es/placement.json";
 import ruAuth from "@/locales/ru/auth.json";
 import ruBilling from "@/locales/ru/billing.json";
 import ruChat from "@/locales/ru/chat.json";
@@ -46,76 +23,97 @@ export const SUPPORTED_LANGUAGES = ["ru", "en", "es"] as const;
 export type LanguageCode = (typeof SUPPORTED_LANGUAGES)[number];
 export const DEFAULT_LANGUAGE: LanguageCode = "ru";
 export const LANGUAGE_STORAGE_KEY = "blobus-lang";
-
+// ARCHITECT: грузим только активный язык, остальные — ленивыми чанками: en/es уезжают из начального
+// графа, ru остаётся статически как fallback и эталон типов, поэтому интерфейс никогда не покажет сырые
+// ключи. Смена языка сначала грузит бандл, потом переключает, иначе интерфейс мигнёт ключами; при
+// отказе загрузки остаёмся на текущем языке и не пишем localStorage.
 const NAMESPACES = ["common", "landing", "footer", "auth", "legal", "billing", "dashboard", "docs", "chat", "onboarding", "placement"] as const;
 
-const resources = {
-    ru: {
-        common: ruCommon,
-        landing: ruLanding,
-        footer: ruFooter,
-        auth: ruAuth,
-        legal: ruLegal,
-        billing: ruBilling,
-        dashboard: ruDashboard,
-        docs: ruDocs,
-        chat: ruChat,
-        onboarding: ruOnboarding,
-        placement: ruPlacement,
-    },
-    en: {
-        common: enCommon,
-        landing: enLanding,
-        footer: enFooter,
-        auth: enAuth,
-        legal: enLegal,
-        billing: enBilling,
-        dashboard: enDashboard,
-        docs: enDocs,
-        chat: enChat,
-        onboarding: enOnboarding,
-        placement: enPlacement,
-    },
-    es: {
-        common: esCommon,
-        landing: esLanding,
-        footer: esFooter,
-        auth: esAuth,
-        legal: esLegal,
-        billing: esBilling,
-        dashboard: esDashboard,
-        docs: esDocs,
-        chat: esChat,
-        onboarding: esOnboarding,
-        placement: esPlacement,
-    },
+type Namespace = (typeof NAMESPACES)[number];
+type Bundle = Record<Namespace, Record<string, unknown>>;
+const RU_RESOURCES: Bundle = {
+    common: ruCommon,
+    landing: ruLanding,
+    footer: ruFooter,
+    auth: ruAuth,
+    legal: ruLegal,
+    billing: ruBilling,
+    dashboard: ruDashboard,
+    docs: ruDocs,
+    chat: ruChat,
+    onboarding: ruOnboarding,
+    placement: ruPlacement,
 };
+// ARCHITECT: import.meta.glob с двумя паттернами превращает каждый файл en/es в отдельный чанк и не
+// тянет ru в ленивый граф — он уже загружен статически.
+const MODULES = import.meta.glob<{ default: Record<string, unknown> }>([
+    "../locales/en/*.json",
+    "../locales/es/*.json",
+]);
 
-void i18n
-    .use(LanguageDetector)
-    .use(initReactI18next)
-    .init({
-        resources,
-        supportedLngs: [...SUPPORTED_LANGUAGES],
-        fallbackLng: DEFAULT_LANGUAGE,
-        load: "languageOnly",
-        ns: [...NAMESPACES],
-        defaultNS: "common",
-        // ARCHITECT: React экранирует текст сам; повторное экранирование ломало бы апострофы и
-        // кавычки в переводах.
-        interpolation: { escapeValue: false },
-        // ARCHITECT: caches пустой — авто-определённый язык не записывается в localStorage, поэтому
-        // смена языка браузера продолжает учитываться. В хранилище попадает только ручной выбор.
-        // load: languageOnly приводит en-US/en-GB к en; неподдерживаемые языки падают в ru.
-        detection: {
-            order: ["localStorage", "navigator"],
-            caches: [],
-            lookupLocalStorage: LANGUAGE_STORAGE_KEY,
-        },
-    })
-    .then(() => {
-        document.documentElement.lang = i18n.resolvedLanguage ?? DEFAULT_LANGUAGE;
-    });
+async function loadBundle(language: LanguageCode): Promise<Bundle> {
+    const entries = await Promise.all(
+        NAMESPACES.map(async (namespace) => {
+            const loader = MODULES[`../locales/${language}/${namespace}.json`];
+            if (loader === undefined) throw new Error(`словарь ${language}/${namespace} не найден`);
+            return [namespace, (await loader()).default] as const;
+        })
+    );
+    return Object.fromEntries(entries) as Bundle;
+}
+function toSupported(code: string | undefined): LanguageCode {
+    const short = (code ?? "").split("-")[0]?.toLowerCase();
+    return SUPPORTED_LANGUAGES.find((item) => item === short) ?? DEFAULT_LANGUAGE;
+}
+// ARCHITECT: caches пустой — авто-определённый язык не записывается в localStorage, поэтому
+// смена языка браузера продолжает учитываться. В хранилище попадает только ручной выбор.
+// load: languageOnly приводит en-US/en-GB к en; неподдерживаемые языки падают в ru.
+export function detectLanguage(): LanguageCode {
+    return toSupported(localStorage.getItem(LANGUAGE_STORAGE_KEY) ?? navigator.language);
+}
+
+// ARCHITECT: init синхронный (initAsync: false) и только с ru: к моменту первого рендера и к любым
+// вызовам changeLanguage i18next уже инициализирован, а fallback-язык всегда лежит в ресурсах.
+void i18n.use(initReactI18next).init({
+    resources: { ru: RU_RESOURCES },
+    lng: DEFAULT_LANGUAGE,
+    initAsync: false,
+    supportedLngs: [...SUPPORTED_LANGUAGES],
+    fallbackLng: DEFAULT_LANGUAGE,
+    load: "languageOnly",
+    ns: [...NAMESPACES],
+    defaultNS: "common",
+    // ARCHITECT: React экранирует текст сам; повторное экранирование ломало бы апострофы и
+    // кавычки в переводах.
+    interpolation: { escapeValue: false },
+});
+// ARCHITECT: промис готовности догружает словарь активного языка — main.tsx монтирует App только после
+// него, иначе первый кадр показал бы ru вместо выбранного языка. Сбой не роняет старт: остаёмся на ru.
+// ARCHITECT: это именно функция, а не побочный эффект импорта: в тестах модуль импортируется без
+// приложения, и фоновое переключение на язык jsdom ломало бы фиксированный ru из setup.
+export async function loadActiveLanguage(): Promise<void> {
+    const language = detectLanguage();
+    if (language === DEFAULT_LANGUAGE) return;
+    if (!(await ensureLanguage(language))) return;
+
+    await i18n.changeLanguage(language);
+    document.documentElement.lang = i18n.resolvedLanguage ?? DEFAULT_LANGUAGE;
+}
+
+/** Догружает словари языка, если их ещё нет в памяти. false — загрузка не удалась. */
+export async function ensureLanguage(language: LanguageCode): Promise<boolean> {
+    if (i18n.hasResourceBundle(language, "common")) return true;
+
+    try {
+        const bundle = await loadBundle(language);
+        for (const namespace of NAMESPACES) {
+            i18n.addResourceBundle(language, namespace, bundle[namespace], true, true);
+        }
+        return true;
+    } catch {
+        return false;
+    }
+}
 
 // ARCHITECT: <html lang> следует за языком интерфейса при любом переключении, не только на старте.
 i18n.on("languageChanged", (lng) => {

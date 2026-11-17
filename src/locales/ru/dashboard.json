@@ -13,7 +13,6 @@
     "recentSessions": "Недавние сессии",
     "mainNav": "Главная навигация",
     "appMenu": "Меню приложения",
-    "openMenu": "Открыть меню",
     "expandMenu": "Развернуть меню",
     "collapseMenu": "Свернуть меню",
     "brand": "Blobus",
@@ -117,8 +116,7 @@
     "count": "{{total}} слов в коллекции",
     "review": "Повторить",
     "searchPlaceholder": "Поиск слова или перевода",
-    "pronounce": "Произнести {{word}}",
-    "searchEmpty": "Ничего не найдено"
+    "pronounce": "Произнести {{word}}"
   },
   "tutors": {
     "title": "Наши репетиторы",

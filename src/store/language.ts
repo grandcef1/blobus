@@ -7,6 +7,8 @@ import i18n, {
     DEFAULT_LANGUAGE,
     LANGUAGE_STORAGE_KEY,
     SUPPORTED_LANGUAGES,
+    detectLanguage,
+    ensureLanguage,
     type LanguageCode,
 } from "@/lib/i18n";
 
@@ -17,7 +19,7 @@ function toSupported(code: string | undefined): LanguageCode {
 
 // ARCHITECT: <html lang> должен совпадать с языком интерфейса: от него зависят переносы, чтение
 // скринридером и перевод страницы браузером. Ставим сразу на старте, а не только при переключении.
-const initialLang = toSupported(i18n.resolvedLanguage ?? i18n.language);
+const initialLang = detectLanguage();
 document.documentElement.lang = initialLang;
 
 interface LanguageState {
@@ -28,12 +30,22 @@ interface LanguageState {
 export const useLanguageStore = create<LanguageState>((set) => ({
     lang: initialLang,
     setLanguage: (code) => {
-        // ARCHITECT: только явный выбор пользователя фиксируется в хранилище: у детектора caches
-        // пустой, поэтому автоопределённый язык туда не попадает.
-        localStorage.setItem(LANGUAGE_STORAGE_KEY, code);
-        document.documentElement.lang = code;
-        set({ lang: code });
-        void i18n.changeLanguage(code);
+        void (async () => {
+            // ARCHITECT: сначала бандл целевого языка, только потом смена языка и запись выбора — иначе
+            // интерфейс мигнул бы сырыми ключами. Сбой загрузки оставляет текущий язык и не пишет
+            // localStorage: пользователь не должен получить «выбранный» язык без переводов.
+            if (!(await ensureLanguage(code))) return;
+
+            try {
+                await i18n.changeLanguage(code);
+            } catch {
+                return;
+            }
+
+            localStorage.setItem(LANGUAGE_STORAGE_KEY, code);
+            document.documentElement.lang = code;
+            set({ lang: code });
+        })();
     },
 }));
 

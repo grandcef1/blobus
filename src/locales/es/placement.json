@@ -22,7 +22,7 @@
     "name": "Comprensión auditiva",
     "stepSubtitle": "Seis tareas de comprensión auditiva.",
     "play": "Escuchar",
-    "playsLeft": "Escuchas restantes: {{remaining}}/{{max}}",
+    "playsLeft": "Reproducciones restantes: {{remaining}}/{{max}}",
     "playsLimit": "Límite de escuchas",
     "playFirst": "Primero escucha la grabación.",
     "checked": "Comprensión auditiva comprobada",

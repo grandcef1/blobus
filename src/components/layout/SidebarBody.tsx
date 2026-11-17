@@ -26,17 +26,26 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            {/* ARCHITECT: знак проекта — статичная мини-версия бренд-блобатара (28px): блобатары
-                и есть визуальный характер продукта, поэтому в шапке стоит тот же персонаж, что
-                в hero, а не глобус-плейсхолдер. Плашки нет — знак лежит прямо на тёмном фоне
-                сайдбара, в сложенной рельсе центрируется по justify-center. */}
-            <div className={cn("flex h-16 shrink-0 items-center gap-3", isCollapsed ? "justify-center" : "px-4")}>
-                <BrandBlobatar interactive={false} />
-                {!isCollapsed && (
-                    <span className="truncate text-lg font-semibold tracking-tight text-[#f0f0f5]">
-                        Blobus
-                    </span>
-                )}
+            {/* ARCHITECT: вместо отдельного компонента «только глаза» используем готовый BrandBlobatar с
+                interactive-режимом (animate="always" + useGaze) и обрезаем его краями контейнера через
+                overflow-hidden + scale-150. Это даёт живые следящие глаза без дублирования математики библиотеки. */}
+            <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-[#0d0d0d]">
+                <div className="absolute inset-0 flex scale-150 items-center justify-center">
+                    <BrandBlobatar interactive />
+                </div>
+
+                <Link
+                    to="/"
+                    aria-label={t("nav.goHome")}
+                    className="group absolute inset-0 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                >
+                    {!isCollapsed && (
+                        <span className="relative z-10 rounded px-3 py-1 text-xl font-semibold tracking-tight text-white/90 backdrop-blur-sm transition-all duration-200">
+                            <span className="group-hover:hidden">{t("nav.brand")}</span>
+                            <span className="hidden group-hover:inline">{t("nav.goHome")}</span>
+                        </span>
+                    )}
+                </Link>
             </div>
 
             <div className={cn("shrink-0 pb-2", isCollapsed ? "flex justify-center" : "px-3")}>

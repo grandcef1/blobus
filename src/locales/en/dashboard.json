@@ -15,7 +15,9 @@
     "appMenu": "App menu",
     "openMenu": "Open menu",
     "expandMenu": "Expand menu",
-    "collapseMenu": "Collapse menu"
+    "collapseMenu": "Collapse menu",
+    "brand": "Blobus",
+    "goHome": "Go home"
   },
   "shell": {
     "profile": "Profile",

@@ -15,7 +15,9 @@
     "appMenu": "Меню приложения",
     "openMenu": "Открыть меню",
     "expandMenu": "Развернуть меню",
-    "collapseMenu": "Свернуть меню"
+    "collapseMenu": "Свернуть меню",
+    "brand": "Blobus",
+    "goHome": "На главную"
   },
   "shell": {
     "profile": "Профиль",

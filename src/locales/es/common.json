@@ -14,7 +14,8 @@
     "login": "Iniciar sesión",
     "next": "Siguiente",
     "details": "Ver más",
-    "close": "Cerrar"
+    "close": "Cerrar",
+    "continue": "Continuar"
   },
   "a11y": {
     "openMenu": "Abrir menú",

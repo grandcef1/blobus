@@ -1,22 +1,15 @@
-import { Menu } from "lucide-react";
 import { useNavigate } from 'react-router-dom';
 import { useTranslation } from "react-i18next";
 
 import { Button } from "@/components/ui/button";
-import {
-    Sheet,
-    SheetClose,
-    SheetContent,
-    SheetDescription,
-    SheetHeader,
-    SheetTitle,
-    SheetTrigger,
-} from "@/components/ui/sheet";
 
+import { AuthAwareCta } from "./AuthAwareCta";
+import { HeaderMobileMenu } from "./HeaderMobileMenu";
 import { LanguageSwitcher } from "./LanguageSwitcher";
 
 // ARCHITECT: единый источник навигации — якоря для плавного скролла; подписи лежат ключами в
-// словаре landing, поэтому шапка переводится вместе со страницей.
+// словаре landing, поэтому шапка переводится вместе со страницей. Константа живёт здесь, потому
+// что react-refresh запрещает экспортировать не-компоненты из .tsx; мобильное меню получает её пропсом.
 const NAV_LINKS = [
     { labelKey: "nav.features", href: "#features" },
     { labelKey: "nav.howItWorks", href: "#how-it-works" },
@@ -75,81 +68,32 @@ export function Header() {
                         тот же тонкий светлый штрих, что и границы хедера. */}
                     <LanguageSwitcher placement="down" compact />
                     <span className="h-5 w-px bg-white/10" aria-hidden="true" />
-                    <Button
-                        variant="outline"
-                        onClick={handleLogin}
-                        className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-white"
-                    >
-                        {tCommon('actions.login')}
-                    </Button>
-                    <Button
-                        onClick={handleGetStarted}
-                        className="rounded-full shadow-none bg-[#f0f0f5] text-black hover:bg-white"
-                    >
-                        {tCommon('actions.start')}
-                    </Button>
+                    {/* ARCHITECT: у гостя пара кнопок остаётся как была; у вошедшего её заменяет
+                        одна плашка с аватаром, именем и переходом в кабинет. */}
+                    <AuthAwareCta>
+                        <Button
+                            variant="outline"
+                            onClick={handleLogin}
+                            className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-white"
+                        >
+                            {tCommon('actions.login')}
+                        </Button>
+                        <Button
+                            onClick={handleGetStarted}
+                            className="rounded-full shadow-none bg-[#f0f0f5] text-black hover:bg-white"
+                        >
+                            {tCommon('actions.start')}
+                        </Button>
+                    </AuthAwareCta>
                 </div>
 
-                {/* ARCHITECT: мобильное меню (< md) — бургер открывает Sheet с теми же ссылками и кнопками */}
-                <Sheet>
-                    <SheetTrigger asChild>
-                        <Button
-                            variant="ghost"
-                            size="icon"
-                            aria-label={tCommon('a11y.openMenu')}
-                            className="text-[#f0f0f5] hover:bg-white/10 hover:text-white md:hidden"
-                        >
-                            <Menu aria-hidden="true" />
-                        </Button>
-                    </SheetTrigger>
-                    <SheetContent side="right" className="w-72 sm:w-72">
-                        <SheetHeader>
-                            <SheetTitle>Blobus</SheetTitle>
-                            <SheetDescription>{tCommon('a11y.siteNav')}</SheetDescription>
-                        </SheetHeader>
-
-                        <nav
-                            aria-label={tCommon('a11y.mobileNav')}
-                            className="flex flex-col gap-1 px-4"
-                        >
-                            {NAV_LINKS.map((link) => (
-                                // ARCHITECT: SheetClose — переход по якорю автоматически закрывает drawer
-                                <SheetClose asChild key={link.href}>
-                                    <a
-                                        href={link.href}
-                                        className="rounded-xl px-3 py-2.5 text-base text-[#f0f0f5]/80 transition-colors hover:bg-white/5 hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]/60"
-                                    >
-                                        {t(link.labelKey)}
-                                    </a>
-                                </SheetClose>
-                            ))}
-                        </nav>
-
-                        {/* ARCHITECT: на мобильных полный переключатель стоит под навигацией и
-                            раскрывается вниз внутри панели Sheet (у SheetContent нет overflow-обрезки). */}
-                        <div className="px-4">
-                            <LanguageSwitcher placement="down" />
-                        </div>
-
-                        {/* ARCHITECT: кнопки внутри тёмной панели — тёмные варианты: primary как
-                            в шапке (светлая пилюля), secondary — стеклянный ghost с border-white/20. */}
-                        <div className="mt-auto flex flex-col gap-3 p-6">
-                            <Button
-                                onClick={handleGetStarted}
-                                className="w-full rounded-full bg-[#f0f0f5] text-black shadow-none hover:bg-white"
-                            >
-                                {tCommon('actions.start')}
-                            </Button>
-                            <Button
-                                variant="outline"
-                                onClick={handleLogin}
-                                className="w-full rounded-full border border-white/20 bg-transparent text-[#f0f0f5] shadow-none hover:bg-white/5 hover:text-white"
-                            >
-                                {tCommon('actions.login')}
-                            </Button>
-                        </div>
-                    </SheetContent>
-                </Sheet>
+                {/* ARCHITECT: мобильное меню (< md) вынесено в HeaderMobileMenu: хедер остаётся в
+                    лимите 150 строк, а состояние Sheet по-прежнему принадлежит Radix. */}
+                <HeaderMobileMenu
+                    links={NAV_LINKS}
+                    onLogin={handleLogin}
+                    onGetStarted={handleGetStarted}
+                />
             </div>
         </header>
     );

@@ -1,9 +1,9 @@
 import { useEffect } from "react";
 import { useLocation } from "react-router-dom";
 
-// ARCHITECT: сколько кадров ждём появления секции после ленивой загрузки. Десять кадров ≈ 160 мс —
-// достаточно для Suspense-чанка, но не бесконечно: не найдя цель, скрипт молча сдаётся.
-const SCROLL_TARGET_ATTEMPTS = 10;
+// ARCHITECT: бюджет поиска якоря — по времени, а не по кадрам: лендинг грузится ленивым чанком, и на
+// холодной загрузке по медленной сети 160 мс не хватает; 3 секунды покрывают такую задержку.
+const SCROLL_TARGET_BUDGET_MS = 3000;
 
 // ARCHITECT: SPA не сообщает скринридеру о смене экрана и не сбрасывает скролл.
 // Фокус на главный лендмарк + объявление заголовка нового экрана.
@@ -32,19 +32,19 @@ export function useRouteAnnouncer(): void {
       }
     };
 
-    // ARCHITECT: переход с якорем скроллит к секции, а не наверх; повтор в rAF нужен, потому что
-    // секция может быть ещё не смонтирована после ленивой загрузки — попытки ограничены, ошибки нет.
+    // ARCHITECT: переход с якорем скроллит к секции, а не наверх; поиск идёт в rAF, пока элемент не
+    // появится или пока не истечёт бюджет времени — иначе на медленной сети якорь молча терялся.
     const targetId = hash.replace(/^#/, "");
     let frame = 0;
 
-    const scrollToSection = (attemptsLeft: number): void => {
+    const scrollToSection = (deadline: number): void => {
       const section = document.getElementById(targetId);
       if (section !== null) {
         section.scrollIntoView({ block: "start", behavior: "auto" });
         return;
       }
-      if (attemptsLeft > 0) {
-        frame = requestAnimationFrame(() => scrollToSection(attemptsLeft - 1));
+      if (performance.now() < deadline) {
+        frame = requestAnimationFrame(() => scrollToSection(deadline));
       }
     };
 
@@ -52,7 +52,7 @@ export function useRouteAnnouncer(): void {
       resetScroll();
       frame = requestAnimationFrame(resetScroll);
     } else {
-      scrollToSection(SCROLL_TARGET_ATTEMPTS);
+      scrollToSection(performance.now() + SCROLL_TARGET_BUDGET_MS);
     }
 
     let region = document.getElementById("route-announcer");

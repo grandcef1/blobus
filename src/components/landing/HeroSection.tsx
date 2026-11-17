@@ -4,6 +4,7 @@ import type { TargetAndTransition, Variants } from "framer-motion";
 import { Check, MessageCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
+import { AuthAwareCta } from "@/components/landing/AuthAwareCta";
 import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
 import { HeroBadge } from "@/components/hero/HeroBadge";
 import { TypewriterHeading } from "@/components/landing/TypewriterHeading";
@@ -50,8 +51,7 @@ export function HeroSection() {
     const navigate = useNavigate();
     const { t } = useTranslation("landing");
     const { t: tCommon } = useTranslation("common");
-    // ARCHITECT: пример урока показывается модально, а не якорем на секцию: вторичная кнопка
-    // должна объяснять формат, а не перескакивать по странице.
+    // ARCHITECT: пример урока — модалка: вторичная кнопка объясняет формат, а не прыгает по странице.
     const [demoOpen, setDemoOpen] = useState(false);
 
     const handleGetStarted = () => {
@@ -62,65 +62,50 @@ export function HeroSection() {
 
         // ARCHITECT: overflow-x-clip страхует bleed. min-h = вьюпорт минус хедер.
         <section className="relative flex min-h-[calc(100dvh-72px)] w-full items-start overflow-x-clip bg-black pt-16 pb-16 md:pt-20 md:pb-20">
-            {/* ARCHITECT (RESPONSIVE FIX #3 — параллельность с features):
-                Шелл px-4 sm:px-6 lg:px-8 идентичен шеллу features/how-it-works —
-                ниже xl оба фулл-ширинные, кромки уже параллельны.
-                С xl features центрируется в max-w-6xl, и дельта до его контент-кромки
-                = 96px на любом вьюпорте >=1280 (проверено: 96/416/736px на 1280/1920/2560).
-                xl:pl-24 компенсирует её ВНУТРИ шелла max-w-7xl: заголовок hero встает
-                строго на одну вертикаль с заголовком features ("Новый способ…" и badge — тоже).
-                ARCHITECT (правая пустота): блобатар через xl:justify-end + pr-8 дотягивается
-                до 1568px на 1920 — на 64px дальше правой кромки карточек features (1504px).
-                Итог: справа мёртвой зоны больше нет, слева 416px / справа 352px —
-                лёгкая асимметрия 64px (premium-паттерн: без зеркальной симметрии),
-                при этом композиция делит центральную ось с features. */}
+            {/* ARCHITECT: шелл и xl:pl-24 держат контент на одной вертикали с секцией features. */}
             <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:pl-24">
-                {/* ARCHITECT: xl:grid-cols-[1fr_1.25fr] жёстко связывает текст и блоба.
-                    xl:gap-4 прижимает их друг к другу, сохраняя профессиональный ритм.
-                    items-center гарантирует вертикальное параллельное выравнивание.
-                    ARCHITECT (RESPONSIVE FIX #1): order-классы дают мобильную композицию
-                    "блобатар СВЕРХУ текста", не меняя md+ (текст слева, блоб справа). */}
+                {/* ARCHITECT: на мобильном полноширинная вертикальная композиция — блобатар сверху
+                    по центру, текст по центру, кнопки во всю ширину; десктоп (md+) не тронут. */}
                 <motion.div
                     variants={containerVariants}
                     initial="hidden"
                     animate="visible"
                     className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-8 lg:gap-12 xl:grid-cols-[1fr_1.25fr] xl:gap-4"
                 >
-                    {/* Текстовый блок: выровнен по левому краю, без лишних отступов.
-                        ARCHITECT (RESPONSIVE FIX #1): order-2 на mobile — текст уходит ПОД блобатара. */}
-                    <div className="order-2 flex flex-col justify-center gap-7 md:order-1 xl:max-w-[36rem]">
+                    {/* ARCHITECT: order-2 на mobile — текст под блобатаром; с md текст слева. */}
+                    <div className="order-2 flex flex-col items-center justify-center gap-7 text-center md:order-1 md:items-start md:text-left xl:max-w-[36rem]">
                         <HeroBadge label={t("hero.badge")} />
 
                         <motion.div variants={titleVariants}>
                             <TypewriterHeading />
                         </motion.div>
 
-                        {/* ARCHITECT: подводка — одно короткое утверждение вместо перечня из трёх
-                            пунктов. Размер на ступень ниже заголовка, ограничение по мере строки
-                            и text-balance держат её двумя спокойными строками без обрывков. */}
+                        {/* ARCHITECT: text-balance держит подводку двумя строками без обрывков. */}
                         <motion.p
                             variants={subtitleVariants}
-                            className="max-w-xl text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:text-lg"
+                            className="mx-auto max-w-xl text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:mx-0 md:text-lg"
                         >
                             {t("hero.subtitle")}
                         </motion.p>
 
                         <motion.div
                             variants={actionsVariants}
-                            className="flex flex-wrap gap-4"
+                            className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-4"
                         >
-                            <Button
-                                size="lg"
-                                onClick={handleGetStarted}
-                                className="rounded-full shadow-none bg-[#f0f0f5] text-black hover:bg-white"
-                            >
-                                {tCommon("actions.startFree")}
-                            </Button>
+                            <AuthAwareCta className="w-full justify-center sm:w-auto">
+                                <Button
+                                    size="lg"
+                                    onClick={handleGetStarted}
+                                    className="w-full rounded-full shadow-none bg-[#f0f0f5] text-black hover:bg-white sm:w-auto"
+                                >
+                                    {tCommon("actions.startFree")}
+                                </Button>
+                            </AuthAwareCta>
                             <Button
                                 variant="outline"
                                 size="lg"
                                 onClick={() => setDemoOpen(true)}
-                                className="rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-[#f0f0f5]"
+                                className="w-full rounded-full shadow-none border border-[#f0f0f5]/30 bg-transparent text-[#f0f0f5] hover:bg-[#f0f0f5]/10 hover:text-[#f0f0f5] sm:w-auto"
                             >
                                 <MessageCircle className="mr-2 size-4" aria-hidden="true" />
                                 {t("hero.demo.title")}
@@ -130,7 +115,7 @@ export function HeroSection() {
 
                         <motion.div
                             variants={benefitsVariants}
-                            className="flex flex-wrap items-center gap-x-4 gap-y-2 pt-2"
+                            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-2 md:justify-start"
                         >
                             {BENEFITS.map((benefitKey) => (
                                 <div
@@ -149,14 +134,8 @@ export function HeroSection() {
                         </motion.div>
                     </div>
 
-                    {/* ARCHITECT: Блобатар в потоке grid, без absolute.
-                        ARCHITECT (RESPONSIVE FIX #1 — mobile): order-1 поднимает блобатара
-                        НАД текстом; w-[min(85vw,32rem)] даёт ~331px на телефоне 390px
-                        вместо прежних 256px — заметно крупнее, но не вылезает за вьюпорт.
-                        ARCHITECT (FIX #3 — desktop): колонка блобатара после xl:pl-24 =
-                        631px (рендер во всю колонку, потолок 42rem не достигается) —
-                        массивность сохранена; xl:justify-end прижимает его к правой кромке
-                        шелла, закрывая бывшую мёртвую зону справа. */}
+                    {/* ARCHITECT: блобатар в потоке grid (без absolute), order-1 поднимает его над текстом
+                        на мобильном; xl:justify-end прижимает к правой кромке шелла. */}
                     <motion.div
                         variants={blobatarVariants}
                         className="order-1 flex items-center justify-center md:order-2 xl:justify-end"

@@ -21,6 +21,11 @@ export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
     const { t } = useTranslation("dashboard");
     const navigate = useNavigate();
     const signOut = useAuthStore((state) => state.signOut);
+    const user = useAuthStore((state) => state.user);
+
+    // ARCHITECT: имя из стора у вошедшего, заглушка у гостя; аватар пока из мока — свяжем с профилем,
+    // когда появится серверная часть.
+    const displayName = user === null ? MOCK_PROFILE_USER.name : user.name;
 
     const handleSignOut = () => {
         signOut();
@@ -58,7 +63,7 @@ export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
                 {avatar}
                 <span className="min-w-0 flex-1">
                     <span className="block truncate text-sm font-medium text-[#f0f0f5]">
-                        {MOCK_PROFILE_USER.name}
+                        {displayName}
                     </span>
                     <span className="block truncate text-xs text-[#f0f0f5]/40">
                         {MOCK_PROFILE_USER.planLabel}

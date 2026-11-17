@@ -26,14 +26,14 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            {/* ARCHITECT: высота h-16 и центрирование через left-50% — правки владельца, кроп внутри.
-                Квадрат оставлен намеренно: у svg библиотеки viewBox 0 0 100 100 и preserveAspectRatio
-                по умолчанию, поэтому в неквадратном боксе рисунок впишется по меньшей стороне и даст
-                пустые поля по бокам. Пустоту убирает зум w-[200%] — силуэт шире блока и обрезается
-                краями; полоса кадра (h-16 из 560px бокса ≈ 11%) оставляет в кадре линию глаз. */}
-            <div className="relative mb-3 h-16 w-full shrink-0 overflow-hidden">
-                <div className="absolute inset-y-0 left-[50%] flex items-center -translate-x-1/2" aria-hidden="true">
-                    <div className="aspect-square w-[200%] shrink-0">
+            {/* ARCHITECT: компактный блок глаз с растянутым кропом блобатара: позиционирование через
+                absolute + transform для точного контроля центра, зум w-[200%] убирает пустоту по бокам
+                (силуэт шире блока и обрезается краями). Квадрат сохраняем: у svg библиотеки viewBox
+                0 0 100 100 и preserveAspectRatio по умолчанию, поэтому неквадратный бокс дал бы пустые
+                поля по бокам вместо растяжения. Полоса кадра ≈ 11% высоты бокса — в кадре линия глаз. */}
+            <div className="relative h-16 w-full shrink-0 overflow-hidden">
+                <div className="absolute inset-0 overflow-hidden" aria-hidden="true">
+                    <div className="absolute left-[50%] top-1/2 aspect-square w-[200%] -translate-x-1/2 -translate-y-1/2">
                         <BrandBlobatar gaze={false} className="h-full w-full" />
                     </div>
                 </div>
@@ -44,11 +44,11 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
                     className="group absolute inset-0 z-10 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 >
                     {!isCollapsed && (
-                        <span className="relative block h-6 w-full overflow-hidden px-4">
-                            <span className="block w-full text-center text-base font-semibold uppercase tracking-[0.3em] text-[#f0f0f5]/45 drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-0 motion-reduce:transition-none">
+                        <span className="relative block h-8 w-full overflow-hidden px-5">
+                            <span className="block w-full text-center text-xl font-bold tracking-[0.2em] text-gray-400 uppercase transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-0 motion-reduce:transition-none">
                                 {t("nav.brand")}
                             </span>
-                            <span className="absolute inset-0 block w-full text-center text-base font-semibold uppercase tracking-[0.3em] text-[#f0f0f5]/45 drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] opacity-0 translate-y-full transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none">
+                            <span className="absolute inset-0 block w-full translate-y-full text-center text-xl font-bold tracking-[0.2em] text-gray-500 uppercase opacity-0 transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none">
                                 {t("nav.goHome")}
                             </span>
                         </span>
@@ -56,7 +56,7 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
                 </Link>
             </div>
 
-            <div className={cn("shrink-0 pb-2", isCollapsed ? "flex justify-center" : "px-3")}>
+            <div className={cn("shrink-0 mt-3 pb-2", isCollapsed ? "flex justify-center" : "px-3")}>
                 <Link
                     to="/session/new"
                     title={isCollapsed ? t("nav.newSession") : undefined}

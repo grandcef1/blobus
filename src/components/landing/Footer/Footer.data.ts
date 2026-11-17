@@ -12,13 +12,15 @@ import type {
 // ARCHITECT: колонки уравнены по три ссылки (3/3/3/3), все адресаты реальные и уникальные; FAQ убран,
 // потому что он внутри Центра помощи; mailto убран, потому что почта живёт на /contacts; auth-ссылок
 // нет, чтобы колонка не схлопывалась при входе пользователя.
+// ARCHITECT: якоря абсолютные, потому что футер общий для лендинга и центра помощи — с /help
+// относительный якорь никуда не ведёт.
 export const FOOTER_COLUMNS: readonly FooterColumnItem[] = [
     {
         titleKey: 'columns.product.title',
         links: [
-            { labelKey: 'columns.product.features', href: '#features' },
-            { labelKey: 'columns.product.howItWorks', href: '#how-it-works' },
-            { labelKey: 'columns.product.pricing', href: '#pricing' },
+            { labelKey: 'columns.product.features', href: '/#features' },
+            { labelKey: 'columns.product.howItWorks', href: '/#how-it-works' },
+            { labelKey: 'columns.product.pricing', href: '/#pricing' },
         ],
     },
     {

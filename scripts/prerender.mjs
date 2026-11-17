@@ -49,6 +49,7 @@ const routes = await readJson("src/lib/seo-routes.json");
 const landing = await readJson("src/locales/ru/landing.json");
 const legal = await readJson("src/locales/ru/legal.json");
 const common = await readJson("src/locales/ru/common.json");
+const docs = await readJson("src/locales/ru/docs.json");
 const legalSource = await readText("src/lib/legal.ts");
 
 // ARCHITECT: имя оператора берётся из ru-словаря common — тот же источник, что у самой страницы
@@ -159,6 +160,101 @@ const contactsHtml = () => {
 </article>`;
 };
 
+// ARCHITECT: тексты /about и /changelog лежат в common.json — тех же ключах, что рендерят страницы,
+// поэтому статический HTML и React-версия не могут разойтись по формулировкам.
+const aboutHtml = () => `<main><article>
+<h1>${escapeHtml(common.about.title)}</h1>
+<p>${escapeHtml(common.about.lead)}</p>
+<h2>${escapeHtml(common.about.whyTitle)}</h2>
+<p>${escapeHtml(common.about.whyBody)}</p>
+<h2>${escapeHtml(common.about.howTitle)}</h2>
+<p>${escapeHtml(common.about.howBody)}</p>
+<p>${escapeHtml(common.about.note)}</p>
+</article></main>`;
+
+const CHANGELOG_LAUNCH_DATE = "2026-11-18";
+
+const changelogHtml = () => {
+    // ARCHITECT: дата форматируется тем же Intl с локалью ru, что и на клиенте, поэтому строка совпадает;
+    // суффикс T00:00:00 держит сутки на месте в любом часовом поясе сборки.
+    const date = new Intl.DateTimeFormat("ru", {
+        day: "numeric",
+        month: "long",
+        year: "numeric",
+    }).format(new Date(`${CHANGELOG_LAUNCH_DATE}T00:00:00`));
+    const post = common.changelog.launch;
+
+    return `<main><article>
+<h1>${escapeHtml(common.changelog.title)}</h1>
+<p>${escapeHtml(common.changelog.subtitle)}</p>
+<article>
+<p><span>${escapeHtml(post.tag)}</span> <time datetime="${CHANGELOG_LAUNCH_DATE}">${escapeHtml(date)}</time></p>
+<h2>${escapeHtml(post.title)}</h2>
+<p>${escapeHtml(post.body)}</p>
+</article>
+</article></main>`;
+};
+
+// ARCHITECT: состав и порядок разделов документации читаются из src/pages/docs/docsSections.ts — того же
+// модуля, что рендерит страница, поэтому статический HTML не разойдётся с UI при добавлении подраздела.
+// Приём тот же, что с FAQ центра помощи: guard ниже роняет сборку, если формат файла изменится.
+const docsSource = await readText("src/pages/docs/docsSections.ts");
+const pickGroup = (pattern, block) => {
+    const match = pattern.exec(block);
+    return match === null ? undefined : match[1];
+};
+
+const docsSections = docsSource
+    .split(/^ {8}id: "/m)
+    .slice(1)
+    .map((block) => ({
+        id: pickGroup(/^([a-zA-Z]+)"/, block),
+        titleKey: pickGroup(/titleKey: "([^"]+)"/, block),
+        introKey: pickGroup(/introKey: "([^"]+)"/, block),
+        items: [...block.matchAll(/titleKey: "([^"]+)", bodyKey: "([^"]+)"/g)].map((match) => [
+            match[1],
+            match[2],
+        ]),
+        helpLinkKey: pickGroup(/helpLinkKey: "([^"]+)"/, block),
+    }));
+
+if (docsSections.length !== 7 || docsSections.some((section) => section.items.length === 0)) {
+    throw new Error("prerender: не удалось прочитать разделы из src/pages/docs/docsSections.ts");
+}
+
+// ARCHITECT: ключи в docsSections.ts идут без префикса неймспейса — резолвим их в docs.json тем же путём,
+// что и компонент; отсутствие ключа — громкая ошибка сборки, а не пустой абзац в проде.
+const docsValue = (key) => {
+    const value = key.split(".").reduce((node, part) => (node === undefined ? undefined : node[part]), docs);
+    if (typeof value !== "string") throw new Error(`prerender: в docs.json нет ключа ${key}`);
+    return value;
+};
+
+const docsHtml = () => {
+    const sections = docsSections
+        .map((section) => {
+            const items = section.items
+                .map(
+                    ([titleKey, bodyKey]) =>
+                        `<h3>${escapeHtml(docsValue(titleKey))}</h3><p>${escapeHtml(docsValue(bodyKey))}</p>`
+                )
+                .join("");
+            const help =
+                section.helpLinkKey === undefined
+                    ? ""
+                    : `<p><a href="/help">${escapeHtml(docsValue(section.helpLinkKey))}</a></p>`;
+
+            return `<section id="${section.id}"><h2>${escapeHtml(docsValue(section.titleKey))}</h2><p>${escapeHtml(docsValue(section.introKey))}</p>${items}${help}</section>`;
+        })
+        .join("");
+
+    return `<main><article>
+<h1>${escapeHtml(docs.pageTitle)}</h1>
+<p>${escapeHtml(docs.pageIntro)}</p>
+${sections}
+</article></main>`;
+};
+
 const BODIES = {
     "/": landingHtml,
     "/help": helpHtml,
@@ -166,6 +262,9 @@ const BODIES = {
     "/privacy": () => legalHtml("privacy"),
     "/terms": () => legalHtml("terms"),
     "/cookies": () => legalHtml("cookies"),
+    "/about": aboutHtml,
+    "/changelog": changelogHtml,
+    "/docs": docsHtml,
 };
 
 const ORGANIZATION = {

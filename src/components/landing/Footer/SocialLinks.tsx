@@ -71,7 +71,7 @@ export function SocialLinks({ links }: SocialLinksProps) {
                     aria-label={label}
                     aria-disabled="true"
                     title={t('social.comingSoon')}
-                    className="flex h-9 w-9 cursor-default items-center justify-center rounded-full text-zinc-500 opacity-40"
+                    className="flex h-9 w-9 cursor-default items-center justify-center rounded-full text-zinc-500 opacity-60"
                 >
                     <Icon className="h-4 w-4" />
                 </span>

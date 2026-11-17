@@ -1,4 +1,7 @@
 {
+  "pageTitle": "Documentación",
+  "pageIntro": "Cómo funciona Blobus: desde el primer arranque hasta el panel. Abajo verás qué hace cada parte y qué sigue funcionando solo en tu navegador.",
+  "tocLabel": "Contenido",
   "gettingStarted": {
     "title": "Primeros pasos",
     "intro": "El asistente de configuración tiene cinco pasos. El número del paso y la barra de progreso están arriba en la pantalla, y Atrás vuelve al paso anterior. Más adelante, Nueva sesión en el menú lateral abre una versión corta: tutor y modo.",

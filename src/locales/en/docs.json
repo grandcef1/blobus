@@ -1,4 +1,7 @@
 {
+  "pageTitle": "Documentation",
+  "pageIntro": "How Blobus works: from first run to the dashboard. Below is what each part does and what still runs only in your browser.",
+  "tocLabel": "Contents",
   "gettingStarted": {
     "title": "Getting started",
     "intro": "The setup wizard has five steps. The step number and progress bar sit at the top of the screen, and Back returns to the previous step. Later, New session in the sidebar runs a short version of the wizard: tutor and mode.",

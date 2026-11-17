@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
+import { ChatBlobatar } from "@/components/landing/ChatBlobatar";
 import { SIDEBAR_FOCUS_RING } from "./navigation";
 import { SidebarNav } from "./SidebarNav";
 import { SidebarRecentSessions } from "./SidebarRecentSessions";
@@ -21,26 +21,36 @@ interface SidebarBodyProps {
     isCollapsed: boolean;
 }
 
+// ARCHITECT: маска угасания — верх блока растворяется в фоне сайдбара; вынесена константой, чтобы
+// длинная строка инлайна не рвала разметку по printWidth.
+const EYES_FADE_MASK = "linear-gradient(to bottom, transparent 0%, black 40%, black 100%)";
+
 export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
     const { t } = useTranslation("dashboard");
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            {/* ARCHITECT: вместо отдельного компонента «только глаза» используем готовый BrandBlobatar с
-                interactive-режимом (animate="always" + useGaze) и обрезаем его краями контейнера через
-                overflow-hidden + scale-150. Это даёт живые следящие глаза без дублирования математики библиотеки. */}
-            <div className="relative aspect-[16/9] w-full shrink-0 overflow-hidden bg-[#0d0d0d]">
-                <div className="absolute inset-0 flex scale-150 items-center justify-center">
-                    <BrandBlobatar interactive />
+            {/* ARCHITECT: компактный блок глаз: рендерим ChatBlobatar — «двойника» брендового блобатара с
+                animate="always" и БЕЗ useGaze, потому что BrandBlobatar умеет только два режима: слежение
+                за курсором (слушатель pointermove на window) либо статичную марку без анимации.
+                Маска сверху даёт угасание, overflow-hidden обрезает края, оставляя в кадре глаза. */}
+            <div
+                className="relative h-20 w-full shrink-0 overflow-hidden"
+                style={{ maskImage: EYES_FADE_MASK, WebkitMaskImage: EYES_FADE_MASK }}
+            >
+                <div className="absolute inset-0 flex items-center justify-center">
+                    <div className="aspect-square w-[130%] shrink-0">
+                        <ChatBlobatar />
+                    </div>
                 </div>
 
                 <Link
                     to="/"
                     aria-label={t("nav.goHome")}
-                    className="group absolute inset-0 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+                    className="group absolute inset-0 z-10 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 >
                     {!isCollapsed && (
-                        <span className="relative z-10 rounded px-3 py-1 text-xl font-semibold tracking-tight text-white/90 backdrop-blur-sm transition-all duration-200">
+                        <span className="rounded px-3 py-1 text-lg font-semibold tracking-tight text-white/90 backdrop-blur-sm transition-all duration-200">
                             <span className="group-hover:hidden">{t("nav.brand")}</span>
                             <span className="hidden group-hover:inline">{t("nav.goHome")}</span>
                         </span>

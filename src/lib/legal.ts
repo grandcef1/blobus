@@ -3,7 +3,6 @@
 // живут в src/locales/{ru,en,es}/legal.json, поэтому состав обработчиков нельзя рассинхронизировать
 // между языками.
 
-export const OPERATOR_NAME = "Герман Степанов — индивидуальный разработчик, проект Blobus";
 export const OPERATOR_CONTACT_EMAIL = "blobus.support@gmail.com";
 export const LEGAL_EFFECTIVE_DATE = "2026-11-16";
 

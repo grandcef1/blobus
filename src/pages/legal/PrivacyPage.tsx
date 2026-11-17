@@ -10,7 +10,7 @@ import { LegalLayout } from "@/components/legal/LegalLayout";
 import { LegalSection } from "@/components/legal/LegalSection";
 import { ProcessorsTable } from "@/components/legal/ProcessorsTable";
 import { LEGAL_INLINE_LINK } from "@/components/legal/legal.styles";
-import { OPERATOR_CONTACT_EMAIL, OPERATOR_NAME } from "@/lib/legal";
+import { OPERATOR_CONTACT_EMAIL } from "@/lib/legal";
 
 // ARCHITECT: массив объявлен as const, поэтому id остаются литералами и ключ t() проверяется типами —
 // опечатка в имени раздела становится ошибкой сборки.
@@ -23,7 +23,8 @@ const TAIL_SECTIONS = ["reports", "rights", "children", "retention", "changes"] 
 
 export function PrivacyPage() {
     const { t } = useTranslation("legal");
-    const vars = { operator: OPERATOR_NAME, email: OPERATOR_CONTACT_EMAIL };
+    const { t: tCommon } = useTranslation("common");
+    const vars = { operator: tCommon("legal.operator"), email: OPERATOR_CONTACT_EMAIL };
 
     return (
         <LegalLayout

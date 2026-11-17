@@ -51,8 +51,8 @@ const legal = await readJson("src/locales/ru/legal.json");
 const common = await readJson("src/locales/ru/common.json");
 const legalSource = await readText("src/lib/legal.ts");
 
-// ARCHITECT: имя оператора и адрес поддержки — тот же источник, что у самих страниц: копии констант
-// в скрипте не появляется.
+// ARCHITECT: имя оператора берётся из ru-словаря common — тот же источник, что у самой страницы
+// в рантайме, поэтому копии не появляется; email не переводится и остаётся константой legal.ts.
 const readConst = (name) => {
     const match = new RegExp(`export const ${name} = "([^"]+)"`).exec(legalSource);
     if (match === null) throw new Error(`prerender: в src/lib/legal.ts не найдена константа ${name}`);
@@ -61,7 +61,7 @@ const readConst = (name) => {
 
 const withVars = (text) =>
     text
-        .replaceAll("{{operator}}", readConst("OPERATOR_NAME"))
+        .replaceAll("{{operator}}", common.legal.operator)
         .replaceAll("{{email}}", readConst("OPERATOR_CONTACT_EMAIL"));
 
 const landingHtml = () => {

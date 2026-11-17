@@ -4,6 +4,7 @@
 import * as React from "react";
 import { Dialog as SheetPrimitive } from "radix-ui";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 import { cn } from "@/lib/utils";
 
@@ -75,6 +76,8 @@ function SheetOverlay({
 }
 
 function SheetContent({ className, children, side = "right", ...props }: SheetContentProps) {
+    const { t } = useTranslation("common");
+
     return (
         <SheetPortal>
             <SheetOverlay />
@@ -93,7 +96,7 @@ function SheetContent({ className, children, side = "right", ...props }: SheetCo
                 {children}
                 <SheetPrimitive.Close className="absolute top-4 right-4 rounded-sm text-[#f0f0f5]/70 transition-colors hover:text-[#f0f0f5] focus-visible:ring-2 focus-visible:ring-[#f0f0f5]/60 focus-visible:outline-none disabled:pointer-events-none">
                     <X className="size-5" aria-hidden="true" />
-                    <span className="sr-only">Закрыть</span>
+                    <span className="sr-only">{t("actions.close")}</span>
                 </SheetPrimitive.Close>
             </SheetPrimitive.Content>
         </SheetPortal>

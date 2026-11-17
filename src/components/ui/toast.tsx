@@ -5,6 +5,7 @@
 import * as React from "react";
 import { Toast as ToastPrimitive } from "radix-ui";
 import { X } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
 import type { ToastVariant } from "@/store/toast";
 
@@ -20,6 +21,8 @@ interface ToastRootProps
 }
 
 function ToastRoot({ variant = "info", className, children, ...props }: ToastRootProps) {
+    const { t } = useTranslation("common");
+
     return (
         <ToastPrimitive.Root
             data-slot="toast"
@@ -35,7 +38,7 @@ function ToastRoot({ variant = "info", className, children, ...props }: ToastRoo
             />
             <div className="min-w-0 flex-1">{children}</div>
             <ToastPrimitive.Close
-                aria-label="Закрыть"
+                aria-label={t("actions.close")}
                 className="shrink-0 rounded-md p-1 text-[#f0f0f5]/40 transition-colors hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]"
             >
                 <X className="size-4" aria-hidden="true" />

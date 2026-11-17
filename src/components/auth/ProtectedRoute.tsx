@@ -4,6 +4,7 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate, useLocation } from "react-router-dom";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "@/store/toast";
@@ -13,6 +14,7 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
+    const { t } = useTranslation("common");
     // ARCHITECT: селектор-булеан возвращает примитив, поэтому компонент не перерисовывается
     // на каждое изменение объекта пользователя — только при смене статуса авторизации.
     const isAuthenticated = useAuthStore((state) => state.user !== null);
@@ -22,7 +24,7 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
     // push() меняет глобальный zustand-store, и из тела рендера это было бы побочным эффектом.
     useEffect(() => {
         if (!isAuthenticated) {
-            toast.error("Требуется вход", "Откройте /app только после авторизации.");
+            toast.error(t("guards.authTitle"), t("guards.authDescription"));
         }
     }, [isAuthenticated]);
 

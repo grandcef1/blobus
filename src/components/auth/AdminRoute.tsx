@@ -4,6 +4,7 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
+import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router-dom";
 import { APP_HOME_PATH } from "@/components/layout/navigation";
 import { useAuthStore } from "@/store/auth";
@@ -14,6 +15,7 @@ interface AdminRouteProps {
 }
 
 export function AdminRoute({ children }: AdminRouteProps) {
+    const { t } = useTranslation("common");
     // ARCHITECT: селектор отдаёт примитив (строку роли), поэтому компонент не перерисовывается на
     // каждое изменение объекта пользователя — только при смене роли.
     const isAdmin = useAuthStore((state) => state.user?.role === "admin");
@@ -22,7 +24,7 @@ export function AdminRoute({ children }: AdminRouteProps) {
     // и из тела рендера это было бы побочным эффектом.
     useEffect(() => {
         if (!isAdmin) {
-            toast.error("Нет доступа", "Раздел доступен только администратору.");
+            toast.error(t("guards.adminTitle"), t("guards.adminDescription"));
         }
     }, [isAdmin]);
 

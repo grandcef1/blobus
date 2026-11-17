@@ -30,7 +30,8 @@
   "errors": {
     "api": {
       "timeout": "The server took too long to respond",
-      "linkInvalid": "The link is not valid"
+      "linkInvalid": "The link is not valid",
+      "offline": "No connection to the server"
     },
     "boundary": {
       "title": "Something went wrong",
@@ -206,7 +207,8 @@
       "minor": "minor fix",
       "moderate": "moderate fix",
       "major": "major fix"
-    }
+    },
+    "examples": "Examples"
   },
   "guards": {
     "adminTitle": "Access denied",
@@ -225,5 +227,8 @@
       "grammar": "Let's start with one rule and apply it right away. Make a sentence in the past simple about yesterday.",
       "general": "Let's start with an everyday topic. What did you do today? Answer in English and I will correct you if needed."
     }
+  },
+  "notifications": {
+    "label": "Notifications"
   }
 }

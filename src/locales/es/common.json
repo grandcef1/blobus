@@ -30,7 +30,8 @@
   "errors": {
     "api": {
       "timeout": "El servidor tardó demasiado en responder",
-      "linkInvalid": "El enlace no es válido"
+      "linkInvalid": "El enlace no es válido",
+      "offline": "Sin conexión con el servidor"
     },
     "boundary": {
       "title": "Algo salió mal",
@@ -206,7 +207,8 @@
       "minor": "corrección leve",
       "moderate": "corrección moderada",
       "major": "corrección importante"
-    }
+    },
+    "examples": "Ejemplos"
   },
   "guards": {
     "adminTitle": "Sin acceso",
@@ -225,5 +227,8 @@
       "grammar": "Empecemos con una regla y apliquémosla de inmediato. Forma una oración en pasado simple sobre ayer.",
       "general": "Empecemos con un tema cotidiano. What did you do today? Responde en inglés y te corregiré si hace falta."
     }
+  },
+  "notifications": {
+    "label": "Notificaciones"
   }
 }

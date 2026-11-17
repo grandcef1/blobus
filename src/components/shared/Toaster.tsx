@@ -2,6 +2,7 @@
 // сообщение видно и на лендинге, и внутри приложения. Длительность задаёт Radix по варианту,
 // поэтому таймеры не дублируются в store; при наведении и фокусе отсчёт приостанавливается.
 
+import { useTranslation } from "react-i18next";
 import { ToastPrimitive, ToastDescription, ToastRoot, ToastTitle, ToastViewport } from "@/components/ui/toast";
 import { useToastStore } from "@/store/toast";
 import type { ToastVariant } from "@/store/toast";
@@ -13,11 +14,12 @@ const DURATION_MS: Record<ToastVariant, number> = {
 };
 
 export function Toaster() {
+    const { t } = useTranslation("common");
     const toasts = useToastStore((state) => state.toasts);
     const dismiss = useToastStore((state) => state.dismiss);
 
     return (
-        <ToastPrimitive.Provider label="Уведомления" swipeDirection="right">
+        <ToastPrimitive.Provider label={t("notifications.label")} swipeDirection="right">
             {toasts.map((item) => (
                 <ToastRoot
                     key={item.id}

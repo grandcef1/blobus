@@ -10,6 +10,7 @@
 import { useState, type ReactNode } from "react";
 import { motion } from "framer-motion";
 import { ChevronDown } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { CorrectionSegment, GrammarCorrection } from "@/types/session";
 import { cn } from "@/lib/utils";
 
@@ -23,11 +24,11 @@ const RULE = "text-xs text-[#f0f0f5]/50";
 const BODY = "text-sm leading-[1.6]";
 const SUB_BLOCK = "rounded-lg bg-black/20 p-3";
 
-const SEVERITY_LABEL: Record<GrammarCorrection["severity"], string> = {
-    minor: "мелкая правка",
-    moderate: "средняя правка",
-    major: "важная правка",
-};
+const SEVERITY_LABEL_KEYS = {
+    minor: "correction.severity.minor",
+    moderate: "correction.severity.moderate",
+    major: "correction.severity.major",
+} as const satisfies Record<GrammarCorrection["severity"], string>;
 
 const SEVERITY_MARKER: Record<GrammarCorrection["severity"], string> = {
     minor: "bg-[#f0f0f5]/40",
@@ -67,6 +68,7 @@ function renderSegments(segments: CorrectionSegment[], tone: "original" | "corre
 }
 
 export function CorrectionView({ correction, className }: CorrectionViewProps) {
+    const { t } = useTranslation("common");
     const [showExamples, setShowExamples] = useState(false);
 
     return (
@@ -76,7 +78,7 @@ export function CorrectionView({ correction, className }: CorrectionViewProps) {
                 className
             )}
         >
-            <p className={EYEBROW}>Исправление</p>
+            <p className={EYEBROW}>{t("correction.title")}</p>
 
             <div className="mt-3 space-y-3">
                 <div className={SUB_BLOCK}>
@@ -95,7 +97,7 @@ export function CorrectionView({ correction, className }: CorrectionViewProps) {
                         className={cn("size-1.5 rounded-full", SEVERITY_MARKER[correction.severity])}
                         aria-hidden="true"
                     />
-                    {SEVERITY_LABEL[correction.severity]}
+                    {t(SEVERITY_LABEL_KEYS[correction.severity])}
                 </span>
             </div>
 
@@ -111,7 +113,7 @@ export function CorrectionView({ correction, className }: CorrectionViewProps) {
                         aria-expanded={showExamples}
                         className="flex min-h-11 w-full items-center justify-between gap-3 text-left text-xs text-[#f0f0f5]/50 transition-colors hover:text-[#f0f0f5]/80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]"
                     >
-                        Примеры
+                        {t("correction.examples")}
                         <ChevronDown
                             className={cn(
                                 "size-4 transition-transform duration-200",

@@ -11,7 +11,7 @@ import { Link } from "react-router-dom";
 import { Plus } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { cn } from "@/lib/utils";
-import { ChatBlobatar } from "@/components/landing/ChatBlobatar";
+import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
 import { SIDEBAR_FOCUS_RING } from "./navigation";
 import { SidebarNav } from "./SidebarNav";
 import { SidebarRecentSessions } from "./SidebarRecentSessions";
@@ -21,28 +21,26 @@ interface SidebarBodyProps {
     isCollapsed: boolean;
 }
 
-// ARCHITECT: маска угасания — верх блока растворяется в фоне сайдбара; вынесена константой, чтобы
-// длинная строка инлайна не рвала разметку по printWidth.
-const EYES_FADE_MASK = "linear-gradient(to bottom, transparent 0%, black 40%, black 100%)";
-
 export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
     const { t } = useTranslation("dashboard");
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            {/* ARCHITECT: компактный блок глаз: рендерим ChatBlobatar — «двойника» брендового блобатара с
-                animate="always" и БЕЗ useGaze, потому что BrandBlobatar умеет только два режима: слежение
-                за курсором (слушатель pointermove на window) либо статичную марку без анимации.
-                Маска сверху даёт угасание, overflow-hidden обрезает края, оставляя в кадре глаза. */}
-            <div
-                className="relative h-20 w-full shrink-0 overflow-hidden"
-                style={{ maskImage: EYES_FADE_MASK, WebkitMaskImage: EYES_FADE_MASK }}
-            >
-                <div className="absolute inset-0 flex items-center justify-center">
-                    <div className="aspect-square w-[130%] shrink-0">
-                        <ChatBlobatar />
+            {/* ARCHITECT: высота h-14 унифицирует блок с хедером чата; кроп квадратом оставляет в кадре
+                только линию глаз (svg библиотеки имеет viewBox 0 0 100 100 и preserveAspectRatio по
+                умолчанию, поэтому не-квадратный бокс дал бы пустые поля по бокам вместо растяжения);
+                виньетка вместо блюра даёт премиальную глубину без стеклянной плашки. */}
+            <div className="relative h-14 w-full shrink-0 overflow-hidden">
+                <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
+                    <div className="aspect-square w-[150%] shrink-0">
+                        <BrandBlobatar gaze={false} className="h-full w-full" />
                     </div>
                 </div>
+
+                <span
+                    className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.6)_0%,rgba(0,0,0,0.25)_45%,rgba(0,0,0,0)_75%)]"
+                    aria-hidden="true"
+                />
 
                 <Link
                     to="/"
@@ -50,9 +48,13 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
                     className="group absolute inset-0 z-10 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 >
                     {!isCollapsed && (
-                        <span className="rounded px-3 py-1 text-lg font-semibold tracking-tight text-white/90 backdrop-blur-sm transition-all duration-200">
-                            <span className="group-hover:hidden">{t("nav.brand")}</span>
-                            <span className="hidden group-hover:inline">{t("nav.goHome")}</span>
+                        <span className="relative block h-5 overflow-hidden">
+                            <span className="block text-sm font-semibold tracking-[0.08em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-0 motion-reduce:transition-none">
+                                {t("nav.brand")}
+                            </span>
+                            <span className="absolute inset-0 block translate-y-full text-sm font-semibold tracking-[0.08em] text-white/90 opacity-0 drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none">
+                                {t("nav.goHome")}
+                            </span>
                         </span>
                     )}
                 </Link>

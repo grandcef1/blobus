@@ -13,6 +13,8 @@ export interface BrandBlobatarProps {
     className?: string;
     /** false — статичная марка: без слежения за курсором и без анимации. */
     interactive?: boolean;
+    /** false — живая idle-анимация без слежения за курсором: сайдбару нужна марка без реакции на курсор. */
+    gaze?: boolean;
 }
 
 const BRAND_TRAITS: Record<string, number | number[]> = {
@@ -36,20 +38,30 @@ const BRAND_TRAITS: Record<string, number | number[]> = {
 const INTERACTIVE_SIZE = "aspect-square w-64 shrink-0 sm:w-80";
 const STATIC_SIZE = "aspect-square size-7 shrink-0";
 
-export function BrandBlobatar({ className, interactive = true }: BrandBlobatarProps) {
+export function BrandBlobatar({ className, interactive = true, gaze = true }: BrandBlobatarProps) {
     const { ref, lookAt } = useGaze({ travel: 15 });
 
-    // ARCHITECT: useGaze вызывается всегда — условные хуки запрещены. Слежение при этом
-    // включается только в режиме interactive: пока lookAt не вызван, драйвер ни за чем не
-    // следит, а в статичном режиме ref вообще не подключается к разметке.
+    // ARCHITECT: проп gaze разделяет idle-анимацию и слежение за курсором: сайдбару нужна живая
+    // марка без реакции на курсор, лендингу — обе. Хук вызывается безусловно (условные хуки
+    // запрещены), отключается только привязка слежения — ref не подключается к разметке.
+    const tracksPointer = interactive && gaze;
     useEffect(() => {
-        if (interactive) lookAt("pointer");
-    }, [interactive, lookAt]);
+        if (tracksPointer) lookAt("pointer");
+    }, [tracksPointer, lookAt]);
 
     return (
         <div className={cn(interactive ? INTERACTIVE_SIZE : STATIC_SIZE, className)}>
             {interactive ? (
-                <Blobatar ref={ref} animate="always" name="gabriel80" traits={BRAND_TRAITS} />
+                tracksPointer ? (
+                    <Blobatar ref={ref} animate="always" name="gabriel80" traits={BRAND_TRAITS} />
+                ) : (
+                    <Blobatar
+                        animate="always"
+                        name="gabriel80"
+                        traits={BRAND_TRAITS}
+                        className="size-full"
+                    />
+                )
             ) : (
                 // ARCHITECT: статичная марка — это <img> с тем же силуэтом (два глаза и тело из
                 // BRAND_TRAITS). `animate` не передаём вовсе: анимация в библиотеке opt-in, а

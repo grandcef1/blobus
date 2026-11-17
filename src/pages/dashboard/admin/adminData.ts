@@ -1,6 +1,8 @@
 // ARCHITECT: данные админ-панели вынесены из страницы: AdminPage стал короче 150 строк, а
 // типы и подписи статусов лежат в одной точке и не дублируются между секциями.
 
+import i18n from "@/lib/i18n";
+
 export interface AdminUser {
     id: string;
     name: string;
@@ -54,5 +56,5 @@ export const PRIORITY_LABEL_KEYS = {
 } as const satisfies Record<AdminTicket["priority"], string>;
 
 export function formatAdminDate(isoDate: string): string {
-    return new Date(isoDate).toLocaleDateString("ru", { day: "numeric", month: "short" });
+    return new Date(isoDate).toLocaleDateString(i18n.language, { day: "numeric", month: "short" });
 }

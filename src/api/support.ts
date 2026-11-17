@@ -4,10 +4,10 @@
 
 import { HELP_FAQ, MOCK_TICKETS } from "@/api/mocks/help";
 import { delayMock } from "@/api/mockDelay";
+import i18n from "@/lib/i18n";
 import type { HelpFaqItem, SupportTicket, TicketCategory } from "@/types/support";
 
 const ACK_DELAY_MS = 1000;
-const ACK_TEXT = "Обращение зарегистрировано. Ответим в течение 24 часов в рабочие дни.";
 
 const tickets: SupportTicket[] = [...MOCK_TICKETS];
 
@@ -44,7 +44,7 @@ export function createTicket(input: CreateTicketInput): SupportTicket {
             {
                 id: crypto.randomUUID(),
                 author: "support",
-                content: ACK_TEXT,
+                content: i18n.t("help.ticketAutoReply", { ns: "common" }),
                 timestamp: now + ACK_DELAY_MS,
             },
         ],

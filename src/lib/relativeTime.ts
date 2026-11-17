@@ -2,17 +2,22 @@
 // вопрос «когда я занимался» читается как «два часа назад», а не как число. Формат ru,
 // без «сегодня/вчера»: они путаются при переходе через полночь.
 
+import i18n from "@/lib/i18n";
+
+// ARCHITECT: платформенный Intl даёт корректные склонения по числу для всех трёх языков и не требует
+// ключей; язык берётся в момент вызова, поэтому смена интерфейса меняет и относительное время.
 const MINUTE_MS = 60000;
 const HOUR_MS = MINUTE_MS * 60;
 const DAY_MS = HOUR_MS * 24;
 
 export function formatRelativeTime(timestamp: number): string {
     const elapsed = Date.now() - timestamp;
+    const relative = new Intl.RelativeTimeFormat(i18n.language, { numeric: "auto" });
 
-    if (elapsed < MINUTE_MS) return "только что";
-    if (elapsed < HOUR_MS) return `${Math.round(elapsed / MINUTE_MS)} мин назад`;
-    if (elapsed < DAY_MS) return `${Math.round(elapsed / HOUR_MS)} ч назад`;
-    if (elapsed < DAY_MS * 31) return `${Math.round(elapsed / DAY_MS)} дн назад`;
+    if (elapsed < MINUTE_MS) return relative.format(0, "second");
+    if (elapsed < HOUR_MS) return relative.format(-Math.round(elapsed / MINUTE_MS), "minute");
+    if (elapsed < DAY_MS) return relative.format(-Math.round(elapsed / HOUR_MS), "hour");
+    if (elapsed < DAY_MS * 31) return relative.format(-Math.round(elapsed / DAY_MS), "day");
 
-    return new Date(timestamp).toLocaleDateString("ru", { day: "numeric", month: "short" });
+    return new Date(timestamp).toLocaleDateString(i18n.language, { day: "numeric", month: "short" });
 }

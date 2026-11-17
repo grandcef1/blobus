@@ -6,6 +6,7 @@
 import { MOCK_SESSIONS } from "@/api/mocks/sessions";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import { delayMock } from "@/api/mockDelay";
+import i18n from "@/lib/i18n";
 import type { EnhancedChatSession, EnhancedMessage } from "@/types/session";
 import type { BlobatarId } from "@/types/blobatar";
 import type { EnglishLevel, LearningMode } from "@/types/onboarding";
@@ -31,14 +32,12 @@ const PLANNED_LESSON_COUNT = 8;
 
 // ARCHITECT: первая реплика репетитора зависит от режима — чат открывается по теме, а не
 // пустым экраном. Без эмодзи и восклицаний, как и весь микрокоп приложения.
-const OPENING_MESSAGES: Record<LearningMode, string> = {
-    interview:
-        "Начнём с типичного вопроса на собеседовании. Расскажи о случае, когда тебе пришлось работать под давлением дедлайна.",
-    speaking: "Начнём с простого разговора. Расскажи на английском, чем ты занимался на этой неделе.",
-    grammar:
-        "Начнём с одного правила и сразу применим его. Составь предложение в прошедшем простом времени о вчерашнем дне.",
-    general: "Начнём с повседневной темы. What did you do today? Отвечай на английском, я поправлю при необходимости.",
-};
+const OPENING_MESSAGE_KEYS = {
+    interview: "sessions.opening.interview",
+    speaking: "sessions.opening.speaking",
+    grammar: "sessions.opening.grammar",
+    general: "sessions.opening.general",
+} as const satisfies Record<LearningMode, string>;
 
 const sessions: EnhancedChatSession[] = [...MOCK_SESSIONS];
 
@@ -53,7 +52,10 @@ function createOpeningMessage(
         id: crypto.randomUUID(),
         sessionId,
         role: "assistant",
-        content: OPENING_MESSAGES[learningMode as LearningMode] ?? OPENING_MESSAGES.general,
+        content: i18n.t(
+            OPENING_MESSAGE_KEYS[learningMode as LearningMode] ?? OPENING_MESSAGE_KEYS.general,
+            { ns: "common" }
+        ),
         timestamp,
         type: "text",
     };
@@ -75,7 +77,9 @@ export function createSession(input: CreateSessionInput): EnhancedChatSession {
     const session: EnhancedChatSession = {
         id: sessionId,
         userId: SESSION_USER_ID,
-        title: modeLabel ? `Новая сессия · ${modeLabel}` : "Новая сессия",
+        title: modeLabel
+            ? i18n.t("sessions.newTitle", { ns: "common", mode: modeLabel })
+            : i18n.t("states.empty.sessions.action", { ns: "common" }),
         createdAt: now,
         repetitorId: input.repetitorId,
         learningMode: input.learningMode,

@@ -26,21 +26,17 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
 
     return (
         <div className="flex h-full min-h-0 flex-col overflow-hidden">
-            {/* ARCHITECT: высота h-14 унифицирует блок с хедером чата; кроп квадратом оставляет в кадре
-                только линию глаз (svg библиотеки имеет viewBox 0 0 100 100 и preserveAspectRatio по
-                умолчанию, поэтому не-квадратный бокс дал бы пустые поля по бокам вместо растяжения);
-                виньетка вместо блюра даёт премиальную глубину без стеклянной плашки. */}
-            <div className="relative h-14 w-full shrink-0 overflow-hidden">
-                <div className="absolute inset-0 flex items-center justify-center" aria-hidden="true">
-                    <div className="aspect-square w-[150%] shrink-0">
+            {/* ARCHITECT: высота h-16 и центрирование через left-50% — правки владельца, кроп внутри.
+                Квадрат оставлен намеренно: у svg библиотеки viewBox 0 0 100 100 и preserveAspectRatio
+                по умолчанию, поэтому в неквадратном боксе рисунок впишется по меньшей стороне и даст
+                пустые поля по бокам. Пустоту убирает зум w-[200%] — силуэт шире блока и обрезается
+                краями; полоса кадра (h-16 из 560px бокса ≈ 11%) оставляет в кадре линию глаз. */}
+            <div className="relative mb-3 h-16 w-full shrink-0 overflow-hidden">
+                <div className="absolute inset-y-0 left-[50%] flex items-center -translate-x-1/2" aria-hidden="true">
+                    <div className="aspect-square w-[200%] shrink-0">
                         <BrandBlobatar gaze={false} className="h-full w-full" />
                     </div>
                 </div>
-
-                <span
-                    className="pointer-events-none absolute inset-0 bg-[radial-gradient(ellipse_at_center,rgba(0,0,0,0.6)_0%,rgba(0,0,0,0.25)_45%,rgba(0,0,0,0)_75%)]"
-                    aria-hidden="true"
-                />
 
                 <Link
                     to="/"
@@ -48,11 +44,11 @@ export function SidebarBody({ isCollapsed }: SidebarBodyProps) {
                     className="group absolute inset-0 z-10 flex items-center justify-center focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
                 >
                     {!isCollapsed && (
-                        <span className="relative block h-5 overflow-hidden">
-                            <span className="block text-sm font-semibold tracking-[0.08em] text-white drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-0 motion-reduce:transition-none">
+                        <span className="relative block h-6 w-full overflow-hidden px-4">
+                            <span className="block w-full text-center text-base font-semibold uppercase tracking-[0.3em] text-[#f0f0f5]/45 drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] transition-all duration-300 ease-out group-hover:-translate-y-full group-hover:opacity-0 motion-reduce:transition-none">
                                 {t("nav.brand")}
                             </span>
-                            <span className="absolute inset-0 block translate-y-full text-sm font-semibold tracking-[0.08em] text-white/90 opacity-0 drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none">
+                            <span className="absolute inset-0 block w-full text-center text-base font-semibold uppercase tracking-[0.3em] text-[#f0f0f5]/45 drop-shadow-[0_1px_8px_rgba(0,0,0,0.8)] opacity-0 translate-y-full transition-all duration-300 ease-out group-hover:translate-y-0 group-hover:opacity-100 motion-reduce:transition-none">
                                 {t("nav.goHome")}
                             </span>
                         </span>

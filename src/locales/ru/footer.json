@@ -12,12 +12,15 @@
       "docs": "Документация",
       "api": "API",
       "changelog": "Обновления",
-      "status": "Статус"
+      "status": "Статус",
+      "reportBug": "Сообщить об ошибке"
     },
     "company": {
       "title": "Компания",
       "contacts": "Контакты",
-      "blog": "Блог"
+      "blog": "Блог",
+      "about": "О проекте",
+      "whatsNew": "Что нового"
     },
     "legal": {
       "title": "Право",

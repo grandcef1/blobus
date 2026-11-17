@@ -12,12 +12,15 @@
       "docs": "Documentation",
       "api": "API",
       "changelog": "Changelog",
-      "status": "Status"
+      "status": "Status",
+      "reportBug": "Report a bug"
     },
     "company": {
       "title": "Company",
       "contacts": "Contacts",
-      "blog": "Blog"
+      "blog": "Blog",
+      "about": "About the project",
+      "whatsNew": "What's new"
     },
     "legal": {
       "title": "Legal",

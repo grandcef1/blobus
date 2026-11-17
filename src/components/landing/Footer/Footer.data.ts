@@ -9,8 +9,9 @@ import type {
     LanguageOption,
 } from './Footer.types';
 
-// ARCHITECT: колонки сбалансированы 3/2/2/3, все адресаты реальные и уникальные; документация убрана
-// до появления своей страницы, чтобы не держать мёртвую ссылку.
+// ARCHITECT: колонки уравнены по три ссылки (3/3/3/3), все адресаты реальные и уникальные; FAQ убран,
+// потому что он внутри Центра помощи; mailto убран, потому что почта живёт на /contacts; auth-ссылок
+// нет, чтобы колонка не схлопывалась при входе пользователя.
 export const FOOTER_COLUMNS: readonly FooterColumnItem[] = [
     {
         titleKey: 'columns.product.title',
@@ -23,15 +24,21 @@ export const FOOTER_COLUMNS: readonly FooterColumnItem[] = [
     {
         titleKey: 'columns.resources.title',
         links: [
-            { labelKey: 'columns.product.faq', href: '#faq' },
+            { labelKey: 'columns.resources.docs', href: '/docs' },
             { labelKey: 'columns.legal.help', href: '/help' },
+            {
+                labelKey: 'columns.resources.reportBug',
+                href: 'https://github.com/grandcef1/blobus/issues',
+                external: true,
+            },
         ],
     },
     {
         titleKey: 'columns.company.title',
         links: [
+            { labelKey: 'columns.company.about', href: '/about' },
+            { labelKey: 'columns.company.whatsNew', href: '/changelog' },
             { labelKey: 'columns.company.contacts', href: '/contacts' },
-            { labelKey: 'columns.legal.support', href: 'mailto:blobus.support@gmail.com', external: true },
         ],
     },
     {

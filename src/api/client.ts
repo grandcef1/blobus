@@ -3,6 +3,9 @@
 // ни один модуль api/* не дёргает fetch напрямую.
 
 import { useAuthStore } from "@/store/auth";
+// ARCHITECT: перевод резолвится синглтоном в момент вызова: хук в api-слое недоступен (это не
+// компонент), а модульная константа зафиксировала бы язык навсегда.
+import i18n from "@/lib/i18n";
 // ARCHITECT: циклический импорт client ↔ observability безопасен: обе стороны обращаются к функциям
 // друг друга только в момент запроса, а не при загрузке модуля.
 import { isReportingInFlight, reportError } from "@/lib/observability/report-error";
@@ -125,13 +128,13 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
             throw error;
         }
         if (error instanceof DOMException && error.name === "AbortError") {
-            const timeoutError = new ApiError(0, "Превышено время ожидания ответа сервера");
+            const timeoutError = new ApiError(0, i18n.t("errors.api.timeout", { ns: "common" }));
             logError(timeoutError);
             throw timeoutError;
         }
         // ARCHITECT: сетевой сбой fetch выбрасывает TypeError без кода статуса: приводим его
         // к тому же ApiError, чтобы верхним слоям не приходилось различать два типа неудач.
-        const networkError = new ApiError(0, "Нет соединения с сервером");
+        const networkError = new ApiError(0, i18n.t("errors.api.offline", { ns: "common" }));
         logError(error);
         throw networkError;
     } finally {

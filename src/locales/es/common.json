@@ -31,7 +31,8 @@
     "api": {
       "timeout": "El servidor tardó demasiado en responder",
       "linkInvalid": "El enlace no es válido",
-      "offline": "Sin conexión con el servidor"
+      "offline": "Sin conexión con el servidor",
+      "linkExpired": "El enlace ha caducado"
     },
     "boundary": {
       "title": "Algo salió mal",

@@ -3,6 +3,7 @@
 // он приходит аргументом и не покидает эту функцию.
 
 import { resolveRole, type UserRole } from "@/lib/admin";
+import i18n from "@/lib/i18n";
 import { ApiError } from "@/api/client";
 import { delayMock } from "@/api/mockDelay";
 
@@ -31,7 +32,7 @@ function resolveAfterDelay(user: AuthUser): Promise<AuthUser> {
 function nameFromEmail(email: string): string {
     const localPart = email.split("@")[0] ?? "";
     const words = localPart.replace(/[._-]+/g, " ").trim();
-    if (!words) return "Ученик";
+    if (!words) return i18n.t("profile.fallbackName", { ns: "common" });
     return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
@@ -93,8 +94,12 @@ export function resetPassword(token: string, newPassword: string): Promise<void>
     void newPassword;
     return delayMock().then(() => {
         const status = resolveToken(token);
-        if (status === "expired") throw new ApiError(410, "Ссылка истекла");
-        if (status === "invalid") throw new ApiError(400, "Ссылка недействительна");
+        if (status === "expired") {
+            throw new ApiError(410, i18n.t("errors.api.linkExpired", { ns: "common" }));
+        }
+        if (status === "invalid") {
+            throw new ApiError(400, i18n.t("errors.api.linkInvalid", { ns: "common" }));
+        }
     });
 }
 

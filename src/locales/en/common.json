@@ -31,7 +31,8 @@
     "api": {
       "timeout": "The server took too long to respond",
       "linkInvalid": "The link is not valid",
-      "offline": "No connection to the server"
+      "offline": "No connection to the server",
+      "linkExpired": "The link has expired"
     },
     "boundary": {
       "title": "Something went wrong",

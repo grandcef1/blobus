@@ -1,7 +1,4 @@
 {
-  "meta": {
-    "title": "Blobus — AI English tutor"
-  },
   "nav": {
     "features": "Features",
     "howItWorks": "How it works",
@@ -59,10 +56,10 @@
     },
     "modesLabel": "Learning modes",
     "modes": {
-      "interview": { "label": "Interview Prep", "hint": "Interview prep", "badge": "Popular" },
-      "speaking": { "label": "Speaking Practice", "hint": "Speaking practice" },
-      "grammar": { "label": "Grammar Focus", "hint": "Grammar" },
-      "general": { "label": "General English", "hint": "General English" }
+      "interview": { "hint": "Interview prep", "badge": "Popular" },
+      "speaking": { "hint": "Speaking practice" },
+      "grammar": { "hint": "Grammar" },
+      "general": { "hint": "General English" }
     },
     "chat": {
       "listen": "Play",

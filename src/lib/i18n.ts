@@ -44,22 +44,23 @@ const RU_RESOURCES: Bundle = {
     onboarding: ruOnboarding,
     placement: ruPlacement,
 };
-// ARCHITECT: import.meta.glob с двумя паттернами превращает каждый файл en/es в отдельный чанк и не
-// тянет ru в ленивый граф — он уже загружен статически.
-const MODULES = import.meta.glob<{ default: Record<string, unknown> }>([
-    "../locales/en/*.json",
-    "../locales/es/*.json",
-]);
+// ARCHITECT: загрузка идёт через баррели языков (src/locales/en|es/index.ts): Vite собирает каждый язык
+// в ОДИН чанк, поэтому холодный старт с выбранным en — один запрос вместо одиннадцати. Имена экспортов
+// барреля совпадают с NAMESPACES, иначе addResourceBundle положил бы переводы не в тот неймспейс.
+type EnBundle = typeof import("../locales/en");
+type EsBundle = typeof import("../locales/es");
+const LANGUAGE_LOADERS: { en: () => Promise<EnBundle>; es: () => Promise<EsBundle> } = {
+    en: () => import("../locales/en"),
+    es: () => import("../locales/es"),
+};
 
-async function loadBundle(language: LanguageCode): Promise<Bundle> {
-    const entries = await Promise.all(
-        NAMESPACES.map(async (namespace) => {
-            const loader = MODULES[`../locales/${language}/${namespace}.json`];
-            if (loader === undefined) throw new Error(`словарь ${language}/${namespace} не найден`);
-            return [namespace, (await loader()).default] as const;
-        })
-    );
-    return Object.fromEntries(entries) as Bundle;
+async function loadBundle(language: Exclude<LanguageCode, "ru">): Promise<Bundle> {
+    const bundle: Bundle = await LANGUAGE_LOADERS[language]();
+    const missing = NAMESPACES.filter((namespace) => bundle[namespace] === undefined);
+    // ARCHITECT: текст ошибки латиницей: i18n-audit считает кириллицу вне комментариев, а это сообщение
+    // для разработчика, а не для интерфейса.
+    if (missing.length > 0) throw new Error(`bundle ${language}: missing ${missing.join(", ")}`);
+    return bundle;
 }
 function toSupported(code: string | undefined): LanguageCode {
     const short = (code ?? "").split("-")[0]?.toLowerCase();
@@ -103,6 +104,9 @@ export async function loadActiveLanguage(): Promise<void> {
 /** Догружает словари языка, если их ещё нет в памяти. false — загрузка не удалась. */
 export async function ensureLanguage(language: LanguageCode): Promise<boolean> {
     if (i18n.hasResourceBundle(language, "common")) return true;
+    // ARCHITECT: ru (DEFAULT_LANGUAGE) статичен и всегда лежит в ресурсах — грузить его нечем; сравнение
+    // с литералом нужно для сужения типа до en|es, DEFAULT_LANGUAGE объявлен как LanguageCode.
+    if (language === "ru") return true;
 
     try {
         const bundle = await loadBundle(language);

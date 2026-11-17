@@ -1,7 +1,4 @@
 {
-  "meta": {
-    "title": "Blobus — Tutor de inglés con IA"
-  },
   "nav": {
     "features": "Funciones",
     "howItWorks": "Cómo funciona",
@@ -59,10 +56,10 @@
     },
     "modesLabel": "Modos de estudio",
     "modes": {
-      "interview": { "label": "Interview Prep", "hint": "Entrevistas", "badge": "Popular" },
-      "speaking": { "label": "Speaking Practice", "hint": "Práctica oral" },
-      "grammar": { "label": "Grammar Focus", "hint": "Gramática" },
-      "general": { "label": "General English", "hint": "Inglés general" }
+      "interview": { "hint": "Entrevistas", "badge": "Popular" },
+      "speaking": { "hint": "Práctica oral" },
+      "grammar": { "hint": "Gramática" },
+      "general": { "hint": "Inglés general" }
     },
     "chat": {
       "listen": "Escuchar",

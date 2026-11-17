@@ -1,7 +1,4 @@
 {
-  "meta": {
-    "title": "Blobus — ИИ-репетитор"
-  },
   "nav": {
     "features": "Возможности",
     "howItWorks": "Как работает",
@@ -59,10 +56,10 @@
     },
     "modesLabel": "Режимы обучения",
     "modes": {
-      "interview": { "label": "Interview Prep", "hint": "Собеседование", "badge": "Popular" },
-      "speaking": { "label": "Speaking Practice", "hint": "Разговорная практика" },
-      "grammar": { "label": "Grammar Focus", "hint": "Грамматика" },
-      "general": { "label": "General English", "hint": "Общее изучение" }
+      "interview": { "hint": "Собеседование", "badge": "Popular" },
+      "speaking": { "hint": "Разговорная практика" },
+      "grammar": { "hint": "Грамматика" },
+      "general": { "hint": "Общее изучение" }
     },
     "chat": {
       "listen": "Прослушать",

@@ -4,8 +4,8 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import { Navigate, useLocation } from "react-router-dom";
+import i18n from "@/lib/i18n";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "@/store/toast";
 
@@ -14,7 +14,6 @@ interface ProtectedRouteProps {
 }
 
 export function ProtectedRoute({ children }: ProtectedRouteProps) {
-    const { t } = useTranslation("common");
     // ARCHITECT: селектор-булеан возвращает примитив, поэтому компонент не перерисовывается
     // на каждое изменение объекта пользователя — только при смене статуса авторизации.
     const isAuthenticated = useAuthStore((state) => state.user !== null);
@@ -22,9 +21,14 @@ export function ProtectedRoute({ children }: ProtectedRouteProps) {
 
     // ARCHITECT: тост рождается во время монтирования-размонтирования, а не во время рендера:
     // push() меняет глобальный zustand-store, и из тела рендера это было бы побочным эффектом.
+    // ARCHITECT: guard не рендерит переводимый текст, тост — побочный эффект редиректа, поэтому ключ
+    // резолвит синглтон в момент вызова: хук тут не нужен, а t в deps повторял бы тост при смене языка.
     useEffect(() => {
         if (!isAuthenticated) {
-            toast.error(t("guards.authTitle"), t("guards.authDescription"));
+            toast.error(
+                i18n.t("guards.authTitle", { ns: "common" }),
+                i18n.t("guards.authDescription", { ns: "common" })
+            );
         }
     }, [isAuthenticated]);
 

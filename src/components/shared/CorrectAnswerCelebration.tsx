@@ -5,6 +5,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Check } from "lucide-react";
+import { useTranslation } from "react-i18next";
 
 interface CorrectAnswerCelebrationProps {
     /** Показывать ли поздравление: карточка викторины снимает его сама по таймеру. */
@@ -16,6 +17,7 @@ const BADGE =
 const RING = "absolute inset-0 rounded-full border border-green-400/40";
 
 export function CorrectAnswerCelebration({ show }: CorrectAnswerCelebrationProps) {
+    const { t } = useTranslation("common");
     const shouldReduceMotion = useReducedMotion();
 
     return (
@@ -48,7 +50,7 @@ export function CorrectAnswerCelebration({ show }: CorrectAnswerCelebrationProps
                             </motion.span>
                         </span>
 
-                        <p className="text-xs text-[#f0f0f5]/80">Верно</p>
+                        <p className="text-xs text-[#f0f0f5]/80">{t("celebration.correct")}</p>
                     </div>
                 </motion.div>
             )}

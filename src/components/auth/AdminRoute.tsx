@@ -4,8 +4,8 @@
 
 import { useEffect } from "react";
 import type { ReactNode } from "react";
-import { useTranslation } from "react-i18next";
 import { Navigate } from "react-router-dom";
+import i18n from "@/lib/i18n";
 import { APP_HOME_PATH } from "@/components/layout/navigation";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "@/store/toast";
@@ -15,16 +15,20 @@ interface AdminRouteProps {
 }
 
 export function AdminRoute({ children }: AdminRouteProps) {
-    const { t } = useTranslation("common");
     // ARCHITECT: селектор отдаёт примитив (строку роли), поэтому компонент не перерисовывается на
     // каждое изменение объекта пользователя — только при смене роли.
     const isAdmin = useAuthStore((state) => state.user?.role === "admin");
 
     // ARCHITECT: тост рождается в эффекте, а не в рендере: push() меняет глобальный zustand-store,
     // и из тела рендера это было бы побочным эффектом.
+    // ARCHITECT: guard не рендерит переводимый текст, тост — побочный эффект редиректа, поэтому ключ
+    // резолвит синглтон в момент вызова: хук тут не нужен, а t в deps повторял бы тост при смене языка.
     useEffect(() => {
         if (!isAdmin) {
-            toast.error(t("guards.adminTitle"), t("guards.adminDescription"));
+            toast.error(
+                i18n.t("guards.adminTitle", { ns: "common" }),
+                i18n.t("guards.adminDescription", { ns: "common" })
+            );
         }
     }, [isAdmin]);
 

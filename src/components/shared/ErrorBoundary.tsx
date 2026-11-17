@@ -4,6 +4,7 @@
 
 import { Component, type ErrorInfo, type ReactNode } from "react";
 import { AlertTriangle } from "lucide-react";
+import i18n from "@/lib/i18n";
 import { reportError } from "@/lib/observability/report-error";
 
 interface ErrorBoundaryProps {
@@ -43,6 +44,8 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
         window.location.reload();
     };
 
+    // ARCHITECT: граница ошибок классовая, хук ей недоступен, поэтому ключи резолвит синглтон в
+    // момент рендера экрана ошибки.
     render(): ReactNode {
         if (this.state.hasError) {
             return (
@@ -52,18 +55,17 @@ export class ErrorBoundary extends Component<ErrorBoundaryProps, ErrorBoundarySt
                             <AlertTriangle className="size-6 text-white/70" aria-hidden="true" />
                         </span>
                         <h1 className="mt-6 text-xl font-semibold text-white">
-                            Что-то пошло не так
+                            {i18n.t("errors.boundary.title", { ns: "common" })}
                         </h1>
                         <p className="mt-2 text-sm leading-relaxed text-white/50">
-                            Непредвиденная ошибка интерфейса. Перезагрузите страницу — обычно
-                            этого достаточно.
+                            {i18n.t("errors.boundary.description", { ns: "common" })}
                         </p>
                         <button
                             type="button"
                             onClick={this.handleReload}
                             className="mt-8 inline-flex h-10 items-center justify-center rounded-md border border-white/10 bg-white/5 px-6 text-sm font-medium text-white transition-colors hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-white/30"
                         >
-                            Перезагрузить страницу
+                            {i18n.t("errors.boundary.reload", { ns: "common" })}
                         </button>
                     </div>
                 </div>

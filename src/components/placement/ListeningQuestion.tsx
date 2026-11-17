@@ -8,6 +8,7 @@
 
 import { AnimatePresence, motion, useReducedMotion } from "framer-motion";
 import { Volume2 } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import type { PlacementItem } from "@/types/placement";
 import { QuizOptionButton } from "@/components/shared/QuizOptionButton";
 import type { QuizOptionState } from "@/components/shared/QuizOptionButton";
@@ -44,6 +45,7 @@ export function ListeningQuestion({
     onSelect,
     onPlay,
 }: ListeningQuestionProps) {
+    const { t } = useTranslation("placement");
     const shouldReduceMotion = useReducedMotion();
     const isAnswered = selectedOptionId !== null;
     const canPlay = plays < maxPlays;
@@ -62,14 +64,14 @@ export function ListeningQuestion({
         <div className="mt-4">
             <div className="flex flex-wrap items-center justify-between gap-3">
                 <p className="text-xs tabular-nums text-[#f0f0f5]/50">
-                    Вопрос {number} из {total}
+                    {t("test.question", { number, total })}
                 </p>
 
                 <div className="flex items-center gap-2">
                     <span className={cn(COUNTER, !canPlay && COUNTER_LOCKED)}>
                         {canPlay
-                            ? `Осталось прослушиваний: ${remaining}/${maxPlays}`
-                            : "Лимит прослушиваний"}
+                            ? t("listening.playsLeft", { remaining, max: maxPlays })
+                            : t("listening.playsLimit")}
                     </span>
 
                     <button
@@ -79,7 +81,7 @@ export function ListeningQuestion({
                         className={cn(PLAY_BUTTON, !canPlay && PLAY_BUTTON_LOCKED)}
                     >
                         <Volume2 className="size-3.5" aria-hidden="true" />
-                        Прослушать
+                        {t("listening.play")}
                     </button>
                 </div>
             </div>
@@ -98,12 +100,16 @@ export function ListeningQuestion({
                         }}
                         className="overflow-hidden"
                     >
-                        <p className="mt-3 text-xs text-[#f0f0f5]/40">Сначала прослушайте запись.</p>
+                        <p className="mt-3 text-xs text-[#f0f0f5]/40">{t("listening.playFirst")}</p>
                     </motion.div>
                 )}
             </AnimatePresence>
 
-            <div className="mt-4 flex flex-col gap-2" role="group" aria-label="Варианты ответа">
+            <div
+                className="mt-4 flex flex-col gap-2"
+                role="group"
+                aria-label={t("test.optionsLabel")}
+            >
                 {item.options.map((option, index) => (
                     <QuizOptionButton
                         key={option.id}

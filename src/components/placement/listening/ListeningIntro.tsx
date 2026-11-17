@@ -4,6 +4,7 @@
 // поэтому поверхность у обоих входов одна, а расходиться видам незачем.
 
 import { Headphones } from "lucide-react";
+import { useTranslation } from "react-i18next";
 import { Button } from "@/components/ui/button";
 import { StepCard } from "@/components/onboarding/StepCard";
 import { GHOST_BUTTON, PRIMARY_BUTTON } from "@/lib/surfaces";
@@ -15,29 +16,28 @@ interface ListeningIntroProps {
 }
 
 export function ListeningIntro({ onStart, onExit }: ListeningIntroProps) {
+    const { t } = useTranslation("placement");
+
     return (
         <StepCard>
             <h2 className="flex items-center gap-2 text-base font-medium text-[#f0f0f5]/80">
                 <Headphones className="size-4 text-[#f0f0f5]/60" strokeWidth={1.5} aria-hidden="true" />
-                Проверка аудирования
+                {t("listening.title")}
             </h2>
 
-            <p className="mt-2 text-sm leading-[1.6] text-[#f0f0f5]/60">
-                Перед выбором ответа прослушайте запись. Каждый фрагмент можно прослушать только
-                дважды — отвечайте после прослушивания.
-            </p>
+            <p className="mt-2 text-sm leading-[1.6] text-[#f0f0f5]/60">{t("listening.intro")}</p>
 
             <div className="mt-5 flex items-center justify-between gap-4">
                 {onExit ? (
                     <Button type="button" variant="ghost" onClick={onExit} className={GHOST_BUTTON}>
-                        Выйти
+                        {t("shell.exit")}
                     </Button>
                 ) : (
                     <span />
                 )}
 
                 <Button type="button" className={PRIMARY_BUTTON} onClick={onStart}>
-                    Начать
+                    {t("shell.start")}
                 </Button>
             </div>
         </StepCard>

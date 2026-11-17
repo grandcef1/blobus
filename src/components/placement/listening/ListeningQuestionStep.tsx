@@ -4,6 +4,7 @@
 // ARCHITECT: «Выйти» есть только там, где проверка открыта отдельным экраном: из шага мастера ведут
 // его собственные кнопки.
 
+import { useTranslation } from "react-i18next";
 import type { PlacementItem } from "@/types/placement";
 import { ListeningQuestion } from "@/components/placement/ListeningQuestion";
 import { Button } from "@/components/ui/button";
@@ -38,6 +39,8 @@ export function ListeningQuestionStep({
     onNext,
     onExit,
 }: ListeningQuestionStepProps) {
+    const { t } = useTranslation("placement");
+
     return (
         <StepCard>
             <ListeningQuestion
@@ -54,7 +57,7 @@ export function ListeningQuestionStep({
             <div className="mt-5 flex items-center justify-between gap-3">
                 {onExit ? (
                     <Button type="button" variant="ghost" onClick={onExit} className={GHOST_BUTTON}>
-                        Выйти
+                        {t("shell.exit")}
                     </Button>
                 ) : (
                     <span />
@@ -66,7 +69,7 @@ export function ListeningQuestionStep({
                     onClick={onNext}
                     disabled={selectedOptionId === null}
                 >
-                    {isLast ? "Завершить" : "Дальше"}
+                    {isLast ? t("shell.finish") : t("shell.next")}
                 </Button>
             </div>
         </StepCard>

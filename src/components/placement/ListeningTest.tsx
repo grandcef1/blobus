@@ -11,6 +11,7 @@
 // экран — двух сводок подряд не бывает.
 
 import { useEffect, useState } from "react";
+import { useTranslation } from "react-i18next";
 import { LISTENING_ITEMS } from "@/api/mocks/listeningTest";
 import { estimateListeningLevel } from "@/lib/placement";
 import { speakEnglish, stopSpeaking } from "@/lib/speech";
@@ -35,6 +36,7 @@ const MAX_PLAYS = 2;
 type ListeningPhase = "intro" | "test" | "result";
 
 export function ListeningTest({ context, onComplete, onExit }: ListeningTestProps) {
+    const { t } = useTranslation("placement");
     const [phase, setPhase] = useState<ListeningPhase>("intro");
     const [index, setIndex] = useState(0);
     const [plays, setPlays] = useState(0);
@@ -108,7 +110,7 @@ export function ListeningTest({ context, onComplete, onExit }: ListeningTestProp
 
                 <div className="mt-5 flex justify-end">
                     <Button type="button" className={PRIMARY_BUTTON} onClick={() => onComplete(result)}>
-                        Готово
+                        {t("shell.done")}
                     </Button>
                 </div>
             </StepCard>

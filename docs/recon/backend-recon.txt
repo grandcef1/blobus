@@ -1,0 +1,209 @@
+ОТЧЁТ РАЗВЕДКИ БЭКЕНДА BLOBUS
+Дата: 2026-11-18. Режим: только чтение; изменён единственный файл docs/recon/backend-recon.txt.
+Рабочий каталог: c:\Users\gerst\blobus
+
+1. GIT
+1.1 HEAD: 4f9b5f5a293923e816458ce752430a5666603775 «docs(security): add backend and AI security rules», 2026-11-18 03:52:06 +0300. Ожидание 4f9b5f5 — совпадает.
+1.2 git status --porcelain: пусто (рабочее дерево чистое на момент разведки).
+1.3 Ветки: main -> 4f9b5f5 [origin/main], backup-before-force -> 1d94b80 «Updated index.html», chore/mwg-audit -> 388f171 «refactor(motion): apply reducedMotion user preference at the app root».
+1.4 Коммиты про баррели языков (один чанк на язык):
+    53eaa8e 2026-11-18 «perf(i18n): bundle each language into one chunk and drop dead landing keys»
+    90bbf76 2026-11-18 «perf(i18n): load only active language dictionaries and drop dead dashboard keys» (подготовительный)
+    Баррели: src/locales/en/index.ts:1-13, src/locales/es/index.ts (по 11 реэкспортов JSON).
+1.5 Финальная уборка i18n:
+    757c807 2026-11-18 «chore(i18n): drop last dead key, neutralize content styles, add dead-key auditor»
+    9bc8af4 2026-11-18 «chore(i18n): remove dead footer and legal dictionary keys»
+    Сопутствующее: e879ed1 2026-11-17 «feat(footer): balance four columns and drop dead docs link».
+
+2. СТРУКТУРА И ПРАВИЛА
+2.1 server/ — отсутствует (Test-Path server = False).
+2.2 .env — ПРИСУТСТВУЕТ (c:\Users\gerst\blobus\.env), ключи: VITE_SITE_URL, VITE_SENTRY_DSN. Файл в .gitignore:32 (.env) и .gitignore:34 (.env*), т.е. в репозитории его нет, но локально он есть.
+2.3 .env.example — есть: SUPABASE_URL, SUPABASE_SERVICE_ROLE_KEY, SUPABASE_ANON_KEY, OPENAI_API_KEY, VITE_SUPABASE_URL, VITE_SUPABASE_ANON_KEY, VITE_SITE_URL, VITE_USE_MOCKS, VITE_ERROR_LOG_ENDPOINT, VITE_SENTRY_DSN.
+2.4 .env.local — есть, ключ: VERCEL_OIDC_TOKEN (комментарий «Created by Vercel CLI»).
+2.5 supabase/ — отсутствует; migrations/ — отсутствует; src/migrations — отсутствует; docs/recon — до задачи отсутствовал (создан задачей).
+2.6 .clinerules/ (4 файла):
+    backend-security.md — 5 строк; строки 1-5: «# Backend and AI security gate», пустая, «Before backend, auth, payment, AI, upload or data-access work, read section 16 of `project-rules.txt`.», «Security requirements are release blockers. On conflict, STOP AND REPORT.», «Frontend mocks are not production security.»
+    mcp-usage.md — 36 строк; строки 1-5: «# MCP Usage Guidelines для Blobus», пустая, «## Когда использовать Supabase MCP», «- При создании/изменении таблиц в БД», «- При написании RLS policies».
+    optimization-skills.md — 28 строк; строки 1-5: «# Optimization Skills (Caveman voice + Ponytail + Graphify workflow)», «> Приоритет: project-rules.txt переопределяет этот файл. Здесь только специфика экономии токенов/контекста. Не дублировать §5.3 (no any) и §9.1 (frontend-first) — они уже в project-rules.txt.», пустая, «## Graphify — query-first (экономия контекста)», «- Перед чтением нескольких файлов — запрос к локальному графу через терминал:».
+    ponytail.md — 30 строк; строки 1-5: «# Ponytail, lazy senior dev mode», пустая, «You are a lazy senior developer. The best code is the code never written. You solve the whole problem with the least new code. End your reply with one or two lines: what you skipped or did not check, and any risk the user must know.», пустая, «## Before you write».
+2.7 project-rules.txt — 495 строк. Ожидание 495 — совпадает.
+
+3. PACKAGE.JSON И ОКРУЖЕНИЕ
+3.1 scripts (package.json:9-20):
+    dev: vite
+    build: tsc -b && vite build && node scripts/prerender.mjs
+    lint: eslint .
+    preview: vite preview
+    og: node scripts/generate-og.mjs
+    test: vitest run
+    test:watch: vitest
+    typecheck: tsc -b
+    check:bundle: node scripts/check-bundle.mjs
+    format: prettier --write .
+3.2 dependencies (package.json:21-45): @blobatar/react ^2.7.0, @paper-design/shaders-react ^0.0.82, @radix-ui/react-slot ^1.5.0, @sentry/browser ^11.12.0, @tailwindcss/vite ^4.3.3, @tanstack/react-query ^5.107.1, @vercel/analytics ^2.0.1, @vercel/speed-insights ^2.1.0, blobatar ^2.7.0, class-variance-authority ^0.7.1, clsx ^2.1.1, cn ^0.5.1, framer-motion ^14.9.0, i18next ^27.1.2, i18next-browser-languagedetector ^8.3.0, lucide-react ^1.66.0, radix-ui ^1.8.1, react ^19.3.1, react-dom ^19.3.1, react-i18next ^18.0.1, react-router-dom ^7.18.5, tailwind-merge ^3.7.0, zustand ^5.0.16.
+3.3 devDependencies (package.json:46-69): @eslint/js ^10.0.1, @testing-library/jest-dom ^7.0.1, @testing-library/react ^16.3.3, @testing-library/user-event ^14.6.11, @types/node ^24.19.2, @types/react ^19.3.0, @types/react-dom ^19.3.0, @vitejs/plugin-react ^6.1.2, autoprefixer ^10.6.2, eslint ^10.13.0, eslint-plugin-react-hooks ^7.1.1, eslint-plugin-react-refresh ^0.5.7, globals ^17.13.0, jsdom ^31.0.1, postcss ^8.5.32, prettier ^3.10.1, sharp ^0.35.5, tailwindcss ^4.3.3, typescript ~5.8.3, typescript-eslint ^8.72.0, vite ^8.3.5, vitest ^5.1.0.
+3.4 i18next-browser-languagedetector: есть в package.json:36 (^8.3.0). Импортов этого пакета нет ни в src, ни в scripts (grep «i18next-browser-languagedetector|LanguageDetector» — 0 совпадений); определение языка сделано вручную в src/lib/i18n.ts:65-74.
+3.5 engines: node >=24 (package.json:6-8). Проверено: node v24.21.0, npm 11.19.0, .nvmrc = 24.
+
+4. СКРИПТЫ И МЁРТВЫЕ КЛЮЧИ
+4.1 scripts/: check-bundle.mjs (4036 Б), generate-og.mjs (2973), i18n-audit.mjs (5277), i18n-dead-keys.mjs (4713), prerender.mjs (19135), scan-cyr.mjs (1156), tmp-scan.mjs (641).
+4.2 scripts/i18n-dead-keys.mjs — есть (аудитор мёртвых ключей; scripts/i18n-dead-keys.mjs:5 «Скрипт только читает файлы»).
+4.3 scripts/prerender.mjs — есть; читает src/lib/seo-routes.json (prerender.mjs:48) и ru-словари (prerender.mjs:49-52), пишет robots.txt и sitemap.xml (prerender.mjs:404).
+4.4 Имя скрипта проверки бандла: check:bundle → node scripts/check-bundle.mjs (package.json:18).
+4.5 Поиск в src:
+    LEGAL_PILL — 8 совпадений: src/components/legal/legal.styles.ts:9, :12 (LEGAL_PILL_CURRENT); src/components/legal/LegalLayout.tsx:15, :56; src/pages/legal/CookiesPage.tsx:10, :27.
+    LEGAL_INLINE_LINK — 9 совпадений: src/components/legal/legal.styles.ts:15; src/components/legal/LegalLayout.tsx:15, :38; src/pages/legal/PrivacyPage.tsx:12, :60; src/pages/ContactsPage.tsx:10, :19, :25, :31.
+    common.actions.next — 0 совпадений.
+    Ожидание «0 совпадений» для всех трёх выражений — расхождение по двум первым.
+
+5. I18N: СЛОВАРИ, НЕЙМСПЕЙСЫ, ЗАГРУЗКА
+5.1 Импорт словарей: ru — по неймспейсам статически (src/lib/i18n.ts:10-20); en/es — через баррели (src/lib/i18n.ts:47-55: типы EnBundle/EsBundle :50-51, LANGUAGE_LOADERS :52-55 с импортами "../locales/en" и "../locales/es").
+5.2 NAMESPACES (11): common, landing, footer, auth, legal, billing, dashboard, docs, chat, onboarding, placement (src/lib/i18n.ts:30).
+5.3 Флаги init: initAsync: false (src/lib/i18n.ts:81); resources содержит только ru (src/lib/i18n.ts:79); lng = DEFAULT_LANGUAGE «ru» (:80); supportedLngs = ru/en/es (:82, константа :22); fallbackLng «ru» (:83); load: "languageOnly" (:84); ns = NAMESPACES (:85); defaultNS "common" (:86); interpolation.escapeValue false (:89).
+5.4 partialBundledLanguages — в репозитории не найдено (grep по src — 0 совпадений); http-backend не подключён (комментарии src/lib/i18n.ts:1 и :26-29).
+5.5 Порядок загрузки и смена языка:
+    loadActiveLanguage() (src/lib/i18n.ts:95-102): detectLanguage() → если не ru, ensureLanguage(lang) → i18n.changeLanguage(lang) → document.documentElement.lang.
+    ensureLanguage() (src/lib/i18n.ts:105-120): hasResourceBundle → loadBundle → addResourceBundle по всем 11 неймспейсам (:113-115); исключение → false.
+    loadBundle() (src/lib/i18n.ts:57-64): проверяет наличие каждого неймспейса, иначе throw «bundle <lang>: missing <ns>».
+    detectLanguage() (src/lib/i18n.ts:72-74): localStorage[LANGUAGE_STORAGE_KEY] ?? navigator.language; LANGUAGE_STORAGE_KEY = "blobus-lang" (src/lib/i18n.ts:25).
+    src/store/language.ts: initialLang = detectLanguage() (:22-23, сразу пишет document.documentElement.lang); setLanguage(code) (:32-48): await ensureLanguage(code) → await i18n.changeLanguage(code) → localStorage.setItem(LANGUAGE_STORAGE_KEY, code) → document.documentElement.lang → set({lang}); подписка i18n.on("languageChanged") синхронизирует стор и <html lang> (:54-57).
+    Типизация ключей по ru-словарю: declare module "i18next" → CustomTypeOptions на src/lib/i18n.ts:129-146.
+5.6 Баррели языков: src/locales/en/index.ts и src/locales/es/index.ts — по 11 реэкспортов (common, landing, footer, auth, legal, billing, dashboard, docs, chat, onboarding, placement); комментарий src/locales/en/index.ts:1-2: «баррель нужен, чтобы Vite собрал язык в ОДИН чанк вместо 11 отдельных JSON-чанков».
+
+6. МАРШРУТЫ
+6.1 src/pages/routes/publicLazy.ts — 14 lazy-компонентов: Login (:6), HelpPage (:10), PrivacyPage (:16), TermsPage (:20), CookiesPage (:24), ContactsPage (:30), AboutPage (:36), ChangelogPage (:40), DocsPage (:44), ForgotPasswordPage (:50), ResetPasswordPage (:54), VerifyEmailPage (:58), Onboarding (:62), ListeningFlow (:66).
+6.2 src/pages/routes/publicRoutes.tsx — 16 путей: / (:29), /onboarding (:32-39), /login (:41-48), /help (:50-57), /privacy (:61-68), /terms (:69-76), /cookies (:77-84), /contacts (:86-93), /about (:96-103), /changelog (:104-111), /docs (:114-121), /forgot-password (:124-131), /reset-password (:132-139), /verify-email (:140-147), /session/new (:148-155), /listening (:158-165).
+6.3 src/pages/routes/appRoutes.tsx — корневой /app под ProtectedRoute (:40-49) и 12 дочерних маршрутов: index → AppIndexRedirect (:50), overview (:51-58), sessions (:59-66), chat → Navigate на /app/sessions (:67), chat/:sessionId (:68-75), vocabulary (:76-83), profile (:84-91), tutors (:92-99), settings (:100-107), billing (:108-115), admin под AdminRoute (:120-129), help (:130-137).
+6.4 Catch-all: src/App.tsx:56 <Route path="*" element={<NotFoundPage />} />; порядок src/App.tsx:51-57 — publicRoutes, appRoutes, catch-all.
+6.5 src/lib/seo-routes.json — 9 записей: /, /privacy, /terms, /cookies, /help, /contacts, /about, /changelog, /docs. Ожидание 9 — совпадает.
+6.6 Расхождения: в seo-routes.json отсутствуют /onboarding, /login, /forgot-password, /reset-password, /verify-email, /session/new, /listening и все /app/*; обратно, в SPA нет отдельного маршрута «404-страницы» (только catch-all в src/App.tsx:56). prerender идёт ровно по seo-routes.json — 9 URL (scripts/prerender.mjs:48, :362, :404).
+
+7. AUTH
+7.1 Тип AuthUser (src/api/auth.ts:10-21): id: string; name: string; email: string; role: UserRole (импорт из @/lib/admin, src/api/auth.ts:5); emailVerified: boolean.
+7.2 Ключ persist: AUTH_STORAGE_KEY = "blobus-auth" (src/store/auth.ts:16), применение — src/store/auth.ts:57 (name: AUTH_STORAGE_KEY). В persist попадает только user.
+7.3 Экшены стора (src/store/auth.ts:18-26, реализация :30-56): signIn(email, password) → signInRequest; signUp(name, email, password) → signUpRequest; signInWithGoogle() → signInWithGoogleRequest; signOut(); markEmailVerified() (при user === null возвращает пустой патч, :48-55).
+7.4 Реализация src/api/auth.ts: signIn :43-49 (emailVerified = true), signUp :51-55 (emailVerified = false), signInWithGoogle :57-61 (фиктивный «Алекс», alex@gmail.com, true), requestPasswordReset :82-85 (нейтральный ответ), checkResetToken :87-89, resetPassword :93-104 (ApiError 410 «linkExpired» / 400 «linkInvalid»), verifyEmailToken :106-111, resendVerificationEmail :115-118. Мок-токены VALID_TOKEN "mock-valid" и EXPIRED_TOKEN "mock-expired" (:71-72); задержка NETWORK_DELAY_MS = 400 (:23).
+7.5 MOCK_PROFILE_USER — объявление src/api/mocks/profile.ts:15-21 (blobatarId "alex", name «Алекс Разработчик», email alex@blobus.ai, planLabel «Тариф Free», memberSince «Ноябрь 2026»; тип MockProfileUser :7-13). Использования: src/api/profile.ts:4, :11; src/components/landing/AuthAwareCta.tsx:10, :37; src/components/layout/MobileTopBar.tsx:9, :37; src/components/layout/SidebarProfileCard.tsx:10, :28, :36, :69.
+
+8. API-СЛОЙ
+8.1 src/api/client.ts: request<T>(path, options): Promise<T> (:71); apiClient.get/post/patch/put/delete (:146-157); класс ApiError(statusCode, message) (:31-39); ApiErrorShape { statusCode: number; message: string } (:13-16); ApiData (:18); RequestOptions (:20-29: method, body, headers, signal, timeoutMs); DEFAULT_TIMEOUT_MS = 15_000 (:43); getAuthToken() возвращает undefined — токена нет (:48-53); logError(): console.error в DEV, иначе reportError (:57-65).
+8.2 Базовый URL: import.meta.env.VITE_API_URL ?? "/api" (src/api/client.ts:42).
+8.3 Формат ошибки: не-2xx → ApiError(status, message), message из ApiErrorShape.message, иначе response.statusText/`HTTP <status>`, иначе первые 200 символов тела (:99-116); 204 → null (:119-121); AbortError → ApiError(0, common.errors.api.timeout) (:130-134); сетевой TypeError → ApiError(0, common.errors.api.offline) (:135-139).
+8.4 Где резолвятся тексты ошибок (i18n.t синглтоном в момент вызова): src/api/client.ts:131, :137; src/api/auth.ts:98 (errors.api.linkExpired), :101 (errors.api.linkInvalid), :35 (profile.fallbackName); src/api/sessions.ts:55-58 (sessions.opening.*), :81 (sessions.newTitle), :82 (states.empty.sessions.action); src/api/support.ts:47 (help.ticketAutoReply). Обоснование — комментарий src/api/client.ts:6-8.
+8.5 Сигнатуры модулей:
+    src/api/sessions.ts: CreateSessionInput (:14-18), AppendMessageInput (:20-23), SessionPatch (:26-28); getSessions(): EnhancedChatSession[] (:64); getSessionById(sessionId): EnhancedChatSession | undefined (:68); createSession(input): EnhancedChatSession (:72); appendMessage(sessionId, input): EnhancedChatSession | undefined (:102); updateSession(sessionId, patch): … | undefined (:134); resetSessionProgress(sessionId) (:147); clearSessionMessages(sessionId) (:163); deleteSession(sessionId): boolean (:179); fetchSessions(): Promise<EnhancedChatSession[]> (:190); fetchSessionById(sessionId): Promise<EnhancedChatSession | null> (:196). Хранилище — массив в памяти модуля (:42); мутации :97, :125, :142, :156, :174, :183. Константы SESSION_USER_ID "user_1" (:30), PLANNED_LESSON_COUNT 8 (:31).
+    src/api/chat.ts: sendMessage(sessionId, content): EnhancedChatSession | undefined (:7-13) — заглушка: только appendMessage с ролью "user", ответа ИИ нет.
+    src/api/support.ts: CreateTicketInput (:14-18); getTickets() (:20); getTicketById(ticketId) (:24); createTicket(input) (:28); sendTicketMessage(ticketId, content) (:60); fetchFaqItems(): Promise<HelpFaqItem[]> (:91); ACK_DELAY_MS = 1000 (:10).
+    src/api/mock.ts (старый стиль, без ARCHITECT-комментариев, импорт './types' :1): MOCK_USER (:5), MOCK_SESSIONS (:12), getSessions() (:30), sendMessage(sessionId, text): Promise<Message> (:35).
+    src/api/profile.ts: fetchProfileUser(): Promise<MockProfileUser> (:9).
+    src/api/progress.ts: fetchUserProgress(): Promise<UserProgress> (:10); fetchVocabulary(): Promise<VocabularyWord[]> (:16).
+    src/api/tutors.ts: fetchTutors(): Promise<Blobatar[]> (:9).
+    src/api/settings.ts: DEFAULT_SETTINGS (:7-18); fetchSettings(): Promise<SettingsState> (:19).
+    src/api/placement.ts: saveResult(result): PlacementResult (:10); getResult(): PlacementResult | null (:16); fetchPlacementResult(): Promise<PlacementResult | null> (:23); saveListeningResult(level): PlacementResult (:33); createFallbackResult() (:43-56); состояние — модульная переменная stored (:8).
+    src/api/billing.ts (4113 Б) — машина состояний подписки.
+    src/api/mockDelay.ts: MOCK_NETWORK_DELAY_MS = 400, delayMock(): Promise<void> (:7-11).
+    src/api/query-keys.ts: billingKeys { all, subscription(), invoices() } (:4-8).
+    src/api/types.ts: UserRole (:1), User (:3-9), Message (:11-17), ChatSession (:19-25).
+8.6 Все обращения к import.meta.env в src:
+    VITE_API_URL — src/api/client.ts:42
+    DEV — src/api/client.ts:58; src/components/auth/DevMockHint.tsx:21; src/components/billing/DevBillingPanel.tsx:4 (комментарий); src/components/shared/DevObservabilityPanel.tsx:26; src/components/shared/ErrorBoundary.tsx:33; src/components/shared/RouteErrorBoundary.tsx:49; src/lib/observability/report-error.ts:130; src/pages/dashboard/BillingPage.tsx:20; src/App.tsx:20; src/components/landing/Footer/NewsletterForm.tsx:66
+    PROD — src/components/shared/Observability.tsx:116
+    VITE_USE_MOCKS — src/lib/env.ts:5
+    VITE_ERROR_LOG_ENDPOINT — src/lib/env.ts:10
+    VITE_SENTRY_DSN — src/lib/env.ts:14
+    VITE_SITE_URL — src/lib/seo.ts:11
+    Также: import.meta.hot — src/main.tsx:15; import.meta.glob — src/test/i18n.test.ts:9.
+
+9. ДОМЕННЫЕ ТИПЫ (src/types/)
+9.1 src/types/session.ts: MessageRole 'user' | 'assistant' | 'system' (:5); MessageType text | correction | quiz | fill-blank | vocabulary-card | audio-prompt | speaking-feedback (:7-14); CorrectionSegment (:17-20); GrammarCorrection (:22-33); QuizOption (:35-40); QuizContent (:42-47); FillBlankContent (:49-54); VocabularyCard (:56-66); SpeakingFeedback (:68-74); EnhancedMessage extends Message (+ type, metadata, parentId, reactions) (:76-90); EnhancedChatSession extends Omit<ChatSession,'messages'> (+ messages, repetitorId, learningMode, targetLevel?, progress{completedLessons,totalLessons,wordsLearned,streakDays}, lastActivityAt, tags?) (:93-106).
+9.2 src/types/support.ts: SupportTicketStatus "open" | "in_progress" | "resolved" (:6); TICKET_STATUS_KEYS (:8-12); TicketCategory billing | technical | lessons | account | other (:14); TICKET_CATEGORY_KEYS (:18-24); SupportMessage {id, author: "user"|"support", content, timestamp} (:26-31); SupportTicket {id, subject, category, status, createdAt, updatedAt, messages} (:33-41); HelpFaqCategory start | learning | billing | account | tech (:43); HELP_FAQ_CATEGORY_KEYS (:45-51); HELP_FAQ_CATEGORY_ORDER (:55-61); HelpFaqItem {id, category, question, answer} (:63-68).
+9.3 src/types/placement.ts: PlacementSkill "grammar" | "general" | "listening" (:8); PlacementOption {id, text} (:10-13); PlacementItem {id, skill, level, prompt, options, correctOptionId, explanation?, audioText?} (:15-25); PlacementResult {score, overall, grammar, speaking, general, listening, listeningSkipped, takenAt} (:27-38); ListeningResult {level, correctCount} (:41-44); ListeningContext "wizard" | "standalone" (:50).
+9.4 src/types/billing.ts: SubscriptionStatus "free" | "trialing" | "active" | "past_due" | "scheduled_cancel" (:9); SubscriptionUsage {messagesUsed, messagesLimit: number | null} (:11-15); Subscription {plan, status, periodEndsAt, trialEndsAt, pendingPlan, usage} (:17-26); Invoice {id, date, amountUsd, status: "paid"|"failed"|"refunded"} (:28-33); реэкспорт PlanId из @/lib/plans (:6).
+9.5 src/types/onboarding.ts: LearningMode "interview" | "speaking" | "grammar" | "general" (:5); EnglishLevel A1|A2|B1|B2|C1|C2 (:7); SchedulePreference {frequency, durationMinutes 15|30|45|60, preferredTimeSlots} (:9-13); OnboardingData (:15-21); OnboardingStep (:26-36); OnboardingFullStep (:40); ONBOARDING_STEP_TITLE_KEYS (:44-50).
+9.6 src/types/progress.ts: UserProgress (:5-14); ModeProgress (:16-25); DailyActivity (:27-32); Achievement (:34-43); VocabularyWord (:45-60); LessonHistory (:62-72).
+9.7 src/types/settings.ts: SettingsState { notifications{dailyReminder, weeklyProgress, newFeatures, marketingEmails}, preferences{theme, soundEffects, language, autoCorrection} } (:4-17).
+9.8 src/types/blobatar.ts: BlobatarTraits (:6-17); BlobatarPersonaTraits (:20); BlobatarPersona {traits, teachingStyle, story} (:22-29); Blobatar {id, name, traits, persona} (:31-36); BlobatarId — 10 значений miya|oscar|luna|max|alex|zoe|nova|kai|lira|orion (:38).
+
+10. МОКИ И ЛИМИТЫ ТАРИФОВ
+10.1 src/api/mocks/ — 12 файлов и их сущности:
+    billing.ts — delayBillingMock() (:40), billingMock (:116), setMockStatus() (:156), setMockNextPaymentFails() (:169), resetMockBilling() (:173); seed подписки billing.ts:29 (usage {messagesUsed: 12, messagesLimit: PLANS.free.messagesLimit}); billing.ts:22 комментарий «лимит сообщений берётся из тарифа».
+    blobatars.ts — MOCK_BLOBATARS (:10), getBlobatarById() (:241), getPersonaByMode() (:249).
+    demoLesson.ts — DEMO_SESSION (:11), DEMO_MESSAGES (:26).
+    help.ts — HELP_FAQ (:14), MOCK_TICKETS (:142).
+    listeningTest.ts — LISTENING_ITEMS (:7).
+    mockDb.ts — mockDb {get, set, reset} (:39), PREFIX "blobus-mock-" (:7), хранилище — window.localStorage.
+    placementTest.ts — PLACEMENT_ITEMS (:7).
+    profile.ts — MockProfileUser (:7), MOCK_PROFILE_USER (:15).
+    progress.ts — MOCK_USER_PROGRESS (:9), MOCK_VOCABULARY (:108), MOCK_LESSON_HISTORY (:191).
+    repetitors.ts — LearningModeOption (:9), MOCK_LEARNING_MODES (:17).
+    sessions.ts — MOCK_SESSIONS (:8).
+10.2 Лимиты тарифов (точные строки):
+    src/lib/plans.ts:26 messagesLimit: 50 (тариф free); src/lib/plans.ts:34 messagesLimit: null (тариф pro); тип :14-15 «Лимит сообщений в месяц; null — безлимит».
+    src/api/mocks/help.ts:88 «Free — один урок в день и базовый голос репетитора, Pro — безлимит уроков и премиум-голос ИИ. …».
+    src/locales/ru/docs.json, ключ subscriptionBody: «Free включает 50 сообщений с репетитором в месяц, Pro — без ограничений за $3 в месяц. «Перейти на Pro» запускает пробный период на 7 дней; … показывает счётчик использования и платежи с чеками.» (та же строка в en/docs.json:81, es — соответствующий перевод).
+    src/locales/ru/landing.json:100 «lessonsLimit»: «1 в день»; :104 «unlimited»: «Безлимит уроков»; строка плана short: «Free даёт один урок в день, а Pro открывает полный безлимит и премиум-голос ИИ.»; полная формулировка: «Free тариф включает один урок в день с базовым браузерным голосом. Pro тариф открывает безлимит уроков, премиум-голос ИИ (Deepgram + OpenAI TTS)…». Английский эталон: src/locales/en/landing.json:100 "1 a day", :104 "Unlimited lessons", :144/:145; испанский: src/locales/es/landing.json:100 "1 al día", :104 "Clases sin límite".
+    Тексты лимитов в документации: src/pages/docs/docsSections.ts:77-86 секция «limits» (localTitle/localBody, chatTitle/chatBody, unfinishedTitle/unfinishedBody, serverTitle/serverBody); ru-значения — src/locales/ru/docs.json: subscriptionBody, limits.localBody, limits.chatBody, limits.unfinishedBody, limits.serverBody. limits.unfinishedBody: «Кнопки голосового ввода, прикрепления файла, «Прослушать», «Произнести» и «Повторить» есть в интерфейсе, но ничего не делают; …».
+    Примечание: числа лимитов на бэкенд-контракт нигде не вынесены — единственный источник чисел src/lib/plans.ts:26, :34; «1 урок в день» живёт только текстом в словарях и моке help.ts:88.
+
+11. ДЕПЛОЙ, СБОРКА, БЮДЖЕТ БАНДЛА
+11.1 vercel.json: rewrites — 5 правил: /privacy → /privacy/index.html, /terms → /terms/index.html, /cookies → /cookies/index.html, /help → /help/index.html, /(.*) → /index.html. headers — 4 группы: /assets/(.*) Cache-Control "public, max-age=31536000, immutable"; /og-image.png "public, max-age=86400"; /(favicon.svg|blobatar-icon.png) "public, max-age=86400"; /(.*) — CSP "default-src 'self'; script-src 'self'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; font-src 'self'; connect-src 'self' https://vitals.vercel-insights.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://*.sentry.io; object-src 'none'; frame-ancestors 'none'; base-uri 'self'; form-action 'self'", а также X-Content-Type-Options nosniff, X-Frame-Options DENY, Referrer-Policy strict-origin-when-cross-origin, Permissions-Policy camera=(), microphone=(), geolocation=(), Strict-Transport-Security max-age=63072000; includeSubDomains; preload. Плюс buildCommand "npm run build", outputDirectory "dist", framework "vite".
+11.2 vite.config.ts (13 строк): plugins [react(), tailwindcss()] (:7), resolve.alias "@" → ./src (:8-12). Интеграции prerender в vite.config.ts НЕТ — prerender вызывается из npm run build (package.json:11: tsc -b && vite build && node scripts/prerender.mjs).
+11.3 scripts/check-bundle.mjs: считает gzip через gzipSync из node:zlib (:12, :47 — { href, raw: contents.length, gzip: gzipSync(contents).length }); берёт только начальный граф — <script src> и modulepreload href из dist/index.html (:18-49); LIMIT_BYTES = 500 * 1024 (:16); сравнение по gzip: totalGzip > LIMIT_BYTES → сообщение «initial JS <n> kB gzip превышает лимит 500.0 kB» и process.exit(1) (:82-87); печатает таблицу файл/raw/gzip и строку «лимит по gzip» (:53-69). Ожидание «порог 500 kB, счёт по gzip» — совпадает.
+
+12. ТЕСТЫ (13 файлов)
+12.1 src/test/auth-storage-sync.test.tsx — describe «useAuthStorageSync» (:36), 3 it; межвкладочная синхронизация auth-стора.
+12.2 src/test/billing.test.ts — describe «машина состояний подписки» (:48), 8 it.
+12.3 src/test/consent.test.ts — describe «store согласия» (:21), 4 it.
+12.4 src/test/empty-states.test.tsx — describe «пустые состояния списков» (:41), 3 it.
+12.5 src/test/i18n.test.ts — describe «словари переводов» (:52), 2 it; словари читаются через import.meta.glob("../../locales/*/*.json") (:9).
+12.6 src/test/network-status.test.tsx — describe «useNetworkStatus» (:39), 2 it.
+12.7 src/test/Observability.test.tsx — describe «Observability» (:50), 4 it; загрузка сторонних сервисов после согласия.
+12.8 src/test/report-error.test.ts — describe «reportError» (:46), 8 it.
+12.9 src/test/return-to.test.ts — describe «resolveReturnTo» (:7), 5 it.
+12.10 src/test/route-error-boundary.test.tsx — describe «RouteErrorBoundary» (:19), 2 it.
+12.11 src/test/routes-guard.test.tsx — describe «гейты маршрутов» (:61), 3 it.
+12.12 src/test/seo.test.ts — describe «SEO маршрутов» (:52) 4 it и describe «мета контентных страниц совпадает со словарями» (:84).
+12.13 src/test/states.test.tsx — describe «EmptyState» (:12) и «ErrorState» (:36), 4 it.
+    Вспомогательные (не тестовые): src/test/setup.ts, src/test/utils.tsx.
+    Фактическое число тестов прогона — 54 (см. раздел «Гейты»); статический подсчёт вызовов it( по этим файлам даёт 52, т.е. часть кейсов объявлена не литеральным it(.
+
+13. ФУТЕР И ЗАГЛУШКИ ЧАТА
+13.1 Футер: src/components/landing/Footer/ (BrandIcons.tsx, Footer.data.ts, Footer.tsx, Footer.types.ts, FooterColumn.tsx, FooterLink.tsx, index.ts, NewsletterForm.tsx, SocialLinks.tsx).
+    Telegram и Instagram: иконки src/components/landing/Footer/BrandIcons.tsx:51 (TelegramIcon), :68 (InstagramIcon); заглушки SOCIAL_PLACEHOLDERS src/components/landing/Footer/SocialLinks.tsx:37-38, разметка — <span role="img" aria-label={label} aria-disabled="true" title={t('social.comingSoon')}> с классом cursor-default (SocialLinks.tsx:52-62). Прочие соцсети идут через ICON_MAP (X/LinkedIn/GitHub/Discord, SocialLinks.tsx:26-31) как <motion.a target="_blank" rel="noopener noreferrer"> (:47-60).
+    Прочие заглушки футера: Footer.tsx:112 «TODO: добавить ThemeToggle когда будет готова система тем»; NewsletterForm.tsx:65-66 «TODO: заменить на реальный API-вызов через бэкенд» + console.log('[Newsletter] Subscribed: …') в DEV.
+13.2 Кнопки чата:
+    «Прослушать» — src/components/chat/messages/VocabularyCardMessage.tsx:77-83 (button без onClick) и src/components/landing/ChatPreview.tsx:77 (aria-label features.chat.listen); ключ словаря src/locales/ru/chat.json:63 "listen": "Прослушать".
+    «Повторить» — src/components/chat/messages/QuizFeedback.tsx:39-42 (кнопка с onRetry; условие canRetry задаёт src/components/chat/messages/QuizCard.tsx:57-60), ключ ru/chat.json:89 "retry": "Заново"; в «Словаре» — src/pages/dashboard/VocabularyPage.tsx:39-42 (button без onClick, t("vocabulary.review")) и :84-89 (Volume2, aria-label t("vocabulary.pronounce"), без onClick); ключи src/locales/ru/dashboard.json:117 "review": "Повторить", :119 "pronounce": "Произнести {{word}}".
+    Ввод: src/components/chat/ChatInput.tsx — кнопка вложения Paperclip без onClick (строка с aria-label t('input.attachFile')), кнопка Mic меняет только локальный isRecording (записи нет), отправка уходит в src/api/chat.ts:7-13 (заглушка поверх appendMessage, ответа ИИ нет).
+13.3 Счётчик сообщений: src/components/billing/UsageMeter.tsx:14-33 — {messagesUsed} / {messagesLimit} (шкала либо t("usage.unlimited")), данные статичны из сида src/api/mocks/billing.ts:29 (12/50) и не меняются по ходу переписки; это зафиксировано текстом src/locales/ru/docs.json (limits.localBody: «Счётчик сообщений на странице «Подписка» не меняется по ходу переписки»). В самом чате счётчика сообщений нет: src/components/chat/ChatHeader.tsx показывает прогресс уроков (completedLessons/totalLessons + ProgressBar); src/components/chat/ChatMessages.tsx:22, :32 использует messages.length только для анимации; счётчик слов — src/pages/dashboard/VocabularyPage.tsx:36 t("vocabulary.count", { total: words.length }).
+
+РАСХОЖДЕНИЯ С ОЖИДАНИЯМИ
+Р1. HEAD — расхождений нет: 4f9b5f5 (4f9b5f5a293923e816458ce752430a5666603775), совпадает с ожиданием.
+Р2. Тестовые файлы — 13, совпадает. Число тестов: ожидание 54 — фактический прогон дал 54 passed (54), совпадает.
+Р3. Ожидание 270.9 kB gzip — фактический прогон check:bundle дал «итого … 270.9 kB» (gzip), совпадает.
+Р4. Маршруты: ожидание 9 URL — seo-routes.json содержит 9 записей (см. 6.5); SPA объявляет 16 публичных + 1 префикс /app с 12 дочерними маршрутами (см. 6.2-6.3), т.е. список URL приложения шире seo-routes.
+Р5. project-rules.txt — 495 строк, совпадает.
+Р6. .env ПРИСУТСТВУЕТ локально (ожидалось отсутствие) — см. 2.2; в git не отслеживается (.gitignore:32, :34).
+Р7. Поиск LEGAL_PILL (8 совпадений) и LEGAL_INLINE_LINK (9 совпадений) — ожидалось 0 совпадений (см. 4.5); common.actions.next — 0, совпадает.
+Р8. i18next-browser-languagedetector установлен (package.json:36), но не импортируется в коде — определение языка ручное (см. 3.4).
+Р9. partialBundledLanguages в коде отсутствует (см. 5.4).
+Р10. Чат: счётчика сообщений в самом чате нет; счётчик сообщений существует только на странице «Подписка» (UsageMeter), плюс счётчик слов в «Словаре» (см. 13.3).
+
+НЕ ПРОВЕРЕНО
+Н1. Любые браузерные проверки: рендер страниц, поведение SPA-навигации, prerender-выдача, Lighthouse/a11y, реальные сетевые запросы — по условию задачи не запускались (браузер и Playwright не использовались).
+Н2. Значения переменных .env не выводились (только имена ключей).
+Н3. Работа мок-цепочки подписки «руками» (клики по кнопкам статусов) не проверялась.
+Н4. Содержимое текстов словарей en/es сверялось выборочно (только строки про лимиты и счётчики).
+
+ГЕЙТЫ (одна команда: npm run lint ; npm run typecheck ; npm run test -- --reporter=dot ; npm run build ; npm run check:bundle)
+Г1. npm run lint → eslint . → exit 0 (ошибок нет).
+Г2. npm run typecheck → tsc -b → exit 0.
+Г3. npm run test -- --reporter=dot → vitest run → exit 0; Test Files 13 passed (13); Tests 54 passed (54); Duration 4.63s; предупреждение vitest про jsdom: «Environment jsdom was created 13 times · 21.91s total, 63% of tracked time» с рекомендацией pool: 'vmThreads' или isolate: false.
+Г4. npm run build → tsc -b && vite build && node scripts/prerender.mjs → exit 0; «✓ 3320 modules transformed», «✓ built in 857ms». Предупреждения сборки:
+    - Vite: «Your Vite config uses features that are unsupported by `configLoader: 'native'`… `__dirname` (vite.config.ts:10:25). Use `import.meta.dirname` instead»;
+    - «/fonts/Mori-Regular.woff2 referenced in /fonts/Mori-Regular.woff2 didn't resolve at build time, it will remain unchanged to be resolved at runtime»;
+    - «(!) Some chunks are larger than 500 kB after minification» (крупнейший чанк dist/assets/index-D2C9dlzQ.js 574.79 kB, gzip 176.57 kB);
+    - prerender: 9 страниц (/, /privacy, /terms, /cookies, /help, /contacts, /about, /changelog, /docs) и «prerender: robots.txt и sitemap.xml готовы (9 URL)».
+Г5. npm run check:bundle → node scripts/check-bundle.mjs → exit 0. Таблица начального графа (raw / gzip): /assets/index-D2C9dlzQ.js 561.3/171.0 kB; /assets/rolldown-runtime-WkwZ5CU-.js 0.6/0.4; /assets/react-BbggMMhK.js 7.7/2.9; /assets/jsx-runtime-BZi9cxqW.js 0.4/0.3; /assets/utils-CbSEGF4h.js 79.6/25.2; /assets/landing-Y1cVgXts.js 10.2/3.5; /assets/preload-helper-BLdHbfdN.js 1.5/0.8; /assets/i18n-CYoJXqYl.js 74.3/21.4; /assets/react-DsZ-vrQr.js 0.6/0.4; /assets/middleware-Bmd5gaxs.js 1.9/0.9; /assets/reduced-motion-2fDGfAC9.js 0.3/0.2; /assets/proxy-CAH5haEx.js 128.2/42.3; /assets/createLucideIcon-Cj9ZB9cz.js 3.0/1.5. Итого raw 869.7 kB, gzip 270.9 kB; лимит по gzip 500.0 kB. Ни один гейт не упал; правок не потребовалось.
+Г6. Побочно: npm run build пересобрал dist/ (каталог в .gitignore:11 — под git не попадает).
+

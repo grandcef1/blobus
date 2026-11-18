@@ -9,16 +9,18 @@ export type BillingPeriod = "month" | "year";
 
 export type PricingFeatureKey =
     | "pricing.features.lessons"
+    | "pricing.features.lessonsLimit"
+    | "pricing.features.lessonsLimitPro"
     | "pricing.features.modes"
     | "pricing.features.memory"
-    | "pricing.features.voice"
-    | "pricing.features.lessonsMore";
+    | "pricing.features.voice";
 
 export interface Feature {
     /** Ключ возможности в lib/plans: по нему таблица узнаёт, входит ли она в тариф. */
     readonly key: PlanFeatureKey;
     readonly textKey: PricingFeatureKey;
-    readonly freeLimitKey?: "pricing.features.lessonsLimit";
+    /** Подпись дневного лимита под строкой: своя на тариф; без неё строка без лимита. */
+    readonly limitKeys?: Partial<Record<PlanId, PricingFeatureKey>>;
 }
 
 export interface PricingPlan {
@@ -39,11 +41,17 @@ export interface PricingPlan {
 // ARCHITECT: единый список возможностей — порядок строк задаёт лендинг, состав тарифа берётся из
 // lib/plans, поэтому «входит ли в Pro» нигде не дублируется булевым полем.
 export const FEATURES: readonly Feature[] = [
-    { key: "lessons", textKey: "pricing.features.lessons", freeLimitKey: "pricing.features.lessonsLimit" },
+    {
+        key: "lessons",
+        textKey: "pricing.features.lessons",
+        limitKeys: {
+            free: "pricing.features.lessonsLimit",
+            pro: "pricing.features.lessonsLimitPro",
+        },
+    },
     { key: "modes", textKey: "pricing.features.modes" },
     { key: "memory", textKey: "pricing.features.memory" },
     { key: "voice", textKey: "pricing.features.voice" },
-    { key: "lessonsMore", textKey: "pricing.features.lessonsMore" },
 ];
 
 // ARCHITECT: триал Pro — один раз на аккаунт. Защита от абуза (повторные регистрации) делается

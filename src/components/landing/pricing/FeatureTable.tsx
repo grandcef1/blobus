@@ -43,7 +43,7 @@ export function FeatureTable({ features, planId }: FeatureTableProps) {
         <ul className="flex flex-col">
             {features.map((feature, index) => {
                 const isIncluded = PLANS[planId].featureKeys.includes(feature.key);
-                const limitKey = planId === "free" ? feature.freeLimitKey : undefined;
+                const limitKey = feature.limitKeys?.[planId];
                 const isLast = index === features.length - 1;
 
                 return (

@@ -97,11 +97,11 @@
     "yearlyHint": "${{price}}/mo billed yearly",
     "features": {
       "lessons": "Lessons with an AI tutor",
-      "lessonsLimit": "1 a day",
+      "lessonsLimit": "1 new a day",
+      "lessonsLimitPro": "10 a day",
       "modes": "All learning modes",
       "memory": "Personalisation and memory",
-      "voice": "Premium AI voice",
-      "lessonsMore": "10 lessons a day"
+      "voice": "Premium AI voice"
     },
     "plans": {
       "free": {
@@ -112,7 +112,7 @@
       },
       "pro": {
         "name": "Blobus Pro",
-        "description": "For those who want to learn without limits",
+        "description": "For daily practice: 10 lessons and 300 messages a day",
         "cta": "Try 7 days free",
         "ctaSecondary": "For new accounts · no card required"
       }
@@ -141,13 +141,13 @@
       },
       "plans": {
         "question": "What is the difference between Free and Pro?",
-        "short": "Free gives you one lesson a day; Pro unlocks unlimited lessons and the premium AI voice.",
-        "full": "Free includes one lesson a day with the standard browser voice. Pro unlocks unlimited lessons, the premium AI voice (Deepgram + OpenAI TTS), priority processing, deeper progress analytics and detailed work on your mistakes. The first 7 days of Pro are free and need no card."
+        "short": "Free gives you 1 lesson and 20 messages a day; Pro gives you 10 lessons and 300 messages a day.",
+        "full": "Free includes 1 new lesson a day and 20 messages with the tutor a day. All modes, personalisation and memory are available on both plans, and answers can be played with the Listen button. Pro raises the limits to 10 lessons and 300 messages a day and adds the premium AI voice. The first 7 days of Pro are free and need no card."
       },
       "cancel": {
         "question": "How do I cancel Pro?",
         "short": "One click in settings; access lasts until the end of the paid period.",
-        "full": "Cancelling takes one click in Account settings. No hidden conditions and no calls to support. Pro features stay available until the end of the paid period, after which the account moves to Free automatically."
+        "full": "You can cancel in the Subscription section with the Cancel button. No hidden conditions and no calls to support. Pro features stay available until the end of the paid period, after which the account moves to Free automatically."
       },
       "languages": {
         "question": "Can I learn other languages?",

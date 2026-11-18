@@ -97,11 +97,11 @@
     "yearlyHint": "${{price}}/mes con pago anual",
     "features": {
       "lessons": "Clases con un tutor de IA",
-      "lessonsLimit": "1 al día",
+      "lessonsLimit": "1 nueva al día",
+      "lessonsLimitPro": "10 al día",
       "modes": "Todos los modos de estudio",
       "memory": "Personalización y memoria",
-      "voice": "Voz premium de IA",
-      "lessonsMore": "10 clases al día"
+      "voice": "Voz premium de IA"
     },
     "plans": {
       "free": {
@@ -112,7 +112,7 @@
       },
       "pro": {
         "name": "Blobus Pro",
-        "description": "Para quien quiere aprender sin límites",
+        "description": "Para practicar a diario: 10 clases y 300 mensajes al día",
         "cta": "Prueba 7 días gratis",
         "ctaSecondary": "Para cuentas nuevas · sin tarjeta"
       }
@@ -141,13 +141,13 @@
       },
       "plans": {
         "question": "¿Cuál es la diferencia entre Free y Pro?",
-        "short": "Free incluye una clase al día; Pro abre clases ilimitadas y la voz premium de IA.",
-        "full": "Free incluye una clase al día con la voz estándar del navegador. Pro abre clases ilimitadas, la voz premium de IA (Deepgram + OpenAI TTS), procesamiento prioritario, analítica de progreso más detallada y trabajo a fondo sobre tus errores. Los primeros 7 días de Pro son gratis y sin tarjeta."
+        "short": "Free incluye 1 clase y 20 mensajes al día; Pro incluye 10 clases y 300 mensajes al día.",
+        "full": "Free incluye 1 clase nueva al día y 20 mensajes con el tutor al día. Todos los modos, la personalización y la memoria están disponibles en ambos planes, y las respuestas se pueden escuchar con el botón Escuchar. Pro sube los límites a 10 clases y 300 mensajes al día y añade la voz premium de IA. Los primeros 7 días de Pro son gratis y sin tarjeta."
       },
       "cancel": {
         "question": "¿Cómo cancelo Pro?",
         "short": "Un clic en los ajustes; el acceso sigue hasta el final del periodo pagado.",
-        "full": "La cancelación se hace con un clic en Ajustes de la cuenta. Sin condiciones ocultas ni llamadas a soporte. Las funciones Pro siguen disponibles hasta el final del periodo pagado y después la cuenta pasa a Free automáticamente."
+        "full": "La suscripción se cancela en la sección Suscripción con el botón Cancelar. Sin condiciones ocultas ni llamadas a soporte. Las funciones Pro siguen disponibles hasta el final del periodo pagado y después la cuenta pasa a Free automáticamente."
       },
       "languages": {
         "question": "¿Puedo estudiar otros idiomas?",

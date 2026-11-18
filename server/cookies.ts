@@ -18,12 +18,21 @@ export interface CookieOptions {
     domain?: string;
 }
 
-/** Закрытые дефолты: HttpOnly и SameSite=Lax всегда, Secure — по окружению. */
+// ARCHITECT: режим Secure задаётся один раз в точках входа (server/index.ts, api/index.mjs) через
+// configureCookies, а не читается из process.env здесь: окружение читает только composition root,
+// env-модуль остаётся единственной точкой валидации. Дефолт — включён (fail-closed): несконфигурированное
+// приложение не ставит куки без Secure.
+let secureCookies = true;
+
+export function configureCookies(options: { readonly secure: boolean }): void {
+    secureCookies = options.secure;
+}
+
+/** Закрытые дефолты: HttpOnly и SameSite=Lax всегда, Secure — из configureCookies. */
 function cookieDefaults(): CookieOptions {
     return {
         httpOnly: true,
-        // ARCHITECT: Secure только в проде: локальный сервер работает по http, и кука с Secure не дошла бы.
-        secure: process.env.NODE_ENV === "production",
+        secure: secureCookies,
         sameSite: "lax",
         path: "/",
     };
@@ -44,11 +53,34 @@ export function clearCookie(res: Response, name: string): void {
     res.cookie(name, "", { ...cookieDefaults(), maxAge: 0 });
 }
 
-// ARCHITECT: cookies в типах express — any и заполняет его только cookie-parser, поэтому значение
-// проверяется на строку, а обращение идёт через optional chaining: без middleware это undefined.
-/** Значение куки из запроса: нужен cookie-parser раньше в цепочке middleware, иначе всегда undefined. */
+// ARCHITECT: парсим сырой заголовок Cookie сами: cookie-parser не добавляем (лишняя зависимость), а
+// req.cookies без него всегда undefined. Первое вхождение имени выигрывает (RFC 6265), кавычки и
+// percent-encoding разворачиваем; битые пары пропускаем, функция не бросает исключений.
+/** Значение куки из сырого заголовка Cookie; undefined, если куки нет или заголовок битый. */
 export function getCookie(req: Request, name: string): string | undefined {
-    const value: unknown = req.cookies?.[name];
+    const header = req.headers.cookie;
+    if (typeof header !== "string" || header === "") {
+        return undefined;
+    }
 
-    return typeof value === "string" ? value : undefined;
+    for (const part of header.split(";")) {
+        const eq = part.indexOf("=");
+        if (eq <= 0) {
+            continue;
+        }
+        if (part.slice(0, eq).trim() !== name) {
+            continue;
+        }
+        let value = part.slice(eq + 1).trim();
+        if (value.length >= 2 && value.startsWith('"') && value.endsWith('"')) {
+            value = value.slice(1, -1);
+        }
+        try {
+            return decodeURIComponent(value);
+        } catch {
+            return value;
+        }
+    }
+
+    return undefined;
 }

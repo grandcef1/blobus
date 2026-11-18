@@ -1,6 +1,7 @@
 // ARCHITECT: точка входа сервера. Окружение проверяется до поднятия порта, поэтому невалидная
 // конфигурация останавливает процесс, а не проявляется падением на первом запросе.
 import { buildApp } from "./app.ts";
+import { configureCookies } from "./cookies.ts";
 import { loadEnv, type ServerEnv } from "./env.ts";
 
 function readEnv(): ServerEnv {
@@ -15,6 +16,9 @@ function readEnv(): ServerEnv {
 }
 
 const env = readEnv();
+
+// ARCHITECT: режим Secure для кук — из проверенного env, один раз на старте; сами куки env не читают.
+configureCookies({ secure: env.NODE_ENV === "production" });
 
 // ARCHITECT: одна строка о старте: уровень, сообщение и порт; значения переменных окружения не логируются.
 buildApp().listen(env.PORT, () => {

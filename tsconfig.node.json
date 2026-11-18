@@ -14,10 +14,12 @@
     "noEmit": true,
 
     /* Linting */
+    "strict": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "erasableSyntaxOnly": true,
     "noFallthroughCasesInSwitch": true
   },
-  "include": ["vite.config.ts", "vitest.config.ts"]
+  // ARCHITECT: server входит в node-проект — те же nodenext и types node; strict включён для всего проекта, vite.config.ts и vitest.config.ts под ним проверены.
+  "include": ["vite.config.ts", "vitest.config.ts", "server/**/*.ts"]
 }

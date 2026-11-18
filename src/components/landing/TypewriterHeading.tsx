@@ -68,13 +68,16 @@ export function TypewriterHeading() {
         // вылезает за overflow-x-clip; перенос строки не годится — при наборе он прыгал бы и дёргал раскладку.
         // ARCHITECT: кегль согласован с заголовками остальных секций (самый крупный мобильный h2 — text-4xl у
         // features), поэтому от 360 px стоит text-4xl: ступенька вместо общего уменьшения, nowrap сохранён из-за reflow.
+        // ARCHITECT: каждая строка заголовка — отдельный однострочный блок, поэтому justify требует
+        // [text-align-last:justify]: обычный justify последнюю строку блока не растягивает.
+        // ARCHITECT: строка из одного слова не растянется физически — пробелов нет, растягивать нечего (CSS).
         <h1 className="text-[2rem] font-bold leading-[1.08] tracking-tight text-[#f0f0f5] min-[360px]:text-4xl sm:text-4xl lg:text-5xl xl:text-6xl">
-            <div className="min-h-[1.2em]">
+            <div className="min-h-[1.2em] text-justify [text-align-last:justify] md:text-left md:[text-align-last:auto]">
                 {text1}
                 {phase === 1 && <Cursor />}
             </div>
 
-            <div className="min-h-[1.2em] whitespace-nowrap">
+            <div className="min-h-[1.2em] whitespace-nowrap text-justify [text-align-last:justify] md:text-left md:[text-align-last:auto]">
                 {text2}
                 {phase === 2 && <Cursor />}
             </div>

@@ -81,15 +81,16 @@ export function HeroSection() {
                     {/* ARCHITECT: order-2 на mobile — текст под блобатаром; с md текст слева. */}
                     <div className="order-2 flex flex-col items-start justify-center gap-7 md:order-1 xl:max-w-[36rem]">
                         <HeroBadge label={t("hero.badge")} />
-
                         <motion.div variants={titleVariants}>
                             <TypewriterHeading />
                         </motion.div>
-
                         {/* ARCHITECT: text-balance держит подводку двумя строками без обрывков. */}
+                        {/* ARCHITECT: на мобильном подзаголовок выровнен по ширине с переносами: justify на узкой
+                            мере без hyphens даёт крупные пробелы между словами; переносы работают, потому что lang
+                            документа выставлен стором языка (store/language.ts). */}
                         <motion.p
                             variants={subtitleVariants}
-                            className="w-full text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:max-w-xl md:text-lg"
+                            className="w-full hyphens-auto text-justify text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:max-w-xl md:hyphens-manual md:text-left md:text-lg"
                         >
                             {t("hero.subtitle")}
                         </motion.p>

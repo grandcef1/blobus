@@ -10,6 +10,7 @@ lerna-debug.log*
 node_modules
 dist
 dist-ssr
+dist-server/
 *.local
 
 # Инкрементальный кэш tsc: локальный артефакт сборки, в репозиторий не попадает.

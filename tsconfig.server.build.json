@@ -1,0 +1,14 @@
+{
+  "extends": "./tsconfig.node.json",
+  // ARCHITECT: исходники пишутся с импортами .ts для нативного запуска Node 24, а для Vercel и VPS tsc собирает JS и переписывает расширения импортов на .js; тесты в сборку не входят.
+  "compilerOptions": {
+    "noEmit": false,
+    "allowImportingTsExtensions": false,
+    "rewriteRelativeImportExtensions": true,
+    "outDir": "dist-server",
+    "rootDir": "server",
+    "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.build.tsbuildinfo"
+  },
+  "include": ["server/**/*.ts"],
+  "exclude": ["server/**/*.test.ts"]
+}

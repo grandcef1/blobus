@@ -146,7 +146,7 @@
       },
       "cancel": {
         "question": "How do I cancel Pro?",
-        "short": "One click in settings; access lasts until the end of the paid period.",
+        "short": "Cancel in the Subscription section; access lasts until the paid period ends.",
         "full": "You can cancel in the Subscription section with the Cancel button. No hidden conditions and no calls to support. Pro features stay available until the end of the paid period, after which the account moves to Free automatically."
       },
       "languages": {

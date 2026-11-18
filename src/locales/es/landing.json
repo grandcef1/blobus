@@ -146,7 +146,7 @@
       },
       "cancel": {
         "question": "¿Cómo cancelo Pro?",
-        "short": "Un clic en los ajustes; el acceso sigue hasta el final del periodo pagado.",
+        "short": "Cancela en la sección Suscripción; el acceso dura hasta el final del periodo pagado.",
         "full": "La suscripción se cancela en la sección Suscripción con el botón Cancelar. Sin condiciones ocultas ni llamadas a soporte. Las funciones Pro siguen disponibles hasta el final del periodo pagado y después la cuenta pasa a Free automáticamente."
       },
       "languages": {

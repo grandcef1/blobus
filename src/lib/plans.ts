@@ -4,8 +4,7 @@
 
 export type PlanId = "free" | "pro";
 
-export type PlanFeatureKey =
-    "lessons" | "modes" | "memory" | "voice" | "lessonsBasic" | "lessonsMore";
+export type PlanFeatureKey = "lessons" | "modes" | "memory" | "voice";
 
 export interface Plan {
     readonly id: PlanId;
@@ -31,7 +30,7 @@ export const PLANS: Readonly<Record<PlanId, Plan>> = {
         yearlyPriceUsd: 0,
         messagesLimit: 20,
         lessonsLimit: 1,
-        featureKeys: ["lessons", "modes", "memory", "lessonsBasic"],
+        featureKeys: ["lessons", "modes", "memory"],
         highlighted: false,
     },
     pro: {
@@ -40,7 +39,7 @@ export const PLANS: Readonly<Record<PlanId, Plan>> = {
         yearlyPriceUsd: 29,
         messagesLimit: 300,
         lessonsLimit: 10,
-        featureKeys: ["lessons", "modes", "memory", "voice", "lessonsMore"],
+        featureKeys: ["lessons", "modes", "memory", "voice"],
         highlighted: true,
     },
 };

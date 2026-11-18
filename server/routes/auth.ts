@@ -66,20 +66,22 @@ function createAnonClient(env: SupabaseEnv) {
     return createUserClient(env, env.SUPABASE_PUBLISHABLE_KEY);
 }
 
+// ARCHITECT: единый срок refresh-куки — 30 дней для всех способов входа: HttpOnly + Secure + SameSite=Lax
+// компенсируют персистентность, а сессионная кука только у пароля давала рассинхрон UX с OAuth.
+const REFRESH_COOKIE_MAX_AGE_MS = 30 * 24 * 60 * 60 * 1000;
+
 // ARCHITECT: access-кука живёт столько же, сколько токен (expires_in от GoTrue), refresh-кука —
-// сессионная: её срок задаёт сервер Supabase, а выдуманный maxAge на клиенте только разошёлся бы с ним.
-// Исключение — обмен OAuth-пары: там срок refresh задаётся явно (танцевание начинается на стороне
-// провайдера, и сессионная кука терялась бы при закрытии вкладки).
-function setSessionCookies(res: Response, tokens: SessionTokens, refreshMaxAgeMs?: number): void {
+// персистентная с единым сроком: сессия не теряется при закрытии вкладки, а срок совпадает с жизнью
+// refresh-токена в Supabase, поэтому клиент не живёт дольше, чем сервер.
+function setSessionCookies(
+    res: Response,
+    tokens: SessionTokens,
+    refreshMaxAgeMs: number = REFRESH_COOKIE_MAX_AGE_MS
+): void {
     setCookie(res, COOKIE_NAMES.accessToken, tokens.accessToken, {
         maxAge: tokens.expiresInSeconds * 1000,
     });
-    setCookie(
-        res,
-        COOKIE_NAMES.refreshToken,
-        tokens.refreshToken,
-        refreshMaxAgeMs === undefined ? undefined : { maxAge: refreshMaxAgeMs }
-    );
+    setCookie(res, COOKIE_NAMES.refreshToken, tokens.refreshToken, { maxAge: refreshMaxAgeMs });
 }
 
 /** Снимает обе куки сессии: выход и проваленный refresh не должны оставлять негодные токены. */
@@ -112,9 +114,6 @@ function toSessionTokens(session: {
 // и тесты: инстансы Vercel не делят память, прод получит общий RateLimitStore).
 const OAUTH_EXCHANGE_WINDOW_MS = 15 * 60_000;
 const OAUTH_EXCHANGE_MAX = 20;
-// ARCHITECT: refresh-кука после OAuth живёт 30 дней — столько же, сколько refresh-токен в Supabase: танец
-// начинается на стороне провайдера, и сессионная кука терялась бы при закрытии вкладки.
-const OAUTH_REFRESH_MAX_AGE_MS = 30 * 24 * 60 * 60_000;
 
 export function createAuthRouter(options: AuthRouterOptions): Router {
     const { env, limiters } = options;
@@ -321,7 +320,7 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
                 return;
             }
 
-            setSessionCookies(res, toSessionTokens(data.session), OAUTH_REFRESH_MAX_AGE_MS);
+            setSessionCookies(res, toSessionTokens(data.session));
             // ARCHITECT: как и на логине, CSRF ротируется: токен, выданный до аутентификации, не переезжает
             // в новую сессию.
             rotateCsrfToken(res);

@@ -64,9 +64,11 @@ export function TypewriterHeading() {
         // ARCHITECT: кегль усилен на xl до 6xl (60px) — иерархия против блобатара.
         // leading-[1.08] — плотный, редакционный. whitespace-nowrap на второй
         // строке сохранён: CLS при typewriter недопустим.
-        // ARCHITECT: на узких экранах кегль ниже (text-3xl до sm), иначе вторая строка с whitespace-nowrap
+        // ARCHITECT: на узких экранах кегль ниже (text-[2rem] до 360 px), иначе вторая строка с whitespace-nowrap
         // вылезает за overflow-x-clip; перенос строки не годится — при наборе он прыгал бы и дёргал раскладку.
-        <h1 className="text-3xl font-bold leading-[1.08] tracking-tight text-[#f0f0f5] sm:text-4xl lg:text-5xl xl:text-6xl">
+        // ARCHITECT: кегль согласован с заголовками остальных секций (самый крупный мобильный h2 — text-4xl у
+        // features), поэтому от 360 px стоит text-4xl: ступенька вместо общего уменьшения, nowrap сохранён из-за reflow.
+        <h1 className="text-[2rem] font-bold leading-[1.08] tracking-tight text-[#f0f0f5] min-[360px]:text-4xl sm:text-4xl lg:text-5xl xl:text-6xl">
             <div className="min-h-[1.2em]">
                 {text1}
                 {phase === 1 && <Cursor />}

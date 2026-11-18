@@ -5,7 +5,7 @@ import { Check, MessageCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { AuthAwareCta } from "@/components/landing/AuthAwareCta";
-import { BrandBlobatar } from "@/components/landing/BrandBlobatar";
+import { HeroBlobatar } from "@/components/landing/HeroBlobatar";
 import { HeroBadge } from "@/components/hero/HeroBadge";
 import { TypewriterHeading } from "@/components/landing/TypewriterHeading";
 import { DemoDialog } from "@/components/landing/demo/DemoDialog";
@@ -62,10 +62,16 @@ export function HeroSection() {
 
         // ARCHITECT: overflow-x-clip страхует bleed. min-h = вьюпорт минус хедер.
         <section className="relative flex min-h-[calc(100dvh-72px)] w-full items-start overflow-x-clip bg-black pt-16 pb-16 md:pt-20 md:pb-20">
-            {/* ARCHITECT: шелл и xl:pl-24 держат контент на одной вертикали с секцией features. */}
+            {/* ARCHITECT: шелл идентичен features/how-it-works (px-4 sm:px-6 lg:px-8), поэтому кромки параллельны
+                ниже xl; xl:pl-24 внутри max-w-7xl ставит h1 на вертикаль features: дельта до её кромки = 96 px
+                (замерено 96/416/736 px на 1280/1920/2560). Колонки связаны жёстко: xl:grid-cols-[1fr_1.25fr]
+                и xl:gap-4; items-center — их вертикальная параллельность. Колонка блобатара после xl:pl-24 = 631 px.
+                Блобатар w-[min(85vw,32rem)] ≈ 331 px на телефоне 390 px (было 256); xl:justify-end доводит его до
+                1568 px на 1920 — на 64 px дальше правой кромки карточек features (1504), правая мёртвая зона закрыта.
+                Асимметрия 64 px осознанная: без зеркальной симметрии, композиция делит центральную ось с features. */}
             <div className="relative mx-auto w-full max-w-7xl px-4 sm:px-6 lg:px-8 xl:pl-24">
-                {/* ARCHITECT: на мобильном полноширинная вертикальная композиция — блобатар сверху
-                    по центру, текст по центру, кнопки во всю ширину; десктоп (md+) не тронут. */}
+                {/* ARCHITECT: на мобильном hero выровнен по левой кромке и занимает всю ширину шелла, как остальные
+                    секции; прежнее центрирование ломало ритм страницы и делало hero единственным центрированным блоком. */}
                 <motion.div
                     variants={containerVariants}
                     initial="hidden"
@@ -73,7 +79,7 @@ export function HeroSection() {
                     className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-8 lg:gap-12 xl:grid-cols-[1fr_1.25fr] xl:gap-4"
                 >
                     {/* ARCHITECT: order-2 на mobile — текст под блобатаром; с md текст слева. */}
-                    <div className="order-2 flex flex-col items-center justify-center gap-7 text-center md:order-1 md:items-start md:text-left xl:max-w-[36rem]">
+                    <div className="order-2 flex flex-col items-start justify-center gap-7 md:order-1 xl:max-w-[36rem]">
                         <HeroBadge label={t("hero.badge")} />
 
                         <motion.div variants={titleVariants}>
@@ -83,7 +89,7 @@ export function HeroSection() {
                         {/* ARCHITECT: text-balance держит подводку двумя строками без обрывков. */}
                         <motion.p
                             variants={subtitleVariants}
-                            className="mx-auto max-w-xl text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:mx-0 md:text-lg"
+                            className="w-full text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:max-w-xl md:text-lg"
                         >
                             {t("hero.subtitle")}
                         </motion.p>
@@ -115,7 +121,7 @@ export function HeroSection() {
 
                         <motion.div
                             variants={benefitsVariants}
-                            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-2 md:justify-start"
+                            className="flex flex-wrap items-center justify-start gap-x-4 gap-y-2 pt-2"
                         >
                             {BENEFITS.map((benefitKey) => (
                                 <div
@@ -134,14 +140,7 @@ export function HeroSection() {
                         </motion.div>
                     </div>
 
-                    {/* ARCHITECT: блобатар в потоке grid (без absolute), order-1 поднимает его над текстом
-                        на мобильном; xl:justify-end прижимает к правой кромке шелла. */}
-                    <motion.div
-                        variants={blobatarVariants}
-                        className="order-1 flex items-center justify-center md:order-2 xl:justify-end"
-                    >
-                        <BrandBlobatar className="w-[min(85vw,32rem)] sm:w-96 md:w-full md:max-w-[26rem] lg:max-w-[34rem] xl:w-full xl:max-w-[42rem]" />
-                    </motion.div>
+                    <HeroBlobatar variants={blobatarVariants} />
                 </motion.div>
             </div>
         </section>

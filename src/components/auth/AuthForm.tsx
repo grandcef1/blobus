@@ -11,6 +11,7 @@ import { GoogleAuthButton } from "@/components/onboarding/GoogleAuthButton";
 import { AuthModeTabs, type AuthMode } from "@/components/onboarding/AuthModeTabs";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/auth";
+import { USE_REAL_AUTH } from "@/api/auth";
 import type { AuthUser } from "@/api/auth";
 import { validateEmail, validateName, validatePassword } from "@/lib/validation";
 import type { ValidationKey } from "@/lib/validation";
@@ -85,7 +86,6 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
         onAuthenticated(await signInWithGoogle());
     };
 
-
     return (
         <div>
             {showTabs && onModeChange && <AuthModeTabs mode={mode} onChange={handleModeChange} />}
@@ -93,16 +93,31 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
                 {mode === "register" && (
                     <TextField
-                        id="auth-name" name="name" required label={t("fields.name.label")} placeholder={t("fields.name.placeholder")} autoComplete="name"
-                        value={values.name} error={errors.name ? t(errors.name) : undefined}
-                        onChange={(value) => setValue("name", value)} onBlur={() => handleBlur("name")}
+                        id="auth-name"
+                        name="name"
+                        required
+                        label={t("fields.name.label")}
+                        placeholder={t("fields.name.placeholder")}
+                        autoComplete="name"
+                        value={values.name}
+                        error={errors.name ? t(errors.name) : undefined}
+                        onChange={(value) => setValue("name", value)}
+                        onBlur={() => handleBlur("name")}
                     />
                 )}
 
                 <TextField
-                    id="auth-email" name="email" required label={t("fields.email.label")} type="email" placeholder={t("fields.email.placeholder")}
-                    autoComplete={mode === "register" ? "email" : "username"} value={values.email} error={errors.email ? t(errors.email) : undefined}
-                    onChange={(value) => setValue("email", value)} onBlur={() => handleBlur("email")}
+                    id="auth-email"
+                    name="email"
+                    required
+                    label={t("fields.email.label")}
+                    type="email"
+                    placeholder={t("fields.email.placeholder")}
+                    autoComplete={mode === "register" ? "email" : "username"}
+                    value={values.email}
+                    error={errors.email ? t(errors.email) : undefined}
+                    onChange={(value) => setValue("email", value)}
+                    onBlur={() => handleBlur("email")}
                 />
 
                 {/* ARCHITECT: поле пароля вместе с метром силы и ссылкой восстановления переехало
@@ -118,7 +133,11 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
                     onBlur={() => handleBlur("password")}
                 />
 
-                <Button type="submit" disabled={isSubmitting} className={cn(PRIMARY_BUTTON, "w-full")}>
+                <Button
+                    type="submit"
+                    disabled={isSubmitting}
+                    className={cn(PRIMARY_BUTTON, "w-full")}
+                >
                     {isSubmitting ? t("actions.submitting") : t("actions.submit")}
                     {isSubmitting ? (
                         <Loader2 className="size-4 animate-spin" aria-hidden="true" />
@@ -127,13 +146,20 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
                     )}
                 </Button>
 
-                <div className="flex items-center gap-3 pt-1">
-                    <div className="h-px flex-1 bg-white/10" />
-                    <span className="text-xs text-[#f0f0f5]/40">{t("actions.or")}</span>
-                    <div className="h-px flex-1 bg-white/10" />
-                </div>
+                {/* ARCHITECT: OAuth на сервере ещё не подключён, поэтому в реальном режиме кнопка не
+                    рендерится вместе с разделителем: заглушка с фиктивным профилем была бы ложью, а «или»
+                    над пустым местом — обманом вёрстки. Новых строк словаря для этого не нужно. */}
+                {!USE_REAL_AUTH && (
+                    <>
+                        <div className="flex items-center gap-3 pt-1">
+                            <div className="h-px flex-1 bg-white/10" />
+                            <span className="text-xs text-[#f0f0f5]/40">{t("actions.or")}</span>
+                            <div className="h-px flex-1 bg-white/10" />
+                        </div>
 
-                <GoogleAuthButton onAuthenticated={handleGoogle} />
+                        <GoogleAuthButton onAuthenticated={handleGoogle} />
+                    </>
+                )}
             </form>
         </div>
     );

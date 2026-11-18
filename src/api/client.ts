@@ -17,6 +17,12 @@ export interface ApiErrorShape {
 
 export type ApiData = Record<string, unknown> | unknown[] | null;
 
+/** Необязательные поля конверта ошибки: оба приходят от сервера и нужны для логов и i18n-адаптера. */
+export interface ApiErrorDetails {
+    readonly code?: string;
+    readonly requestId?: string;
+}
+
 export interface RequestOptions {
     method?: "GET" | "POST" | "PATCH" | "PUT" | "DELETE";
     /** Тело запроса: сериализуется в JSON автоматически. */
@@ -30,11 +36,17 @@ export interface RequestOptions {
 
 export class ApiError extends Error {
     readonly statusCode: number;
+    /** Код из серверного конверта (server/http.ts): фронтенд мапит его в i18n. */
+    readonly code: string | undefined;
+    /** Идентификатор запроса на сервере: по нему лог сопоставляется с ответом. */
+    readonly requestId: string | undefined;
 
-    constructor(statusCode: number, message: string) {
+    constructor(statusCode: number, message: string, details: ApiErrorDetails = {}) {
         super(message);
         this.name = "ApiError";
         this.statusCode = statusCode;
+        this.code = details.code;
+        this.requestId = details.requestId;
     }
 }
 
@@ -141,7 +153,7 @@ export async function request<T>(path: string, options: RequestOptions = {}): Pr
         window.clearTimeout(timer);
         if (signal) signal.removeEventListener("abort", onExternalAbort);
     }
-    }
+}
 
 export const apiClient = {
     get: <T>(path: string, options?: Omit<RequestOptions, "method" | "body">) =>
@@ -155,3 +167,132 @@ export const apiClient = {
     delete: <T>(path: string, options?: Omit<RequestOptions, "method" | "body">) =>
         request<T>(path, { ...options, method: "DELETE" }),
 };
+
+// ARCHITECT: отдельный транспорт реального auth-API: сессия живёт в HttpOnly-куках, поэтому запрос идёт с
+// credentials include, а мутации — с double-submit CSRF-токеном из не-HttpOnly куки (server/csrf.ts).
+// request() выше не меняется: его потребители работают с моками и о куках не знают.
+const CSRF_COOKIE_NAME = "blobus_csrf_token";
+const CSRF_PATH = "/auth/csrf";
+const AUTH_PATH_PREFIX = "/auth/";
+const MUTATING_METHODS = ["POST", "PUT", "PATCH", "DELETE"];
+
+export interface ApiFetchOptions {
+    method?: "GET" | "POST" | "PUT" | "PATCH" | "DELETE";
+    /** Тело запроса: сериализуется в JSON автоматически. */
+    body?: unknown;
+    signal?: AbortSignal;
+}
+
+/** Конверт серверной ошибки: code мапится в i18n, message — безопасный общий текст (server/http.ts). */
+interface ServerErrorEnvelope {
+    error?: {
+        code?: unknown;
+        message?: unknown;
+        requestId?: unknown;
+    };
+}
+
+/** Значение не-HttpOnly куки: document.cookie — единственный доступный источник, библиотека не нужна. */
+function readDocumentCookie(name: string): string | undefined {
+    const prefix = `${name}=`;
+
+    for (const part of document.cookie.split(";")) {
+        const entry = part.trim();
+        if (entry.startsWith(prefix)) return decodeURIComponent(entry.slice(prefix.length));
+    }
+
+    return undefined;
+}
+
+// ARCHITECT: токен читается из куки на каждую мутацию, а не кэшируется: логин и выход ротируют CSRF, и
+// кэш разошёлся бы с браузером после первого же входа. GET нужен только когда куки ещё нет.
+async function readCsrfToken(): Promise<string> {
+    const existing = readDocumentCookie(CSRF_COOKIE_NAME);
+    if (existing !== undefined) return existing;
+
+    await fetch(`${API_BASE_URL}${CSRF_PATH}`, { credentials: "include" });
+
+    return readDocumentCookie(CSRF_COOKIE_NAME) ?? "";
+}
+
+function toEnvelopeError(status: number, payload: unknown): ApiError {
+    const envelope = (
+        typeof payload === "object" && payload !== null ? payload : {}
+    ) as ServerErrorEnvelope;
+    const code = typeof envelope.error?.code === "string" ? envelope.error.code : undefined;
+    const requestId =
+        typeof envelope.error?.requestId === "string" ? envelope.error.requestId : undefined;
+    // ARCHITECT: без текста в конверте остаётся только статус: generic-ключ потребовал бы новой строки
+    // словаря, а их добавление вне задачи.
+    const message =
+        typeof envelope.error?.message === "string" ? envelope.error.message : `HTTP ${status}`;
+
+    return new ApiError(status, message, { code, requestId });
+}
+
+/** Один запрос без повторов: fetch → разбор конверта → ApiError или данные. */
+async function sendApiRequest<T>(path: string, options: ApiFetchOptions): Promise<T> {
+    const method = options.method ?? "GET";
+    const headers: Record<string, string> = { "Content-Type": "application/json" };
+
+    if (MUTATING_METHODS.includes(method)) headers["x-csrf-token"] = await readCsrfToken();
+
+    let response: Response;
+
+    try {
+        response = await fetch(`${API_BASE_URL}${path}`, {
+            method,
+            credentials: "include",
+            headers,
+            body: options.body === undefined ? undefined : JSON.stringify(options.body),
+            signal: options.signal,
+        });
+    } catch (error) {
+        // ARCHITECT: отмена и сетевой сбой приводятся к тому же ApiError, что и в request(): верхние слои
+        // различают только статус, а тексты берутся из существующих ключей словаря.
+        if (error instanceof DOMException && error.name === "AbortError") {
+            throw new ApiError(0, i18n.t("errors.api.timeout", { ns: "common" }));
+        }
+
+        throw new ApiError(0, i18n.t("errors.api.offline", { ns: "common" }));
+    }
+
+    if (response.status === 204) return null as T;
+
+    const payload: unknown = await response.json().catch(() => null);
+
+    if (!response.ok) throw toEnvelopeError(response.status, payload);
+
+    return payload as T;
+}
+
+/**
+ * Запрос к реальному API с cookie-сессией и CSRF. На 401 у не-auth путей — одна попытка refresh и один
+ * повтор: истёкший access-токен не должен выглядеть как «выкинуло из аккаунта».
+ */
+export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): Promise<T> {
+    try {
+        return await sendApiRequest<T>(path, options);
+    } catch (error) {
+        // ARCHITECT: auth-пути не обновляются: refresh → 401 → refresh зациклился бы, а login обязан
+        // показать свою ошибку как есть.
+        const expired =
+            error instanceof ApiError &&
+            error.statusCode === 401 &&
+            !path.startsWith(AUTH_PATH_PREFIX);
+
+        if (!expired) {
+            logError(error);
+            throw error;
+        }
+
+        try {
+            await sendApiRequest("/auth/refresh", { method: "POST" });
+
+            return await sendApiRequest<T>(path, options);
+        } catch (retryError) {
+            logError(retryError);
+            throw retryError;
+        }
+    }
+}

@@ -11,7 +11,7 @@ import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { Seo } from "@/components/shared/Seo";
 import { cn } from "@/lib/utils";
-import { LEGAL_PILL } from "./legal.styles";
+import { CONTENT_PILL } from "@/lib/surfaces";
 
 interface ContentLayoutProps {
     readonly title: string;
@@ -30,7 +30,7 @@ export function ContentLayout({ title, intro, jsonLd, children }: ContentLayoutP
 
             <main id="main" tabIndex={-1} className="min-h-dvh w-full bg-black px-6 py-20 sm:px-8 sm:py-28">
                 <article className="mx-auto w-full max-w-3xl">
-                    <Link to="/" className={cn(LEGAL_PILL, "text-xs")}>
+                    <Link to="/" className={cn(CONTENT_PILL, "text-xs")}>
                         {t("legal.layout.home")}
                     </Link>
 

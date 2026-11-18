@@ -6,7 +6,7 @@
 import { Link, useLocation } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { ContentLayout } from "@/components/legal/ContentLayout";
-import { LEGAL_INLINE_LINK } from "@/components/legal/legal.styles";
+import { CONTENT_INLINE_LINK } from "@/lib/surfaces";
 import { breadcrumbForRoute } from "@/lib/structured-data";
 import { cn } from "@/lib/utils";
 import { DOCS_SECTIONS } from "./docs/docsSections";
@@ -68,9 +68,9 @@ export function DocsPage() {
 
                         {/* ARCHITECT: helpLink есть только у трёх разделов, поэтому поле проверяется через in —
                             без этого typecheck не сузит union из as const. inline-block нужен из-за mt-6:
-                            у LEGAL_INLINE_LINK нет display-класса, и отступ на inline-ссылке не работает. */}
+                            у CONTENT_INLINE_LINK нет display-класса, и отступ на inline-ссылке не работает. */}
                         {"helpLinkKey" in section && (
-                            <Link to="/help" className={cn(LEGAL_INLINE_LINK, "mt-6 inline-block")}>
+                            <Link to="/help" className={cn(CONTENT_INLINE_LINK, "mt-6 inline-block")}>
                                 {t(section.helpLinkKey)}
                             </Link>
                         )}

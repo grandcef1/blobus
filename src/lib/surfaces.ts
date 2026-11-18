@@ -26,6 +26,22 @@ const SELECTED_TILE = "border-white/20 bg-white/10";
 /** Заливка выбранного состояния — для табов и селектов, где бордер уже задан. */
 export const SELECTED_FILL = "bg-white/10";
 
+// ARCHITECT: пилюля и внутритекстовая ссылка нужны и правовым, и контентным страницам, поэтому значения
+// живут в общем слое; legal.styles держит на них алиасы, чтобы легальный слой не был источником стилей
+// для контентных страниц.
+/** Пилюля контентной страницы: возврат на главную и перекрёстная навигация. */
+export const CONTENT_PILL = cn(
+    "inline-flex min-h-11 items-center justify-center rounded-full border border-[#f0f0f5]/20 px-5 text-sm text-[#f0f0f5]",
+    "transition-colors hover:border-[#f0f0f5]/40 hover:bg-[#f0f0f5]/10",
+    FOCUS_RING
+);
+
+/** Ссылка внутри текста контентной страницы: mailto и переходы между документами. */
+export const CONTENT_INLINE_LINK = cn(
+    "w-fit text-sm text-[#f0f0f5]/70 underline transition-colors hover:text-[#f0f0f5] hover:no-underline",
+    FOCUS_RING
+);
+
 /** Плитка в покое: та же стеклянная поверхность, бордер светлеет на ховере. */
 const IDLE_TILE = "border-white/5 bg-black/20 hover:border-white/15 hover:bg-white/[0.03]";
 

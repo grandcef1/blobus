@@ -63,6 +63,20 @@ isOneToOne: false
       referencedColumns: ["id"]
     }
                   ]
+                },"placement_results": {
+                  Row: {
+                    "created_at": string,"id": string,"level": string,"score": number,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"level": string,"score": number,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"level"?: string,"score"?: number,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"profiles": {
                   Row: {
                     "created_at": string,"daily_minutes": number,"display_name": string,"id": string,"locale": string,"updated_at": string
@@ -90,6 +104,60 @@ isOneToOne: false
                   }
                   Relationships: [
                     
+                  ]
+                },"ticket_messages": {
+                  Row: {
+                    "author": string,"content": string,"created_at": string,"id": string,"ticket_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "author": string,"content": string,"created_at"?: string,"id"?: string,"ticket_id": string
+                  }
+                  Update: {
+                    "author"?: string,"content"?: string,"created_at"?: string,"id"?: string,"ticket_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "ticket_messages_ticket_id_fkey"
+      columns: ["ticket_id"]
+isOneToOne: false
+      referencedRelation: "tickets"
+      referencedColumns: ["id"]
+    }
+                  ]
+                },"tickets": {
+                  Row: {
+                    "created_at": string,"id": string,"status": string,"subject": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"id"?: string,"status"?: string,"subject": string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"id"?: string,"status"?: string,"subject"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"vocabulary": {
+                  Row: {
+                    "context": string | null,"created_at": string,"id": string,"source_lesson_id": string | null,"term": string,"translation": string | null,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "context"?: string | null,"created_at"?: string,"id"?: string,"source_lesson_id"?: string | null,"term": string,"translation"?: string | null,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "context"?: string | null,"created_at"?: string,"id"?: string,"source_lesson_id"?: string | null,"term"?: string,"translation"?: string | null,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    {
+      foreignKeyName: "vocabulary_source_lesson_id_fkey"
+      columns: ["source_lesson_id"]
+isOneToOne: false
+      referencedRelation: "lessons"
+      referencedColumns: ["id"]
+    }
                   ]
                 }
           }

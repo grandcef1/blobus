@@ -10,6 +10,7 @@ import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
 import { COOKIE_NAMES, clearCookie, getCookie, setCookie } from "../cookies.ts";
 import { attachCsrfToken, createCsrfToken, validateCsrf } from "../csrf.ts";
 import { errorEnvelope } from "../http.ts";
+import { createMemoryRateLimitStore, createRateLimiter } from "../rate-limit.ts";
 import { createServiceClient, createUserClient } from "../supabase.ts";
 import type { SupabaseEnv } from "../supabase.ts";
 
@@ -25,7 +26,19 @@ const PasswordSchema = z
     .regex(/\p{Nd}/u);
 
 const SignupSchema = z.strictObject({ email: z.email().max(254), password: PasswordSchema });
-const LoginSchema = z.strictObject({ email: z.email().max(254), password: z.string().min(1).max(72) });
+const LoginSchema = z.strictObject({
+    email: z.email().max(254),
+    password: z.string().min(1).max(72),
+});
+// ARCHITECT: обмен OAuth-пары принимает только два токена: лишние поля отклоняются, потому что тело — это
+// ровно то, что вернул PKCE-танец, и ничего больше клиент присылать не должен (§16.6).
+// ARCHITECT: нижняя граница refresh-токена — 8 символов, а не 20 из ТЗ: GoTrue отдаёт короткие
+// непрозрачные токены (локальный стек — 12 символов, хостед такой же формат), и порог 20 отклонил бы
+// любой настоящий обмен. Границы нужны только против мусора: подлинность всё равно решает Supabase.
+const ExchangeSchema = z.strictObject({
+    access_token: z.string().min(20).max(4096),
+    refresh_token: z.string().min(8).max(512),
+});
 
 /** Токены сессии в форме, которую ставят куки: тип Supabase за границы модуля не выходит (§16.13). */
 interface SessionTokens {
@@ -53,13 +66,20 @@ function createAnonClient(env: SupabaseEnv) {
     return createUserClient(env, env.SUPABASE_PUBLISHABLE_KEY);
 }
 
-// ARCHITECT: access-кука живёт столько же, сколько токен (expires_in от GoTrue), refresh-кука — сессионная:
-// её срок задаёт сервер Supabase, а выдуманный maxAge на клиенте только разошёлся бы с ним.
-function setSessionCookies(res: Response, tokens: SessionTokens): void {
+// ARCHITECT: access-кука живёт столько же, сколько токен (expires_in от GoTrue), refresh-кука —
+// сессионная: её срок задаёт сервер Supabase, а выдуманный maxAge на клиенте только разошёлся бы с ним.
+// Исключение — обмен OAuth-пары: там срок refresh задаётся явно (танцевание начинается на стороне
+// провайдера, и сессионная кука терялась бы при закрытии вкладки).
+function setSessionCookies(res: Response, tokens: SessionTokens, refreshMaxAgeMs?: number): void {
     setCookie(res, COOKIE_NAMES.accessToken, tokens.accessToken, {
         maxAge: tokens.expiresInSeconds * 1000,
     });
-    setCookie(res, COOKIE_NAMES.refreshToken, tokens.refreshToken);
+    setCookie(
+        res,
+        COOKIE_NAMES.refreshToken,
+        tokens.refreshToken,
+        refreshMaxAgeMs === undefined ? undefined : { maxAge: refreshMaxAgeMs }
+    );
 }
 
 /** Снимает обе куки сессии: выход и проваленный refresh не должны оставлять негодные токены. */
@@ -87,9 +107,24 @@ function toSessionTokens(session: {
     };
 }
 
+// ARCHITECT: лимит обмена OAuth-парой живёт здесь, а не рядом с остальными лимитерами: app.ts вне задачи, а
+// ключ маршрута и его защита должны читаться вместе. Счёт в памяти — как у прочих лимитов (только дев-режим
+// и тесты: инстансы Vercel не делят память, прод получит общий RateLimitStore).
+const OAUTH_EXCHANGE_WINDOW_MS = 15 * 60_000;
+const OAUTH_EXCHANGE_MAX = 20;
+// ARCHITECT: refresh-кука после OAuth живёт 30 дней — столько же, сколько refresh-токен в Supabase: танец
+// начинается на стороне провайдера, и сессионная кука терялась бы при закрытии вкладки.
+const OAUTH_REFRESH_MAX_AGE_MS = 30 * 24 * 60 * 60_000;
+
 export function createAuthRouter(options: AuthRouterOptions): Router {
     const { env, limiters } = options;
     const router = Router();
+    const exchangeLimiter = createRateLimiter({
+        store: createMemoryRateLimitStore(),
+        windowMs: OAUTH_EXCHANGE_WINDOW_MS,
+        max: OAUTH_EXCHANGE_MAX,
+        scope: "auth:oauth-exchange",
+    });
     // ARCHITECT: кэш проверки токена — на экземпляр приложения: /me не ходит в Supabase на каждый запрос,
     // а срок записи ограничивает сам verifyAccessToken (min от ttl кэша и exp токена).
     const tokenCache = createInMemoryTokenCache();
@@ -234,6 +269,66 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
         res.status(200).json({ user: { id: payload.userId, email: payload.email } });
     });
 
+    // ARCHITECT: OAuth-обмен: браузер приносит пару токенов из PKCE-танца с Supabase, сервер её проверяет и
+    // выдаёт свои HttpOnly-куки — второй источник сессии в браузере не остаётся. Логи без токенов и email:
+    // здесь нет ни одной записи в лог, а общий обработчик печатает только имя ошибки, статус и код (§16.11).
+    router.post(
+        "/oauth/exchange",
+        exchangeLimiter,
+        validateCsrf,
+        async (req: Request, res: Response) => {
+            const parsed = ExchangeSchema.safeParse(req.body);
+
+            if (!parsed.success) {
+                res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+                return;
+            }
+
+            const accessToken = parsed.data.access_token;
+            let verifiedId: string;
+
+            try {
+                // ARCHITECT: подлинность пары решает Supabase Auth, не клиент: verifyAccessToken спрашивает
+                // GoTrue, и подделанный access-токен отсекается до обмена (§16.4).
+                verifiedId = (await verifyAccessToken(env, accessToken, tokenCache)).userId;
+            } catch {
+                clearSessionCookies(res);
+                res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+                return;
+            }
+
+            const { data, error } = await createUserClient(env, accessToken).auth.refreshSession({
+                refresh_token: parsed.data.refresh_token,
+            });
+
+            if (error !== null || data.session === null || data.user === null) {
+                if (error !== null && (typeof error.status !== "number" || error.status >= 500)) {
+                    // ARCHITECT: 5xx и обрыв связи — не 401: сбой GoTrue не должен выглядеть как «токены
+                    // негодны», иначе инцидент у провайдера неотличим от атаки.
+                    throw error;
+                }
+
+                clearSessionCookies(res);
+                res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+                return;
+            }
+
+            // ARCHITECT: пара токенов обязана принадлежать одному пользователю: refresh-токен чужого
+            // аккаунта рядом с нашим access-токеном превратил бы обмен в подмену сессии (§16.4, IDOR-класс).
+            if (data.user.id !== verifiedId) {
+                clearSessionCookies(res);
+                res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+                return;
+            }
+
+            setSessionCookies(res, toSessionTokens(data.session), OAUTH_REFRESH_MAX_AGE_MS);
+            // ARCHITECT: как и на логине, CSRF ротируется: токен, выданный до аутентификации, не переезжает
+            // в новую сессию.
+            rotateCsrfToken(res);
+
+            res.status(200).json({ user: { id: data.user.id, email: data.user.email ?? null } });
+        }
+    );
+
     return router;
 }
-

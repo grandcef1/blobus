@@ -10,7 +10,7 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { buildApp } from "../app.ts";
 import { COOKIE_NAMES, configureCookies } from "../cookies.ts";
 import type { SupabaseEnv } from "../supabase.ts";
-import { createAdminClient, readLocalStack } from "../test-stack.ts";
+import { createAdminClient, createAnonClient, readLocalStack } from "../test-stack.ts";
 
 interface RunningApp {
     readonly server: Server;
@@ -42,14 +42,16 @@ let userEmail: string | undefined;
 
 /** Отдаёт окружение стека и падает громко: пропуск тестов скрыл бы поломку окружения. */
 function ctxEnv(): SupabaseEnv {
-    if (env === undefined) throw new Error("local Supabase stack is not running: run npx supabase start");
+    if (env === undefined)
+        throw new Error("local Supabase stack is not running: run npx supabase start");
 
     return env;
 }
 
 /** Пользователь, созданный админ-клиентом в beforeAll: на нём проверяются логин и сессия. */
 function ctxUser(): { readonly id: string; readonly email: string } {
-    if (userId === undefined || userEmail === undefined) throw new Error("тестовый пользователь не создан");
+    if (userId === undefined || userEmail === undefined)
+        throw new Error("тестовый пользователь не создан");
 
     return { id: userId, email: userEmail };
 }
@@ -98,11 +100,18 @@ function cookieValue(header: string): string {
     return header.slice(header.indexOf("=") + 1).split(";")[0];
 }
 
-/** Set-Cookie кук сессии: тест доказывает их отсутствие там, где сессия выдаваться не должна. */
+/**
+ * Set-Cookie кук сессии с непустым значением: тест доказывает, что сессия не выдана. Пустое значение —
+ * это снятие куки (clearCookie), которое как раз и должно происходить при провале обмена.
+ */
 function sessionCookieHeaders(response: Response): readonly string[] {
     return response.headers
         .getSetCookie()
-        .filter((header) => SESSION_COOKIES.some((name) => header.startsWith(`${name}=`)));
+        .filter(
+            (header) =>
+                SESSION_COOKIES.some((name) => header.startsWith(`${name}=`)) &&
+                cookieValue(header) !== ""
+        );
 }
 
 /** Дополняет хранилище кук ответом: пустое значение снимает куку, как это делает браузер. */
@@ -171,7 +180,8 @@ async function loginSession(baseUrl: string): Promise<Jar> {
         mutationHeaders(pair, baseUrl)
     );
 
-    if (response.status !== 200) throw new Error(`логин тестового пользователя не удался: ${response.status}`);
+    if (response.status !== 200)
+        throw new Error(`логин тестового пользователя не удался: ${response.status}`);
 
     return applyCookies(pair, response);
 }
@@ -181,6 +191,36 @@ async function userExists(email: string): Promise<boolean> {
     const { data } = await createAdminClient().auth.admin.listUsers({ page: 1, perPage: 200 });
 
     return (data?.users ?? []).some((user) => user.email === email);
+}
+
+/** Пользователь с подтверждённой почтой: пароль прогона один, аккаунт живёт до afterAll. */
+async function createConfirmedUser(email: string): Promise<string> {
+    const created = await createAdminClient().auth.admin.createUser({
+        email,
+        password: PASSWORD,
+        email_confirm: true,
+    });
+
+    if (created.data.user === null)
+        throw new Error("админ-создание пользователя не вернуло запись");
+
+    return created.data.user.id;
+}
+
+/** Пара токенов прямо из GoTrue: ровно то, что приносит браузер после PKCE-танца с провайдером. */
+async function sessionPairFor(
+    email: string
+): Promise<{ accessToken: string; refreshToken: string }> {
+    const { data, error } = await createAnonClient().auth.signInWithPassword({
+        email,
+        password: PASSWORD,
+    });
+
+    if (error !== null || data.session === null) {
+        throw new Error("вход тестового пользователя не вернул сессию");
+    }
+
+    return { accessToken: data.session.access_token, refreshToken: data.session.refresh_token };
 }
 
 function errorBody(body: unknown): ErrorEnvelopeBody {
@@ -197,15 +237,8 @@ beforeAll(async () => {
     };
 
     const email = `${EMAIL_PREFIX}-user@example.test`;
-    const created = await createAdminClient().auth.admin.createUser({
-        email,
-        password: PASSWORD,
-        email_confirm: true,
-    });
 
-    if (created.data.user === null) throw new Error("админ-создание пользователя не вернуло запись");
-
-    userId = created.data.user.id;
+    userId = await createConfirmedUser(email);
     userEmail = email;
 }, 30_000);
 
@@ -630,6 +663,147 @@ describe("POST /api/auth/logout", () => {
             );
 
             expect(second.status).toBe(200);
+        });
+    }, 30_000);
+});
+
+describe("POST /api/auth/oauth/exchange", () => {
+    it("ставит куки сессии по паре токенов и ротирует CSRF", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const user = ctxUser();
+            const tokens = await sessionPairFor(user.email);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/oauth/exchange",
+                { access_token: tokens.accessToken, refresh_token: tokens.refreshToken },
+                mutationHeaders(pair, app.baseUrl)
+            );
+            const body = (await response.json()) as { user: { id: string; email: string } };
+            const access = setCookieHeader(response, COOKIE_NAMES.accessToken) ?? "";
+            const refresh = setCookieHeader(response, COOKIE_NAMES.refreshToken) ?? "";
+            const rotated = setCookieHeader(response, COOKIE_NAMES.csrfToken) ?? "";
+
+            expect(response.status).toBe(200);
+            expect(body.user).toEqual({ id: user.id, email: user.email });
+            expect(access).toContain("HttpOnly");
+            expect(access).toContain("SameSite=Lax");
+            expect(refresh).toContain("HttpOnly");
+            // ARCHITECT: refresh после OAuth — не сессионная кука, а 30-дневная: танец начинается на стороне
+            // провайдера, и сессионная кука терялась бы при закрытии вкладки.
+            expect(refresh).toContain("Max-Age=");
+            expect(cookieValue(rotated)).not.toBe(pair[COOKIE_NAMES.csrfToken]);
+        });
+    }, 30_000);
+
+    it("отвечает 401 на испорченный access-токен и не ставит куки", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const tokens = await sessionPairFor(ctxUser().email);
+            const broken = `${tokens.accessToken.slice(0, -10)}broken-token`;
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/oauth/exchange",
+                { access_token: broken, refresh_token: tokens.refreshToken },
+                mutationHeaders(pair, app.baseUrl)
+            );
+
+            expect(response.status).toBe(401);
+            expect(errorBody(await response.json()).error.code).toBe("UNAUTHORIZED");
+            expect(sessionCookieHeaders(response)).toEqual([]);
+        });
+    }, 30_000);
+
+    it("отвечает 401, когда refresh-токен принадлежит другому пользователю", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const foreignEmail = `${EMAIL_PREFIX}-foreign@example.test`;
+
+            await createConfirmedUser(foreignEmail);
+
+            const mine = await sessionPairFor(ctxUser().email);
+            const foreign = await sessionPairFor(foreignEmail);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/oauth/exchange",
+                { access_token: mine.accessToken, refresh_token: foreign.refreshToken },
+                mutationHeaders(pair, app.baseUrl)
+            );
+
+            expect(response.status).toBe(401);
+            expect(errorBody(await response.json()).error.code).toBe("UNAUTHORIZED");
+            expect(sessionCookieHeaders(response)).toEqual([]);
+        });
+    }, 30_000);
+
+    it("не принимает обмен без CSRF-пары", async () => {
+        await withAuthApp(async (app) => {
+            const tokens = await sessionPairFor(ctxUser().email);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/oauth/exchange",
+                { access_token: tokens.accessToken, refresh_token: tokens.refreshToken },
+                { origin: app.baseUrl }
+            );
+
+            expect(response.status).toBe(403);
+            expect(errorBody(await response.json()).error.code).toBe("FORBIDDEN");
+            expect(sessionCookieHeaders(response)).toEqual([]);
+        });
+    }, 30_000);
+
+    it("отклоняет лишнее поле в теле обмена", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const tokens = await sessionPairFor(ctxUser().email);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/oauth/exchange",
+                {
+                    access_token: tokens.accessToken,
+                    refresh_token: tokens.refreshToken,
+                    provider_token: "extra-field",
+                },
+                mutationHeaders(pair, app.baseUrl)
+            );
+
+            expect(response.status).toBe(400);
+            expect(errorBody(await response.json()).error.code).toBe("BAD_REQUEST");
+            expect(sessionCookieHeaders(response)).toEqual([]);
+        });
+    }, 30_000);
+
+    it("ротирует refresh: обмен выдаёт новую пару, и по ней сессия продолжается", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const tokens = await sessionPairFor(ctxUser().email);
+            const exchange = await postJson(
+                app.baseUrl,
+                "/api/auth/oauth/exchange",
+                { access_token: tokens.accessToken, refresh_token: tokens.refreshToken },
+                mutationHeaders(pair, app.baseUrl)
+            );
+            const afterExchange = applyCookies(pair, exchange);
+            const issuedRefresh = afterExchange[COOKIE_NAMES.refreshToken] ?? "";
+
+            expect(exchange.status).toBe(200);
+            // ARCHITECT: обмен выдаёт новую пару — refresh-кука не равна токену, пришедшему из танца.
+            expect(issuedRefresh).not.toBe("");
+            expect(issuedRefresh).not.toBe(tokens.refreshToken);
+
+            // ARCHITECT: продолжение сессии идёт по выданной куке; что происходит со старым refresh-токеном,
+            // решает GoTrue (локальный стек продолжает его принимать — см. отчёт), и это не наша логика.
+            const refreshed = await postJson(
+                app.baseUrl,
+                "/api/auth/refresh",
+                {},
+                mutationHeaders(afterExchange, app.baseUrl)
+            );
+
+            expect(refreshed.status).toBe(200);
+            expect(applyCookies(afterExchange, refreshed)[COOKIE_NAMES.refreshToken]).not.toBe(
+                issuedRefresh
+            );
         });
     }, 30_000);
 });

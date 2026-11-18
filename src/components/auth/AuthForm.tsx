@@ -11,8 +11,10 @@ import { GoogleAuthButton } from "@/components/onboarding/GoogleAuthButton";
 import { AuthModeTabs, type AuthMode } from "@/components/onboarding/AuthModeTabs";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/auth";
-import { USE_REAL_AUTH } from "@/api/auth";
+import { GOOGLE_READY, USE_REAL_AUTH } from "@/api/auth";
 import type { AuthUser } from "@/api/auth";
+import { toast } from "@/store/toast";
+import i18n from "@/lib/i18n";
 import { validateEmail, validateName, validatePassword } from "@/lib/validation";
 import type { ValidationKey } from "@/lib/validation";
 import { PRIMARY_BUTTON } from "@/lib/surfaces";
@@ -83,7 +85,13 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
     };
 
     const handleGoogle = async () => {
-        onAuthenticated(await signInWithGoogle());
+        try {
+            onAuthenticated(await signInWithGoogle());
+        } catch {
+            // ARCHITECT: при редиректе на провайдера промис не завершается, поэтому сюда попадает только отказ
+            // входа; текст берётся из существующего ключа словаря — новых строк задача не разрешает.
+            toast.error(i18n.t("errors.api.offline", { ns: "common" }));
+        }
     };
 
     return (
@@ -146,10 +154,10 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
                     )}
                 </Button>
 
-                {/* ARCHITECT: OAuth на сервере ещё не подключён, поэтому в реальном режиме кнопка не
-                    рендерится вместе с разделителем: заглушка с фиктивным профилем была бы ложью, а «или»
-                    над пустым местом — обманом вёрстки. Новых строк словаря для этого не нужно. */}
-                {!USE_REAL_AUTH && (
+                {/* ARCHITECT: кнопка показывается, только когда вход действительно возможен: в моке или в
+                    реальном режиме с настроенными публичными ключами Supabase. Заглушка с фиктивным профилем
+                    и «или» над пустым местом одинаково обманывают — новых строк словаря для этого не нужно. */}
+                {(!USE_REAL_AUTH || GOOGLE_READY) && (
                     <>
                         <div className="flex items-center gap-3 pt-1">
                             <div className="h-px flex-1 bg-white/10" />

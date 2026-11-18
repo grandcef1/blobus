@@ -6,6 +6,7 @@ import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
     fetchCurrentUser,
+    handleOAuthRedirect,
     signIn as signInRequest,
     signInWithGoogle as signInWithGoogleRequest,
     signOut as signOutRequest,
@@ -71,11 +72,13 @@ export const useAuthStore = create<AuthState>()(
     )
 );
 
-// ARCHITECT: в реальном режиме сессия восстанавливается по серверной куке при загрузке модуля: стор стартует
-// гостем, поэтому лендинг без сессии показывает CTA. Гидратация только поднимает пользователя и не гасит
-// сессию, которую успел установить вход, пока шёл запрос.
+// ARCHITECT: в реальном режиме при загрузке модуля сначала закрывается возможный OAuth-редирект (в адресе
+// мог остаться code), и только если пользователя нет — идёт обычная гидратация по серверной куке. Оба шага
+// только поднимают пользователя и не гасят сессию, которую успел установить вход, пока шёл запрос.
 if (USE_REAL_AUTH) {
-    void fetchCurrentUser().then((user) => {
-        if (user !== null) useAuthStore.setState({ user });
-    });
+    void handleOAuthRedirect()
+        .then((oauthUser) => (oauthUser === null ? fetchCurrentUser() : oauthUser))
+        .then((user) => {
+            if (user !== null) useAuthStore.setState({ user });
+        });
 }

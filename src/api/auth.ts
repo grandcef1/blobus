@@ -6,6 +6,9 @@ import { resolveRole, type UserRole } from "@/lib/admin";
 import i18n from "@/lib/i18n";
 import { ApiError, apiFetch } from "@/api/client";
 import { delayMock } from "@/api/mockDelay";
+// ARCHITECT: только тип: сам supabase-js грузится динамическим импортом в PKCE-ветке, чтобы не попадать в
+// начальный граф бандла (бюджет initial load — scripts/check-bundle.mjs).
+import type { SupabaseClient } from "@supabase/supabase-js";
 
 export interface AuthUser {
     id: string;
@@ -22,12 +25,30 @@ export interface AuthUser {
 
 // ARCHITECT: отдельный флаг от VITE_USE_MOCKS: остальные модули остаются на моках, а вход идёт в реальный
 // API. Дефолт — мок, поэтому сборка и тесты без .env ведут себя как раньше.
-// ARCHITECT: VITE_AUTH_MODE ещё не объявлен в src/vite-env.d.ts (файл вне задачи), а index-сигнатуры у
-// ImportMetaEnv нет: тип дочитывается одним явным сужением — без any и без чтения других ключей вслепую (§5.3).
-const AUTH_ENV = import.meta.env as ImportMetaEnv & { readonly VITE_AUTH_MODE?: string };
+// ARCHITECT: VITE_AUTH_MODE, VITE_SUPABASE_URL и VITE_SUPABASE_PUBLISHABLE_KEY ещё не объявлены в
+// src/vite-env.d.ts (файл вне задачи), а index-сигнатуры у ImportMetaEnv нет: типы дочитываются одним
+// явным сужением — без any и без чтения других ключей вслепую (§5.3).
+const AUTH_ENV = import.meta.env as ImportMetaEnv & {
+    readonly VITE_AUTH_MODE?: string;
+    readonly VITE_SUPABASE_URL?: string;
+    readonly VITE_SUPABASE_PUBLISHABLE_KEY?: string;
+};
 
 /** true — парольный вход идёт в реальный /api/auth; false — моки (по умолчанию). */
 export const USE_REAL_AUTH = AUTH_ENV.VITE_AUTH_MODE === "real";
+
+// ARCHITECT: для PKCE-танца нужны только публичные значения — URL проекта и publishable-ключ. Секретный ключ
+// Supabase сюда попадать не должен никогда (§16.3): в клиентском коде живёт ровно один ключ — публикуемый, и
+// проверять это на рантайме нечем (значения не логируются и в текст ошибок не попадают).
+const SUPABASE_URL = AUTH_ENV.VITE_SUPABASE_URL ?? "";
+const SUPABASE_PUBLISHABLE_KEY = AUTH_ENV.VITE_SUPABASE_PUBLISHABLE_KEY ?? "";
+
+/** true — Google-вход настроен: реальный режим и оба публичных значения заданы. */
+export const GOOGLE_READY = USE_REAL_AUTH && SUPABASE_URL !== "" && SUPABASE_PUBLISHABLE_KEY !== "";
+
+// ARCHITECT: адрес возврата после провайдера: страница входа приложения, а не корень — пользователь видит
+// знакомый экран, а гидратация стора уже поднимет сессию из серверной куки.
+const OAUTH_REDIRECT_PATH = "/login";
 
 const NETWORK_DELAY_MS = 400;
 
@@ -73,6 +94,28 @@ function toSessionAuthUser(user: SessionUser): AuthUser {
     };
 }
 
+// ARCHITECT: браузерный клиент нужен только для PKCE-танца, поэтому создаётся лениво и динамическим
+// импортом: supabase-js не попадает в начальный граф бандла. Сессию он не хранит и не подхватывает из
+// адреса — источник правды остаётся серверная HttpOnly-кука (§16.4).
+let browserClient: SupabaseClient | undefined;
+
+async function createBrowserClient(): Promise<SupabaseClient> {
+    if (browserClient === undefined) {
+        const { createClient } = await import("@supabase/supabase-js");
+
+        browserClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
+            auth: {
+                flowType: "pkce",
+                detectSessionInUrl: false,
+                persistSession: false,
+                autoRefreshToken: false,
+            },
+        });
+    }
+
+    return browserClient;
+}
+
 export async function signIn(email: string, password: string): Promise<AuthUser> {
     if (!USE_REAL_AUTH) {
         // ARCHITECT: пароль принимается по контракту формы, но в моке не участвует.
@@ -110,16 +153,76 @@ export async function signUp(name: string, email: string, password: string): Pro
 }
 
 export async function signInWithGoogle(): Promise<AuthUser> {
-    if (USE_REAL_AUTH) {
-        // ARCHITECT: OAuth на сервере не подключён, кнопка в реальном режиме не рендерится. Вызов всё
-        // равно отвечает ошибкой того же формата (ApiError), а не фиктивным профилем: текст технический и
-        // в интерфейс не попадает — новых ключей словаря задача не разрешает.
-        throw new ApiError(501, "HTTP 501");
+    if (!USE_REAL_AUTH) {
+        // ARCHITECT: фиктивный профиль: реальный ответ придёт от Google через бэкенд.
+        // ARCHITECT: OAuth-провайдер уже верифицировал почту — подтверждать нечего.
+        return resolveAfterDelay(createUser("Алекс", "alex@gmail.com", true));
     }
 
-    // ARCHITECT: фиктивный профиль: реальный ответ придёт от Google через бэкенд.
-    // ARCHITECT: OAuth-провайдер уже верифицировал почту — подтверждать нечего.
-    return resolveAfterDelay(createUser("Алекс", "alex@gmail.com", true));
+    // ARCHITECT: без публичных значений Supabase Google-вход не настроен, и кнопка в форме скрыта. Вызов
+    // отвечает ошибкой того же формата (ApiError), что и сетевые: текст технический, в интерфейс не
+    // попадает, новых ключей словаря не требуется.
+    if (!GOOGLE_READY) throw new ApiError(501, "HTTP 501");
+
+    const client = await createBrowserClient();
+    const { error } = await client.auth.signInWithOAuth({
+        provider: "google",
+        options: { redirectTo: `${window.location.origin}${OAUTH_REDIRECT_PATH}` },
+    });
+
+    if (error !== null) throw new ApiError(501, "HTTP 501");
+
+    // ARCHITECT: при успехе браузер уходит на провайдера, поэтому промис не завершается: форма не успевает
+    // показать ложную ошибку, пока идёт редирект, а кнопка остаётся в состоянии загрузки.
+    return new Promise<AuthUser>(() => undefined);
+}
+
+/**
+ * Завершает PKCE-танец Google: одноразовый code из адреса меняется на серверные HttpOnly-куки. null —
+ * редиректа не было или обмен не удался: приложение остаётся гостем и не падает.
+ */
+export async function handleOAuthRedirect(): Promise<AuthUser | null> {
+    if (!GOOGLE_READY) return null;
+
+    const code = new URLSearchParams(window.location.search).get("code");
+
+    if (code === null) return null;
+
+    try {
+        const client = await createBrowserClient();
+        const { data, error } = await client.auth.exchangeCodeForSession(code);
+
+        if (error !== null || data.session === null) return null;
+
+        const { user } = await apiFetch<{ user: SessionUser }>("/auth/oauth/exchange", {
+            method: "POST",
+            body: {
+                access_token: data.session.access_token,
+                refresh_token: data.session.refresh_token,
+            },
+        });
+
+        // ARCHITECT: серверные куки уже стоят, поэтому локальную сессию supabase-js не держим: второй
+        // источник правды в браузере не нужен, а scope local на сервере ничего не отзывает.
+        await client.auth.signOut({ scope: "local" });
+
+        return toSessionAuthUser(user);
+    } catch {
+        return null;
+    } finally {
+        // ARCHITECT: одноразовый code не остаётся в адресной строке и истории — ни при успехе, ни при
+        // ошибке: коды и токены в URL не живут дольше обмена (§16.11).
+        removeOAuthCodeFromUrl();
+    }
+}
+
+/** Убирает из адреса параметр code, сохраняя остальные параметры, путь и hash приложения. */
+function removeOAuthCodeFromUrl(): void {
+    const url = new URL(window.location.href);
+
+    url.searchParams.delete("code");
+
+    window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }
 
 /** Обновляет сессию по refresh-куке: сервер ротирует оба токена (server/routes/auth.ts). */

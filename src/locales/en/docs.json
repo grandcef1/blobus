@@ -89,7 +89,7 @@
     "chatTitle": "Dialogue and data",
     "chatBody": "The tutor does not reply yet: sent messages are only added to the history. Correction, quiz and new word cards exist only in two sample sessions, and the Overview figures, lessons and the Vocabulary list come from samples rather than your own practice.",
     "unfinishedTitle": "What does not work yet",
-    "unfinishedBody": "The voice input, file attachment, Listen, Pronounce and Review buttons are in the interface but do nothing; the sound and auto-correction switches are not saved, and the schedule from the wizard is not used anywhere. Mode names and tutor names, traits and backstories appear in Russian whatever the interface language.",
+    "unfinishedBody": "The voice input, file attachment, Listen, Pronounce and Review buttons are in the interface but do nothing (audio playback works only in the listening check); the sound and auto-correction switches are not saved, and the schedule from the wizard is not used anywhere. Mode names and tutor names, traits and backstories appear in Russian whatever the interface language.",
     "serverTitle": "What the server side will bring",
     "serverBody": "Next on the list are a server side, payments and voice mode; the data that now comes from samples should move to the server. There are no dates, and until then behaviour in the browser may differ from what is described here."
   }

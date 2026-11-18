@@ -13,7 +13,7 @@ export type PlacementTrack = "grammar" | "general";
 
 const LEVEL_ORDER: readonly EnglishLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
 
-/** Полосы EF SET на шкале 0-100. Тест стартует с A1, поэтому pre-A1 (0-20) не используется. */
+/** Полосы EF SET на шкале 0-100. Тест стартует с A2, поэтому pre-A1 (0-20) не используется. */
 const LEVEL_BANDS: Record<EnglishLevel, readonly [number, number]> = {
     A1: [21, 30],
     A2: [31, 40],

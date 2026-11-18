@@ -89,7 +89,7 @@
     "chatTitle": "Diálogo y datos",
     "chatBody": "El tutor todavía no responde: los mensajes enviados solo se añaden al historial. Las tarjetas de corrección, cuestionario y palabra nueva existen solo en dos sesiones de ejemplo, y las cifras de Resumen, las lecciones y la lista de Vocabulario salen de ejemplos, no de tu práctica.",
     "unfinishedTitle": "Qué todavía no funciona",
-    "unfinishedBody": "Los botones de entrada de voz, adjuntar archivo, Escuchar, Pronunciar y Repasar están en la interfaz pero no hacen nada; los interruptores de sonido y autocorrección no se guardan, y el horario del asistente no se usa en ningún sitio. Los nombres de los modos y los nombres, rasgos e historias de los tutores aparecen en ruso sea cual sea el idioma de la interfaz.",
+    "unfinishedBody": "Los botones de entrada de voz, adjuntar archivo, Escuchar, Pronunciar y Repasar están en la interfaz pero no hacen nada (la reproducción de audio solo funciona en la comprobación de comprensión auditiva); los interruptores de sonido y autocorrección no se guardan, y el horario del asistente no se usa en ningún sitio. Los nombres de los modos y los nombres, rasgos e historias de los tutores aparecen en ruso sea cual sea el idioma de la interfaz.",
     "serverTitle": "Qué traerá la parte de servidor",
     "serverBody": "Lo siguiente en la lista son una parte de servidor, los pagos y el modo de voz; los datos que ahora salen de ejemplos deberían pasar al servidor. No hay fechas, y hasta entonces el comportamiento en el navegador puede diferir de lo descrito aquí."
   }

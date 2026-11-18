@@ -39,6 +39,7 @@
   },
   "usage": {
     "title": "Uso",
+    "lessons": "Lecciones",
     "messages": "Mensajes con el tutor",
     "counter": "{{used}} de {{limit}}",
     "unlimited": "Sin límites"

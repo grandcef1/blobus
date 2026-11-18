@@ -39,6 +39,7 @@
   },
   "usage": {
     "title": "Использование",
+    "lessons": "Уроки",
     "messages": "Сообщения с репетитором",
     "counter": "{{used}} из {{limit}}",
     "unlimited": "Без ограничений"

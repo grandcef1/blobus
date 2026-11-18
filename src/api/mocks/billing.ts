@@ -19,14 +19,20 @@ const PERIOD_DAYS = 30;
 const MOCK_MIN_DELAY_MS = 400;
 const MOCK_MAX_DELAY_MS = 900;
 
-// ARCHITECT: лимит сообщений берётся из тарифа: seed мок-базы не должен расходиться с прайсом.
+// ARCHITECT: сид дневных счётчиков: 12 из 20 сообщений, 0 из 1 урока. Для теста плашки исчерпания в Ф3.4.
 const SEED_SUBSCRIPTION: Subscription = {
     plan: "free",
     status: "free",
     periodEndsAt: null,
     trialEndsAt: null,
     pendingPlan: null,
-    usage: { messagesUsed: 12, messagesLimit: PLANS.free.messagesLimit },
+    usage: {
+        messagesUsed: 12,
+        messagesLimit: PLANS.free.messagesLimit,
+        lessonsUsed: 0,
+        lessonsLimit: PLANS.free.lessonsLimit,
+        period: "day",
+    },
 };
 
 interface BillingFlags {

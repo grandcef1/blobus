@@ -9,9 +9,13 @@ export type { PlanId };
 export type SubscriptionStatus = "free" | "trialing" | "active" | "past_due" | "scheduled_cancel";
 
 export interface SubscriptionUsage {
+    /** Счётчики за день, сбрасываются по UTC-дате. lessonsLimit и messagesLimit всегда числа,
+     * безлимитных тарифов нет. */
     messagesUsed: number;
-    /** null — безлимит: шкала не рисуется, вместо неё текст. */
-    messagesLimit: number | null;
+    messagesLimit: number;
+    lessonsUsed: number;
+    lessonsLimit: number;
+    period: "day";
 }
 
 export interface Subscription {

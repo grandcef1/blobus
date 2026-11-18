@@ -12,7 +12,7 @@ export type PricingFeatureKey =
     | "pricing.features.modes"
     | "pricing.features.memory"
     | "pricing.features.voice"
-    | "pricing.features.unlimited";
+    | "pricing.features.lessonsMore";
 
 export interface Feature {
     /** Ключ возможности в lib/plans: по нему таблица узнаёт, входит ли она в тариф. */
@@ -43,7 +43,7 @@ export const FEATURES: readonly Feature[] = [
     { key: "modes", textKey: "pricing.features.modes" },
     { key: "memory", textKey: "pricing.features.memory" },
     { key: "voice", textKey: "pricing.features.voice" },
-    { key: "unlimited", textKey: "pricing.features.unlimited" },
+    { key: "lessonsMore", textKey: "pricing.features.lessonsMore" },
 ];
 
 // ARCHITECT: триал Pro — один раз на аккаунт. Защита от абуза (повторные регистрации) делается

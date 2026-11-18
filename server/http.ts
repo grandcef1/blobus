@@ -3,7 +3,13 @@
 import type { Response } from "express";
 
 export type ErrorCode =
-    "NOT_FOUND" | "BAD_REQUEST" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "FORBIDDEN" | "INTERNAL";
+    | "NOT_FOUND"
+    | "BAD_REQUEST"
+    | "UNAUTHORIZED"
+    | "PAYLOAD_TOO_LARGE"
+    | "RATE_LIMITED"
+    | "FORBIDDEN"
+    | "INTERNAL";
 
 export interface ErrorEnvelope {
     readonly error: {
@@ -18,6 +24,9 @@ export interface ErrorEnvelope {
 const ERROR_MESSAGES: Record<ErrorCode, string> = {
     NOT_FOUND: "Resource not found",
     BAD_REQUEST: "Request could not be processed",
+    // ARCHITECT: текст общий для неверных учётных данных и отсутствующей сессии: по разнице сообщений
+    // аккаунты не энумерируются (§16.4).
+    UNAUTHORIZED: "Unauthorized",
     PAYLOAD_TOO_LARGE: "Request payload is too large",
     RATE_LIMITED: "Too many requests",
     FORBIDDEN: "Request forbidden",

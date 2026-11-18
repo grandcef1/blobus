@@ -21,6 +21,8 @@ const env = readEnv();
 configureCookies({ secure: env.NODE_ENV === "production" });
 
 // ARCHITECT: одна строка о старте: уровень, сообщение и порт; значения переменных окружения не логируются.
-buildApp().listen(env.PORT, () => {
+// ARCHITECT: env передаётся в приложение явно — оно само process.env не читает; без ключей Supabase
+// приложение поднимается без auth-маршрутов, поэтому health остаётся рабочим.
+buildApp(undefined, env).listen(env.PORT, () => {
     console.log(JSON.stringify({ level: "info", msg: "api listening", port: env.PORT }));
 });

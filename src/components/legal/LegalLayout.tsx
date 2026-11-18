@@ -11,8 +11,11 @@ import { useTranslation } from "react-i18next";
 import { ContentLayout } from "./ContentLayout";
 import { LEGAL_PAGES, OPERATOR_CONTACT_EMAIL, legalEffectiveDate } from "@/lib/legal";
 import { breadcrumbForRoute } from "@/lib/structured-data";
+import { CONTENT_INLINE_LINK, CONTENT_PILL } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
-import { LEGAL_INLINE_LINK, LEGAL_PILL, LEGAL_PILL_CURRENT } from "./legal.styles";
+
+// ARCHITECT: вариант текущей пилюли нужен только перекрёстной навигации правовых документов, поэтому живёт здесь, а не в общем слое; значение перенесено из legal.styles без изменений.
+const CURRENT_PILL = "border-[#f0f0f5]/60 bg-[#f0f0f5]/10";
 
 interface LegalLayoutProps {
     readonly title: string;
@@ -35,7 +38,7 @@ export function LegalLayout({ title, intro, children }: LegalLayoutProps) {
             </p>
             <p className="mt-1 text-sm text-[#f0f0f5]/40">
                 {t("legal.layout.contactLabel")}{" "}
-                <a href={`mailto:${OPERATOR_CONTACT_EMAIL}`} className={LEGAL_INLINE_LINK}>
+                <a href={`mailto:${OPERATOR_CONTACT_EMAIL}`} className={CONTENT_INLINE_LINK}>
                     {OPERATOR_CONTACT_EMAIL}
                 </a>
             </p>
@@ -53,7 +56,7 @@ export function LegalLayout({ title, intro, children }: LegalLayoutProps) {
                         key={page.id}
                         to={page.path}
                         aria-current={pathname === page.path ? "page" : undefined}
-                        className={cn(LEGAL_PILL, pathname === page.path && LEGAL_PILL_CURRENT)}
+                        className={cn(CONTENT_PILL, pathname === page.path && CURRENT_PILL)}
                     >
                         {t(page.labelKey)}
                     </Link>

@@ -7,7 +7,7 @@ import { useTranslation } from "react-i18next";
 import { LegalLayout } from "@/components/legal/LegalLayout";
 import { LegalSection } from "@/components/legal/LegalSection";
 import { CookieStorageTable } from "@/components/legal/CookieStorageTable";
-import { LEGAL_PILL } from "@/components/legal/legal.styles";
+import { CONTENT_PILL } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 import { toast } from "@/store/toast";
 import { useConsentStore } from "@/store/consent";
@@ -24,7 +24,7 @@ function ConsentResetButton() {
     };
 
     return (
-        <button type="button" onClick={handleReset} className={cn(LEGAL_PILL, "w-fit")}>
+        <button type="button" onClick={handleReset} className={cn(CONTENT_PILL, "w-fit")}>
             {t("legal.cookies.reset.button")}
         </button>
     );

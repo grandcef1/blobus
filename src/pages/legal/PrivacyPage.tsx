@@ -9,8 +9,8 @@ import { useTranslation } from "react-i18next";
 import { LegalLayout } from "@/components/legal/LegalLayout";
 import { LegalSection } from "@/components/legal/LegalSection";
 import { ProcessorsTable } from "@/components/legal/ProcessorsTable";
-import { LEGAL_INLINE_LINK } from "@/components/legal/legal.styles";
 import { OPERATOR_CONTACT_EMAIL } from "@/lib/legal";
+import { CONTENT_INLINE_LINK } from "@/lib/surfaces";
 
 // ARCHITECT: массив объявлен as const, поэтому id остаются литералами и ключ t() проверяется типами —
 // опечатка в имени раздела становится ошибкой сборки.
@@ -57,7 +57,7 @@ export function PrivacyPage() {
                 title={t("legal.privacy.sections.cookies.title")}
                 body={t("legal.privacy.sections.cookies.body", vars)}
             >
-                <Link to="/cookies" className={LEGAL_INLINE_LINK}>
+                <Link to="/cookies" className={CONTENT_INLINE_LINK}>
                     {t("legal.layout.nav.cookies")}
                 </Link>
             </LegalSection>

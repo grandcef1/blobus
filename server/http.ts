@@ -2,7 +2,8 @@
 // коды мапит фронтенд-адаптер в i18n, а message — безопасный общий текст, не для прямого показа.
 import type { Response } from "express";
 
-export type ErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "INTERNAL";
+export type ErrorCode =
+    "NOT_FOUND" | "BAD_REQUEST" | "PAYLOAD_TOO_LARGE" | "RATE_LIMITED" | "FORBIDDEN" | "INTERNAL";
 
 export interface ErrorEnvelope {
     readonly error: {
@@ -19,6 +20,7 @@ const ERROR_MESSAGES: Record<ErrorCode, string> = {
     BAD_REQUEST: "Request could not be processed",
     PAYLOAD_TOO_LARGE: "Request payload is too large",
     RATE_LIMITED: "Too many requests",
+    FORBIDDEN: "Request forbidden",
     INTERNAL: "Internal server error",
 };
 

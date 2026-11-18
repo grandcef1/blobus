@@ -365,4 +365,131 @@ Answer yes or no for every item before presenting code. If any answer is no, fix
 - Security: no exposed secrets, validated input.
 - The design is minimal and consistent, with none of the signs from section 12.
 
+
+16. BACKEND, SECURITY AND AI OPERATIONS
+
+This section is mandatory for backend, auth, payments, AI, uploads, data access and deployment work. Security requirements are release blockers. If a task conflicts with these rules, STOP AND REPORT the conflict instead of weakening the rule. A helper or middleware is not proof of protection unless it is applied at the real boundary and covered by negative tests.
+
+16.1 Scope and priority
+- Security takes priority over correctness, performance and design.
+- Frontend validation is UX only; backend validation and authorization are authoritative.
+- Mock auth and localStorage are never production security controls.
+- Do not claim a control exists without enforcement and tests.
+
+16.2 Trust boundaries and threat model
+- Browser input, webhooks, uploads, database rows, retrieved documents and model output are untrusted.
+- Every backend feature starts with assets, actors, entry points, trust boundaries, abuse cases and mitigations.
+- Deny by default; allowlist roles, fields, origins, tools and operations.
+- Never trust client-supplied userId, role, plan, price, quota or entitlement data.
+
+16.3 Secrets and configuration
+- OpenAI, Supabase service-role, database, JWT and payment secrets live only in server runtime.
+- Never put secrets in VITE_* variables, frontend bundles, git, logs, prompts, analytics, error responses or URLs.
+- Keep .env ignored; provide only placeholder examples.
+- Validate required env with Zod at startup and fail closed.
+- Use least-privilege credentials, separate environments, and a rotation/leak-response procedure.
+
+16.4 Authentication and sessions
+- Verify the actual credential on every request: signature, issuer, audience, expiry and session state.
+- If passwords are managed directly, use Argon2id with reviewed parameters; if Supabase Auth manages them, do not build a parallel password system.
+- Use generic auth errors and prevent account enumeration.
+- Rate-limit login, signup, reset, verification and OTP endpoints.
+- Use cryptographically random, single-use, short-lived reset/verification tokens; invalidate sessions after credential changes.
+- Cookie auth requires Secure, HttpOnly, deliberate SameSite, and CSRF/origin checks.
+- Verify OAuth state, nonce and provider tokens where applicable.
+- Protect privileged routes on the server, not only through frontend guards.
+
+16.5 Authorization, ownership and Supabase RLS
+- Derive identity, role, plan and entitlements server-side.
+- Check ownership on every object access; prevent IDOR/BOLA and cross-tenant access.
+- Enable RLS on every exposed table; write explicit select/insert/update/delete policies.
+- Test policies with multiple users and anonymous access.
+- Keep service-role operations in trusted backend code and still enforce application authorization.
+- Review SECURITY DEFINER functions, search_path, views, RPC and storage policies.
+- Bound queries and pagination; protect audit and billing tables from client writes.
+
+16.6 Validation and injection
+- Use strict Zod schemas at every backend boundary; reject unknown fields.
+- Bound string lengths, array sizes, pagination, file sizes and numeric ranges.
+- Use parameterized queries; never concatenate untrusted input into SQL, shell commands or file paths.
+- No eval or dynamic execution of user/model content.
+- Use contextual output encoding and a redirect allowlist.
+- Treat model-generated SQL, shell, HTML or code as untrusted data.
+
+16.7 API transport and abuse controls
+- HTTPS/HSTS in production; explicit CORS allowlist, never wildcard with credentials.
+- Apply body/header/multipart limits before expensive parsing.
+- Rate-limit by IP and identity; stricter limits for auth and AI endpoints.
+- Use Helmet/CSP tuned to the actual app; disable unnecessary framing and MIME sniffing.
+- Use idempotency keys for retry-sensitive mutations.
+- Return a safe error envelope; never expose stack traces, SQL details or provider internals.
+- Use correlation IDs; never log secrets.
+
+16.8 OpenAI and AI tool safety
+- System policy cannot be overridden by user or retrieved content.
+- Defend against prompt injection in code, not only in prompts.
+- Validate structured output with strict schemas.
+- Allowlist tools, models, arguments and recipients.
+- State-changing tools require explicit user intent and server-side authorization.
+- Never treat model output as executable code, SQL, shell or raw HTML.
+- Minimize PII sent to providers; redact logs.
+- Enforce server-side token, request, timeout, retry, concurrency and cost budgets.
+- Stream safely with cancellation and backpressure; map provider errors to safe client errors.
+- Document conversation retention and deletion.
+
+16.9 Payments, quotas and webhooks
+- Backend owns prices, plans, currencies, quotas and entitlements.
+- Never trust client amount, premium flag or usage counter.
+- Verify webhook signatures on the raw body; enforce timestamp tolerance and event deduplication.
+- Make webhook processing idempotent and transactional; handle retries and out-of-order events.
+- Frontend success redirects are not payment proof.
+- Audit subscription transitions and handle cancellations, refunds and chargebacks.
+
+16.10 Files, uploads and SSRF
+- Validate MIME type, extension, magic bytes, size and dimensions where relevant.
+- Generate server-side filenames and storage keys; never trust original paths.
+- Use private storage and short-lived signed URLs with authorization checks.
+- Strip metadata where appropriate; quarantine risky content; do not serve untrusted SVG inline as trusted content.
+- Outbound fetches use scheme/host/port allowlists and block loopback, private, link-local, multicast and cloud-metadata addresses.
+- Revalidate redirects and DNS; set timeouts, redirect limits and response-size limits.
+
+16.11 Logging, privacy and retention
+- Use structured logs with redaction of tokens, cookies, passwords, keys, prompts, completions, payment data and PII.
+- Never log raw request bodies by default.
+- Production errors go to controlled logging; users never see stack traces.
+- Alert on auth spikes, authorization failures, rate-limit abuse, provider cost spikes and webhook failures.
+- Minimize collection; document purpose, retention, deletion and export.
+- Keep backups encrypted and test restoration.
+
+16.12 Dependencies, deployment and production hardening
+- Review and pin dependencies; no unnecessary packages.
+- CI runs audit, typecheck, lint, tests and build.
+- Use least-privilege CI tokens; never print environment variables.
+- Disable mock auth, debug panels, test routes and verbose errors in production.
+- Protect source maps and debug endpoints.
+- Use graceful shutdown and non-sensitive health checks.
+
+16.13 Backend architecture and TypeScript
+- Keep routes thin; schemas validate, policies/guards authorize, services implement business rules, repositories persist.
+- Use explicit DTOs and response mappers; never return whole database entities.
+- Strict TypeScript, no any; use unknown plus parsing at boundaries.
+- Isolate provider adapters; do not leak provider types into UI.
+- Keep the frontend API layer in src/api; replace mocks through adapters.
+- Do not introduce new infrastructure without demonstrated need.
+
+16.14 Security tests and release gates
+- Add negative tests for authn, authz, IDOR/BOLA, cross-tenant access, invalid/unknown/oversized input, rate limits, replay/idempotency, webhook signatures, prompt injection, tool authorization, quotas and secret redaction.
+- Test RLS with separate users.
+- Expired, revoked, disabled and wrong-role credentials must fail.
+- Client-supplied role/price/userId/quota must be ignored or rejected.
+- Review logs for leakage.
+- Security failures block release; do not weaken tests or rules to pass a gate.
+
+16.15 Agent workflow
+- Architecture and threat model first, then atomic task, implementation, tests and review.
+- Report deviations and unresolved risks honestly.
+- No browser or interactive commands in unattended runs.
+- Idempotent changes and local commits for rollback.
+- Reports and owner communication in Russian.
+
 END OF RULES

@@ -12,8 +12,6 @@
       }
     },
     "processors": {
-      "title": "Quién más trata los datos",
-      "intro": "Blobus funciona sobre servicios externos. Aquí está quién recibe datos, para qué y desde cuándo. Ninguno de ellos recibe tu contraseña.",
       "status": {
         "now": "Ya en uso",
         "later": "Al lanzar la función"
@@ -42,7 +40,6 @@
       }
     },
     "privacy": {
-      "metaTitle": "Política de privacidad",
       "title": "Política de privacidad",
       "intro": "Aquí explicamos qué datos recoge Blobus, para qué, con quién los comparte y cómo puedes controlarlo. Lo más breve y sin jerga legal que permite un documento así.",
       "sections": {
@@ -105,7 +102,6 @@
       }
     },
     "terms": {
-      "metaTitle": "Términos de uso",
       "title": "Términos de uso",
       "intro": "Las reglas con las que funciona Blobus: qué es el servicio, qué puedes hacer y qué no, y qué ocurre con tu contenido y tu cuenta.",
       "sections": {
@@ -156,7 +152,6 @@
       }
     },
     "cookies": {
-      "metaTitle": "Política de cookies y almacenamiento local",
       "title": "Política de cookies y almacenamiento local",
       "intro": "En resumen: sin los registros funcionales el servicio no funciona, y la analítica solo se activa con tu consentimiento.",
       "sections": {

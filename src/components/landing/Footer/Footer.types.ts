@@ -25,21 +25,15 @@
     | "columns.product.features"
     | "columns.product.howItWorks"
     | "columns.product.pricing"
-    | "columns.product.faq"
     | "columns.resources.docs"
-    | "columns.resources.api"
-    | "columns.resources.changelog"
-    | "columns.resources.status"
     | "columns.company.contacts"
-    | "columns.company.blog"
     | "columns.company.about"
     | "columns.company.whatsNew"
     | "columns.resources.reportBug"
     | "columns.legal.privacy"
     | "columns.legal.terms"
     | "columns.legal.cookies"
-    | "columns.legal.help"
-    | "columns.legal.support";
+    | "columns.legal.help";
 
     export interface FooterColumnLinkItem {
     readonly labelKey: FooterColumnLinkKey;

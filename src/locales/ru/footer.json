@@ -4,21 +4,16 @@
       "title": "Продукт",
       "features": "Возможности",
       "howItWorks": "Как это работает",
-      "pricing": "Тарифы",
-      "faq": "FAQ"
+      "pricing": "Тарифы"
     },
     "resources": {
       "title": "Ресурсы",
       "docs": "Документация",
-      "api": "API",
-      "changelog": "Обновления",
-      "status": "Статус",
       "reportBug": "Сообщить об ошибке"
     },
     "company": {
       "title": "Компания",
       "contacts": "Контакты",
-      "blog": "Блог",
       "about": "О проекте",
       "whatsNew": "Что нового"
     },
@@ -27,8 +22,7 @@
       "privacy": "Конфиденциальность",
       "terms": "Условия использования",
       "cookies": "Файлы cookie",
-      "help": "Центр помощи",
-      "support": "Поддержка"
+      "help": "Центр помощи"
     }
   },
   "social": {

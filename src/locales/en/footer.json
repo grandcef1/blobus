@@ -4,21 +4,16 @@
       "title": "Product",
       "features": "Features",
       "howItWorks": "How it works",
-      "pricing": "Pricing",
-      "faq": "FAQ"
+      "pricing": "Pricing"
     },
     "resources": {
       "title": "Resources",
       "docs": "Documentation",
-      "api": "API",
-      "changelog": "Changelog",
-      "status": "Status",
       "reportBug": "Report a bug"
     },
     "company": {
       "title": "Company",
       "contacts": "Contacts",
-      "blog": "Blog",
       "about": "About the project",
       "whatsNew": "What's new"
     },
@@ -27,8 +22,7 @@
       "privacy": "Privacy",
       "terms": "Terms of use",
       "cookies": "Cookies",
-      "help": "Help centre",
-      "support": "Support"
+      "help": "Help centre"
     }
   },
   "social": {

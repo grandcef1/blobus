@@ -4,21 +4,16 @@
       "title": "Producto",
       "features": "Funciones",
       "howItWorks": "Cómo funciona",
-      "pricing": "Precios",
-      "faq": "FAQ"
+      "pricing": "Precios"
     },
     "resources": {
       "title": "Recursos",
       "docs": "Documentación",
-      "api": "API",
-      "changelog": "Novedades",
-      "status": "Estado",
       "reportBug": "Informar de un error"
     },
     "company": {
       "title": "Empresa",
       "contacts": "Contacto",
-      "blog": "Blog",
       "about": "Sobre el proyecto",
       "whatsNew": "Novedades"
     },
@@ -27,8 +22,7 @@
       "privacy": "Privacidad",
       "terms": "Términos de uso",
       "cookies": "Cookies",
-      "help": "Centro de ayuda",
-      "support": "Soporte"
+      "help": "Centro de ayuda"
     }
   },
   "social": {

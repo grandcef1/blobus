@@ -12,8 +12,6 @@
       }
     },
     "processors": {
-      "title": "Who else processes your data",
-      "intro": "Blobus runs on third-party services. Below is who receives data, what for and from when. None of them ever receives your password.",
       "status": {
         "now": "Already in use",
         "later": "Once the feature launches"
@@ -42,7 +40,6 @@
       }
     },
     "privacy": {
-      "metaTitle": "Privacy Policy",
       "title": "Privacy Policy",
       "intro": "This page explains what data Blobus collects, why, who it is shared with, and how you can control it. As brief and as free of legalese as such a document can be.",
       "sections": {
@@ -105,7 +102,6 @@
       }
     },
     "terms": {
-      "metaTitle": "Terms of Use",
       "title": "Terms of Use",
       "intro": "The rules Blobus runs on: what the service is, what you may and may not do, and what happens to your content and your account.",
       "sections": {
@@ -156,7 +152,6 @@
       }
     },
     "cookies": {
-      "metaTitle": "Cookie and Local Storage Policy",
       "title": "Cookie and Local Storage Policy",
       "intro": "In short: without functional records the service cannot work, and analytics is switched on only with your consent.",
       "sections": {

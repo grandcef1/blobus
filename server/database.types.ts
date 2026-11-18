@@ -23,7 +23,21 @@ export type Database = {
           }
         },"public": {
           Tables: {
-            "lessons": {
+            "entitlements": {
+                  Row: {
+                    "created_at": string,"daily_lessons_limit": number,"daily_messages_limit": number,"id": string,"plan": string,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"daily_lessons_limit"?: number,"daily_messages_limit"?: number,"id"?: string,"plan"?: string,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"daily_lessons_limit"?: number,"daily_messages_limit"?: number,"id"?: string,"plan"?: string,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
+                },"lessons": {
                   Row: {
                     "daily_minutes": number,"id": string,"plan": Json | null,"session_id": string,"started_at": string,"status": string,"updated_at": string
                   }
@@ -139,6 +153,20 @@ isOneToOne: false
                   Relationships: [
                     
                   ]
+                },"usage_counters": {
+                  Row: {
+                    "created_at": string,"date": string,"id": string,"lessons_used": number,"messages_used": number,"updated_at": string,"user_id": string
+                  }
+                  ComputedFields: never
+                  Insert: {
+                    "created_at"?: string,"date"?: string,"id"?: string,"lessons_used"?: number,"messages_used"?: number,"updated_at"?: string,"user_id": string
+                  }
+                  Update: {
+                    "created_at"?: string,"date"?: string,"id"?: string,"lessons_used"?: number,"messages_used"?: number,"updated_at"?: string,"user_id"?: string
+                  }
+                  Relationships: [
+                    
+                  ]
                 },"vocabulary": {
                   Row: {
                     "context": string | null,"created_at": string,"id": string,"source_lesson_id": string | null,"term": string,"translation": string | null,"updated_at": string,"user_id": string
@@ -165,7 +193,34 @@ isOneToOne: false
             [_ in never]: never
           }
           Functions: {
-            [_ in never]: never
+            "get_or_create_entitlements":
+{ Args: { "p_user_id": string }; Returns: {
+              "created_at": string,
+"daily_lessons_limit": number,
+"daily_messages_limit": number,
+"id": string,
+"plan": string,
+"updated_at": string,
+"user_id": string
+            }
+                          SetofOptions: {
+        from: "*"
+        to: "entitlements"
+        isOneToOne: true
+        isSetofReturn: false
+      } },
+"release_lesson":
+{ Args: { "p_user_id": string }; Returns: Json
+                           },
+"release_message":
+{ Args: { "p_user_id": string }; Returns: Json
+                           },
+"reserve_lesson":
+{ Args: { "p_user_id": string }; Returns: Json
+                           },
+"reserve_message":
+{ Args: { "p_user_id": string }; Returns: Json
+                           }
           }
           Enums: {
             [_ in never]: never

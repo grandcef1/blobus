@@ -79,18 +79,18 @@ export function HeroSection() {
                     className="grid grid-cols-1 items-center gap-8 md:grid-cols-2 md:gap-8 lg:gap-12 xl:grid-cols-[1fr_1.25fr] xl:gap-4"
                 >
                     {/* ARCHITECT: order-2 на mobile — текст под блобатаром; с md текст слева. */}
-                    <div className="order-2 flex flex-col items-start justify-center gap-7 md:order-1 xl:max-w-[36rem]">
+                    <div className="order-2 flex flex-col items-center justify-center gap-7 text-center md:order-1 md:items-start md:text-left xl:max-w-[36rem]">
                         <HeroBadge label={t("hero.badge")} />
                         <motion.div variants={titleVariants}>
                             <TypewriterHeading />
                         </motion.div>
                         {/* ARCHITECT: text-balance держит подводку двумя строками без обрывков. */}
-                        {/* ARCHITECT: на мобильном подзаголовок выровнен по ширине с переносами: justify на узкой
-                            мере без hyphens даёт крупные пробелы между словами; переносы работают, потому что lang
-                            документа выставлен стором языка (store/language.ts). */}
+                        {/* ARCHITECT: центрированная композиция на мобильном выбрана владельцем после сравнения с левым
+                            выравниванием и выравниванием по ширине: левый вариант делал hero единственным выровненным
+                            иначе блоком, а по ширине на узкой мере давало крупные пробелы. Кегль остался увеличенным. */}
                         <motion.p
                             variants={subtitleVariants}
-                            className="w-full hyphens-auto text-justify text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:max-w-xl md:hyphens-manual md:text-left md:text-lg"
+                            className="mx-auto max-w-xl text-balance text-base leading-relaxed text-[#f0f0f5]/60 md:mx-0 md:text-lg"
                         >
                             {t("hero.subtitle")}
                         </motion.p>
@@ -122,7 +122,7 @@ export function HeroSection() {
 
                         <motion.div
                             variants={benefitsVariants}
-                            className="flex flex-wrap items-center justify-start gap-x-4 gap-y-2 pt-2"
+                            className="flex flex-wrap items-center justify-center gap-x-4 gap-y-2 pt-2 md:justify-start"
                         >
                             {BENEFITS.map((benefitKey) => (
                                 <div

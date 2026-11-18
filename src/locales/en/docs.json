@@ -78,7 +78,7 @@
     "settingsTitle": "Settings",
     "settingsBody": "Three options: sound effects, interface language (Russian, English, Spanish) and auto-correction. The language changes at once and is remembered in your browser.",
     "subscriptionTitle": "Subscription and plans",
-    "subscriptionBody": "Free includes 50 messages with the tutor a month; Pro is unlimited for $3 a month. Switch to Pro starts a 7-day trial; as the status changes, the page offers Pay now, Cancel (access lasts until the period ends), Resume and Switch to Free, and also shows a usage meter and payments with receipts.",
+    "subscriptionBody": "Free includes 1 new lesson and 20 messages with the tutor a day; Pro gives you 10 lessons and 300 messages a day for $3 a month. Switch to Pro starts a 7-day trial; as the status changes, the page offers Pay now, Cancel (access lasts until the period ends), Resume and Switch to Free, and also shows two daily limit meters (lessons and messages) and payments with receipts.",
     "helpLink": "More in the Help centre"
   },
   "limits": {

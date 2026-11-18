@@ -78,7 +78,7 @@
     "settingsTitle": "Ajustes",
     "settingsBody": "Tres opciones: efectos de sonido, idioma de la interfaz (ruso, inglés, español) y autocorrección. El idioma cambia al instante y se recuerda en tu navegador.",
     "subscriptionTitle": "Suscripción y planes",
-    "subscriptionBody": "Free incluye 50 mensajes al mes con el tutor; Pro no tiene límite y cuesta $3 al mes. Cambiar a Pro inicia una prueba de 7 días; según cambie el estado, la página ofrece Pagar ahora, Cancelar (el acceso dura hasta el final del periodo), Reanudar y Cambiar a Free, y muestra además un contador de uso y los pagos con sus recibos.",
+    "subscriptionBody": "Free incluye 1 clase nueva y 20 mensajes con el tutor al día; Pro incluye 10 clases y 300 mensajes al día por $3 al mes. Cambiar a Pro inicia una prueba de 7 días; según cambie el estado, la página ofrece Pagar ahora, Cancelar (el acceso dura hasta el final del periodo), Reanudar y Cambiar a Free, y muestra además dos indicadores de límites diarios (clases y mensajes) y los pagos con sus recibos.",
     "helpLink": "Más en el Centro de ayuda"
   },
   "limits": {

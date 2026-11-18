@@ -11,6 +11,7 @@ node_modules
 dist
 dist-ssr
 dist-server/
+.vitest/
 *.local
 
 # Инкрементальный кэш tsc: локальный артефакт сборки, в репозиторий не попадает.

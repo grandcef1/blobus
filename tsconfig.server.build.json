@@ -10,5 +10,6 @@
     "tsBuildInfoFile": "./node_modules/.tmp/tsconfig.server.build.tsbuildinfo"
   },
   "include": ["server/**/*.ts"],
-  "exclude": ["server/**/*.test.ts"]
+  // ARCHITECT: тестовые хелперы по соглашению test-*.ts в прод-сборку не входят; сгенерированный types-файл может дать пустой .js в dist-server — это не рантайм-код, не блокер.
+  "exclude": ["server/**/*.test.ts", "server/test-*.ts"]
 }

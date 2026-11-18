@@ -1,9 +1,13 @@
 // ARCHITECT: общий хелпер серверных тестов: единственный источник локальных ключей — `supabase status`,
 // в коде ключи не хардкодятся, потому что значения меняются вместе со стеком.
 // ARCHITECT: тесты требуют запущенного локального стека и падают громко, а не пропускаются молча.
+// ARCHITECT: типы схемы генерирует CLI из локальной базы (npx supabase gen types typescript --local),
+// руками они не пишутся; после каждой миграции файл перегенерируется.
 import { execFileSync } from "node:child_process";
 import { createClient } from "@supabase/supabase-js";
 import type { SupabaseClient } from "@supabase/supabase-js";
+
+import type { Database } from "./database.types.ts";
 
 export interface LocalStack {
     readonly url: string;
@@ -18,32 +22,6 @@ interface StackStatus {
     readonly ANON_KEY?: string;
     readonly SECRET_KEY?: string;
     readonly SERVICE_ROLE_KEY?: string;
-}
-
-/**
- * Минимальная схема для типов supabase-js: без неё insert/update получают тип `never`.
- * Полный сгенерированный тип появится вместе с клиентскими запросами; здесь достаточно имён таблиц.
- */
-interface Database {
-    public: {
-        Tables: {
-            profiles: SchemaTable;
-            sessions: SchemaTable;
-            lessons: SchemaTable;
-            messages: SchemaTable;
-        };
-        Views: Record<string, never>;
-        Functions: Record<string, never>;
-    };
-}
-
-type SchemaRow = Record<string, unknown>;
-
-interface SchemaTable {
-    Row: SchemaRow;
-    Insert: SchemaRow;
-    Update: SchemaRow;
-    Relationships: [];
 }
 
 export type StackClient = SupabaseClient<Database>;

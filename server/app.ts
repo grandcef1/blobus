@@ -4,25 +4,8 @@ import { randomUUID } from "node:crypto";
 import express from "express";
 import type { Express, NextFunction, Request, Response } from "express";
 import helmet from "helmet";
-
-type ErrorCode = "NOT_FOUND" | "BAD_REQUEST" | "PAYLOAD_TOO_LARGE" | "INTERNAL";
-
-interface ErrorEnvelope {
-    readonly error: {
-        readonly code: ErrorCode;
-        readonly message: string;
-        readonly requestId: string;
-    };
-}
-
-// ARCHITECT: сообщение — безопасный общий текст на английском, не для прямого показа пользователю:
-// фронтенд-адаптер в Ф3 мапит code в i18n, поэтому внутренние детали в тело ошибки не попадают.
-const ERROR_MESSAGES: Record<ErrorCode, string> = {
-    NOT_FOUND: "Resource not found",
-    BAD_REQUEST: "Request could not be processed",
-    PAYLOAD_TOO_LARGE: "Request payload is too large",
-    INTERNAL: "Internal server error",
-};
+import { errorEnvelope } from "./http.ts";
+import type { ErrorCode } from "./http.ts";
 
 const SERVICE_NAME = "blobus-api";
 
@@ -52,18 +35,6 @@ function resolveCode(status: number): ErrorCode {
 function attachRequestId(_req: Request, res: Response, next: NextFunction): void {
     res.setHeader("x-request-id", randomUUID());
     next();
-}
-
-// ARCHITECT: requestId читается из заголовка ответа, а не из res.locals: заголовок уже выставлен
-// middleware, поэтому конверт одинаков у 404-fallback и у обработчика ошибок.
-function errorEnvelope(code: ErrorCode, res: Response): ErrorEnvelope {
-    return {
-        error: {
-            code,
-            message: ERROR_MESSAGES[code],
-            requestId: String(res.getHeader("x-request-id") ?? ""),
-        },
-    };
 }
 
 export function buildApp(registerRoutes?: (app: Express) => void): Express {

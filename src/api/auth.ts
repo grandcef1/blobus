@@ -9,7 +9,7 @@ import { delayMock } from "@/api/mockDelay";
 import { toast } from "@/store/toast";
 // ARCHITECT: только тип: сам supabase-js грузится динамическим импортом в PKCE-ветке, чтобы не попадать в
 // начальный граф бандла (бюджет initial load — scripts/check-bundle.mjs).
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { SupabaseClient, SupabaseClientOptions } from "@supabase/supabase-js";
 
 export interface AuthUser {
     id: string;
@@ -95,9 +95,24 @@ function toSessionAuthUser(user: SessionUser): AuthUser {
     };
 }
 
-// ARCHITECT: браузерный клиент нужен только для PKCE-танца, поэтому создаётся лениво и динамическим
-// импортом: supabase-js не попадает в начальный граф бандла. Сессию он не хранит и не подхватывает из
+// ARCHITECT: настройки браузерного PKCE-клиента вынесены в константу, чтобы тест (auth.test.ts) читал их как
+// данные — без моков окружения и без инициализации supabase-js. persistSession:true нужен, чтобы
+// code-verifier пережил редирект к провайдеру: при false auth-js держит его в хранилище памяти страницы
+// (memoryLocalStorageAdapter) и теряет при уходе на Google, а обмен code тогда не находит verifier.
+// Сессия в браузере всё равно не остаётся: clearBrowserAuthStorage удаляет sb-*-ключи сразу после успешного
+// серверного обмена (/auth/oauth/exchange), а detectSessionInUrl:false не даёт клиенту читать токены из
 // адреса — источник правды остаётся серверная HttpOnly-кука (§16.4).
+export const BROWSER_AUTH_OPTIONS: NonNullable<SupabaseClientOptions<"public">["auth"]> = {
+    flowType: "pkce",
+    detectSessionInUrl: false,
+    persistSession: true,
+    autoRefreshToken: false,
+};
+
+// ARCHITECT: браузерный клиент нужен только для PKCE-танца, поэтому создаётся лениво и динамическим
+// импортом: supabase-js не попадает в начальный граф бандла. Хранит он ровно verifier до конца обмена и не
+// подхватывает сессию из адреса: sb-ключи чистятся сразу после успешного обмена — источник правды остаётся
+// серверная HttpOnly-кука (§16.4).
 let browserClient: SupabaseClient | undefined;
 
 async function createBrowserClient(): Promise<SupabaseClient> {
@@ -105,12 +120,7 @@ async function createBrowserClient(): Promise<SupabaseClient> {
         const { createClient } = await import("@supabase/supabase-js");
 
         browserClient = createClient(SUPABASE_URL, SUPABASE_PUBLISHABLE_KEY, {
-            auth: {
-                flowType: "pkce",
-                detectSessionInUrl: false,
-                persistSession: false,
-                autoRefreshToken: false,
-            },
+            auth: BROWSER_AUTH_OPTIONS,
         });
     }
 

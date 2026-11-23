@@ -13,6 +13,7 @@ import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/auth";
 import { GOOGLE_READY, USE_REAL_AUTH } from "@/api/auth";
 import type { AuthUser } from "@/api/auth";
+import { ApiError } from "@/api/client";
 import { toast } from "@/store/toast";
 import i18n from "@/lib/i18n";
 import { validateEmail, validateName, validatePassword } from "@/lib/validation";
@@ -21,6 +22,29 @@ import { PRIMARY_BUTTON } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 
 type FieldName = "name" | "email" | "password";
+
+// ARCHITECT: причину отказа объясняем ключом словаря по статусу, а серверный текст в интерфейс не
+// показываем: в нём бывают детали и адреса. Технические code/requestId уходят только в консоль.
+// 0 — сети нет: client.ts уже положил в message безопасный текст из common, его и показываем.
+function authErrorText(error: unknown, kind: "credentials" | "google", mode: AuthMode): string {
+    if (!(error instanceof ApiError)) return i18n.t("errors.generic", { ns: "auth" });
+    console.warn("auth: request failed", {
+        status: error.statusCode,
+        code: error.code,
+        requestId: error.requestId,
+    });
+    if (error.statusCode === 0) return error.message;
+    if (error.statusCode === 429) return i18n.t("errors.tooManyAttempts", { ns: "auth" });
+    if (kind === "google") {
+        return error.statusCode === 401 || error.statusCode === 403 || error.statusCode >= 500
+            ? i18n.t("errors.googleFailed", { ns: "auth" })
+            : i18n.t("errors.generic", { ns: "auth" });
+    }
+    if (error.statusCode === 401) return i18n.t("errors.signInFailed", { ns: "auth" });
+    if (error.statusCode === 400 && mode === "register")
+        return i18n.t("errors.signUpFailed", { ns: "auth" });
+    return i18n.t("errors.generic", { ns: "auth" });
+}
 
 export interface AuthFormProps {
     mode: AuthMode;
@@ -79,6 +103,9 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
                     ? await signUp(values.name, values.email, values.password)
                     : await signIn(values.email, values.password);
             onAuthenticated(user);
+        } catch (error) {
+            // ARCHITECT: без тоста отказ уходил исключением наверх и пользователь видел только замершую кнопку.
+            toast.error(authErrorText(error, "credentials", mode));
         } finally {
             setIsSubmitting(false);
         }
@@ -87,10 +114,10 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
     const handleGoogle = async () => {
         try {
             onAuthenticated(await signInWithGoogle());
-        } catch {
+        } catch (error) {
             // ARCHITECT: при редиректе на провайдера промис не завершается, поэтому сюда попадает только отказ
-            // входа; текст берётся из существующего ключа словаря — новых строк задача не разрешает.
-            toast.error(i18n.t("errors.api.offline", { ns: "common" }));
+            // входа; причина берётся из словаря, а не из серверного текста.
+            toast.error(authErrorText(error, "google", mode));
         }
     };
 

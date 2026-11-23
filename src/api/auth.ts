@@ -6,6 +6,7 @@ import { resolveRole, type UserRole } from "@/lib/admin";
 import i18n from "@/lib/i18n";
 import { ApiError, apiFetch } from "@/api/client";
 import { delayMock } from "@/api/mockDelay";
+import { toast } from "@/store/toast";
 // ARCHITECT: только тип: сам supabase-js грузится динамическим импортом в PKCE-ветке, чтобы не попадать в
 // начальный граф бандла (бюджет initial load — scripts/check-bundle.mjs).
 import type { SupabaseClient } from "@supabase/supabase-js";
@@ -184,7 +185,16 @@ export async function signInWithGoogle(): Promise<AuthUser> {
 export async function handleOAuthRedirect(): Promise<AuthUser | null> {
     if (!GOOGLE_READY) return null;
 
-    const code = new URLSearchParams(window.location.search).get("code");
+    const searchParams = new URLSearchParams(window.location.search);
+    const code = searchParams.get("code");
+
+    // ARCHITECT: отказ провайдера (например access_denied) приходит параметром адреса, а не исключением,
+    // поэтому пользователь должен увидеть причину, а параметры ошибки не остаются в истории.
+    if (searchParams.get("error") !== null) {
+        toast.error(i18n.t("errors.googleFailed", { ns: "auth" }));
+        removeOAuthParamsFromUrl();
+        return null;
+    }
 
     if (code === null) return null;
 
@@ -192,7 +202,15 @@ export async function handleOAuthRedirect(): Promise<AuthUser | null> {
         const client = await createBrowserClient();
         const { data, error } = await client.auth.exchangeCodeForSession(code);
 
-        if (error !== null || data.session === null) return null;
+        if (error !== null || data.session === null) {
+            // ARCHITECT: exchangeCodeForSession отдаёт отказ объектом, а не исключением, поэтому он минует catch.
+            console.warn("auth: oauth exchange failed", {
+                status: error?.status ?? 0,
+                code: error?.code,
+            });
+            toast.error(i18n.t("errors.googleFailed", { ns: "auth" }));
+            return null;
+        }
 
         const { user } = await apiFetch<{ user: SessionUser }>("/auth/oauth/exchange", {
             method: "POST",
@@ -207,20 +225,30 @@ export async function handleOAuthRedirect(): Promise<AuthUser | null> {
         await client.auth.signOut({ scope: "local" });
 
         return toSessionAuthUser(user);
-    } catch {
+    } catch (error) {
+        // ARCHITECT: без тоста отказ обмена выглядел как «ничего не произошло»: гость оставался гостем.
+        const apiError = error instanceof ApiError ? error : null;
+        console.warn("auth: oauth exchange failed", {
+            status: apiError?.statusCode ?? 0,
+            code: apiError?.code,
+            requestId: apiError?.requestId,
+        });
+        toast.error(i18n.t("errors.googleFailed", { ns: "auth" }));
         return null;
     } finally {
         // ARCHITECT: одноразовый code не остаётся в адресной строке и истории — ни при успехе, ни при
         // ошибке: коды и токены в URL не живут дольше обмена (§16.11).
-        removeOAuthCodeFromUrl();
+        removeOAuthParamsFromUrl();
     }
 }
 
-/** Убирает из адреса параметр code, сохраняя остальные параметры, путь и hash приложения. */
-function removeOAuthCodeFromUrl(): void {
+/** Убирает из адреса параметры обмена и отказа провайдера, сохраняя путь и hash приложения. */
+function removeOAuthParamsFromUrl(): void {
     const url = new URL(window.location.href);
 
     url.searchParams.delete("code");
+    url.searchParams.delete("error");
+    url.searchParams.delete("error_description");
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
 }

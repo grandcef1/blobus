@@ -220,9 +220,9 @@ export async function handleOAuthRedirect(): Promise<AuthUser | null> {
             },
         });
 
-        // ARCHITECT: серверные куки уже стоят, поэтому локальную сессию supabase-js не держим: второй
-        // источник правды в браузере не нужен, а scope local на сервере ничего не отзывает.
-        await client.auth.signOut({ scope: "local" });
+        // ARCHITECT: серверные куки уже стоят, поэтому локальную сессию supabase-js чистим только в браузере:
+        // серверный выход отозвал бы ровно ту сессию, которую мы только что завели (§16.4).
+        clearBrowserAuthStorage();
 
         return toSessionAuthUser(user);
     } catch (error) {
@@ -251,6 +251,22 @@ function removeOAuthParamsFromUrl(): void {
     url.searchParams.delete("error_description");
 
     window.history.replaceState({}, "", `${url.pathname}${url.search}${url.hash}`);
+}
+
+// ARCHITECT: источник правды — серверная HttpOnly-кука; браузерная сессия supabase нам не нужна, но удалять
+// её нужно локально, потому что серверный выход отзывает сессию и убивает уже подтверждённый вход.
+function clearBrowserAuthStorage(): void {
+    try {
+        // ARCHITECT: ключ по умолчанию у supabase-js — "sb-" + первый сегмент hostname + "-auth-token";
+        // рядом с ним лежат производные ключи verifier и пользователя.
+        const storageKey = `sb-${new URL(SUPABASE_URL).hostname.split(".")[0]}-auth-token`;
+
+        for (const key of [storageKey, `${storageKey}-code-verifier`, `${storageKey}-user`]) {
+            window.localStorage.removeItem(key);
+        }
+    } catch {
+        // ARCHITECT: сбой очистки гасится молча — вход уже подтверждён серверной кукой.
+    }
 }
 
 /** Обновляет сессию по refresh-куке: сервер ротирует оба токена (server/routes/auth.ts). */

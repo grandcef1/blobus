@@ -1,16 +1,25 @@
-// ARCHITECT: точка входа /app. Раньше index-редирект вёл на «Обзор», а чат без id — в раздел
-// «Сессии», из-за чего вход в приложение мог привести на экран без активной сессии. Теперь /app
-// открывает последнюю сессию, а если сессий нет — список сессий с кнопкой создания.
+// ARCHITECT: точка входа /app. Мок-режим открывает последнюю сессию, а если сессий нет — список сессий:
+// у каждого пути ровно один экран, и вход в приложение не оставляет пользователя на пустом чате.
+// ARCHITECT: real-режим всегда ведёт на список: чат реальных сессий подключится в фазе C, поэтому
+// уводить на /app/chat/:id даже при наличии сводок нельзя.
 
 import { Navigate } from "react-router-dom";
-import { getSessions } from "@/api/sessions";
+import { useSessions } from "@/hooks/useSessions";
 
 export function AppIndexRedirect() {
-    const [lastSession] = getSessions();
+    const result = useSessions();
 
-    if (lastSession) {
-        return <Navigate to={`/app/chat/${lastSession.id}`} replace />;
-    }
+    // ARCHITECT: пока список грузится, редирект был бы преждевременным: кэш общий с сайдбаром, ждать недолго.
+    if (result.isLoading) return null;
 
-    return <Navigate to="/app/sessions" replace />;
+    // ARCHITECT: ошибку показывает страница сессий; терминальный 401 обрабатывает useAuthExpiry внутри хука.
+    if (result.isError || result.kind === "real") return <Navigate to="/app/sessions" replace />;
+
+    const [last] = result.sessions;
+
+    return last ? (
+        <Navigate to={`/app/chat/${last.id}`} replace />
+    ) : (
+        <Navigate to="/app/sessions" replace />
+    );
 }

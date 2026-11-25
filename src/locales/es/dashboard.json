@@ -72,6 +72,13 @@
   },
   "profile": {
     "title": "Perfil",
+    "avatar": {
+      "alt": "Foto de perfil",
+      "change": "Cambiar foto",
+      "error": "No se pudo actualizar la foto",
+      "invalid": "Usa JPG o PNG de hasta 8 MB",
+      "remove": "Quitar foto"
+    },
     "stats": {
       "achievements": "Logros",
       "words": "Palabras en total"

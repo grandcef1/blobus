@@ -13,12 +13,12 @@ import { useMockQuery } from "@/hooks/useMockQuery";
 import { useProfile } from "@/hooks/useProfile";
 import { useAuthStore } from "@/store/auth";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { StatusMarker } from "@/components/shared/StatusMarker";
 import { ProfileSkeleton } from "@/components/dashboard/skeletons/ProfileSkeleton";
 import { ProfileModeCard } from "./ProfileModeCard";
 import { ProfileSkillsCard } from "./ProfileSkillsCard";
 import { ProfileEmailRow } from "./ProfileEmailRow";
+import { ProfileAvatar } from "./ProfileAvatar";
 import type { LearningMode } from "@/types/onboarding";
 
 async function loadProfile() {
@@ -102,9 +102,10 @@ export function ProfilePage() {
 
                 <div className="space-y-4">
                     <section className="flex flex-col gap-4 rounded-2xl bg-[#111113] p-4 sm:flex-row sm:items-center md:p-5">
-                        <BlobatarAvatar
-                            id={user.blobatarId}
-                            className="size-16 bg-[#1a1a1c] md:size-24"
+                        <ProfileAvatar
+                            avatarUrl={profile.avatarUrl}
+                            providerAvatarUrl={profile.providerAvatarUrl}
+                            displayName={profile.displayName}
                         />
 
                         <div className="min-w-0 flex-1">

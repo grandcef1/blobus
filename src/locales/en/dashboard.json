@@ -72,6 +72,13 @@
   },
   "profile": {
     "title": "Profile",
+    "avatar": {
+      "alt": "Profile photo",
+      "change": "Change photo",
+      "error": "Could not update the photo",
+      "invalid": "Use a JPG or PNG up to 8 MB",
+      "remove": "Remove photo"
+    },
     "stats": {
       "achievements": "Achievements",
       "words": "Total words"

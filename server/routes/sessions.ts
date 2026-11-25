@@ -8,9 +8,10 @@ import { z } from "zod";
 
 import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
 import { COOKIE_NAMES, getCookie } from "../cookies.ts";
+import { validateCsrf } from "../csrf.ts";
 import { errorEnvelope } from "../http.ts";
 import { createMemoryRateLimitStore, createRateLimiter } from "../rate-limit.ts";
-import { createUserClient } from "../supabase.ts";
+import { createServiceClient, createUserClient } from "../supabase.ts";
 import type { SupabaseEnv } from "../supabase.ts";
 
 // ARCHITECT: строгая схема читаемого набора колонок: границы совпадают с CHECK-ами схемы (mode 1..32,
@@ -26,6 +27,35 @@ const SessionRowSchema = z.strictObject({
 
 const SessionListSchema = z.array(SessionRowSchema);
 
+// ARCHITECT: allowlist записи не зависит от клиентского каталога: фронтенд присылает только известные
+// значения, а всё прочее отклоняется 400, а не попадает строкой в БД (§16.2). Единый источник каталога —
+// отдельный долг.
+const TUTOR_ID_ALLOWLIST: ReadonlySet<string> = new Set([
+    "miya",
+    "oscar",
+    "luna",
+    "max",
+    "alex",
+    "zoe",
+    "nova",
+    "kai",
+    "lira",
+    "orion",
+]);
+const MODE_ALLOWLIST: ReadonlySet<string> = new Set([
+    "interview",
+    "speaking",
+    "grammar",
+    "general",
+]);
+
+// ARCHITECT: тело создания — ровно два поля: user_id приходит из токена, а лишние поля отклоняет
+// strictObject (§16.6). targetLevel в реальной схеме нет, поэтому в контракт не входит.
+const CreateSessionSchema = z.strictObject({
+    tutorId: z.string().min(1).max(64),
+    mode: z.string().min(1).max(32),
+});
+
 // ARCHITECT: лимит чтения стоит первым middleware, чтобы поток отсекался до Supabase. Счёт в памяти —
 // дев/тесты: инстансы Vercel не делят память, прод получит общий RateLimitStore (как в profile.ts).
 const READ_WINDOW_MS = 15 * 60_000;
@@ -33,6 +63,10 @@ const READ_MAX = 60;
 // ARCHITECT: limit 50 — защита от неограниченного чтения; порядок под существующий
 // sessions_user_created_idx (user_id, created_at desc, id desc).
 const READ_LIMIT = 50;
+// ARCHITECT: лимит записи строже чтения: создание — мутация с обращением к service-role, 10 за 15 минут
+// достаточно ручному выбору репетитора и отсекает скрипт, плодящий сессии.
+const WRITE_WINDOW_MS = 15 * 60_000;
+const WRITE_MAX = 10;
 
 export function createSessionsRouter(options: { readonly env: SupabaseEnv }): Router {
     const { env } = options;
@@ -42,6 +76,12 @@ export function createSessionsRouter(options: { readonly env: SupabaseEnv }): Ro
         windowMs: READ_WINDOW_MS,
         max: READ_MAX,
         scope: "sessions:read",
+    });
+    const writeLimiter = createRateLimiter({
+        store: createMemoryRateLimitStore(),
+        windowMs: WRITE_WINDOW_MS,
+        max: WRITE_MAX,
+        scope: "sessions:create",
     });
     // ARCHITECT: кэш проверки токена — на экземпляр роутера: verifyAccessToken сам ограничивает срок записи
     // min от ttl кэша и exp токена.
@@ -91,6 +131,70 @@ export function createSessionsRouter(options: { readonly env: SupabaseEnv }): Ro
         }));
 
         res.status(200).json({ sessions });
+    });
+
+    // ARCHITECT: POST — мутация: порядок writeLimiter -> validateCsrf -> обработчик, как в auth.ts. Лимит идёт
+    // первым, чтобы поток без CSRF-пары отсекался до валидации тела и до service-role.
+    router.post("/", writeLimiter, validateCsrf, async (req: Request, res: Response) => {
+        const accessToken = getCookie(req, COOKIE_NAMES.accessToken);
+
+        if (accessToken === undefined) {
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        let payload;
+
+        try {
+            payload = await verifyAccessToken(env, accessToken, tokenCache);
+        } catch {
+            // ARCHITECT: просроченный, поддельный и чужой токен отвечают одинаково, без деталей (§16.4).
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        const parsed = CreateSessionSchema.safeParse(req.body);
+
+        if (!parsed.success) {
+            res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+            return;
+        }
+
+        // ARCHITECT: allowlist проверяется после схемы: неизвестный блобатар или режим — 400, а не строка в БД,
+        // которую UI не отрендерит.
+        if (!TUTOR_ID_ALLOWLIST.has(parsed.data.tutorId) || !MODE_ALLOWLIST.has(parsed.data.mode)) {
+            res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+            return;
+        }
+
+        // ARCHITECT: insert пишет service-role (у authenticated только SELECT): владение задаётся проверенным
+        // userId из токена, а клиентский user_id из тела отсечён strictObject (§16.5).
+        const { data, error } = await createServiceClient(env)
+            .from("sessions")
+            .insert({
+                user_id: payload.userId,
+                tutor_id: parsed.data.tutorId,
+                mode: parsed.data.mode,
+            })
+            .select("id, user_id, tutor_id, mode, created_at, updated_at")
+            .single();
+
+        if (error !== null) throw error;
+
+        const row = SessionRowSchema.safeParse(data);
+
+        if (!row.success) throw row.error;
+
+        // ARCHITECT: ответ создания — тот же DTO, что в GET: user_id и служебные поля наружу не уходят.
+        res.status(201).json({
+            session: {
+                id: row.data.id,
+                tutorId: row.data.tutor_id,
+                mode: row.data.mode,
+                createdAt: row.data.created_at,
+                updatedAt: row.data.updated_at,
+            },
+        });
     });
 
     return router;

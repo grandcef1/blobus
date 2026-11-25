@@ -264,6 +264,42 @@ async function dbSessions(userId: string): Promise<SessionDto[]> {
     }));
 }
 
+/** Строка сессии из БД сервисным клиентом: поля и владелец сверяются с источником правды (§16.5). */
+async function dbSessionById(
+    id: string
+): Promise<{ readonly dto: SessionDto; readonly userId: string }> {
+    const { data, error } = await createAdminClient()
+        .from("sessions")
+        .select("id, user_id, tutor_id, mode, created_at, updated_at")
+        .eq("id", id)
+        .single();
+
+    if (error !== null) throw error;
+
+    return {
+        dto: {
+            id: data.id,
+            tutorId: data.tutor_id,
+            mode: data.mode,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+        },
+        userId: data.user_id,
+    };
+}
+
+/** Число сессий пользователя: проверка, что отклонённый запрос не оставил строк. */
+async function sessionCount(userId: string): Promise<number> {
+    const { count, error } = await createAdminClient()
+        .from("sessions")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+    if (error !== null) throw error;
+
+    return count ?? 0;
+}
+
 beforeAll(() => {
     const stack = readLocalStack();
 
@@ -485,5 +521,203 @@ describe("RLS таблицы sessions", () => {
         expect(foreign.error).toBeNull();
         expect(foreign.data).toHaveLength(0);
         expect(anonymous.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
+    }, 30_000);
+});
+
+describe("POST /api/sessions", () => {
+    it("3.1 создаёт сессию: 201, DTO совпадает с БД, владелец — из токена", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/sessions",
+                { tutorId: "miya", mode: "speaking" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { session: SessionDto };
+            const stored = await dbSessionById(body.session.id);
+
+            expect(response.status).toBe(201);
+            expect(body.session).toEqual(stored.dto);
+            expect(stored.userId).toBe(me.id);
+            expect(Object.keys(body.session).sort()).toEqual([
+                "createdAt",
+                "id",
+                "mode",
+                "tutorId",
+                "updatedAt",
+            ]);
+        });
+    }, 30_000);
+
+    it("3.2 отклоняет 400: лишнее поле, пустой tutorId и значения вне allowlist", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const invalidBodies: readonly unknown[] = [
+                // ARCHITECT: чужой userId в теле — лишнее поле: strictObject отклоняет его до записи.
+                {
+                    tutorId: "miya",
+                    mode: "speaking",
+                    userId: "a1b2c3d4-0001-4000-8000-000000000001",
+                },
+                { tutorId: "", mode: "speaking" },
+                { tutorId: "miya", mode: "listening" },
+                { tutorId: "someone-else", mode: "speaking" },
+                { mode: "speaking" },
+                { tutorId: "miya" },
+            ];
+
+            for (const body of invalidBodies) {
+                const response = await postJson(
+                    app.baseUrl,
+                    "/api/sessions",
+                    body,
+                    mutationHeaders(me.jar, app.baseUrl)
+                );
+
+                expect(response.status).toBe(400);
+                expect(errorBody(await response.json()).error.code).toBe("BAD_REQUEST");
+            }
+
+            // ни один отклонённый запрос не дошёл до записи
+            expect(await sessionCount(me.id)).toBe(0);
+        });
+    }, 30_000);
+
+    it("3.3 отвечает 401 без куки и на поддельный токен, не светя его", async () => {
+        await withApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const sentinel = "forged-create-session-sentinel";
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+            const body = { tutorId: "miya", mode: "speaking" };
+
+            try {
+                const anonymous = await postJson(
+                    app.baseUrl,
+                    "/api/sessions",
+                    body,
+                    mutationHeaders(pair, app.baseUrl)
+                );
+                const anonymousBody = errorBody(await anonymous.json());
+                const forgedJar = { ...pair, [COOKIE_NAMES.accessToken]: sentinel };
+                const forged = await postJson(
+                    app.baseUrl,
+                    "/api/sessions",
+                    body,
+                    mutationHeaders(forgedJar, app.baseUrl)
+                );
+                const forgedText = await forged.text();
+                const forgedBody = errorBody(JSON.parse(forgedText));
+
+                expect(anonymous.status).toBe(401);
+                expect(forged.status).toBe(401);
+                expect(forgedBody.error.code).toBe(anonymousBody.error.code);
+                expect(forgedBody.error.message).toBe(anonymousBody.error.message);
+                // ARCHITECT: токен не возвращается клиенту ни в теле, ни в заголовках, ни в логах (§16.11).
+                expect(forgedText).not.toContain(sentinel);
+                expect(JSON.stringify([...forged.headers.entries()])).not.toContain(sentinel);
+                expect(errorSpy.mock.calls.flat().map(String).join("\n")).not.toContain(sentinel);
+            } finally {
+                errorSpy.mockRestore();
+            }
+        });
+    }, 30_000);
+    it("3.4 отвечает 403 без CSRF-пары и не создаёт строку", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/sessions",
+                { tutorId: "miya", mode: "speaking" },
+                { cookie: cookieHeader(me.jar), origin: app.baseUrl }
+            );
+            const text = await response.text();
+
+            expect(response.status).toBe(403);
+            expect(errorBody(JSON.parse(text)).error.code).toBe("FORBIDDEN");
+            expect(await sessionCount(me.id)).toBe(0);
+        });
+    }, 30_000);
+
+    it("3.5 чужой userId в теле отсекается, созданная строка принадлежит владельцу токена", async () => {
+        await withApp(async (app) => {
+            const alice = await freshUser(app.baseUrl);
+            const bob = await freshUser(app.baseUrl);
+            const tampered = await postJson(
+                app.baseUrl,
+                "/api/sessions",
+                { tutorId: "miya", mode: "speaking", userId: bob.id },
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+
+            expect(tampered.status).toBe(400);
+
+            const created = await postJson(
+                app.baseUrl,
+                "/api/sessions",
+                { tutorId: "nova", mode: "grammar" },
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+            const body = (await created.json()) as { session: SessionDto };
+
+            expect(created.status).toBe(201);
+            expect((await dbSessionById(body.session.id)).userId).toBe(alice.id);
+
+            const bobView = await fetch(`${app.baseUrl}/api/sessions`, {
+                headers: { cookie: cookieHeader(bob.jar) },
+            });
+            const bobBody = (await bobView.json()) as SessionListBody;
+
+            expect(bobBody.sessions).toHaveLength(0);
+            expect(await sessionCount(bob.id)).toBe(0);
+        });
+    }, 30_000);
+
+    it("3.6 ограничивает создание десятью запросами за 15 минут", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const attempted: number[] = [];
+
+            for (let attempt = 0; attempt < 10; attempt += 1) {
+                const response = await postJson(
+                    app.baseUrl,
+                    "/api/sessions",
+                    { tutorId: "miya", mode: "speaking" },
+                    headers
+                );
+
+                attempted.push(response.status);
+            }
+
+            const limited = await postJson(
+                app.baseUrl,
+                "/api/sessions",
+                { tutorId: "miya", mode: "speaking" },
+                headers
+            );
+            const limitedText = await limited.text();
+
+            expect(attempted).toEqual(Array.from({ length: 10 }, () => 201));
+            expect(limited.status).toBe(429);
+            expect(errorBody(JSON.parse(limitedText)).error.code).toBe("RATE_LIMITED");
+            expect(limited.headers.get("retry-after")).toBeTruthy();
+            expect(await sessionCount(me.id)).toBe(10);
+        });
+    }, 60_000);
+
+    it("3.7 гранты: authenticated не может insert, запись делает только service-role", async () => {
+        const email = `${EMAIL_PREFIX}-grants-${randomUUID()}@example.test`;
+        const userId = await createConfirmedUser(email);
+        const tokens = await sessionPairFor(email);
+        const user = createUserClient(tokens.accessToken);
+
+        const inserted = await user
+            .from("sessions")
+            .insert({ user_id: userId, tutor_id: TUTOR_ID, mode: MODE })
+            .select("id");
+
+        expect(inserted.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
+        expect(await sessionCount(userId)).toBe(0);
     }, 30_000);
 });

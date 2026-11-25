@@ -242,3 +242,41 @@ export async function fetchSessionSummaries(): Promise<SessionSummaryDto[]> {
 
     return sessions;
 }
+
+/** Тело создания своей сессии: ровно поля контракта POST /api/sessions, без user_id. */
+export interface CreateSessionSummaryInput {
+    tutorId: string;
+    mode: string;
+}
+
+// ARCHITECT: мок-ветка создаёт сессию в прежнем мок-сторе и отдаёт сводку: созданная сессия сразу видна
+// в getSessions(), как и раньше.
+// ARCHITECT: real-ветка — мутация через apiFetch: cookie-сессия, CSRF-заголовок и refresh уже внутри
+// транспорта; конверт { session } распаковывается здесь.
+export async function createSessionSummary(
+    input: CreateSessionSummaryInput
+): Promise<SessionSummaryDto> {
+    if (USE_MOCKS) {
+        await delayMock();
+        const session = createSession({
+            repetitorId: input.tutorId as BlobatarId,
+            learningMode: input.mode as LearningMode,
+        });
+
+        return {
+            id: session.id,
+            tutorId: session.repetitorId,
+            mode: session.learningMode,
+            createdAt: new Date(session.createdAt).toISOString(),
+            updatedAt: new Date(session.lastActivityAt).toISOString(),
+        };
+    }
+
+    // ARCHITECT: тело уходит объектом: apiFetch сериализует его сам, строка была бы JSON-строкой внутри JSON.
+    const { session } = await apiFetch<{ session: SessionSummaryDto }>("/sessions", {
+        method: "POST",
+        body: input,
+    });
+
+    return session;
+}

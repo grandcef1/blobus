@@ -4,5 +4,13 @@
     "semi": true,
     "singleQuote": false,
     "trailingComma": "es5",
-    "arrowParens": "always"
+    "arrowParens": "always",
+    "overrides": [
+        {
+            "files": "src/locales/**/*.json",
+            "options": {
+                "tabWidth": 2
+            }
+        }
+    ]
 }

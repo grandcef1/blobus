@@ -9,7 +9,7 @@ import { HeroBlobatar } from "@/components/landing/HeroBlobatar";
 import { HeroBadge } from "@/components/hero/HeroBadge";
 import { TypewriterHeading } from "@/components/landing/TypewriterHeading";
 import { DemoDialog } from "@/components/landing/demo/DemoDialog";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 
 const containerVariants: Variants = {
@@ -41,11 +41,7 @@ const benefitsVariants = fadeInUp(0.4);
 const blobatarVariants = fadeInUp(0.4);
 
 // ARCHITECT: подписи выгод — ключи словаря landing: строка не может остаться русской в en/es.
-const BENEFITS = [
-    "hero.benefits.trial",
-    "hero.benefits.noCard",
-    "hero.benefits.cancel",
-] as const;
+const BENEFITS = ["hero.benefits.trial", "hero.benefits.noCard", "hero.benefits.cancel"] as const;
 
 export function HeroSection() {
     const navigate = useNavigate();
@@ -55,11 +51,10 @@ export function HeroSection() {
     const [demoOpen, setDemoOpen] = useState(false);
 
     const handleGetStarted = () => {
-        navigate('/onboarding');
+        navigate("/onboarding");
     };
 
     return (
-
         // ARCHITECT: overflow-x-clip страхует bleed. min-h = вьюпорт минус хедер.
         <section className="relative flex min-h-[calc(100dvh-72px)] w-full items-start overflow-x-clip bg-black pt-16 pb-16 md:pt-20 md:pb-20">
             {/* ARCHITECT: шелл идентичен features/how-it-works (px-4 sm:px-6 lg:px-8), поэтому кромки параллельны
@@ -99,7 +94,10 @@ export function HeroSection() {
                             variants={actionsVariants}
                             className="flex w-full flex-col gap-3 sm:w-auto sm:flex-row sm:flex-wrap sm:gap-4"
                         >
-                            <AuthAwareCta className="w-full justify-center sm:w-auto">
+                            <AuthAwareCta
+                                variant="text"
+                                className="w-full justify-center sm:w-auto"
+                            >
                                 <Button
                                     size="lg"
                                     onClick={handleGetStarted}
@@ -133,9 +131,7 @@ export function HeroSection() {
                                         className="size-3 text-[#f0f0f5]/60"
                                         aria-hidden="true"
                                     />
-                                    <span className="whitespace-nowrap">
-                                        {t(benefitKey)}
-                                    </span>
+                                    <span className="whitespace-nowrap">{t(benefitKey)}</span>
                                 </div>
                             ))}
                         </motion.div>

@@ -13,6 +13,7 @@ import { DEMO_MESSAGES, DEMO_SESSION } from "@/api/mocks/demoLesson";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { MessageRenderer } from "@/components/chat/messages/MessageRenderer";
 import { Button } from "@/components/ui/button";
+import { AuthAwareCta } from "@/components/landing/AuthAwareCta";
 import { Dialog, DialogContent, DialogDescription, DialogTitle } from "@/components/ui/dialog";
 import { PRIMARY_BUTTON } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
@@ -62,6 +63,13 @@ export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
         setVisibleCount((previous) => previous + 1);
     };
 
+    const primaryButton = (
+        <Button type="button" onClick={handlePrimary} className={cn(PRIMARY_BUTTON, "shrink-0")}>
+            {isLast ? t("hero.demo.start") : t("hero.demo.next")}
+            <ArrowRight className="size-4" aria-hidden="true" />
+        </Button>
+    );
+
     return (
         <Dialog open={open} onOpenChange={onOpenChange}>
             <DialogContent className="max-w-lg overflow-hidden p-0">
@@ -90,14 +98,16 @@ export function DemoDialog({ open, onOpenChange }: DemoDialogProps) {
                 {/* ARCHITECT: поля ввода в примере нет: поддельный инпут выглядел рабочим и просил
                     клика. Вместо него одна кнопка — она листает сценарий и подписана действием. */}
                 <div className="flex items-center justify-end border-t border-white/5 bg-black/40 px-4 py-3">
-                    <Button
-                        type="button"
-                        onClick={handlePrimary}
-                        className={cn(PRIMARY_BUTTON, "shrink-0")}
-                    >
-                        {isLast ? t("hero.demo.start") : t("hero.demo.next")}
-                        <ArrowRight className="size-4" aria-hidden="true" />
-                    </Button>
+                    {/* ARCHITECT: auth-aware подключён обёрткой только на финальном шаге: у вошедшего это
+                        CTA «Продолжить обучение», а шаги «Дальше» остаются рабочими. Решение о маршруте
+                        не дублируется — оно живёт в AuthAwareCta. */}
+                    {isLast ? (
+                        <AuthAwareCta variant="text" className={cn(PRIMARY_BUTTON, "shrink-0")}>
+                            {primaryButton}
+                        </AuthAwareCta>
+                    ) : (
+                        primaryButton
+                    )}
                 </div>
             </DialogContent>
         </Dialog>

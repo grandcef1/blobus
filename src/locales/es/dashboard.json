@@ -79,6 +79,13 @@
       "invalid": "Usa JPG o PNG de hasta 8 MB",
       "remove": "Quitar foto"
     },
+    "name": {
+      "cancel": "Cancelar",
+      "change": "Cambiar nombre",
+      "error": "No se pudo guardar el nombre",
+      "label": "Nombre visible",
+      "save": "Guardar"
+    },
     "stats": {
       "achievements": "Logros",
       "words": "Palabras en total"

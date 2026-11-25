@@ -19,6 +19,7 @@ import { ProfileModeCard } from "./ProfileModeCard";
 import { ProfileSkillsCard } from "./ProfileSkillsCard";
 import { ProfileEmailRow } from "./ProfileEmailRow";
 import { ProfileAvatar } from "./ProfileAvatar";
+import { ProfileNameEdit } from "./ProfileNameEdit";
 import type { LearningMode } from "@/types/onboarding";
 
 async function loadProfile() {
@@ -109,9 +110,7 @@ export function ProfilePage() {
                         />
 
                         <div className="min-w-0 flex-1">
-                            <h2 className="text-2xl font-semibold text-[#f0f0f5] md:text-3xl">
-                                {profile.displayName || tCommon("profile.fallbackName")}
-                            </h2>
+                            <ProfileNameEdit displayName={profile.displayName} />
 
                             {/* ARCHITECT: почта переехала в отдельную строку со статусом подтверждения,
                                 поэтому дублировать адрес в шапке больше не нужно. */}

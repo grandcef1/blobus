@@ -79,6 +79,13 @@
       "invalid": "Use a JPG or PNG up to 8 MB",
       "remove": "Remove photo"
     },
+    "name": {
+      "cancel": "Cancel",
+      "change": "Change name",
+      "error": "Could not save the name",
+      "label": "Display name",
+      "save": "Save"
+    },
     "stats": {
       "achievements": "Achievements",
       "words": "Total words"

@@ -12,9 +12,7 @@ import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import type { EnglishLevel, OnboardingData, OnboardingStep } from "@/types/onboarding";
-import { createSession } from "@/api/sessions";
-import { getResult } from "@/api/placement";
-import { levelForMode } from "@/lib/placement";
+import { useStartSession } from "@/hooks/useStartSession";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "@/store/toast";
 import i18n from "@/lib/i18n";
@@ -37,6 +35,7 @@ const STEP_ORDERS: Record<OnboardingFlow, OnboardingStep[]> = {
 export function Onboarding({ flow = "full" }: OnboardingProps) {
     const { t } = useTranslation("common");
     const navigate = useNavigate();
+    const { startSession } = useStartSession();
     const stepOrder = STEP_ORDERS[flow];
     const [currentStep, setCurrentStep] = useState<OnboardingStep>(stepOrder[0]);
     const [onboardingData, setOnboardingData] = useState<OnboardingData>({
@@ -59,29 +58,8 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
         setOnboardingData((previous) => ({ ...previous, ...updates }));
     };
 
-    // ARCHITECT: финал обоих флоу одинаков — создаём сессию и открываем её чат. Уровень берётся из
-    // теста; в режиме session теста нет, поэтому там уровень профиля. replace: true — чтобы
-    // «Назад» из чата не возвращал в мастер.
-    const startSession = () => {
-        // ARCHITECT: на полном флоу цель и репетитор выбраны на шаге «Цели», поэтому сюда попадают
-        // только подготовленные данные. Ветка осталась защитой для режима session и уводит в список
-        // сессий: раньше она открывала /app без сессии, то есть пустой экран.
-        if (!onboardingData.blobatarId || !onboardingData.learningMode) {
-            navigate("/app/sessions", { replace: true });
-            return;
-        }
-
-        const session = createSession({
-            repetitorId: onboardingData.blobatarId,
-            learningMode: onboardingData.learningMode,
-            // ARCHITECT: уровень сессии берётся из результата теста по дорожке выбранного режима:
-            // грамматика A2 → сессия грамматики A2, разговорная практика → уровень speaking.
-            targetLevel: levelForMode(onboardingData.learningMode, getResult()),
-        });
-
-        navigate(`/app/chat/${session.id}`, { replace: true });
-    };
-
+    // ARCHITECT: финал обоих флоу одинаков — создаём сессию и открываем её: детали ветки мок/реал
+    // (чат или список, targetLevel) живут в useStartSession.
     // ARCHITECT: результат теста — единственный источник уровня: он попадает и в сводку урока, и в
     // целевую сложность созданной сессии.
     const handleTestComplete = (level: EnglishLevel) => {
@@ -108,7 +86,7 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
             return;
         }
 
-        startSession();
+        await startSession(onboardingData.blobatarId, onboardingData.learningMode);
     };
 
     const handleNext = () => {
@@ -123,7 +101,7 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
             return;
         }
 
-        startSession();
+        void startSession(onboardingData.blobatarId, onboardingData.learningMode);
     };
 
     // ARCHITECT: «Назад» на первом шаге режима session выводит в раздел «Сессии»: экран без

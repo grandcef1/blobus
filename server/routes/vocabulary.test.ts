@@ -572,3 +572,262 @@ describe("RLS таблицы vocabulary", () => {
         expect(anonymous.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
     }, 30_000);
 });
+/** Строка словаря из БД сервисным клиентом: поля и владелец сверяются с источником правды (§16.5). */
+async function dbEntryById(
+    id: string
+): Promise<{ readonly dto: VocabularyDto; readonly userId: string }> {
+    const { data, error } = await createAdminClient()
+        .from("vocabulary")
+        .select("id, user_id, term, translation, context, source_lesson_id, created_at, updated_at")
+        .eq("id", id)
+        .single();
+
+    if (error !== null) throw error;
+
+    return {
+        dto: {
+            id: data.id,
+            term: data.term,
+            translation: data.translation,
+            context: data.context,
+            sourceLessonId: data.source_lesson_id,
+            createdAt: data.created_at,
+            updatedAt: data.updated_at,
+        },
+        userId: data.user_id,
+    };
+}
+
+/** Число слов пользователя: проверка, что отклонённый запрос не оставил строк. */
+async function entryCount(userId: string): Promise<number> {
+    const { count, error } = await createAdminClient()
+        .from("vocabulary")
+        .select("id", { count: "exact", head: true })
+        .eq("user_id", userId);
+
+    if (error !== null) throw error;
+
+    return count ?? 0;
+}
+
+describe("POST /api/vocabulary", () => {
+    it("3.1 создаёт слово: 201, DTO совпадает с БД, владелец из токена, sourceLessonId null", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/vocabulary",
+                {
+                    term: "Serendipity",
+                    translation: "озарение",
+                    context: "A happy accident.",
+                },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { entry: VocabularyDto };
+            const stored = await dbEntryById(body.entry.id);
+
+            expect(response.status).toBe(201);
+            expect(body.entry).toEqual(stored.dto);
+            expect(stored.userId).toBe(me.id);
+            expect(body.entry.translation).toBe("озарение");
+            expect(body.entry.context).toBe("A happy accident.");
+            expect(body.entry.sourceLessonId).toBeNull();
+            expect(Object.keys(body.entry).sort()).toEqual([
+                "context",
+                "createdAt",
+                "id",
+                "sourceLessonId",
+                "term",
+                "translation",
+                "updatedAt",
+            ]);
+        });
+    }, 30_000);
+
+    it("3.2 дубль идемпотентен: другое написание даёт ту же запись 200, строк в БД одна", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const first = await postJson(
+                app.baseUrl,
+                "/api/vocabulary",
+                { term: "Serendipity" },
+                headers
+            );
+            const firstBody = (await first.json()) as { entry: VocabularyDto };
+            const second = await postJson(
+                app.baseUrl,
+                "/api/vocabulary",
+                { term: "serendipity" },
+                headers
+            );
+            const secondBody = (await second.json()) as { entry: VocabularyDto };
+
+            expect(first.status).toBe(201);
+            expect(second.status).toBe(200);
+            expect(secondBody.entry.id).toBe(firstBody.entry.id);
+            expect(await entryCount(me.id)).toBe(1);
+        });
+    }, 30_000);
+    it("3.3 отклоняет 400: пустой term, длинные поля и лишние ключи", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const invalidBodies: readonly unknown[] = [
+                { term: "   " },
+                { term: "x".repeat(121) },
+                { term: "ok", translation: "t".repeat(241) },
+                { term: "ok", context: "c".repeat(501) },
+                // ARCHITECT: user_id и source_lesson_id приходят не от клиента — strictObject их отклоняет.
+                { term: "ok", userId: "a1b2c3d4-0001-4000-8000-000000000001" },
+                { term: "ok", sourceLessonId: "a1b2c3d4-0002-4000-8000-000000000002" },
+            ];
+
+            for (const body of invalidBodies) {
+                const response = await postJson(app.baseUrl, "/api/vocabulary", body, headers);
+
+                expect(response.status).toBe(400);
+                expect(errorBody(await response.json()).error.code).toBe("BAD_REQUEST");
+            }
+
+            expect(await entryCount(me.id)).toBe(0);
+        });
+    }, 30_000);
+
+    it("3.4 отвечает 401 без куки и на поддельный токен, не светя его", async () => {
+        await withApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const sentinel = "forged-add-word-sentinel";
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+            const body = { term: "collaborate" };
+
+            try {
+                const anonymous = await postJson(
+                    app.baseUrl,
+                    "/api/vocabulary",
+                    body,
+                    mutationHeaders(pair, app.baseUrl)
+                );
+                const anonymousBody = errorBody(await anonymous.json());
+                const forgedJar = { ...pair, [COOKIE_NAMES.accessToken]: sentinel };
+                const forged = await postJson(
+                    app.baseUrl,
+                    "/api/vocabulary",
+                    body,
+                    mutationHeaders(forgedJar, app.baseUrl)
+                );
+                const forgedText = await forged.text();
+                const forgedBody = errorBody(JSON.parse(forgedText));
+
+                expect(anonymous.status).toBe(401);
+                expect(forged.status).toBe(401);
+                expect(forgedBody.error.code).toBe(anonymousBody.error.code);
+                expect(forgedBody.error.message).toBe(anonymousBody.error.message);
+                expect(forgedText).not.toContain(sentinel);
+                expect(JSON.stringify([...forged.headers.entries()])).not.toContain(sentinel);
+                expect(errorSpy.mock.calls.flat().map(String).join("\n")).not.toContain(sentinel);
+            } finally {
+                errorSpy.mockRestore();
+            }
+        });
+    }, 30_000);
+
+    it("3.5 отвечает 403 без CSRF-пары и не создаёт строку", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/vocabulary",
+                { term: "collaborate" },
+                { cookie: cookieHeader(me.jar), origin: app.baseUrl }
+            );
+            const text = await response.text();
+
+            expect(response.status).toBe(403);
+            expect(errorBody(JSON.parse(text)).error.code).toBe("FORBIDDEN");
+            expect(await entryCount(me.id)).toBe(0);
+        });
+    }, 30_000);
+    it("3.6 чужой userId в теле отсекается, слово принадлежит владельцу токена", async () => {
+        await withApp(async (app) => {
+            const alice = await freshUser(app.baseUrl);
+            const bob = await freshUser(app.baseUrl);
+            const tampered = await postJson(
+                app.baseUrl,
+                "/api/vocabulary",
+                { term: "collaborate", userId: bob.id },
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+
+            expect(tampered.status).toBe(400);
+
+            const created = await postJson(
+                app.baseUrl,
+                "/api/vocabulary",
+                { term: "collaborate" },
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+            const body = (await created.json()) as { entry: VocabularyDto };
+
+            expect(created.status).toBe(201);
+            expect((await dbEntryById(body.entry.id)).userId).toBe(alice.id);
+
+            const bobView = await fetch(`${app.baseUrl}/api/vocabulary`, {
+                headers: { cookie: cookieHeader(bob.jar) },
+            });
+            const bobBody = (await bobView.json()) as VocabularyListBody;
+
+            expect(bobBody.vocabulary).toHaveLength(0);
+            expect(await entryCount(bob.id)).toBe(0);
+        });
+    }, 30_000);
+
+    it("3.7 ограничивает добавление тридцатью запросами за 15 минут", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const attempted: number[] = [];
+
+            for (let attempt = 0; attempt < 30; attempt += 1) {
+                const response = await postJson(
+                    app.baseUrl,
+                    "/api/vocabulary",
+                    { term: `batch-word-${attempt}` },
+                    headers
+                );
+
+                attempted.push(response.status);
+            }
+
+            const limited = await postJson(
+                app.baseUrl,
+                "/api/vocabulary",
+                { term: "batch-word-30" },
+                headers
+            );
+            const limitedText = await limited.text();
+
+            expect(attempted).toEqual(Array.from({ length: 30 }, () => 201));
+            expect(limited.status).toBe(429);
+            expect(errorBody(JSON.parse(limitedText)).error.code).toBe("RATE_LIMITED");
+            expect(limited.headers.get("retry-after")).toBeTruthy();
+            expect(await entryCount(me.id)).toBe(30);
+        });
+    }, 60_000);
+
+    it("3.8 гранты: authenticated не может insert, запись делает только service-role", async () => {
+        const email = `${EMAIL_PREFIX}-grants-${randomUUID()}@example.test`;
+        const userId = await createConfirmedUser(email);
+        const tokens = await sessionPairFor(email);
+        const user = createUserClient(tokens.accessToken);
+
+        const inserted = await user
+            .from("vocabulary")
+            .insert({ user_id: userId, term: "collaborate" })
+            .select("id");
+
+        expect(inserted.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
+        expect(await entryCount(userId)).toBe(0);
+    }, 30_000);
+});

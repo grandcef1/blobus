@@ -66,3 +66,48 @@ export async function fetchVocabularyEntries(): Promise<VocabularyEntryDto[]> {
 
     return vocabulary;
 }
+
+/** Тело добавления слова: ровно поля контракта POST /api/vocabulary, без user_id и source_lesson_id. */
+export interface AddVocabularyInput {
+    term: string;
+    translation?: string | null;
+    context?: string | null;
+}
+
+// ARCHITECT: мок-ветка повторяет серверную идемпотентность: дубль по lower(term) возвращает существующую
+// запись, новое слово добавляется в мок-список. real-ветка — мутация через apiFetch (CSRF и refresh внутри
+// транспорта), конверт { entry } распаковывается здесь.
+export async function addVocabularyEntry(input: AddVocabularyInput): Promise<VocabularyEntryDto> {
+    if (USE_MOCKS) {
+        await delayMock();
+        const term = input.term.trim();
+        const existing = MOCK_VOCABULARY_ENTRIES.find(
+            (entry) => entry.term.toLowerCase() === term.toLowerCase()
+        );
+
+        if (existing !== undefined) return existing;
+
+        const now = new Date().toISOString();
+        const entry: VocabularyEntryDto = {
+            id: crypto.randomUUID(),
+            term,
+            translation: input.translation ?? null,
+            context: input.context ?? null,
+            sourceLessonId: null,
+            createdAt: now,
+            updatedAt: now,
+        };
+
+        MOCK_VOCABULARY_ENTRIES.push(entry);
+
+        return entry;
+    }
+
+    // ARCHITECT: тело уходит объектом: apiFetch сериализует его сам, строка была бы JSON-строкой внутри JSON.
+    const { entry } = await apiFetch<{ entry: VocabularyEntryDto }>("/vocabulary", {
+        method: "POST",
+        body: input,
+    });
+
+    return entry;
+}

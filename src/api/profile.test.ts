@@ -5,7 +5,13 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
-import { MOCK_PROFILE, fetchProfile, updateProfile } from "@/api/profile";
+import {
+    MOCK_PROFILE,
+    deleteAvatar,
+    fetchProfile,
+    updateProfile,
+    uploadAvatar,
+} from "@/api/profile";
 import type { ProfileDto } from "@/api/profile";
 
 // ARCHITECT: apiFetch мокается точечно, ApiError остаётся настоящим: real-режимные тесты проверяют проброс
@@ -168,5 +174,82 @@ describe("real-режим: updateProfile пишет DTO через apiFetch", ()
         await expect(profile.updateProfile({ dailyMinutes: 30 })).rejects.toMatchObject({
             statusCode: 403,
         });
+    });
+});
+describe("мок-режим: транспорт аватара", () => {
+    it("5.1 uploadAvatar возвращает путь и не ходит в apiFetch; повтор даёт новый путь", async () => {
+        const first = await uploadAvatar("data:image/png;base64,AAAA");
+        const second = await uploadAvatar("data:image/png;base64,AAAA");
+
+        expect(apiFetchMock).not.toHaveBeenCalled();
+        expect(first.avatarPath.startsWith("mock/")).toBe(true);
+        expect(first.avatarPath.endsWith(".png")).toBe(true);
+        expect(second.avatarPath).not.toBe(first.avatarPath);
+    });
+
+    it("5.2 deleteAvatar возвращает { avatarPath: null } без apiFetch", async () => {
+        const result = await deleteAvatar();
+
+        expect(apiFetchMock).not.toHaveBeenCalled();
+        expect(result).toEqual({ avatarPath: null });
+    });
+});
+
+describe("real-режим: транспорт аватара", () => {
+    beforeEach(() => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        vi.resetModules();
+    });
+
+    afterEach(() => {
+        apiFetchMock.mockReset();
+        vi.unstubAllEnvs();
+        vi.resetModules();
+        vi.restoreAllMocks();
+    });
+
+    /** Модуль подгружается заново под реальный VITE_USE_MOCKS=false. */
+    function loadRealProfile(): Promise<typeof import("@/api/profile")> {
+        return import("@/api/profile");
+    }
+
+    it("5.3 uploadAvatar: POST /profile/avatar с телом-объектом и распаковка .avatarPath", async () => {
+        const image = "data:image/png;base64,AAAA";
+        apiFetchMock.mockResolvedValue({ avatarPath: "user-id/key.png" });
+        const profile = await loadRealProfile();
+
+        const result = await profile.uploadAvatar(image);
+
+        expect(result).toEqual({ avatarPath: "user-id/key.png" });
+        // ARCHITECT: тело уходит объектом — apiFetch сериализует сам; строка была бы JSON внутри JSON.
+        expect(apiFetchMock).toHaveBeenCalledWith("/profile/avatar", {
+            method: "POST",
+            body: { image },
+        });
+    });
+
+    it("5.4 deleteAvatar: DELETE /profile/avatar и { avatarPath: null }", async () => {
+        apiFetchMock.mockResolvedValue({ avatarPath: null });
+        const profile = await loadRealProfile();
+
+        const result = await profile.deleteAvatar();
+
+        expect(result).toEqual({ avatarPath: null });
+        expect(apiFetchMock).toHaveBeenCalledWith("/profile/avatar", { method: "DELETE" });
+    });
+
+    it("5.5 пробрасывает 400, 401 и 403, не глотая их", async () => {
+        const { ApiError } = await import("@/api/client");
+        apiFetchMock
+            .mockRejectedValueOnce(new ApiError(400, "Request could not be processed"))
+            .mockRejectedValueOnce(new ApiError(401, "Unauthorized"))
+            .mockRejectedValueOnce(new ApiError(403, "Request forbidden"));
+        const profile = await loadRealProfile();
+
+        await expect(profile.uploadAvatar("data:image/png;base64,AAAA")).rejects.toMatchObject({
+            statusCode: 400,
+        });
+        await expect(profile.deleteAvatar()).rejects.toMatchObject({ statusCode: 401 });
+        await expect(profile.deleteAvatar()).rejects.toMatchObject({ statusCode: 403 });
     });
 });

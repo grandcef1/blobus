@@ -74,3 +74,35 @@ export async function updateProfile(input: UpdateProfileInput): Promise<ProfileD
 
     return profile;
 }
+
+// ARCHITECT: транспорт аватара без ресайза: компактный base64 готовит UI (B-9), сервер валидирует картинку.
+// ProfileDto пока не содержит avatar-полей — расширение в B-8.
+let mockAvatarPath: string | null = null;
+
+/** Загружает готовый data URL аватара и возвращает ключ объекта в бакете. */
+export async function uploadAvatar(image: string): Promise<{ avatarPath: string }> {
+    if (USE_MOCKS) {
+        await delayMock();
+        mockAvatarPath = `mock/${crypto.randomUUID()}.png`;
+
+        return { avatarPath: mockAvatarPath };
+    }
+
+    // ARCHITECT: тело уходит объектом: apiFetch сериализует его сам, строка была бы JSON-строкой внутри JSON.
+    return apiFetch<{ avatarPath: string }>("/profile/avatar", {
+        method: "POST",
+        body: { image },
+    });
+}
+
+/** Идемпотентный сброс аватара на дефолт: сервер отвечает `{ avatarPath: null }` в любом случае. */
+export async function deleteAvatar(): Promise<{ avatarPath: null }> {
+    if (USE_MOCKS) {
+        await delayMock();
+        mockAvatarPath = null;
+
+        return { avatarPath: null };
+    }
+
+    return apiFetch<{ avatarPath: null }>("/profile/avatar", { method: "DELETE" });
+}

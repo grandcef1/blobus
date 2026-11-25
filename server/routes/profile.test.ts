@@ -181,6 +181,19 @@ function patchJson(
     });
 }
 
+function deleteJson(
+    baseUrl: string,
+    path: string,
+    headers: Record<string, string>,
+    body?: unknown
+): Promise<Response> {
+    return fetch(`${baseUrl}${path}`, {
+        method: "DELETE",
+        headers: body === undefined ? headers : { "content-type": "application/json", ...headers },
+        body: body === undefined ? undefined : JSON.stringify(body),
+    });
+}
+
 /** Сессия в куках после логина: access, refresh и уже ротированный csrf. */
 async function loginSession(baseUrl: string, email: string = ctxUser().email): Promise<Jar> {
     const pair = await fetchCsrfPair(baseUrl);
@@ -970,6 +983,141 @@ describe("POST /api/profile/avatar", () => {
             expect(response.status).toBe(413);
             expect(errorBody(await response.json()).error.code).toBe("PAYLOAD_TOO_LARGE");
             expect(await dbProfile(me.id)).toEqual(before);
+        });
+    }, 60_000);
+});
+describe("DELETE /api/profile/avatar", () => {
+    it("3.1 удаляет аватар: профиль без пути, объект удалён из бакета", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const uploaded = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(512, 512, 65_536) },
+                headers
+            );
+
+            expect(uploaded.status).toBe(200);
+
+            const response = await deleteJson(app.baseUrl, "/api/profile/avatar", headers);
+            const body = (await response.json()) as { avatarPath: null };
+
+            expect(response.status).toBe(200);
+            expect(body).toEqual({ avatarPath: null });
+            expect(await avatarPathOf(me.id)).toBeNull();
+            expect(await avatarNames(me.id)).toEqual([]);
+        });
+    }, 60_000);
+
+    it("3.2 идемпотентность: DELETE без аватара отвечает 200 и ничего не удаляет", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const response = await deleteJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { avatarPath: null };
+
+            expect(response.status).toBe(200);
+            expect(body).toEqual({ avatarPath: null });
+            expect(await avatarPathOf(me.id)).toBeNull();
+            expect(await avatarNames(me.id)).toEqual([]);
+        });
+    }, 60_000);
+
+    it("3.3 отвечает 401 без куки и на поддельный токен, не светя его", async () => {
+        await withApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const sentinel = "forged-avatar-delete-sentinel";
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+            try {
+                const anonymous = await deleteJson(
+                    app.baseUrl,
+                    "/api/profile/avatar",
+                    mutationHeaders(pair, app.baseUrl)
+                );
+                const anonymousBody = errorBody(await anonymous.json());
+                const forgedJar = { ...pair, [COOKIE_NAMES.accessToken]: sentinel };
+                const forged = await deleteJson(
+                    app.baseUrl,
+                    "/api/profile/avatar",
+                    mutationHeaders(forgedJar, app.baseUrl)
+                );
+                const forgedText = await forged.text();
+
+                expect(anonymous.status).toBe(401);
+                expect(forged.status).toBe(401);
+                expect(errorBody(JSON.parse(forgedText)).error.code).toBe(anonymousBody.error.code);
+                expect(forgedText).not.toContain(sentinel);
+                expect(JSON.stringify([...forged.headers.entries()])).not.toContain(sentinel);
+                expect(errorSpy.mock.calls.flat().map(String).join("\n")).not.toContain(sentinel);
+            } finally {
+                errorSpy.mockRestore();
+            }
+        });
+    }, 60_000);
+
+    it("3.4 отвечает 403 без CSRF-пары: путь и объект целы", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const uploaded = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 65_536) },
+                headers
+            );
+            const uploadedBody = (await uploaded.json()) as { avatarPath: string };
+            const response = await deleteJson(app.baseUrl, "/api/profile/avatar", {
+                cookie: cookieHeader(me.jar),
+                origin: app.baseUrl,
+            });
+
+            expect(response.status).toBe(403);
+            expect(errorBody(await response.json()).error.code).toBe("FORBIDDEN");
+            expect(await avatarPathOf(me.id)).toBe(uploadedBody.avatarPath);
+            expect(await avatarNames(me.id)).toHaveLength(1);
+
+            await clearAvatars(me.id);
+        });
+    }, 60_000);
+
+    it("3.5 тело игнорируется: чужой userId не трогает аватар второго пользователя", async () => {
+        await withApp(async (app) => {
+            const alice = await freshSession(app.baseUrl);
+            const bob = await freshSession(app.baseUrl);
+            const aliceHeaders = mutationHeaders(alice.jar, app.baseUrl);
+            const bobHeaders = mutationHeaders(bob.jar, app.baseUrl);
+            const aliceUpload = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 65_536) },
+                aliceHeaders
+            );
+            const bobUpload = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 65_536) },
+                bobHeaders
+            );
+            const alicePath = ((await aliceUpload.json()) as { avatarPath: string }).avatarPath;
+            const bobPath = ((await bobUpload.json()) as { avatarPath: string }).avatarPath;
+
+            const response = await deleteJson(app.baseUrl, "/api/profile/avatar", aliceHeaders, {
+                userId: bob.id,
+            });
+
+            expect(response.status).toBe(200);
+            expect(await avatarPathOf(alice.id)).toBeNull();
+            expect(await avatarPathOf(bob.id)).toBe(bobPath);
+            expect(await avatarNames(bob.id)).toEqual([bobPath.slice(bob.id.length + 1)]);
+            expect(await avatarNames(alice.id)).toEqual([]);
+
+            await clearAvatars(bob.id);
+            expect(alicePath).not.toBe(bobPath);
         });
     }, 60_000);
 });

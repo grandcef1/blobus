@@ -275,7 +275,16 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
             .update({ avatar_path: key })
             .eq("id", payload.userId);
 
-        if (updated.error !== null) throw updated.error;
+        if (updated.error !== null) {
+            // ARCHITECT: upload прошёл, запись нет — только что загруженный объект убирается best-effort,
+            // чтобы в бакете не остался сирота; ошибка уходит в общий обработчик.
+            await client.storage
+                .from(AVATAR_BUCKET)
+                .remove([key])
+                .catch(() => undefined);
+
+            throw updated.error;
+        }
 
         // ARCHITECT: прежний объект удаляется после успешной записи нового и best-effort: сбой удаления не
         // валит запрос — иначе пользователь потерял бы уже сохранённый аватар.
@@ -287,6 +296,63 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
         }
 
         res.status(200).json({ avatarPath: key });
+    });
+
+    // ARCHITECT: DELETE /avatar — идемпотентный сброс на дефолт. Сначала профиль теряет ссылку, затем
+    // удаляется объект: обратный порядок оставил бы профиль со ссылкой на уже удалённый файл. Тело DELETE
+    // не читается вовсе — чужой userId в нём игнорируется.
+    router.delete("/avatar", avatarLimiter, validateCsrf, async (req: Request, res: Response) => {
+        const accessToken = getCookie(req, COOKIE_NAMES.accessToken);
+
+        if (accessToken === undefined) {
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        let payload;
+
+        try {
+            payload = await verifyAccessToken(env, accessToken, tokenCache);
+        } catch {
+            // ARCHITECT: просроченный, поддельный и чужой токен отвечают одинаково, без деталей (§16.4).
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        const client = createServiceClient(env);
+        const { data, error } = await client
+            .from("profiles")
+            .select("avatar_path")
+            .eq("id", payload.userId)
+            .maybeSingle();
+
+        if (error !== null) throw error;
+
+        // ARCHITECT: строку заводит триггер handle_new_user; её отсутствие — аномалия, отвечаем 404 без деталей.
+        if (data === null) {
+            res.status(404).json(errorEnvelope("NOT_FOUND", res));
+            return;
+        }
+
+        const previousPath = data.avatar_path;
+
+        if (previousPath !== null) {
+            const updated = await client
+                .from("profiles")
+                .update({ avatar_path: null })
+                .eq("id", payload.userId);
+
+            if (updated.error !== null) throw updated.error;
+
+            // ARCHITECT: файл удаляется после успешного сброса ссылки и best-effort: сбой storage не валит
+            // запрос — профиль уже без аватара, а объект можно убрать отдельной уборкой.
+            await client.storage
+                .from(AVATAR_BUCKET)
+                .remove([previousPath])
+                .catch(() => undefined);
+        }
+
+        res.status(200).json({ avatarPath: null });
     });
 
     return router;

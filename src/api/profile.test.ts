@@ -5,7 +5,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
-import { MOCK_PROFILE, fetchProfile } from "@/api/profile";
+import { MOCK_PROFILE, fetchProfile, updateProfile } from "@/api/profile";
 import type { ProfileDto } from "@/api/profile";
 
 // ARCHITECT: apiFetch мокается точечно, ApiError остаётся настоящим: real-режимные тесты проверяют проброс
@@ -85,5 +85,88 @@ describe("real-режим: fetchProfile читает DTO через apiFetch", (
         const profile = await loadRealProfile();
 
         await expect(profile.fetchProfile()).rejects.toThrow();
+    });
+});
+describe("мок-режим: updateProfile правит MOCK_PROFILE", () => {
+    it("5.1 обновляет мок и не ходит в apiFetch", async () => {
+        const updated = await updateProfile({ displayName: "Алекс", dailyMinutes: 35 });
+
+        expect(apiFetchMock).not.toHaveBeenCalled();
+        expect(updated.displayName).toBe("Алекс");
+        expect(updated.dailyMinutes).toBe(35);
+        expect(MOCK_PROFILE.displayName).toBe("Алекс");
+        expect(MOCK_PROFILE.dailyMinutes).toBe(35);
+        // ARCHITECT: непереданные поля остаются как были — частичный патч не затирает локаль.
+        expect(updated.locale).toBe("ru");
+        expect(updated.memberSince).toBe(MOCK_PROFILE.memberSince);
+    });
+});
+
+describe("real-режим: updateProfile пишет DTO через apiFetch", () => {
+    const fixture: ProfileDto = {
+        displayName: "Алекс",
+        locale: "en",
+        dailyMinutes: 35,
+        memberSince: "2026-10-01T08:00:00.000Z",
+        onboardingCompleted: true,
+    };
+
+    beforeEach(() => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        vi.resetModules();
+    });
+
+    afterEach(() => {
+        apiFetchMock.mockReset();
+        vi.unstubAllEnvs();
+        vi.resetModules();
+        vi.restoreAllMocks();
+    });
+
+    /** Модуль подгружается заново под реальный VITE_USE_MOCKS=false. */
+    function loadRealProfile(): Promise<typeof import("@/api/profile")> {
+        return import("@/api/profile");
+    }
+
+    it("5.2 PATCH /profile с телом-объектом и распаковка .profile", async () => {
+        apiFetchMock.mockResolvedValue({ profile: fixture });
+        const profile = await loadRealProfile();
+        const input = { displayName: "Алекс", locale: "en" as const, dailyMinutes: 35 };
+
+        const result = await profile.updateProfile(input);
+
+        expect(result).toEqual(fixture);
+        // ARCHITECT: тело уходит объектом — apiFetch сериализует сам; строка была бы JSON внутри JSON.
+        expect(apiFetchMock).toHaveBeenCalledWith("/profile", { method: "PATCH", body: input });
+    });
+
+    it("5.3 пробрасывает 400, не глотая его", async () => {
+        const { ApiError } = await import("@/api/client");
+        apiFetchMock.mockRejectedValue(new ApiError(400, "Request could not be processed"));
+        const profile = await loadRealProfile();
+
+        await expect(profile.updateProfile({ dailyMinutes: 4 })).rejects.toMatchObject({
+            statusCode: 400,
+        });
+    });
+
+    it("5.4 пробрасывает 401, не глотая его", async () => {
+        const { ApiError } = await import("@/api/client");
+        apiFetchMock.mockRejectedValue(new ApiError(401, "Unauthorized"));
+        const profile = await loadRealProfile();
+
+        await expect(profile.updateProfile({ dailyMinutes: 30 })).rejects.toMatchObject({
+            statusCode: 401,
+        });
+    });
+
+    it("5.5 пробрасывает 403 (нет CSRF-пары), не глотая его", async () => {
+        const { ApiError } = await import("@/api/client");
+        apiFetchMock.mockRejectedValue(new ApiError(403, "Request forbidden"));
+        const profile = await loadRealProfile();
+
+        await expect(profile.updateProfile({ dailyMinutes: 30 })).rejects.toMatchObject({
+            statusCode: 403,
+        });
     });
 });

@@ -44,3 +44,33 @@ export async function fetchProfile(): Promise<ProfileDto> {
 
     return profile;
 }
+
+/** Тело обновления профиля: только профильные поля, без id и служебных колонок. */
+export interface UpdateProfileInput {
+    displayName?: string;
+    locale?: "ru" | "en" | "es";
+    dailyMinutes?: number;
+}
+
+// ARCHITECT: мок-ветка правит локальный мок (поведение хранилища страницы), real-ветка — мутация через
+// apiFetch: cookie-сессия, CSRF и refresh уже внутри транспорта; конверт { profile } распаковывается здесь.
+export async function updateProfile(input: UpdateProfileInput): Promise<ProfileDto> {
+    if (USE_MOCKS) {
+        await delayMock();
+
+        // ARCHITECT: меняются только переданные поля: отсутствующее в патче значение не затирается undefined.
+        if (input.displayName !== undefined) MOCK_PROFILE.displayName = input.displayName;
+        if (input.locale !== undefined) MOCK_PROFILE.locale = input.locale;
+        if (input.dailyMinutes !== undefined) MOCK_PROFILE.dailyMinutes = input.dailyMinutes;
+
+        return MOCK_PROFILE;
+    }
+
+    // ARCHITECT: тело уходит объектом: apiFetch сериализует его сам, строка была бы JSON-строкой внутри JSON.
+    const { profile } = await apiFetch<{ profile: ProfileDto }>("/profile", {
+        method: "PATCH",
+        body: input,
+    });
+
+    return profile;
+}

@@ -5,7 +5,7 @@
 import { randomUUID } from "node:crypto";
 import type { Server } from "node:http";
 import type { AddressInfo } from "node:net";
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { buildApp } from "../app.ts";
 import { COOKIE_NAMES, configureCookies } from "../cookies.ts";
@@ -163,6 +163,19 @@ function postJson(
 ): Promise<Response> {
     return fetch(`${baseUrl}${path}`, {
         method: "POST",
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify(body),
+    });
+}
+
+function patchJson(
+    baseUrl: string,
+    path: string,
+    body: unknown,
+    headers: Record<string, string>
+): Promise<Response> {
+    return fetch(`${baseUrl}${path}`, {
+        method: "PATCH",
         headers: { "content-type": "application/json", ...headers },
         body: JSON.stringify(body),
     });
@@ -478,4 +491,208 @@ describe("RLS таблицы profiles", () => {
         expect(foreign.data).toHaveLength(0);
         expect(anonymous.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
     }, 30_000);
+});
+describe("PATCH /api/profile", () => {
+    it("3.1 частичное обновление: меняется только переданное поле, остальные целы", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const before = await dbProfile(me.id);
+            const response = await patchJson(
+                app.baseUrl,
+                "/api/profile",
+                { dailyMinutes: 45 },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as ProfileBody;
+            const after = await dbProfile(me.id);
+
+            expect(response.status).toBe(200);
+            expect(body.profile.dailyMinutes).toBe(45);
+            expect(body.profile.displayName).toBe(before.display_name);
+            expect(body.profile.locale).toBe(before.locale);
+            expect(body.profile.memberSince).toBe(before.created_at);
+            expect(body.profile.onboardingCompleted).toBe(false);
+            expect(after.daily_minutes).toBe(45);
+            expect(after.display_name).toBe(before.display_name);
+            expect(after.locale).toBe(before.locale);
+        });
+    }, 30_000);
+
+    it("3.2 обновление имени и локали: DTO равен БД, остальные поля целы", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const before = await dbProfile(me.id);
+            const response = await patchJson(
+                app.baseUrl,
+                "/api/profile",
+                { displayName: "Алекс", locale: "en" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as ProfileBody;
+            const after = await dbProfile(me.id);
+
+            expect(response.status).toBe(200);
+            expect(after.display_name).toBe("Алекс");
+            expect(after.locale).toBe("en");
+            expect(after.daily_minutes).toBe(before.daily_minutes);
+            expect(body.profile).toEqual({
+                displayName: after.display_name,
+                locale: after.locale,
+                dailyMinutes: after.daily_minutes,
+                memberSince: after.created_at,
+                onboardingCompleted: after.onboarding_completed_at !== null,
+            });
+            expect(Object.keys(body.profile).sort()).toEqual([
+                "dailyMinutes",
+                "displayName",
+                "locale",
+                "memberSince",
+                "onboardingCompleted",
+            ]);
+        });
+    }, 30_000);
+
+    it("3.3 отклоняет 400: вне допустимых значений, служебные поля и пустое тело", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const before = await dbProfile(me.id);
+            const invalidBodies: readonly unknown[] = [
+                { locale: "xx" },
+                { dailyMinutes: 4 },
+                { dailyMinutes: 121 },
+                { displayName: "x".repeat(81) },
+                // ARCHITECT: id/userId/служебные колонки приходят не от клиента — strictObject их отклоняет.
+                { id: "a1b2c3d4-0001-4000-8000-000000000001" },
+                { userId: "a1b2c3d4-0001-4000-8000-000000000001" },
+                { createdAt: "2026-11-18T10:00:00.000Z" },
+                { onboardingCompletedAt: null },
+                {},
+            ];
+
+            for (const body of invalidBodies) {
+                const response = await patchJson(app.baseUrl, "/api/profile", body, headers);
+
+                expect(response.status).toBe(400);
+                expect(errorBody(await response.json()).error.code).toBe("BAD_REQUEST");
+            }
+
+            expect(await dbProfile(me.id)).toEqual(before);
+        });
+    }, 30_000);
+
+    it("3.4 отвечает 401 без куки и на поддельный токен, не светя его", async () => {
+        await withApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const sentinel = "forged-profile-token-sentinel";
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+            const body = { dailyMinutes: 30 };
+
+            try {
+                const anonymous = await patchJson(
+                    app.baseUrl,
+                    "/api/profile",
+                    body,
+                    mutationHeaders(pair, app.baseUrl)
+                );
+                const anonymousBody = errorBody(await anonymous.json());
+                const forgedJar = { ...pair, [COOKIE_NAMES.accessToken]: sentinel };
+                const forged = await patchJson(
+                    app.baseUrl,
+                    "/api/profile",
+                    body,
+                    mutationHeaders(forgedJar, app.baseUrl)
+                );
+                const forgedText = await forged.text();
+                const forgedBody = errorBody(JSON.parse(forgedText));
+
+                expect(anonymous.status).toBe(401);
+                expect(forged.status).toBe(401);
+                expect(forgedBody.error.code).toBe(anonymousBody.error.code);
+                expect(forgedBody.error.message).toBe(anonymousBody.error.message);
+                expect(forgedText).not.toContain(sentinel);
+                expect(JSON.stringify([...forged.headers.entries()])).not.toContain(sentinel);
+                expect(errorSpy.mock.calls.flat().map(String).join("\n")).not.toContain(sentinel);
+            } finally {
+                errorSpy.mockRestore();
+            }
+        });
+    }, 30_000);
+    it("3.5 отвечает 403 без CSRF-пары и не меняет строку", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const before = await dbProfile(me.id);
+            const response = await patchJson(
+                app.baseUrl,
+                "/api/profile",
+                { dailyMinutes: 90 },
+                { cookie: cookieHeader(me.jar), origin: app.baseUrl }
+            );
+            const text = await response.text();
+
+            expect(response.status).toBe(403);
+            expect(errorBody(JSON.parse(text)).error.code).toBe("FORBIDDEN");
+            expect(await dbProfile(me.id)).toEqual(before);
+        });
+    }, 30_000);
+
+    it("3.6 чужой id в теле отсекается, чужая строка не меняется", async () => {
+        await withApp(async (app) => {
+            const alice = await freshSession(app.baseUrl);
+            const bob = await freshSession(app.baseUrl);
+            const bobBefore = await dbProfile(bob.id);
+            const tampered = await patchJson(
+                app.baseUrl,
+                "/api/profile",
+                { id: bob.id, displayName: "Взлом" },
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+
+            expect(tampered.status).toBe(400);
+            expect(await dbProfile(bob.id)).toEqual(bobBefore);
+
+            const own = await patchJson(
+                app.baseUrl,
+                "/api/profile",
+                { displayName: "Алиса" },
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+
+            expect(own.status).toBe(200);
+            expect((await dbProfile(alice.id)).display_name).toBe("Алиса");
+            expect((await dbProfile(bob.id)).display_name).toBe(bobBefore.display_name);
+        });
+    }, 30_000);
+
+    it("3.7 ограничивает обновление двадцатью запросами за 15 минут", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const attempted: number[] = [];
+
+            for (let attempt = 0; attempt < 20; attempt += 1) {
+                const response = await patchJson(
+                    app.baseUrl,
+                    "/api/profile",
+                    { dailyMinutes: 20 + attempt },
+                    headers
+                );
+
+                attempted.push(response.status);
+            }
+
+            const limited = await patchJson(
+                app.baseUrl,
+                "/api/profile",
+                { dailyMinutes: 60 },
+                headers
+            );
+            const limitedText = await limited.text();
+
+            expect(attempted).toEqual(Array.from({ length: 20 }, () => 200));
+            expect(limited.status).toBe(429);
+            expect(errorBody(JSON.parse(limitedText)).error.code).toBe("RATE_LIMITED");
+            expect(limited.headers.get("retry-after")).toBeTruthy();
+        });
+    }, 60_000);
 });

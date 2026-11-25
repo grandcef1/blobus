@@ -261,6 +261,59 @@ async function dbProfile(id: string): Promise<{
     return data;
 }
 
+/** PNG-фикстура реального размера: сигнатура, IHDR со сторонами и IDAT-набивка заданного веса. */
+function pngDataUrl(width: number, height: number, paddingBytes: number): string {
+    const u32 = (value: number): Buffer => {
+        const buffer = Buffer.alloc(4);
+        buffer.writeUInt32BE(value, 0);
+
+        return buffer;
+    };
+    const chunk = (type: string, data: Buffer): Buffer =>
+        Buffer.concat([u32(data.length), Buffer.from(type, "ascii"), data, Buffer.alloc(4)]);
+    const signature = Buffer.from([0x89, 0x50, 0x4e, 0x47, 0x0d, 0x0a, 0x1a, 0x0a]);
+    const header = chunk(
+        "IHDR",
+        Buffer.concat([u32(width), u32(height), Buffer.from([8, 6, 0, 0, 0])])
+    );
+    const data = chunk("IDAT", Buffer.alloc(paddingBytes, 0x42));
+
+    return `data:image/png;base64,${Buffer.concat([signature, header, data]).toString("base64")}`;
+}
+
+/** Текущий avatar_path из БД: отдельный запрос, потому что dbProfile читает другой набор колонок. */
+async function avatarPathOf(userId: string): Promise<string | null> {
+    const { data, error } = await createAdminClient()
+        .from("profiles")
+        .select("avatar_path")
+        .eq("id", userId)
+        .single();
+
+    if (error !== null) throw error;
+
+    return data.avatar_path;
+}
+
+/** Имена объектов в «папке» пользователя внутри бакета avatars. */
+async function avatarNames(userId: string): Promise<string[]> {
+    const { data, error } = await createAdminClient().storage.from("avatars").list(userId);
+
+    if (error !== null) throw error;
+
+    return (data ?? []).map((item) => item.name);
+}
+
+/** Убирает объекты тестового пользователя: прогон не должен оставлять мусор в бакете. */
+async function clearAvatars(userId: string): Promise<void> {
+    const names = await avatarNames(userId);
+
+    if (names.length === 0) return;
+
+    await createAdminClient()
+        .storage.from("avatars")
+        .remove(names.map((name) => `${userId}/${name}`));
+}
+
 /** Свежий аккаунт (триггер оставляет дефолты, флаг null) и его сессия: каждый тест изолирован своим юзером. */
 async function freshSession(
     baseUrl: string
@@ -693,6 +746,230 @@ describe("PATCH /api/profile", () => {
             expect(limited.status).toBe(429);
             expect(errorBody(JSON.parse(limitedText)).error.code).toBe("RATE_LIMITED");
             expect(limited.headers.get("retry-after")).toBeTruthy();
+        });
+    }, 60_000);
+});
+describe("POST /api/profile/avatar", () => {
+    it("6.1 загружает PNG реального размера: ключ в профиле и объект в бакете", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const image = pngDataUrl(512, 512, 65_536);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { avatarPath: string };
+            const name = body.avatarPath.slice(me.id.length + 1);
+
+            expect(response.status).toBe(200);
+            expect(body.avatarPath.startsWith(`${me.id}/`)).toBe(true);
+            expect(body.avatarPath.endsWith(".png")).toBe(true);
+            expect(await avatarPathOf(me.id)).toBe(body.avatarPath);
+            expect(await avatarNames(me.id)).toEqual([name]);
+
+            await clearAvatars(me.id);
+        });
+    }, 60_000);
+
+    it("6.2 повторная загрузка: новый ключ, прежний объект удалён, в профиле новый путь", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const first = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(512, 512, 65_536) },
+                headers
+            );
+            const firstBody = (await first.json()) as { avatarPath: string };
+            const second = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 70_000) },
+                headers
+            );
+            const secondBody = (await second.json()) as { avatarPath: string };
+            const names = await avatarNames(me.id);
+
+            expect(first.status).toBe(200);
+            expect(second.status).toBe(200);
+            expect(secondBody.avatarPath).not.toBe(firstBody.avatarPath);
+            expect(await avatarPathOf(me.id)).toBe(secondBody.avatarPath);
+            expect(names).toEqual([secondBody.avatarPath.slice(me.id.length + 1)]);
+
+            await clearAvatars(me.id);
+        });
+    }, 60_000);
+
+    it("6.3 отклоняет 400: невалидный data URL, webp, магия не та, лишнее поле", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const bob = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const validPng = pngDataUrl(256, 256, 65_536);
+            const invalidBodies: readonly unknown[] = [
+                { image: "hello" },
+                { image: validPng.replace("image/png", "image/webp") },
+                // ARCHITECT: заявлен JPEG, содержимое PNG — магия обязана совпасть с MIME.
+                { image: validPng.replace("image/png", "image/jpeg") },
+                { image: validPng, userId: bob.id },
+            ];
+
+            for (const body of invalidBodies) {
+                const response = await postJson(app.baseUrl, "/api/profile/avatar", body, headers);
+
+                expect(response.status).toBe(400);
+                expect(errorBody(await response.json()).error.code).toBe("BAD_REQUEST");
+            }
+
+            expect(await avatarPathOf(me.id)).toBeNull();
+            expect(await avatarNames(me.id)).toEqual([]);
+        });
+    }, 60_000);
+    it("6.4 отвечает 401 без куки и на поддельный токен, не светя его", async () => {
+        await withApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const sentinel = "forged-avatar-token-sentinel";
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+            const body = { image: pngDataUrl(256, 256, 65_536) };
+
+            try {
+                const anonymous = await postJson(
+                    app.baseUrl,
+                    "/api/profile/avatar",
+                    body,
+                    mutationHeaders(pair, app.baseUrl)
+                );
+                const anonymousBody = errorBody(await anonymous.json());
+                const forgedJar = { ...pair, [COOKIE_NAMES.accessToken]: sentinel };
+                const forged = await postJson(
+                    app.baseUrl,
+                    "/api/profile/avatar",
+                    body,
+                    mutationHeaders(forgedJar, app.baseUrl)
+                );
+                const forgedText = await forged.text();
+
+                expect(anonymous.status).toBe(401);
+                expect(forged.status).toBe(401);
+                expect(errorBody(JSON.parse(forgedText)).error.code).toBe(anonymousBody.error.code);
+                expect(forgedText).not.toContain(sentinel);
+                expect(JSON.stringify([...forged.headers.entries()])).not.toContain(sentinel);
+                expect(errorSpy.mock.calls.flat().map(String).join("\n")).not.toContain(sentinel);
+            } finally {
+                errorSpy.mockRestore();
+            }
+        });
+    }, 60_000);
+
+    it("6.5 отвечает 403 без CSRF-пары: профиль цел, объектов не добавилось", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 65_536) },
+                { cookie: cookieHeader(me.jar), origin: app.baseUrl }
+            );
+
+            expect(response.status).toBe(403);
+            expect(errorBody(await response.json()).error.code).toBe("FORBIDDEN");
+            expect(await avatarPathOf(me.id)).toBeNull();
+            expect(await avatarNames(me.id)).toEqual([]);
+        });
+    }, 60_000);
+
+    it("6.6 чужой userId в теле отсекается, ключ принадлежит владельцу токена", async () => {
+        await withApp(async (app) => {
+            const alice = await freshSession(app.baseUrl);
+            const bob = await freshSession(app.baseUrl);
+            const tampered = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 65_536), userId: bob.id },
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+
+            expect(tampered.status).toBe(400);
+            expect(await avatarPathOf(bob.id)).toBeNull();
+
+            const own = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 65_536) },
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+            const ownBody = (await own.json()) as { avatarPath: string };
+
+            expect(own.status).toBe(200);
+            expect(ownBody.avatarPath.startsWith(`${alice.id}/`)).toBe(true);
+            expect(await avatarPathOf(bob.id)).toBeNull();
+
+            await clearAvatars(alice.id);
+        });
+    }, 60_000);
+    it("6.7 ограничивает загрузку десятью запросами за 15 минут", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const image = pngDataUrl(256, 256, 65_536);
+            const attempted: number[] = [];
+
+            for (let attempt = 0; attempt < 10; attempt += 1) {
+                const response = await postJson(
+                    app.baseUrl,
+                    "/api/profile/avatar",
+                    { image },
+                    headers
+                );
+
+                attempted.push(response.status);
+            }
+
+            const limited = await postJson(app.baseUrl, "/api/profile/avatar", { image }, headers);
+            const limitedText = await limited.text();
+
+            expect(attempted).toEqual(Array.from({ length: 10 }, () => 200));
+            expect(limited.status).toBe(429);
+            expect(errorBody(JSON.parse(limitedText)).error.code).toBe("RATE_LIMITED");
+            expect(limited.headers.get("retry-after")).toBeTruthy();
+
+            await clearAvatars(me.id);
+        });
+    }, 120_000);
+
+    it("6.8 тело больше 400kb на аватаре: 413 PAYLOAD_TOO_LARGE", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: `data:image/png;base64,${"A".repeat(420_000)}` },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+
+            expect(response.status).toBe(413);
+            expect(errorBody(await response.json()).error.code).toBe("PAYLOAD_TOO_LARGE");
+            expect(await avatarPathOf(me.id)).toBeNull();
+        });
+    }, 60_000);
+
+    it("6.9 регресс: PATCH под глобальным лимитом 16kb — больше лимита даёт 413", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const before = await dbProfile(me.id);
+            const response = await patchJson(
+                app.baseUrl,
+                "/api/profile",
+                { displayName: "x".repeat(20_000) },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+
+            expect(response.status).toBe(413);
+            expect(errorBody(await response.json()).error.code).toBe("PAYLOAD_TOO_LARGE");
+            expect(await dbProfile(me.id)).toEqual(before);
         });
     }, 60_000);
 });

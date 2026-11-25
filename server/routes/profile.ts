@@ -2,6 +2,7 @@
 // RLS select-own, а userId берётся только из проверенного access-токена, никогда из клиента (§16.2, §16.5).
 // ARCHITECT: ответ PostgREST читается как unknown и разбирается Zod, поэтому тип строки не покидает модуль
 // (§16.13): наружу уходит явный DTO.
+import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { z } from "zod";
@@ -10,6 +11,7 @@ import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
 import { COOKIE_NAMES, getCookie } from "../cookies.ts";
 import { validateCsrf } from "../csrf.ts";
 import { errorEnvelope } from "../http.ts";
+import { ImageError, decodeAvatarDataUrl } from "../image.ts";
 import { createMemoryRateLimitStore, createRateLimiter } from "../rate-limit.ts";
 import { createServiceClient, createUserClient } from "../supabase.ts";
 import type { SupabaseEnv } from "../supabase.ts";
@@ -52,6 +54,16 @@ interface ProfilePatch {
     daily_minutes?: number;
 }
 
+// ARCHITECT: тело загрузки — только data URL: картинка приходит одной строкой, multipart не вводим (§6.3).
+const AvatarUploadSchema = z.strictObject({
+    image: z.string().min(1).max(350_000),
+});
+const AVATAR_BUCKET = "avatars";
+// ARCHITECT: лимит загрузок строже правки профиля: каждая запись — байты в storage, 10 за 15 минут хватает
+// человеку и отсекает скрипт, забивающий бакет.
+const AVATAR_WINDOW_MS = 15 * 60_000;
+const AVATAR_MAX = 10;
+
 export function createProfileRouter(options: { readonly env: SupabaseEnv }): Router {
     const { env } = options;
     const router = Router();
@@ -66,6 +78,12 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
         windowMs: UPDATE_WINDOW_MS,
         max: UPDATE_MAX,
         scope: "profile:update",
+    });
+    const avatarLimiter = createRateLimiter({
+        store: createMemoryRateLimitStore(),
+        windowMs: AVATAR_WINDOW_MS,
+        max: AVATAR_MAX,
+        scope: "profile:avatar",
     });
     // ARCHITECT: кэш проверки токена — на экземпляр роутера: verifyAccessToken сам ограничивает срок записи
     // min от ttl кэша и exp токена.
@@ -185,6 +203,90 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
                 onboardingCompleted: row.data.onboarding_completed_at !== null,
             },
         });
+    });
+
+    // ARCHITECT: POST /avatar — картинка приходит data URL. Ключ объекта генерирует сервер и он начинается
+    // с userId: префикс проверяется при чтении (B-7), оригинальное имя файла не используется (§16.10).
+    router.post("/avatar", avatarLimiter, validateCsrf, async (req: Request, res: Response) => {
+        const accessToken = getCookie(req, COOKIE_NAMES.accessToken);
+
+        if (accessToken === undefined) {
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        let payload;
+
+        try {
+            payload = await verifyAccessToken(env, accessToken, tokenCache);
+        } catch {
+            // ARCHITECT: просроченный, поддельный и чужой токен отвечают одинаково, без деталей (§16.4).
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        const parsed = AvatarUploadSchema.safeParse(req.body);
+
+        if (!parsed.success) {
+            res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+            return;
+        }
+
+        let image;
+
+        try {
+            image = decodeAvatarDataUrl(parsed.data.image);
+        } catch (error) {
+            // ARCHITECT: детали отклонённой картинки наружу не уходят и в лог не пишутся — только 400 (§16.4, §16.11).
+            if (error instanceof ImageError) {
+                res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+                return;
+            }
+
+            throw error;
+        }
+
+        const client = createServiceClient(env);
+        const { data, error } = await client
+            .from("profiles")
+            .select("avatar_path")
+            .eq("id", payload.userId)
+            .maybeSingle();
+
+        if (error !== null) throw error;
+
+        // ARCHITECT: строку заводит триггер handle_new_user; её отсутствие — аномалия, отвечаем 404 без деталей.
+        if (data === null) {
+            res.status(404).json(errorEnvelope("NOT_FOUND", res));
+            return;
+        }
+
+        const previousPath = data.avatar_path;
+        const key = `${payload.userId}/${randomUUID()}.${image.ext}`;
+        const uploaded = await client.storage
+            .from(AVATAR_BUCKET)
+            .upload(key, image.buffer, { contentType: image.mime, upsert: false });
+
+        if (uploaded.error !== null) throw uploaded.error;
+
+        // ARCHITECT: путь пишется только после успешной загрузки: битая ссылка в профиле хуже, чем мусор в бакете.
+        const updated = await client
+            .from("profiles")
+            .update({ avatar_path: key })
+            .eq("id", payload.userId);
+
+        if (updated.error !== null) throw updated.error;
+
+        // ARCHITECT: прежний объект удаляется после успешной записи нового и best-effort: сбой удаления не
+        // валит запрос — иначе пользователь потерял бы уже сохранённый аватар.
+        if (previousPath !== null && previousPath !== key) {
+            await client.storage
+                .from(AVATAR_BUCKET)
+                .remove([previousPath])
+                .catch(() => undefined);
+        }
+
+        res.status(200).json({ avatarPath: key });
     });
 
     return router;

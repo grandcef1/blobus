@@ -102,6 +102,10 @@ export function buildApp(registerRoutes?: (app: Express) => void, env?: Supabase
     // разметку отдаёт статика, а не этот сервер.
     app.use(helmet());
     app.use(attachRequestId);
+    // ARCHITECT: увеличенное тело принимается только маршрутом аватара (картинка в base64);
+    // глобальный лимит 16kb для остальных маршрутов сохраняется (§16.7). Парсер помечает тело
+    // разобранным, поэтому глобальный парсер его пропускает.
+    app.use("/api/profile/avatar", express.json({ limit: "400kb" }));
     // ARCHITECT: лимит тела стоит до парсинга — body-parser отклонит слишком большой запрос, не разбирая JSON.
     app.use(express.json({ limit: "16kb" }));
 

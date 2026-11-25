@@ -5,6 +5,7 @@
 import { create } from "zustand";
 import { persist } from "zustand/middleware";
 import {
+    completeOnboarding as completeOnboardingRequest,
     fetchCurrentUser,
     handleOAuthRedirect,
     signIn as signInRequest,
@@ -25,6 +26,8 @@ interface AuthState {
     signUp: (name: string, email: string, password: string) => Promise<AuthUser>;
     signInWithGoogle: () => Promise<AuthUser>;
     signOut: () => void;
+    /** Отмечает завершение онбординга на сервере, затем ставит флаг в состоянии. */
+    completeOnboarding: () => Promise<void>;
     /** Отмечает почту подтверждённой: статус живёт только здесь, профиль его не дублирует. */
     markEmailVerified: () => void;
 }
@@ -54,6 +57,16 @@ export const useAuthStore = create<AuthState>()(
                 // Ошибку гасим — она уже залогирована в apiFetch, а интерфейс к этому моменту гость.
                 void signOutRequest().catch(() => undefined);
                 set({ user: null });
+            },
+            completeOnboarding: async () => {
+                await completeOnboardingRequest();
+                // ARCHITECT: пустой патч для гостя, как в markEmailVerified; флаг ставится только после
+                // успешного ответа сервера.
+                set((state) =>
+                    state.user === null
+                        ? {}
+                        : { user: { ...state.user, onboardingCompleted: true } }
+                );
             },
             // ARCHITECT: пустой патч, когда пользователя нет: гость, открывший ссылку из письма, не
             // должен получить аккаунт — подтверждение применимо только к существующей сессии.

@@ -5,6 +5,7 @@
 
 import { useState } from "react";
 import { motion } from "framer-motion";
+import { useAuthStore } from "@/store/auth";
 import { AuthStep } from "./AuthStep";
 import { WelcomeStep } from "./WelcomeStep";
 
@@ -27,11 +28,22 @@ type IntroPhase = "welcome" | "auth";
 
 export function IntroStep({ onNext, step, totalSteps }: IntroStepProps) {
     const [phase, setPhase] = useState<IntroPhase>("welcome");
+    const isAuthenticated = useAuthStore((state) => state.user !== null);
 
     if (phase === "welcome") {
         return (
             <motion.div key="welcome" {...PHASE_MOTION}>
-                <WelcomeStep onNext={() => setPhase("auth")} />
+                <WelcomeStep
+                    onNext={() => {
+                        // ARCHITECT: Google-возврат приходит в мастер уже авторизованным; форма
+                        // регистрации предложила бы завести дубль аккаунта.
+                        if (isAuthenticated) {
+                            onNext();
+                            return;
+                        }
+                        setPhase("auth");
+                    }}
+                />
             </motion.div>
         );
     }
@@ -39,11 +51,7 @@ export function IntroStep({ onNext, step, totalSteps }: IntroStepProps) {
     // ARCHITECT: «Назад» на фазе аккаунта возвращает к приветствию, а не выводит из мастера:
     // внутри одного шага назад значит предыдущая фаза.
     return (
-        <motion.div
-            key="auth"
-            {...PHASE_MOTION}
-            className="mx-auto w-full max-w-4xl px-6 py-16"
-        >
+        <motion.div key="auth" {...PHASE_MOTION} className="mx-auto w-full max-w-4xl px-6 py-16">
             <AuthStep
                 onNext={onNext}
                 onBack={() => setPhase("welcome")}

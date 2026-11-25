@@ -22,6 +22,9 @@ export interface AuthUser {
     // семантика та же: свежая регистрация не подтверждена, а вход и OAuth означают, что адрес уже
     // проверен (для входа нужен доступ к почте либо доверенный провайдер).
     emailVerified: boolean;
+    // ARCHITECT: необязательное: legacy-состояние (persisted мок или старый сервер) поля не содержит,
+    // и его отсутствие трактуется как «пройден» — редирект только по явному false.
+    onboardingCompleted?: boolean;
 }
 
 // ARCHITECT: отдельный флаг от VITE_USE_MOCKS: остальные модули остаются на моках, а вход идёт в реальный
@@ -67,13 +70,19 @@ function nameFromEmail(email: string): string {
     return words.charAt(0).toUpperCase() + words.slice(1);
 }
 
-function createUser(name: string, email: string, emailVerified: boolean): AuthUser {
+function createUser(
+    name: string,
+    email: string,
+    emailVerified: boolean,
+    onboardingCompleted: boolean
+): AuthUser {
     return {
         id: `user_${crypto.randomUUID()}`,
         name,
         email,
         role: resolveRole(email),
         emailVerified,
+        onboardingCompleted,
     };
 }
 
@@ -81,6 +90,8 @@ function createUser(name: string, email: string, emailVerified: boolean): AuthUs
 interface SessionUser {
     readonly id: string;
     readonly email: string;
+    // ARCHITECT: флаг из контракта ТЗ-1; optional — совместимость при раскатке (старый сервер).
+    readonly onboardingCompleted?: boolean;
 }
 
 // ARCHITECT: имя выводится из адреса тем же правилом, что в моке: серверный контракт /api/auth его не
@@ -92,6 +103,8 @@ function toSessionAuthUser(user: SessionUser): AuthUser {
         email: user.email,
         role: resolveRole(user.email),
         emailVerified: true,
+        // ARCHITECT: отсутствие поля (старый сервер) = онбординг пройден: редирект только по явному false.
+        onboardingCompleted: user.onboardingCompleted ?? true,
     };
 }
 
@@ -133,7 +146,7 @@ export async function signIn(email: string, password: string): Promise<AuthUser>
         void password;
         // ARCHITECT: существующий аккаунт считается подтверждённым — иначе вход вёл бы на экран
         // подтверждения почты, то есть гейт срабатывал бы дважды.
-        return resolveAfterDelay(createUser(nameFromEmail(email), email, true));
+        return resolveAfterDelay(createUser(nameFromEmail(email), email, true, true));
     }
 
     const { user } = await apiFetch<{ user: SessionUser }>("/auth/login", {
@@ -148,7 +161,7 @@ export async function signUp(name: string, email: string, password: string): Pro
     if (!USE_REAL_AUTH) {
         void password;
         // ARCHITECT: свежая регистрация не подтверждена: письмо ещё не открыто.
-        return resolveAfterDelay(createUser(name.trim(), email, false));
+        return resolveAfterDelay(createUser(name.trim(), email, false, false));
     }
 
     // ARCHITECT: сервер регистрацию не логинит — ответ неотличим для нового и занятого адреса
@@ -167,7 +180,7 @@ export async function signInWithGoogle(): Promise<AuthUser> {
     if (!USE_REAL_AUTH) {
         // ARCHITECT: фиктивный профиль: реальный ответ придёт от Google через бэкенд.
         // ARCHITECT: OAuth-провайдер уже верифицировал почту — подтверждать нечего.
-        return resolveAfterDelay(createUser("Алекс", "alex@gmail.com", true));
+        return resolveAfterDelay(createUser("Алекс", "alex@gmail.com", true, true));
     }
 
     // ARCHITECT: без публичных значений Supabase Google-вход не настроен, и кнопка в форме скрыта. Вызов
@@ -318,6 +331,27 @@ export async function signOut(): Promise<void> {
     if (!USE_REAL_AUTH) return;
 
     await apiFetch<{ status: string }>("/auth/logout", { method: "POST" });
+}
+
+/**
+ * Отмечает завершение онбординга на сервере (идемпотентно). Мок-режим — no-op.
+ */
+export async function completeOnboarding(): Promise<void> {
+    if (!USE_REAL_AUTH) {
+        await delayMock();
+        return;
+    }
+
+    try {
+        await apiFetch<{ status: string }>("/auth/onboarding-complete", { method: "POST" });
+    } catch (error) {
+        // ARCHITECT: access-кука живёт час и к финалу мастера могла истечь; apiFetch не обновляет auth-пути,
+        // поэтому одна попытка refresh и повтор — endpoint идемпотентен, повтор безопасен.
+        if (!(error instanceof ApiError) || error.statusCode !== 401) throw error;
+
+        await refreshSession();
+        await apiFetch<{ status: string }>("/auth/onboarding-complete", { method: "POST" });
+    }
 }
 
 // ARCHITECT: точки замены на Supabase (resetPasswordForEmail / updateUser / verifyOtp) — только этот

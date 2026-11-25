@@ -16,6 +16,8 @@ import { createSession } from "@/api/sessions";
 import { getResult } from "@/api/placement";
 import { levelForMode } from "@/lib/placement";
 import { useAuthStore } from "@/store/auth";
+import { toast } from "@/store/toast";
+import i18n from "@/lib/i18n";
 import { cn } from "@/lib/utils";
 import { Seo } from "@/components/shared/Seo";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
@@ -87,6 +89,28 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
         handleNext();
     };
 
+    // ARCHITECT: отметка завершения ставится до перехода в /app, сервер — источник правды; порядок
+    // «сначала сервер, потом навигация» исключает вход в приложение с неотмеченным онбордингом.
+    const finishFullFlow = async () => {
+        try {
+            await useAuthStore.getState().completeOnboarding();
+        } catch {
+            // ARCHITECT: сбой отметки — остаёмся на шаге; повтор безопасен, endpoint идемпотентен.
+            toast.error(i18n.t("errors.generic", { ns: "auth" }));
+            return;
+        }
+
+        // ARCHITECT: мягкий гейт подтверждения почты: после регистрации предлагаем открыть письмо,
+        // но /app не блокируем — «Продолжить без подтверждения» ведёт в приложение. Статус читаем
+        // из стора прямо в обработчике: подписка мастеру не нужна, значение нужно один раз.
+        if (useAuthStore.getState().user?.emailVerified === false) {
+            navigate("/verify-email?sent=1", { replace: true });
+            return;
+        }
+
+        startSession();
+    };
+
     const handleNext = () => {
         const nextIndex = currentStepIndex + 1;
         if (nextIndex < totalSteps) {
@@ -94,11 +118,8 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
             return;
         }
 
-        // ARCHITECT: мягкий гейт подтверждения почты: после регистрации предлагаем открыть письмо,
-        // но /app не блокируем — «Продолжить без подтверждения» ведёт в приложение. Статус читаем
-        // из стора прямо в обработчике: подписка мастеру не нужна, значение нужно один раз.
-        if (flow === "full" && useAuthStore.getState().user?.emailVerified === false) {
-            navigate("/verify-email?sent=1", { replace: true });
+        if (flow === "full") {
+            void finishFullFlow();
             return;
         }
 
@@ -136,7 +157,9 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
                 называет именно тот, куда пришёл пользователь. Индексация закрыта: это мастер. */}
             <Seo
                 indexable={false}
-                title={flow === "session" ? t("onboarding.seoNewSession") : t("onboarding.seoSetup")}
+                title={
+                    flow === "session" ? t("onboarding.seoNewSession") : t("onboarding.seoSetup")
+                }
             />
             <AnimatePresence mode="wait">
                 <motion.div

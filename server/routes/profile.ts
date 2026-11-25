@@ -8,6 +8,7 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 
 import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
+import type { TokenPayload } from "../auth.ts";
 import { COOKIE_NAMES, getCookie } from "../cookies.ts";
 import { validateCsrf } from "../csrf.ts";
 import { errorEnvelope } from "../http.ts";
@@ -16,19 +17,34 @@ import { createMemoryRateLimitStore, createRateLimiter } from "../rate-limit.ts"
 import { createServiceClient, createUserClient } from "../supabase.ts";
 import type { SupabaseEnv } from "../supabase.ts";
 
-// ARCHITECT: nullable означает отсутствие строки профиля — аномалию контура, которую отдаём как 404 без
-// деталей; иначе разбирается ровно набор колонок чтения. avatar_path опционален: PATCH-обработчик читает
-// свой набор колонок без него, и схема не должна ломать его разбор.
-const ProfileRowSchema = z
-    .object({
+// ARCHITECT: три схемы вместо одной общей: чтение требует все колонки и nullable avatar_path, PATCH — только
+// три клиентских поля, загрузка — data URL. Общая схема с optional-полем ломала разбор PATCH (B-8).
+const ProfileReadSchema = z
+    .strictObject({
+        id: z.uuid(),
         display_name: z.string(),
         locale: z.enum(["ru", "en", "es"]),
         daily_minutes: z.number().int(),
-        avatar_path: z.string().nullable().optional(),
+        avatar_path: z.string().nullable(),
         created_at: z.string(),
         onboarding_completed_at: z.string().nullable(),
     })
     .nullable();
+
+type ProfileRow = NonNullable<z.infer<typeof ProfileReadSchema>>;
+
+/** Контракт собственной строки профиля: те же поля, что отдаёт GET, PATCH и клиентский ProfileDto. */
+interface ProfileDto {
+    readonly displayName: string;
+    readonly locale: "ru" | "en" | "es";
+    readonly dailyMinutes: number;
+    readonly memberSince: string;
+    readonly onboardingCompleted: boolean;
+    readonly avatarUrl: string | null;
+    readonly providerAvatarUrl: string | null;
+}
+
+// ARCHITECT: патч собирается только из переданных полей, поэтому ключи в именах колонок.
 
 // ARCHITECT: лимит чтения стоит первым middleware, чтобы поток отсекался до Supabase. Счёт в памяти —
 // дев/тесты: инстансы Vercel не делят память, прод получит общий RateLimitStore (как exchangeLimiter в auth.ts).
@@ -41,7 +57,7 @@ const UPDATE_MAX = 20;
 
 // ARCHITECT: тело обновления — только профильные колонки клиента: id, created_at и флаг онбординга
 // неизменяемы, лишние ключи отклоняет strictObject (§16.6). Минимум одно поле — пустой PATCH бессмыслен.
-const UpdateProfileSchema = z
+const ProfilePatchSchema = z
     .strictObject({
         displayName: z.string().max(80).optional(),
         locale: z.enum(["ru", "en", "es"]).optional(),
@@ -93,6 +109,35 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
     // min от ttl кэша и exp токена.
     const tokenCache = createInMemoryTokenCache();
 
+    // ARCHITECT: маппер строки в DTO один на GET и PATCH: подпись аватара и проверка префикса живут здесь,
+    // а не дублируются в обработчиках (§16.5).
+    const rowToProfileDto = async (row: ProfileRow, payload: TokenPayload): Promise<ProfileDto> => {
+        // ARCHITECT: подписываем только свой объект: ключ генерил сервер с префиксом userId, поэтому чужой или
+        // битый префикс не подписывается — иначе чтение профиля стало бы IDOR на чужую картинку (§16.5).
+        let avatarUrl: string | null = null;
+
+        if (row.avatar_path !== null && row.avatar_path.startsWith(`${payload.userId}/`)) {
+            const signed = await createServiceClient(env)
+                .storage.from(AVATAR_BUCKET)
+                .createSignedUrl(row.avatar_path, AVATAR_SIGNED_URL_TTL_SECONDS);
+
+            if (signed.error !== null) throw signed.error;
+
+            avatarUrl = signed.data.signedUrl;
+        }
+
+        // ARCHITECT: providerAvatarUrl уже провалидирован при проверке токена, здесь повторно не проверяется.
+        return {
+            displayName: row.display_name,
+            locale: row.locale,
+            dailyMinutes: row.daily_minutes,
+            memberSince: row.created_at,
+            onboardingCompleted: row.onboarding_completed_at !== null,
+            avatarUrl,
+            providerAvatarUrl: payload.providerAvatarUrl,
+        };
+    };
+
     // ARCHITECT: GET — безопасный метод: смысла запроса чтение не меняет, поэтому CSRF не применяется (как /me).
     router.get("/", readLimiter, async (req: Request, res: Response) => {
         const accessToken = getCookie(req, COOKIE_NAMES.accessToken);
@@ -117,14 +162,14 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
         const { data, error } = await createUserClient(env, accessToken)
             .from("profiles")
             .select(
-                "display_name, locale, daily_minutes, avatar_path, created_at, onboarding_completed_at"
+                "id, display_name, locale, daily_minutes, avatar_path, created_at, onboarding_completed_at"
             )
             .eq("id", payload.userId)
             .maybeSingle();
 
         if (error !== null) throw error;
 
-        const parsed = ProfileRowSchema.safeParse(data);
+        const parsed = ProfileReadSchema.safeParse(data);
 
         if (!parsed.success) throw parsed.error;
 
@@ -134,34 +179,7 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
             return;
         }
 
-        // ARCHITECT: подписываем только свой объект: ключ генерил сервер с префиксом userId, поэтому чужой или
-        // битый префикс не подписывается — иначе чтение профиля стало бы IDOR на чужую картинку (§16.5).
-        let avatarUrl: string | null = null;
-        const avatarPath = parsed.data.avatar_path;
-
-        if (typeof avatarPath === "string" && avatarPath.startsWith(`${payload.userId}/`)) {
-            const signed = await createServiceClient(env)
-                .storage.from(AVATAR_BUCKET)
-                .createSignedUrl(avatarPath, AVATAR_SIGNED_URL_TTL_SECONDS);
-
-            if (signed.error !== null) throw signed.error;
-
-            avatarUrl = signed.data.signedUrl;
-        }
-
-        // ARCHITECT: наружу уходит только DTO: имена колонок и внутренний тип строки не проходят за границу.
-        // providerAvatarUrl уже провалидирован при проверке токена, здесь повторно не проверяется.
-        const profile = {
-            displayName: parsed.data.display_name,
-            locale: parsed.data.locale,
-            dailyMinutes: parsed.data.daily_minutes,
-            memberSince: parsed.data.created_at,
-            onboardingCompleted: parsed.data.onboarding_completed_at !== null,
-            avatarUrl,
-            providerAvatarUrl: payload.providerAvatarUrl,
-        };
-
-        res.status(200).json({ profile });
+        res.status(200).json({ profile: await rowToProfileDto(parsed.data, payload) });
     });
 
     // ARCHITECT: PATCH — мутация: лимитер -> validateCsrf -> обработчик, как в sessions.ts/vocabulary.ts.
@@ -183,7 +201,7 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
             return;
         }
 
-        const parsed = UpdateProfileSchema.safeParse(req.body);
+        const parsed = ProfilePatchSchema.safeParse(req.body);
 
         if (!parsed.success) {
             res.status(400).json(errorEnvelope("BAD_REQUEST", res));
@@ -198,16 +216,24 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
 
         // ARCHITECT: обновление делает service-role (обходит колоночный grant): владение задаётся проверенным
         // userId из токена, клиентские id/userId в тело не принимаются — strictObject их отклоняет (§16.5).
-        const { data, error } = await createServiceClient(env)
+        const client = createServiceClient(env);
+        const updated = await client.from("profiles").update(patch).eq("id", payload.userId);
+
+        if (updated.error !== null) throw updated.error;
+
+        // ARCHITECT: ответ PATCH — тот же полный DTO, что в GET: строка перечитывается целиком, иначе клиент
+        // получал бы обрезанный контракт (долг B-8, закрыт в B-11).
+        const { data, error } = await client
             .from("profiles")
-            .update(patch)
+            .select(
+                "id, display_name, locale, daily_minutes, avatar_path, created_at, onboarding_completed_at"
+            )
             .eq("id", payload.userId)
-            .select("display_name, locale, daily_minutes, created_at, onboarding_completed_at")
             .maybeSingle();
 
         if (error !== null) throw error;
 
-        const row = ProfileRowSchema.safeParse(data);
+        const row = ProfileReadSchema.safeParse(data);
 
         if (!row.success) throw row.error;
 
@@ -217,16 +243,7 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
             return;
         }
 
-        // ARCHITECT: ответ — тот же DTO, что в GET: имена колонок и внутренний тип строки не покидают модуль.
-        res.status(200).json({
-            profile: {
-                displayName: row.data.display_name,
-                locale: row.data.locale,
-                dailyMinutes: row.data.daily_minutes,
-                memberSince: row.data.created_at,
-                onboardingCompleted: row.data.onboarding_completed_at !== null,
-            },
-        });
+        res.status(200).json({ profile: await rowToProfileDto(row.data, payload) });
     });
 
     // ARCHITECT: POST /avatar — картинка приходит data URL. Ключ объекта генерирует сервер и он начинается

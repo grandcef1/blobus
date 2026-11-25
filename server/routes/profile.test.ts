@@ -584,6 +584,18 @@ describe("PATCH /api/profile", () => {
             expect(body.profile.locale).toBe(before.locale);
             expect(body.profile.memberSince).toBe(before.created_at);
             expect(body.profile.onboardingCompleted).toBe(false);
+            // ARCHITECT: PATCH отдаёт полный DTO — аватар-поля присутствуют и равны null без картинки.
+            expect(body.profile.avatarUrl).toBeNull();
+            expect(body.profile.providerAvatarUrl).toBeNull();
+            expect(Object.keys(body.profile).sort()).toEqual([
+                "avatarUrl",
+                "dailyMinutes",
+                "displayName",
+                "locale",
+                "memberSince",
+                "onboardingCompleted",
+                "providerAvatarUrl",
+            ]);
             expect(after.daily_minutes).toBe(45);
             expect(after.display_name).toBe(before.display_name);
             expect(after.locale).toBe(before.locale);
@@ -613,13 +625,17 @@ describe("PATCH /api/profile", () => {
                 dailyMinutes: after.daily_minutes,
                 memberSince: after.created_at,
                 onboardingCompleted: after.onboarding_completed_at !== null,
+                avatarUrl: null,
+                providerAvatarUrl: null,
             });
             expect(Object.keys(body.profile).sort()).toEqual([
+                "avatarUrl",
                 "dailyMinutes",
                 "displayName",
                 "locale",
                 "memberSince",
                 "onboardingCompleted",
+                "providerAvatarUrl",
             ]);
         });
     }, 30_000);

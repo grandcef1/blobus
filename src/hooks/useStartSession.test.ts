@@ -162,7 +162,7 @@ describe("useStartSession", () => {
             await result.current.startSession("nova", "grammar");
         });
 
-        expect(toastErrorMock).toHaveBeenCalledWith("states.error.title");
+        expect(toastErrorMock).toHaveBeenCalledWith("sessions.create.error");
         expect(navigateMock).toHaveBeenCalledWith("/app/sessions", { replace: true });
     });
 

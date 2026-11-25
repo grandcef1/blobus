@@ -55,6 +55,9 @@
     }
   },
   "sessions": {
+    "create": {
+      "error": "No se pudo crear la sesión"
+    },
     "title": "Sesiones",
     "subtitle": "Diálogos con el tutor, los más recientes primero",
     "card": {

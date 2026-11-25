@@ -28,7 +28,7 @@ export interface StartSessionApi {
 export function useStartSession(): StartSessionApi {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
-    const { t } = useTranslation("common");
+    const { t } = useTranslation("dashboard");
     const inFlight = useRef(false);
 
     // ARCHITECT: без репетитора и режима создавать нечего: ветка защищает режим session и уводит в список,
@@ -70,7 +70,7 @@ export function useStartSession(): StartSessionApi {
                 // ARCHITECT: один тост на 401: терминальный тост и редирект делает общий useAuthExpiry
                 // внутри useSessions, когда список откроется.
                 if (!(error instanceof ApiError && error.statusCode === 401)) {
-                    toast.error(t("states.error.title"));
+                    toast.error(t("sessions.create.error"));
                 }
 
                 navigate("/app/sessions", { replace: true });

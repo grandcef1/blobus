@@ -10,7 +10,12 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 import { buildApp } from "../app.ts";
 import { COOKIE_NAMES, configureCookies } from "../cookies.ts";
 import type { SupabaseEnv } from "../supabase.ts";
-import { createAdminClient, createAnonClient, readLocalStack } from "../test-stack.ts";
+import {
+    createAdminClient,
+    createAnonClient,
+    createUserClient,
+    readLocalStack,
+} from "../test-stack.ts";
 
 interface RunningApp {
     readonly server: Server;
@@ -35,6 +40,8 @@ const SESSION_COOKIES = [COOKIE_NAMES.accessToken, COOKIE_NAMES.refreshToken];
 // ARCHITECT: формат CSRF-токена задан тестом независимо от csrf.ts: 24 байта base64url = 32 символа —
 // это контракт, который читает фронтенд.
 const TOKEN_PATTERN = /^[A-Za-z0-9_-]{32}$/;
+/** Код Postgres «недостаточно прав»: колонка флага вне колоночного гранта update на profiles. */
+const INSUFFICIENT_PRIVILEGE = "42501";
 
 let env: SupabaseEnv | undefined;
 let userId: string | undefined;
@@ -170,13 +177,12 @@ function postJson(
 }
 
 /** Сессия в куках после логина: access, refresh и уже ротированный csrf. */
-async function loginSession(baseUrl: string): Promise<Jar> {
+async function loginSession(baseUrl: string, email: string = ctxUser().email): Promise<Jar> {
     const pair = await fetchCsrfPair(baseUrl);
-    const user = ctxUser();
     const response = await postJson(
         baseUrl,
         "/api/auth/login",
-        { email: user.email, password: PASSWORD },
+        { email, password: PASSWORD },
         mutationHeaders(pair, baseUrl)
     );
 
@@ -225,6 +231,29 @@ async function sessionPairFor(
 
 function errorBody(body: unknown): ErrorEnvelopeBody {
     return body as ErrorEnvelopeBody;
+}
+
+/** Флаг из БД сервисным клиентом: сверка ответа маршрута с источником правды (§16.5, RLS обходится). */
+async function dbOnboardingFlag(id: string): Promise<string | null> {
+    const { data, error } = await createAdminClient()
+        .from("profiles")
+        .select("onboarding_completed_at")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (error !== null) throw error;
+
+    return data === null ? null : data.onboarding_completed_at;
+}
+
+/** Свежий аккаунт (триггер оставляет флаг null) и его сессия: каждый тест изолирован своим юзером. */
+async function freshSession(
+    baseUrl: string
+): Promise<{ readonly id: string; readonly email: string; readonly jar: Jar }> {
+    const email = `${EMAIL_PREFIX}-fresh-${randomUUID()}@example.test`;
+    const id = await createConfirmedUser(email);
+
+    return { id, email, jar: await loginSession(baseUrl, email) };
 }
 
 beforeAll(async () => {
@@ -429,14 +458,20 @@ describe("POST /api/auth/login", () => {
                 { email: user.email, password: PASSWORD },
                 mutationHeaders(pair, app.baseUrl)
             );
-            const body = (await response.json()) as { user: { id: string; email: string } };
+            const body = (await response.json()) as {
+                user: { id: string; email: string; onboardingCompleted: boolean };
+            };
             const access = setCookieHeader(response, COOKIE_NAMES.accessToken) ?? "";
             const refresh = setCookieHeader(response, COOKIE_NAMES.refreshToken) ?? "";
             const rotated = setCookieHeader(response, COOKIE_NAMES.csrfToken) ?? "";
 
             expect(response.status).toBe(200);
-            // ARCHITECT: наружу уходит только DTO — id и адрес, без токенов и служебных полей сессии.
-            expect(body.user).toEqual({ id: user.id, email: user.email });
+            // ARCHITECT: наружу уходит только DTO — id, адрес и флаг онбординга, без токенов и служебных полей.
+            expect(body.user).toEqual({
+                id: user.id,
+                email: user.email,
+                onboardingCompleted: false,
+            });
             expect(access).toContain("HttpOnly");
             expect(access).toContain("SameSite=Lax");
             expect(access).toContain("Path=/");
@@ -547,9 +582,14 @@ describe("GET /api/auth/me", () => {
             const user = ctxUser();
 
             expect(response.status).toBe(200);
-            // ARCHITECT: наружу уходят ровно id и адрес: ни aud, ни exp, ни токенов (§16.13).
-            expect(Object.keys(body.user).sort()).toEqual(["email", "id"]);
-            expect(body.user).toEqual({ id: user.id, email: user.email });
+            // ARCHITECT: наружу уходят id, адрес и флаг онбординга: ни aud, ни exp, ни токенов (§16.13).
+            expect(Object.keys(body.user).sort()).toEqual(["email", "id", "onboardingCompleted"]);
+            // ARCHITECT: ctxUser создан после миграции, триггер оставил флаг null — онбординг не пройден.
+            expect(body.user).toEqual({
+                id: user.id,
+                email: user.email,
+                onboardingCompleted: false,
+            });
         });
     }, 30_000);
 
@@ -679,13 +719,20 @@ describe("POST /api/auth/oauth/exchange", () => {
                 { access_token: tokens.accessToken, refresh_token: tokens.refreshToken },
                 mutationHeaders(pair, app.baseUrl)
             );
-            const body = (await response.json()) as { user: { id: string; email: string } };
+            const body = (await response.json()) as {
+                user: { id: string; email: string; onboardingCompleted: boolean };
+            };
             const access = setCookieHeader(response, COOKIE_NAMES.accessToken) ?? "";
             const refresh = setCookieHeader(response, COOKIE_NAMES.refreshToken) ?? "";
             const rotated = setCookieHeader(response, COOKIE_NAMES.csrfToken) ?? "";
 
             expect(response.status).toBe(200);
-            expect(body.user).toEqual({ id: user.id, email: user.email });
+            // ARCHITECT: поле присутствует и соответствует БД: сверяем ответ маршрута с колонкой профиля.
+            expect(body.user).toEqual({
+                id: user.id,
+                email: user.email,
+                onboardingCompleted: (await dbOnboardingFlag(user.id)) !== null,
+            });
             expect(access).toContain("HttpOnly");
             expect(access).toContain("SameSite=Lax");
             expect(refresh).toContain("HttpOnly");
@@ -805,5 +852,283 @@ describe("POST /api/auth/oauth/exchange", () => {
                 issuedRefresh
             );
         });
+    }, 30_000);
+});
+
+describe("POST /api/auth/onboarding-complete", () => {
+    it("отмечает завершение онбординга идемпотентно", async () => {
+        await withAuthApp(async (app) => {
+            const { id, jar } = await freshSession(app.baseUrl);
+
+            expect(await dbOnboardingFlag(id)).toBeNull();
+
+            const first = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                {},
+                mutationHeaders(jar, app.baseUrl)
+            );
+
+            expect(first.status).toBe(200);
+            expect(await first.json()).toEqual({ status: "ok" });
+
+            const marked = await dbOnboardingFlag(id);
+
+            expect(marked).not.toBeNull();
+
+            // ARCHITECT: повтор обновляет 0 строк и всё равно 200, метка времени не переписывается.
+            const second = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                {},
+                mutationHeaders(jar, app.baseUrl)
+            );
+
+            expect(second.status).toBe(200);
+            expect(await dbOnboardingFlag(id)).toBe(marked);
+        });
+    }, 30_000);
+
+    it("поднимает флаг в /me и /login после отметки", async () => {
+        await withAuthApp(async (app) => {
+            const { email, jar } = await freshSession(app.baseUrl);
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const fresh = await postJson(
+                app.baseUrl,
+                "/api/auth/login",
+                { email, password: PASSWORD },
+                mutationHeaders(pair, app.baseUrl)
+            );
+            const freshBody = (await fresh.json()) as { user: { onboardingCompleted: boolean } };
+
+            expect(freshBody.user.onboardingCompleted).toBe(false);
+
+            const complete = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                {},
+                mutationHeaders(jar, app.baseUrl)
+            );
+            const me = await fetch(`${app.baseUrl}/api/auth/me`, {
+                headers: { cookie: cookieHeader(jar) },
+            });
+            const meBody = (await me.json()) as { user: { onboardingCompleted: boolean } };
+            const again = await postJson(
+                app.baseUrl,
+                "/api/auth/login",
+                { email, password: PASSWORD },
+                mutationHeaders(jar, app.baseUrl)
+            );
+            const againBody = (await again.json()) as { user: { onboardingCompleted: boolean } };
+
+            expect(complete.status).toBe(200);
+            expect(meBody.user.onboardingCompleted).toBe(true);
+            expect(againBody.user.onboardingCompleted).toBe(true);
+        });
+    }, 30_000);
+
+    it("отвечает 401 без access-куки", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                {},
+                mutationHeaders(pair, app.baseUrl)
+            );
+
+            expect(response.status).toBe(401);
+            expect(errorBody(await response.json()).error.code).toBe("UNAUTHORIZED");
+        });
+    }, 30_000);
+
+    it("отвечает 401 на поддельный access-токен и не повторяет его", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const sentinel = "forged-token-sentinel";
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                {},
+                mutationHeaders({ ...pair, [COOKIE_NAMES.accessToken]: sentinel }, app.baseUrl)
+            );
+            const text = await response.text();
+
+            expect(response.status).toBe(401);
+            expect(errorBody(JSON.parse(text)).error.code).toBe("UNAUTHORIZED");
+            // ARCHITECT: токен не возвращается клиенту ни в теле, ни в заголовках (§16.11).
+            expect(text).not.toContain(sentinel);
+        });
+    }, 30_000);
+
+    it("не принимает отметку без CSRF-пары", async () => {
+        await withAuthApp(async (app) => {
+            const { jar } = await freshSession(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                {},
+                { cookie: cookieHeader(jar), origin: app.baseUrl }
+            );
+
+            // ARCHITECT: отметка — мутация: без парного заголовка 403, как у прочих мутаций auth-роутера.
+            expect(response.status).toBe(403);
+            expect(errorBody(await response.json()).error.code).toBe("FORBIDDEN");
+        });
+    }, 30_000);
+
+    it("отклоняет неизвестное поле тела и игнорирует клиентский userId", async () => {
+        await withAuthApp(async (app) => {
+            const { id, jar } = await freshSession(app.baseUrl);
+            const foreignId = await createConfirmedUser(
+                `${EMAIL_PREFIX}-victim-${randomUUID()}@example.test`
+            );
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                { userId: foreignId },
+                mutationHeaders(jar, app.baseUrl)
+            );
+
+            expect(response.status).toBe(400);
+            expect(errorBody(await response.json()).error.code).toBe("BAD_REQUEST");
+            // ARCHITECT: чужой id из тела не применён, и своя строка тоже не отмечена — тело отклонено целиком.
+            expect(await dbOnboardingFlag(foreignId)).toBeNull();
+            expect(await dbOnboardingFlag(id)).toBeNull();
+        });
+    }, 30_000);
+
+    it("не принимает onboardingCompleted в теле логина и регистрации", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const headers = mutationHeaders(pair, app.baseUrl);
+            const email = `${EMAIL_PREFIX}-flag-${randomUUID()}@example.test`;
+            const login = await postJson(
+                app.baseUrl,
+                "/api/auth/login",
+                { email: ctxUser().email, password: PASSWORD, onboardingCompleted: true },
+                headers
+            );
+            const signup = await postJson(
+                app.baseUrl,
+                "/api/auth/signup",
+                { email, password: PASSWORD, onboardingCompleted: true },
+                headers
+            );
+
+            expect(login.status).toBe(400);
+            expect(signup.status).toBe(400);
+            expect(await userExists(email)).toBe(false);
+        });
+    }, 30_000);
+
+    it("не меняет чужой профиль при отметке своего", async () => {
+        await withAuthApp(async (app) => {
+            const mine = await freshSession(app.baseUrl);
+            const foreignEmail = `${EMAIL_PREFIX}-cross-${randomUUID()}@example.test`;
+            const foreignId = await createConfirmedUser(foreignEmail);
+            const foreignJar = await loginSession(app.baseUrl, foreignEmail);
+            const complete = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                {},
+                mutationHeaders(mine.jar, app.baseUrl)
+            );
+            const foreignMe = await fetch(`${app.baseUrl}/api/auth/me`, {
+                headers: { cookie: cookieHeader(foreignJar) },
+            });
+            const foreignBody = (await foreignMe.json()) as {
+                user: { onboardingCompleted: boolean };
+            };
+
+            expect(complete.status).toBe(200);
+            expect(foreignBody.user.onboardingCompleted).toBe(false);
+            expect(await dbOnboardingFlag(foreignId)).toBeNull();
+            expect(await dbOnboardingFlag(mine.id)).not.toBeNull();
+        });
+    }, 30_000);
+
+    it("ограничивает отметку десятью вызовами за 15 минут", async () => {
+        await withAuthApp(async (app) => {
+            const { jar } = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(jar, app.baseUrl);
+            const attempted: number[] = [];
+
+            for (let attempt = 0; attempt < 10; attempt += 1) {
+                const response = await postJson(
+                    app.baseUrl,
+                    "/api/auth/onboarding-complete",
+                    {},
+                    headers
+                );
+
+                attempted.push(response.status);
+            }
+
+            const limited = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                {},
+                headers
+            );
+
+            expect(attempted).toEqual([200, 200, 200, 200, 200, 200, 200, 200, 200, 200]);
+            expect(limited.status).toBe(429);
+            expect(errorBody(await limited.json()).error.code).toBe("RATE_LIMITED");
+        });
+    }, 60_000);
+
+    it("отвечает безопасным конвертом без деталей провайдера", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/onboarding-complete",
+                {},
+                mutationHeaders(pair, app.baseUrl)
+            );
+            const text = await response.text();
+            const body = errorBody(JSON.parse(text));
+
+            expect(response.status).toBe(401);
+            expect(body.error.requestId).toBe(response.headers.get("x-request-id"));
+            expect(text).not.toContain("stack");
+            expect(text).not.toContain("profiles");
+            expect(text).not.toContain("PostgREST");
+        });
+    }, 30_000);
+});
+
+describe("RLS колонки onboarding_completed_at", () => {
+    it("запрещает пользователю писать флаг, но читает только свою строку", async () => {
+        const email = `${EMAIL_PREFIX}-rls-${randomUUID()}@example.test`;
+        const id = await createConfirmedUser(email);
+        const tokens = await sessionPairFor(email);
+        const user = createUserClient(tokens.accessToken);
+        const foreignId = await createConfirmedUser(
+            `${EMAIL_PREFIX}-rls-foreign-${randomUUID()}@example.test`
+        );
+
+        const written = await user
+            .from("profiles")
+            .update({ onboarding_completed_at: new Date().toISOString() })
+            .eq("id", id)
+            .select("id");
+        const own = await user.from("profiles").select("onboarding_completed_at").eq("id", id);
+        const foreign = await user
+            .from("profiles")
+            .select("onboarding_completed_at")
+            .eq("id", foreignId);
+        const anonymous = await createAnonClient()
+            .from("profiles")
+            .select("onboarding_completed_at");
+
+        // ARCHITECT: колонка вне колоночного гранта update — прямая запись из браузера отвергается (§16.5).
+        expect(written.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
+        expect(own.error).toBeNull();
+        expect(own.data).toHaveLength(1);
+        expect(foreign.error).toBeNull();
+        expect(foreign.data).toHaveLength(0);
+        expect(anonymous.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
     }, 30_000);
 });

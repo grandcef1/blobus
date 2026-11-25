@@ -40,6 +40,16 @@ const ExchangeSchema = z.strictObject({
     refresh_token: z.string().min(8).max(512),
 });
 
+// ARCHITECT: ответ PostgREST о флаге читается как unknown и разбирается Zod: тип колонки не покидает модуль
+// (§16.13). Nullable-строка означает отсутствие метки = онбординг не пройден.
+const OnboardingFlagSchema = z
+    .object({ onboarding_completed_at: z.string().nullable() })
+    .nullable();
+
+// ARCHITECT: тело отметки пустое: strictObject отклоняет любое поле, поэтому клиентский userId из тела не
+// принимается (§16.6).
+const EmptySchema = z.strictObject({});
+
 /** Токены сессии в форме, которую ставят куки: тип Supabase за границы модуля не выходит (§16.13). */
 interface SessionTokens {
     readonly accessToken: string;
@@ -109,11 +119,44 @@ function toSessionTokens(session: {
     };
 }
 
+/**
+ * Читает флаг завершения онбординга пользовательским клиентом под RLS select-own: ответ PostgREST
+ * разбирается Zod, поэтому тип строки за границы модуля не выходит (§16.13).
+ */
+async function fetchOnboardingCompleted(
+    env: SupabaseEnv,
+    accessToken: string,
+    userId: string
+): Promise<boolean> {
+    const { data, error } = await createUserClient(env, accessToken)
+        .from("profiles")
+        .select("onboarding_completed_at")
+        .eq("id", userId)
+        .maybeSingle();
+
+    if (error !== null) throw error;
+
+    const parsed = OnboardingFlagSchema.safeParse(data);
+
+    if (!parsed.success) throw parsed.error;
+
+    // ARCHITECT: строки нет — аномалия контура (профиль заводит триггер): считаем онбординг непройденным,
+    // а не падаем; иначе onboarding_completed_at !== null.
+    if (parsed.data === null) return false;
+
+    return parsed.data.onboarding_completed_at !== null;
+}
+
 // ARCHITECT: лимит обмена OAuth-парой живёт здесь, а не рядом с остальными лимитерами: app.ts вне задачи, а
 // ключ маршрута и его защита должны читаться вместе. Счёт в памяти — как у прочих лимитов (только дев-режим
 // и тесты: инстансы Vercel не делят память, прод получит общий RateLimitStore).
 const OAUTH_EXCHANGE_WINDOW_MS = 15 * 60_000;
 const OAUTH_EXCHANGE_MAX = 20;
+
+// ARCHITECT: лимит отметки завершения онбординга живёт здесь же и inline по образцу exchangeLimiter.
+// Счёт в памяти — дев/тесты: инстансы Vercel не делят память, прод получит общий RateLimitStore.
+const ONBOARDING_COMPLETE_WINDOW_MS = 15 * 60_000;
+const ONBOARDING_COMPLETE_MAX = 10;
 
 export function createAuthRouter(options: AuthRouterOptions): Router {
     const { env, limiters } = options;
@@ -123,6 +166,12 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
         windowMs: OAUTH_EXCHANGE_WINDOW_MS,
         max: OAUTH_EXCHANGE_MAX,
         scope: "auth:oauth-exchange",
+    });
+    const onboardingCompleteLimiter = createRateLimiter({
+        store: createMemoryRateLimitStore(),
+        windowMs: ONBOARDING_COMPLETE_WINDOW_MS,
+        max: ONBOARDING_COMPLETE_MAX,
+        scope: "auth:onboarding-complete",
     });
     // ARCHITECT: кэш проверки токена — на экземпляр приложения: /me не ходит в Supabase на каждый запрос,
     // а срок записи ограничивает сам verifyAccessToken (min от ttl кэша и exp токена).
@@ -188,11 +237,20 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
             return;
         }
 
+        // ARCHITECT: флаг читается до установки кук: сбой чтения отдаёт 500 и не оставляет сессию в браузере.
+        const onboardingCompleted = await fetchOnboardingCompleted(
+            env,
+            data.session.access_token,
+            data.user.id
+        );
+
         setSessionCookies(res, toSessionTokens(data.session));
         // ARCHITECT: ротация CSRF на логине: токен, выданный до аутентификации, не переезжает в сессию.
         rotateCsrfToken(res);
 
-        res.status(200).json({ user: { id: data.user.id, email: data.user.email ?? null } });
+        res.status(200).json({
+            user: { id: data.user.id, email: data.user.email ?? null, onboardingCompleted },
+        });
     });
 
     router.post("/refresh", limiters.refresh, validateCsrf, async (req: Request, res: Response) => {
@@ -264,8 +322,18 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
             return;
         }
 
+        // ARCHITECT: флаг читается на каждый вызов (свежесть), кэш покрывает только верификацию токена;
+        // +1 запрос по первичному ключу — осознанно.
+        const onboardingCompleted = await fetchOnboardingCompleted(
+            env,
+            accessToken,
+            payload.userId
+        );
+
         // ARCHITECT: наружу уходит только DTO: id и адрес из проверенного токена, без aud и exp.
-        res.status(200).json({ user: { id: payload.userId, email: payload.email } });
+        res.status(200).json({
+            user: { id: payload.userId, email: payload.email, onboardingCompleted },
+        });
     });
 
     // ARCHITECT: OAuth-обмен: браузер приносит пару токенов из PKCE-танца с Supabase, сервер её проверяет и
@@ -320,12 +388,67 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
                 return;
             }
 
+            // ARCHITECT: флаг читается до установки кук: сбой чтения отдаёт 500 и не оставляет сессию.
+            const onboardingCompleted = await fetchOnboardingCompleted(
+                env,
+                data.session.access_token,
+                data.user.id
+            );
+
             setSessionCookies(res, toSessionTokens(data.session));
             // ARCHITECT: как и на логине, CSRF ротируется: токен, выданный до аутентификации, не переезжает
             // в новую сессию.
             rotateCsrfToken(res);
 
-            res.status(200).json({ user: { id: data.user.id, email: data.user.email ?? null } });
+            res.status(200).json({
+                user: { id: data.user.id, email: data.user.email ?? null, onboardingCompleted },
+            });
+        }
+    );
+
+    // ARCHITECT: service-role обходит RLS, владение enforced в коде проверенным userId (§16.5); маршрут
+    // временно живёт в auth-роутере как состояние пользователя сессии, доменный profile-роутер — отдельная
+    // задача (§16.13).
+    router.post(
+        "/onboarding-complete",
+        onboardingCompleteLimiter,
+        validateCsrf,
+        async (req: Request, res: Response) => {
+            const parsed = EmptySchema.safeParse(req.body ?? {});
+
+            if (!parsed.success) {
+                res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+                return;
+            }
+
+            const accessToken = getCookie(req, COOKIE_NAMES.accessToken);
+
+            if (accessToken === undefined) {
+                res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+                return;
+            }
+
+            let userId: string;
+
+            try {
+                userId = (await verifyAccessToken(env, accessToken, tokenCache)).userId;
+            } catch {
+                // ARCHITECT: просроченный, поддельный и чужой токен отвечают одинаково, куки не снимаем — как /me.
+                res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+                return;
+            }
+
+            // ARCHITECT: идемпотентность: .is(..., null) обновляет только непройденную строку, поэтому повтор
+            // меняет 0 строк и всё равно отвечает 200, а метка времени при повторе не переписывается.
+            const { error } = await createServiceClient(env)
+                .from("profiles")
+                .update({ onboarding_completed_at: new Date().toISOString() })
+                .eq("id", userId)
+                .is("onboarding_completed_at", null);
+
+            if (error !== null) throw error;
+
+            res.status(200).json({ status: "ok" });
         }
     );
 

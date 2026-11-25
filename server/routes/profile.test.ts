@@ -1,0 +1,481 @@
+// ARCHITECT: доменный роутер чтения проверяется по реальному HTTP на локальном стеке Supabase: каждый тест
+// поднимает своё приложение (лимиты в памяти экземпляра не перетекают в соседние проверки), окружение не
+// переключаем — как в server/routes/auth.test.ts. Негативные проверки обязательны: аноним, подделка, IDOR,
+// лимит, отсутствие строки и безопасный конверт.
+import { randomUUID } from "node:crypto";
+import type { Server } from "node:http";
+import type { AddressInfo } from "node:net";
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from "vitest";
+
+import { buildApp } from "../app.ts";
+import { COOKIE_NAMES, configureCookies } from "../cookies.ts";
+import type { SupabaseEnv } from "../supabase.ts";
+import {
+    createAdminClient,
+    createAnonClient,
+    createUserClient,
+    readLocalStack,
+} from "../test-stack.ts";
+
+interface RunningApp {
+    readonly server: Server;
+    readonly baseUrl: string;
+}
+
+interface ErrorEnvelopeBody {
+    readonly error: {
+        readonly code: string;
+        readonly message: string;
+        readonly requestId: string;
+    };
+}
+
+interface ProfileBody {
+    readonly profile: {
+        readonly displayName: string;
+        readonly locale: string;
+        readonly dailyMinutes: number;
+        readonly memberSince: string;
+        readonly onboardingCompleted: boolean;
+    };
+}
+
+/** Куки как их видит клиент: имя → значение, без атрибутов. */
+type Jar = Record<string, string>;
+
+const EMAIL_PREFIX = `profile-${randomUUID()}`;
+const PASSWORD = `Profile-${randomUUID()}-1`;
+const CSRF_HEADER = "x-csrf-token";
+/** Код Postgres «недостаточно прав»: у anon нет select-гранта на profiles. */
+const INSUFFICIENT_PRIVILEGE = "42501";
+
+let env: SupabaseEnv | undefined;
+let userId: string | undefined;
+let userEmail: string | undefined;
+
+/** Отдаёт окружение стека и падает громко: пропуск тестов скрыл бы поломку окружения. */
+function ctxEnv(): SupabaseEnv {
+    if (env === undefined)
+        throw new Error("local Supabase stack is not running: run npx supabase start");
+
+    return env;
+}
+
+/** Пользователь, созданный админ-клиентом в beforeAll: на нём проверяется позитивное чтение. */
+function ctxUser(): { readonly id: string; readonly email: string } {
+    if (userId === undefined || userEmail === undefined)
+        throw new Error("тестовый пользователь не создан");
+
+    return { id: userId, email: userEmail };
+}
+
+/** Поднимает приложение на случайном порту и возвращает адрес для запросов. */
+async function startApp(): Promise<RunningApp> {
+    const server = buildApp(undefined, ctxEnv()).listen(0);
+    await new Promise<void>((resolve) => {
+        server.once("listening", () => resolve());
+    });
+
+    const address: AddressInfo | string | null = server.address();
+    if (address === null || typeof address === "string") {
+        throw new Error("Тестовый сервер не сообщил TCP-адрес");
+    }
+
+    return { server, baseUrl: `http://127.0.0.1:${address.port}` };
+}
+
+/** Сначала рвём keep-alive соединения fetch, потом ждём close: иначе прогон висит до таймаута. */
+async function stopApp(server: Server): Promise<void> {
+    server.closeAllConnections();
+    await new Promise<void>((resolve) => {
+        server.close(() => resolve());
+    });
+}
+
+/** Приложение живёт один тест: лимиты в памяти экземпляра не перетекают в соседние проверки. */
+async function withApp(run: (app: RunningApp) => Promise<void>): Promise<void> {
+    const running = await startApp();
+
+    try {
+        await run(running);
+    } finally {
+        await stopApp(running.server);
+    }
+}
+
+/** Set-Cookie конкретной куки из ответа; undefined, если кука не выставлена. */
+function setCookieHeader(response: Response, name: string): string | undefined {
+    return response.headers.getSetCookie().find((header) => header.startsWith(`${name}=`));
+}
+
+/** Значение куки из Set-Cookie: от «имя=» до первого «;». */
+function cookieValue(header: string): string {
+    return header.slice(header.indexOf("=") + 1).split(";")[0];
+}
+
+/** Дополняет хранилище кук ответом: пустое значение снимает куку, как это делает браузер. */
+function applyCookies(jar: Jar, response: Response): Jar {
+    const next: Jar = { ...jar };
+
+    for (const header of response.headers.getSetCookie()) {
+        const pair = header.split(";")[0];
+        const name = pair.slice(0, pair.indexOf("=")).trim();
+        const value = cookieValue(pair);
+
+        if (value === "") delete next[name];
+        else next[name] = value;
+    }
+
+    return next;
+}
+
+/** Заголовок Cookie из хранилища: браузерного поведения здесь нет, состав задаёт тест. */
+function cookieHeader(jar: Jar): string {
+    return Object.entries(jar)
+        .map(([name, value]) => `${name}=${value}`)
+        .join("; ");
+}
+
+/** Заголовки мутации: куки сессии, csrf-токен из них и same-origin Origin. */
+function mutationHeaders(jar: Jar, baseUrl: string): Record<string, string> {
+    return {
+        cookie: cookieHeader(jar),
+        [CSRF_HEADER]: jar[COOKIE_NAMES.csrfToken] ?? "",
+        origin: baseUrl,
+    };
+}
+
+/** CSRF-пара как её соберёт фронтенд: токен берётся безопасным GET и лежит в куке. */
+async function fetchCsrfPair(baseUrl: string): Promise<Jar> {
+    const response = await fetch(`${baseUrl}/api/auth/csrf`);
+    const header = setCookieHeader(response, COOKIE_NAMES.csrfToken);
+
+    if (header === undefined) throw new Error("GET /api/auth/csrf не выставил csrf-куку");
+
+    return { [COOKIE_NAMES.csrfToken]: cookieValue(header) };
+}
+
+function postJson(
+    baseUrl: string,
+    path: string,
+    body: unknown,
+    headers: Record<string, string>
+): Promise<Response> {
+    return fetch(`${baseUrl}${path}`, {
+        method: "POST",
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify(body),
+    });
+}
+
+/** Сессия в куках после логина: access, refresh и уже ротированный csrf. */
+async function loginSession(baseUrl: string, email: string = ctxUser().email): Promise<Jar> {
+    const pair = await fetchCsrfPair(baseUrl);
+    const response = await postJson(
+        baseUrl,
+        "/api/auth/login",
+        { email, password: PASSWORD },
+        mutationHeaders(pair, baseUrl)
+    );
+
+    if (response.status !== 200)
+        throw new Error(`логин тестового пользователя не удался: ${response.status}`);
+
+    return applyCookies(pair, response);
+}
+
+/** Пользователь с подтверждённой почтой: пароль прогона один, аккаунт живёт до afterAll. */
+async function createConfirmedUser(email: string): Promise<string> {
+    const created = await createAdminClient().auth.admin.createUser({
+        email,
+        password: PASSWORD,
+        email_confirm: true,
+    });
+
+    if (created.data.user === null)
+        throw new Error("админ-создание пользователя не вернуло запись");
+
+    return created.data.user.id;
+}
+
+/** Пара токенов прямо из GoTrue: для прямых RLS-проверок пользовательским клиентом. */
+async function sessionPairFor(
+    email: string
+): Promise<{ accessToken: string; refreshToken: string }> {
+    const { data, error } = await createAnonClient().auth.signInWithPassword({
+        email,
+        password: PASSWORD,
+    });
+
+    if (error !== null || data.session === null) {
+        throw new Error("вход тестового пользователя не вернул сессию");
+    }
+
+    return { accessToken: data.session.access_token, refreshToken: data.session.refresh_token };
+}
+
+function errorBody(body: unknown): ErrorEnvelopeBody {
+    return body as ErrorEnvelopeBody;
+}
+
+/** Имя профиля задаётся админ-клиентом: чужой строке ставим отдельное имя, чтобы поймать утечку. */
+async function setDisplayName(id: string, name: string): Promise<void> {
+    const { error } = await createAdminClient()
+        .from("profiles")
+        .update({ display_name: name })
+        .eq("id", id);
+
+    if (error !== null) throw error;
+}
+
+/** Строка профиля из БД сервисным клиентом: сверка ответа маршрута с источником правды (§16.5, RLS обходится). */
+async function dbProfile(id: string): Promise<{
+    display_name: string;
+    locale: string;
+    daily_minutes: number;
+    created_at: string;
+    onboarding_completed_at: string | null;
+}> {
+    const { data, error } = await createAdminClient()
+        .from("profiles")
+        .select("display_name, locale, daily_minutes, created_at, onboarding_completed_at")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (error !== null) throw error;
+    if (data === null) throw new Error("строка профиля тестового пользователя не создана");
+
+    return data;
+}
+
+/** Свежий аккаунт (триггер оставляет дефолты, флаг null) и его сессия: каждый тест изолирован своим юзером. */
+async function freshSession(
+    baseUrl: string
+): Promise<{ readonly id: string; readonly email: string; readonly jar: Jar }> {
+    const email = `${EMAIL_PREFIX}-fresh-${randomUUID()}@example.test`;
+    const id = await createConfirmedUser(email);
+
+    return { id, email, jar: await loginSession(baseUrl, email) };
+}
+
+beforeAll(async () => {
+    const stack = readLocalStack();
+
+    env = {
+        SUPABASE_URL: stack.url,
+        SUPABASE_PUBLISHABLE_KEY: stack.publishableKey,
+        SUPABASE_SECRET_KEY: stack.secretKey,
+    };
+
+    const email = `${EMAIL_PREFIX}-user@example.test`;
+
+    userId = await createConfirmedUser(email);
+    userEmail = email;
+}, 30_000);
+
+// ARCHITECT: уборка не должна прятать результат тестов: удаляются все аккаунты прогона по префиксу, а
+// ошибка удаления гасится — иначе падение afterAll выглядело бы как падение проверок.
+afterAll(async () => {
+    const admin = createAdminClient();
+    const { data } = await admin.auth.admin.listUsers({ page: 1, perPage: 200 });
+    const stale = (data?.users ?? []).filter((user) => (user.email ?? "").startsWith(EMAIL_PREFIX));
+
+    for (const user of stale) {
+        await admin.auth.admin.deleteUser(user.id).catch(() => undefined);
+    }
+}, 30_000);
+
+// ARCHITECT: локальный стек работает по http, поэтому Secure выключен на время теста; после каждого теста
+// возвращаем fail-closed дефолт, как это делает csrf.test.ts.
+beforeEach(() => {
+    configureCookies({ secure: false });
+});
+
+afterEach(() => {
+    configureCookies({ secure: true });
+});
+
+describe("GET /api/profile", () => {
+    it("отдаёт только DTO профиля по access-куке и совпадает с БД", async () => {
+        await withApp(async (app) => {
+            const jar = await loginSession(app.baseUrl);
+            const response = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: cookieHeader(jar) },
+            });
+            const body = (await response.json()) as ProfileBody;
+            const db = await dbProfile(ctxUser().id);
+
+            expect(response.status).toBe(200);
+            // ARCHITECT: наружу уходят только поля DTO: ни email, ни id, ни updated_at.
+            expect(Object.keys(body.profile).sort()).toEqual([
+                "dailyMinutes",
+                "displayName",
+                "locale",
+                "memberSince",
+                "onboardingCompleted",
+            ]);
+            // ARCHITECT: свежий аккаунт получает дефолты строки profiles и null-флаг онбординга.
+            expect(body.profile).toEqual({
+                displayName: "",
+                locale: "ru",
+                dailyMinutes: 20,
+                memberSince: db.created_at,
+                onboardingCompleted: false,
+            });
+        });
+    }, 30_000);
+
+    it("отвечает 401 без access-куки", async () => {
+        await withApp(async (app) => {
+            const response = await fetch(`${app.baseUrl}/api/profile`);
+            const body = errorBody(await response.json());
+
+            expect(response.status).toBe(401);
+            expect(body.error.code).toBe("UNAUTHORIZED");
+        });
+    }, 30_000);
+
+    it("отвечает 401 на поддельную куку тем же телом, что без куки", async () => {
+        await withApp(async (app) => {
+            const sentinel = "fake-token-sentinel";
+            const anonymous = await fetch(`${app.baseUrl}/api/profile`);
+            const anonymousBody = errorBody(await anonymous.json());
+            const forged = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: `${COOKIE_NAMES.accessToken}=${sentinel}` },
+            });
+            const forgedText = await forged.text();
+            const forgedBody = errorBody(JSON.parse(forgedText));
+
+            expect(forged.status).toBe(401);
+            expect(forgedBody.error.code).toBe(anonymousBody.error.code);
+            expect(forgedBody.error.message).toBe(anonymousBody.error.message);
+            // ARCHITECT: токен не возвращается клиенту ни в теле, ни в заголовках (§16.11).
+            expect(forgedText).not.toContain(sentinel);
+        });
+    }, 30_000);
+
+    it("читает только свою строку: два пользователя с разными именами", async () => {
+        await withApp(async (app) => {
+            const aliceEmail = `${EMAIL_PREFIX}-alice-${randomUUID()}@example.test`;
+            const bobEmail = `${EMAIL_PREFIX}-bob-${randomUUID()}@example.test`;
+            const aliceId = await createConfirmedUser(aliceEmail);
+            const bobId = await createConfirmedUser(bobEmail);
+
+            await setDisplayName(aliceId, "Alice");
+            await setDisplayName(bobId, "Bob");
+
+            const aliceJar = await loginSession(app.baseUrl, aliceEmail);
+            const bobJar = await loginSession(app.baseUrl, bobEmail);
+
+            const alice = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: cookieHeader(aliceJar) },
+            });
+            const bob = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: cookieHeader(bobJar) },
+            });
+
+            expect(((await alice.json()) as ProfileBody).profile.displayName).toBe("Alice");
+            expect(((await bob.json()) as ProfileBody).profile.displayName).toBe("Bob");
+        });
+    }, 30_000);
+
+    it("игнорирует клиентский id в query: читает только свою строку", async () => {
+        await withApp(async (app) => {
+            const aliceEmail = `${EMAIL_PREFIX}-idor-alice-${randomUUID()}@example.test`;
+            const bobEmail = `${EMAIL_PREFIX}-idor-bob-${randomUUID()}@example.test`;
+            const aliceId = await createConfirmedUser(aliceEmail);
+            const bobId = await createConfirmedUser(bobEmail);
+
+            await setDisplayName(aliceId, "Alice");
+            await setDisplayName(bobId, "Bob");
+
+            const jar = await loginSession(app.baseUrl, aliceEmail);
+            const headers = { cookie: cookieHeader(jar) };
+
+            const byId = await fetch(`${app.baseUrl}/api/profile?id=${bobId}`, { headers });
+            const byUserId = await fetch(`${app.baseUrl}/api/profile?userId=${bobId}`, { headers });
+
+            // ARCHITECT: userId берётся только из проверенного токена — чужой id из query не принимается (§16.2).
+            expect(byId.status).toBe(200);
+            expect(((await byId.json()) as ProfileBody).profile.displayName).toBe("Alice");
+            expect(byUserId.status).toBe(200);
+            expect(((await byUserId.json()) as ProfileBody).profile.displayName).toBe("Alice");
+        });
+    }, 30_000);
+
+    it("ограничивает чтение шестьюдесятью запросами за 15 минут", async () => {
+        await withApp(async (app) => {
+            const { jar } = await freshSession(app.baseUrl);
+            const headers = { cookie: cookieHeader(jar) };
+            const attempted: number[] = [];
+
+            for (let attempt = 0; attempt < 60; attempt += 1) {
+                const response = await fetch(`${app.baseUrl}/api/profile`, { headers });
+
+                attempted.push(response.status);
+            }
+
+            const limited = await fetch(`${app.baseUrl}/api/profile`, { headers });
+
+            expect(attempted).toEqual(Array.from({ length: 60 }, () => 200));
+            expect(limited.status).toBe(429);
+            expect(errorBody(await limited.json()).error.code).toBe("RATE_LIMITED");
+            expect(limited.headers.get("retry-after")).toBeTruthy();
+        });
+    }, 60_000);
+
+    it("отвечает 404, когда строки профиля нет", async () => {
+        await withApp(async (app) => {
+            const email = `${EMAIL_PREFIX}-orphan-${randomUUID()}@example.test`;
+            const id = await createConfirmedUser(email);
+            const jar = await loginSession(app.baseUrl, email);
+
+            const removed = await createAdminClient().from("profiles").delete().eq("id", id);
+
+            expect(removed.error).toBeNull();
+
+            const response = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: cookieHeader(jar) },
+            });
+
+            expect(response.status).toBe(404);
+            expect(errorBody(await response.json()).error.code).toBe("NOT_FOUND");
+        });
+    }, 30_000);
+
+    it("отвечает безопасным конвертом без деталей провайдера", async () => {
+        await withApp(async (app) => {
+            const response = await fetch(`${app.baseUrl}/api/profile`);
+            const text = await response.text();
+            const body = errorBody(JSON.parse(text));
+
+            expect(response.status).toBe(401);
+            expect(body.error.requestId).toBe(response.headers.get("x-request-id"));
+            expect(text).not.toContain("stack");
+            expect(text).not.toContain("profiles");
+            expect(text).not.toContain("PostgREST");
+        });
+    }, 30_000);
+});
+
+describe("RLS таблицы profiles", () => {
+    it("читает только свою строку, чужую не видит, анониму отказывает", async () => {
+        const mineEmail = `${EMAIL_PREFIX}-rls-mine-${randomUUID()}@example.test`;
+        const foreignEmail = `${EMAIL_PREFIX}-rls-foreign-${randomUUID()}@example.test`;
+        const mineId = await createConfirmedUser(mineEmail);
+        const foreignId = await createConfirmedUser(foreignEmail);
+        const tokens = await sessionPairFor(mineEmail);
+        const user = createUserClient(tokens.accessToken);
+
+        const own = await user.from("profiles").select("display_name").eq("id", mineId);
+        const foreign = await user.from("profiles").select("display_name").eq("id", foreignId);
+        const anonymous = await createAnonClient().from("profiles").select("display_name");
+
+        // ARCHITECT: политика select-own отдаёт только строку с id = auth.uid(); у anon нет select-гранта (§16.5).
+        expect(own.error).toBeNull();
+        expect(own.data).toHaveLength(1);
+        expect(foreign.error).toBeNull();
+        expect(foreign.data).toHaveLength(0);
+        expect(anonymous.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
+    }, 30_000);
+});

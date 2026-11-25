@@ -10,6 +10,7 @@ import { createMemoryRateLimitStore, createRateLimiter } from "./rate-limit.ts";
 import type { RateLimitStore } from "./rate-limit.ts";
 import { createAuthRouter } from "./routes/auth.ts";
 import type { AuthLimiters } from "./routes/auth.ts";
+import { createProfileRouter } from "./routes/profile.ts";
 import type { SupabaseEnv } from "./supabase.ts";
 
 const SERVICE_NAME = "blobus-api";
@@ -18,9 +19,15 @@ const SERVICE_NAME = "blobus-api";
 function resolveStatus(error: unknown): number {
     if (typeof error === "object" && error !== null) {
         const candidate = error as { status?: unknown; statusCode?: unknown };
-        const status = typeof candidate.status === "number" ? candidate.status : candidate.statusCode;
+        const status =
+            typeof candidate.status === "number" ? candidate.status : candidate.statusCode;
 
-        if (typeof status === "number" && Number.isInteger(status) && status >= 400 && status <= 599) {
+        if (
+            typeof status === "number" &&
+            Number.isInteger(status) &&
+            status >= 400 &&
+            status <= 599
+        ) {
             return status;
         }
     }
@@ -56,9 +63,24 @@ const QUARTER_HOUR_MS = 15 * 60_000;
 function createAuthLimiters(store: RateLimitStore): AuthLimiters {
     return {
         signup: createRateLimiter({ store, windowMs: HOUR_MS, max: 5, scope: "auth:signup" }),
-        login: createRateLimiter({ store, windowMs: QUARTER_HOUR_MS, max: 10, scope: "auth:login" }),
-        refresh: createRateLimiter({ store, windowMs: QUARTER_HOUR_MS, max: 60, scope: "auth:refresh" }),
-        logout: createRateLimiter({ store, windowMs: QUARTER_HOUR_MS, max: 30, scope: "auth:logout" }),
+        login: createRateLimiter({
+            store,
+            windowMs: QUARTER_HOUR_MS,
+            max: 10,
+            scope: "auth:login",
+        }),
+        refresh: createRateLimiter({
+            store,
+            windowMs: QUARTER_HOUR_MS,
+            max: 60,
+            scope: "auth:refresh",
+        }),
+        logout: createRateLimiter({
+            store,
+            windowMs: QUARTER_HOUR_MS,
+            max: 30,
+            scope: "auth:logout",
+        }),
     };
 }
 
@@ -94,6 +116,8 @@ export function buildApp(registerRoutes?: (app: Express) => void, env?: Supabase
             "/api/auth",
             createAuthRouter({ env, limiters: createAuthLimiters(createMemoryRateLimitStore()) })
         );
+        // ARCHITECT: доменный роутер чтения монтируется рядом с auth, до шва registerRoutes и 404-fallback.
+        app.use("/api/profile", createProfileRouter({ env }));
     }
 
     // ARCHITECT: шов registerRoutes: доменные маршруты следующих фаз подключаются здесь, то есть до

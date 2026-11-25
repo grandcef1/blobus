@@ -10,11 +10,10 @@ import { useTranslation } from "react-i18next";
 import { ArrowRight } from "lucide-react";
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
+import { AccountLogoutButton } from "@/components/shared/AccountLogoutButton";
 import { APP_HOME_PATH } from "@/components/layout/navigation";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
-
-const ONBOARDING_PATH = "/onboarding";
 
 // ARCHITECT: база текстовой ветки — только структура (размер как у Button size lg, радиус, whitespace,
 // фокус-ринг, transition). Цвета и hover-цвета приходят из className секции: так база не навязывает чужую
@@ -40,32 +39,31 @@ export function AuthAwareCta({ children, className, variant = "chip" }: AuthAwar
     // ARCHITECT: гость получает children как есть независимо от варианта — обёртка сдвинула бы flex/gap.
     if (user === null) return <>{children}</>;
 
-    // ARCHITECT: решение о маршруте совпадает с Login.tsx и живёт только здесь — секции его не дублируют;
-    // отсутствие поля (legacy) трактуется как «пройден», редирект только по явному false.
+    // ARCHITECT: лендинг-CTA значит «продолжить» и всегда ведёт в дашборд; принуждение к онбордингу живёт
+    // только в Login.tsx на входе (OAuth/пароль), секции его не дублируют.
     if (variant === "text") {
         return (
-            <Link
-                to={user.onboardingCompleted === false ? ONBOARDING_PATH : APP_HOME_PATH}
-                className={cn(TEXT_CTA_BASE, className)}
-            >
+            <Link to={APP_HOME_PATH} className={cn(TEXT_CTA_BASE, className)}>
                 {tLanding("cta.continueLearning")}
             </Link>
         );
     }
 
+    // ARCHITECT: чип и выход — соседи в общем контейнере: интерактивная кнопка внутри ссылки ломала бы
+    // семантику и порядок обхода клавиатурой. className секции (ширина/центрирование) уходит контейнеру.
     return (
-        <Link
-            to={APP_HOME_PATH}
-            className={cn(
-                // ARCHITECT: h-9 совпадает с высотой кнопок Button по умолчанию, поэтому шапка не прыгает.
-                "flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 text-[#f0f0f5] transition-colors hover:border-white/15 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]/60",
-                className
-            )}
-        >
-            <BlobatarAvatar id={MOCK_PROFILE_USER.blobatarId} className="size-6 bg-white/5" />
-            <span className="max-w-28 truncate text-sm">{user.name}</span>
-            <span className="text-xs text-[#f0f0f5]/70">{t("actions.continue")}</span>
-            <ArrowRight className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
-        </Link>
+        <div className={cn("flex items-center gap-2", className)}>
+            {/* ARCHITECT: h-9 совпадает с высотой кнопок Button по умолчанию, поэтому шапка не прыгает. */}
+            <Link
+                to={APP_HOME_PATH}
+                className="flex h-9 items-center gap-2 rounded-full border border-white/10 bg-white/5 px-2.5 text-[#f0f0f5] transition-colors hover:border-white/15 hover:bg-white/10 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]/60"
+            >
+                <BlobatarAvatar id={MOCK_PROFILE_USER.blobatarId} className="size-6 bg-white/5" />
+                <span className="max-w-28 truncate text-sm">{user.name}</span>
+                <span className="text-xs text-[#f0f0f5]/70">{t("actions.continue")}</span>
+                <ArrowRight className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+            </Link>
+            <AccountLogoutButton />
+        </div>
     );
 }

@@ -4,7 +4,8 @@ import type { TargetAndTransition, Variants } from "framer-motion";
 import { Check, MessageCircle } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
-import { AuthAwareCta, SECONDARY_CTA } from "@/components/landing/AuthAwareCta";
+import { AuthAwareCta } from "@/components/landing/AuthAwareCta";
+import { PRIMARY_BUTTON } from "@/lib/surfaces";
 import { HeroBlobatar } from "@/components/landing/HeroBlobatar";
 import { HeroBadge } from "@/components/hero/HeroBadge";
 import { TypewriterHeading } from "@/components/landing/TypewriterHeading";
@@ -97,7 +98,7 @@ export function HeroSection() {
                         >
                             <AuthAwareCta
                                 variant="text"
-                                className={cn(SECONDARY_CTA, "w-full justify-center sm:w-auto")}
+                                className={cn(PRIMARY_BUTTON, "w-full justify-center sm:w-auto")}
                             >
                                 <Button
                                     size="lg"

@@ -184,7 +184,7 @@ describe("useStartSession", () => {
         expect(navigateMock).toHaveBeenNthCalledWith(2, "/app/sessions", { replace: true });
     });
 
-    it("4.5 real 401: переход в список, разбор expiry остаётся за useSessions", async () => {
+    it("4.5 real 401: переход в список, generic-тоста нет — expiry отдаётся useSessions", async () => {
         vi.stubEnv("VITE_USE_MOCKS", "false");
         const { useStartSession, ApiError } = await loadHook();
         createSessionSummaryMock.mockRejectedValue(new ApiError(401, "Unauthorized"));
@@ -194,6 +194,45 @@ describe("useStartSession", () => {
             await result.current.startSession("nova", "grammar");
         });
 
+        // ARCHITECT: один тост на 401: generic-тост не показываем — терминальный тост даёт useAuthExpiry на списке.
+        expect(toastErrorMock).not.toHaveBeenCalled();
         expect(navigateMock).toHaveBeenCalledWith("/app/sessions", { replace: true });
+    });
+
+    it("4.6 двойной вызов: создание выполняется ровно один раз", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        let resolveCreate: (value: SessionSummaryDto) => void = () => undefined;
+        createSessionSummaryMock.mockReturnValue(
+            new Promise<SessionSummaryDto>((resolve) => {
+                resolveCreate = resolve;
+            })
+        );
+        const { useStartSession } = await loadHook();
+        const { result } = renderHook(() => useStartSession(), { wrapper: Wrapper });
+
+        let first: Promise<void> = Promise.resolve();
+
+        await act(async () => {
+            // ARCHITECT: второй клик приходит до навигации — гард inFlight его игнорирует.
+            first = result.current.startSession("nova", "grammar");
+            void result.current.startSession("nova", "grammar");
+        });
+
+        expect(createSessionSummaryMock).toHaveBeenCalledTimes(1);
+
+        await act(async () => {
+            resolveCreate(CREATED);
+            await first;
+        });
+
+        expect(navigateMock).toHaveBeenCalledWith("/app/sessions", { replace: true });
+
+        // ARCHITECT: finally снимает гард: следующий осознанный старт снова создаёт сессию.
+        createSessionSummaryMock.mockResolvedValue(CREATED);
+        await act(async () => {
+            await result.current.startSession("nova", "grammar");
+        });
+
+        expect(createSessionSummaryMock).toHaveBeenCalledTimes(2);
     });
 });

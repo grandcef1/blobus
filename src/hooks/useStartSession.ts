@@ -4,10 +4,12 @@
 // ["sessions"] обновляет список и сайдбар: ключ общий. targetLevel есть только в мок-ветке — колонки
 // в реальной схеме нет.
 
+import { useRef } from "react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
+import { ApiError } from "@/api/client";
 import { getResult } from "@/api/placement";
 import { createSession, createSessionSummary } from "@/api/sessions";
 import { USE_MOCKS } from "@/lib/env";
@@ -27,6 +29,7 @@ export function useStartSession(): StartSessionApi {
     const navigate = useNavigate();
     const queryClient = useQueryClient();
     const { t } = useTranslation("common");
+    const inFlight = useRef(false);
 
     // ARCHITECT: без репетитора и режима создавать нечего: ветка защищает режим session и уводит в список,
     // а не на /app без сессии.
@@ -39,28 +42,41 @@ export function useStartSession(): StartSessionApi {
             return;
         }
 
-        if (USE_MOCKS) {
-            // ARCHITECT: уровень сессии берётся из результата теста по дорожке режима — поведение мока
-            // сохраняется целиком.
-            const session = createSession({
-                repetitorId: blobatarId,
-                learningMode,
-                targetLevel: levelForMode(learningMode, getResult()),
-            });
+        // ARCHITECT: гард против двойного клика и повторного вызова до навигации (§16.7); визуальный
+        // disabled кнопки — отдельный долг (прокинуть isStarting в шаги мастера).
+        if (inFlight.current) return;
 
-            navigate(`/app/chat/${session.id}`, { replace: true });
-            return;
-        }
+        inFlight.current = true;
 
         try {
-            await createSessionSummary({ tutorId: blobatarId, mode: learningMode });
-            await queryClient.invalidateQueries({ queryKey: ["sessions"] });
-            navigate("/app/sessions", { replace: true });
-        } catch {
-            // ARCHITECT: 401 здесь не разбираем: терминальный тост и редирект делает общий useAuthExpiry
-            // внутри useSessions, когда список откроется.
-            toast.error(t("states.error.title"));
-            navigate("/app/sessions", { replace: true });
+            if (USE_MOCKS) {
+                // ARCHITECT: уровень сессии берётся из результата теста по дорожке режима — поведение мока
+                // сохраняется целиком.
+                const session = createSession({
+                    repetitorId: blobatarId,
+                    learningMode,
+                    targetLevel: levelForMode(learningMode, getResult()),
+                });
+
+                navigate(`/app/chat/${session.id}`, { replace: true });
+                return;
+            }
+
+            try {
+                await createSessionSummary({ tutorId: blobatarId, mode: learningMode });
+                await queryClient.invalidateQueries({ queryKey: ["sessions"] });
+                navigate("/app/sessions", { replace: true });
+            } catch (error) {
+                // ARCHITECT: один тост на 401: терминальный тост и редирект делает общий useAuthExpiry
+                // внутри useSessions, когда список откроется.
+                if (!(error instanceof ApiError && error.statusCode === 401)) {
+                    toast.error(t("states.error.title"));
+                }
+
+                navigate("/app/sessions", { replace: true });
+            }
+        } finally {
+            inFlight.current = false;
         }
     };
 

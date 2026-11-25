@@ -22,6 +22,9 @@
       "start": "Start free"
     }
   },
+  "cta": {
+    "continueLearning": "Continue learning"
+  },
   "features": {
     "title": "Everything you need for fluent English",
     "subtitle": "A personal AI tutor that adapts to your goals",
@@ -91,7 +94,7 @@
     "month": "Monthly",
     "year": "Yearly",
     "discount": "−20%",
-    "popular": "Most popular",
+    "popular": "Best value",
     "perMonth": "/mo",
     "perYear": "/yr",
     "yearlyHint": "${{price}}/mo billed yearly",

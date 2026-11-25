@@ -1,20 +1,20 @@
 // src/components/landing/pricing/PricingCard.tsx
 // ARCHITECT: карточка тарифа без анимации рамки: вращающийся conic-gradient убран — он
 // дёргался на слабых машинах и выглядел дёшево. Pro выделяется статично: приподнятая
-// поверхность bg-white/[0.04], граница border-white/15, бейдж «Популярный» и один очень
+// поверхность bg-white/[0.04], граница border-white/15, бейдж «Лучшая цена» и один очень
 // слабый радиальный слой внутри карточки. Остальные тарифы спокойнее по контрасту, не по
 // движению.
 // ARCHITECT: кнопки на одном уровне через flex flex-col h-full + mt-auto.
 
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { AuthAwareCta } from "@/components/landing/AuthAwareCta";
+import { useAuthStore } from "@/store/auth";
 import type { PricingPlan, BillingPeriod } from "./data";
 import { FEATURES } from "./data";
 import { FeatureTable } from "./FeatureTable";
 import { FreeCardSvg } from "./visuals/FreeCardSvg";
 import { ProCardSvg } from "./visuals/ProCardSvg";
-import { useNavigate } from 'react-router-dom';
+import { useNavigate } from "react-router-dom";
 import { cn } from "@/lib/utils";
 
 interface PricingCardProps {
@@ -30,10 +30,11 @@ const QUIET_SURFACE = "border-white/10 bg-black";
 export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
     const navigate = useNavigate();
     const { t } = useTranslation("landing");
+    const isAuthenticated = useAuthStore((state) => state.user !== null);
 
     const handleCTA = () => {
         // ARCHITECT: Обе CTA ведут на онбординг
-        navigate('/onboarding');
+        navigate("/onboarding");
     };
     const price = billingPeriod === "month" ? plan.monthlyPrice : plan.yearlyPrice;
     const period = t(billingPeriod === "month" ? "pricing.perMonth" : "pricing.perYear");
@@ -54,7 +55,7 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                 transition={{ type: "spring", stiffness: 300, damping: 30 }}
                 className="relative flex flex-col h-full"
             >
-                {/* ARCHITECT: бейдж «Популярный» — статичная метка тарифа: без иконки и блюра. */}
+                {/* ARCHITECT: бейдж «Лучшая цена» — статичная метка тарифа: без иконки и блюра. */}
                 {plan.highlighted && (
                     <div className="absolute -top-3 left-1/2 z-20 -translate-x-1/2">
                         <span className="inline-flex items-center rounded-full border border-white/15 bg-[#141416] px-3 py-1 text-xs font-medium text-[#f0f0f5]">
@@ -86,16 +87,14 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
 
                         <div className="mb-6 text-center">
                             <div className="flex items-baseline justify-center gap-1">
-                                <span className="text-5xl font-bold text-[#f0f0f5]">
-                                    ${price}
-                                </span>
-                                <span className="text-sm text-[#f0f0f5]/60">
-                                    {period}
-                                </span>
+                                <span className="text-5xl font-bold text-[#f0f0f5]">${price}</span>
+                                <span className="text-sm text-[#f0f0f5]/60">{period}</span>
                             </div>
                             {billingPeriod === "year" && plan.yearlyPrice > 0 && (
                                 <p className="mt-1 text-xs text-[#f0f0f5]/40">
-                                    {t("pricing.yearlyHint", { price: Math.round(plan.yearlyPrice / 12) })}
+                                    {t("pricing.yearlyHint", {
+                                        price: Math.round(plan.yearlyPrice / 12),
+                                    })}
                                 </p>
                             )}
                         </div>
@@ -104,25 +103,26 @@ export function PricingCard({ plan, billingPeriod }: PricingCardProps) {
                             <FeatureTable features={FEATURES} planId={plan.id} />
                         </div>
 
-                        <div className="mt-auto flex flex-col items-center gap-2">
-                            {/* ARCHITECT: у вошедшего плашка заменяет CTA тарифа и ведёт в кабинет;
-                                у гостя кнопка плана остаётся дословно прежней. */}
-                            <AuthAwareCta className="w-full">
+                        {/* ARCHITECT: в тарифах auth-aware поведение убрано намеренно — чип аккаунта живёт
+                            только в хедере; у вошедшего карточка без CTA и без зарезервированного места. */}
+                        {!isAuthenticated && (
+                            <div className="mt-auto flex flex-col items-center gap-2">
                                 <button
                                     type="button"
                                     onClick={handleCTA}
-                                    className={`w-full rounded-full px-6 py-3 text-sm font-medium transition-colors duration-200 ${plan.highlighted
+                                    className={`w-full rounded-full px-6 py-3 text-sm font-medium transition-colors duration-200 ${
+                                        plan.highlighted
                                             ? "bg-[#f0f0f5] text-black hover:bg-white"
                                             : "border border-white/20 bg-transparent text-[#f0f0f5] hover:border-white/40 hover:bg-white/5"
-                                        }`}
+                                    }`}
                                 >
                                     {t(plan.ctaKey)}
                                 </button>
-                            </AuthAwareCta>
-                            <span className="text-xs text-[#f0f0f5]/40">
-                                {t(plan.ctaSecondaryKey)}
-                            </span>
-                        </div>
+                                <span className="text-xs text-[#f0f0f5]/40">
+                                    {t(plan.ctaSecondaryKey)}
+                                </span>
+                            </div>
+                        )}
                     </div>
                 </div>
             </motion.div>

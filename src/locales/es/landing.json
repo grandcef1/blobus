@@ -22,6 +22,9 @@
       "start": "Empezar gratis"
     }
   },
+  "cta": {
+    "continueLearning": "Continuar aprendiendo"
+  },
   "features": {
     "title": "Todo lo que necesitas para hablar inglés con soltura",
     "subtitle": "Un tutor de IA personal que se adapta a tus objetivos",
@@ -91,7 +94,7 @@
     "month": "Mes",
     "year": "Año",
     "discount": "−20%",
-    "popular": "Más popular",
+    "popular": "Mejor precio",
     "perMonth": "/mes",
     "perYear": "/año",
     "yearlyHint": "${{price}}/mes con pago anual",

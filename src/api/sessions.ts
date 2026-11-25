@@ -3,10 +3,12 @@
 // бэкенда нет, состояние живёт в массиве на время загрузки страницы: новая сессия и её
 // сообщения видны без перезагрузки, а сам файл моков остаётся константой.
 
+import { apiFetch } from "@/api/client";
 import { MOCK_SESSIONS } from "@/api/mocks/sessions";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import { delayMock } from "@/api/mockDelay";
 import i18n from "@/lib/i18n";
+import { USE_MOCKS } from "@/lib/env";
 import type { EnhancedChatSession, EnhancedMessage } from "@/types/session";
 import type { BlobatarId } from "@/types/blobatar";
 import type { EnglishLevel, LearningMode } from "@/types/onboarding";
@@ -197,4 +199,46 @@ export async function fetchSessionById(sessionId: string): Promise<EnhancedChatS
     await delayMock();
 
     return getSessionById(sessionId) ?? null;
+}
+
+/** Сводка своей сессии: контракт GET /api/sessions (server/routes/sessions.ts), без названия и user_id. */
+export interface SessionSummaryDto {
+    id: string;
+    tutorId: string;
+    mode: string;
+    createdAt: string;
+    updatedAt: string;
+}
+
+// ARCHITECT: адаптерный мок списка: нейтральные записи в границах серверной схемы (mode 1..32,
+// tutor_id 1..64), без PII и без названия — такой колонки в public.sessions нет.
+export const MOCK_SESSION_SUMMARIES: SessionSummaryDto[] = [
+    {
+        id: "8f1c2e5a-1c3b-4d2e-9a7f-2b6c4d8e0a11",
+        tutorId: "miya",
+        mode: "speaking",
+        createdAt: "2026-11-18T09:14:00.000Z",
+        updatedAt: "2026-11-18T09:41:00.000Z",
+    },
+    {
+        id: "3a7d9b40-5e21-4c8a-b1f6-7c2e9d0a4b52",
+        tutorId: "nova",
+        mode: "grammar",
+        createdAt: "2026-11-16T18:02:00.000Z",
+        updatedAt: "2026-11-16T18:27:00.000Z",
+    },
+];
+
+// ARCHITECT: реальный транспорт — apiFetch (cookie-сессия + CSRF + 401→refresh), не apiClient: чтение
+// аутентифицировано кукой. Двойная реализация через USE_MOCKS по образцу profile.ts; ресурсный конверт
+// { sessions } распаковывается здесь, наружу уходит массив DTO.
+export async function fetchSessionSummaries(): Promise<SessionSummaryDto[]> {
+    if (USE_MOCKS) {
+        await delayMock();
+        return MOCK_SESSION_SUMMARIES;
+    }
+
+    const { sessions } = await apiFetch<{ sessions: SessionSummaryDto[] }>("/sessions");
+
+    return sessions;
 }

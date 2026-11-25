@@ -1,0 +1,97 @@
+// ARCHITECT: доменный роутер чтения сессий: свои строки public.sessions читаются пользовательским клиентом
+// под RLS select-own, а userId берётся только из проверенного access-токена, никогда из клиента (§16.2, §16.5).
+// ARCHITECT: ответ PostgREST разбирается Zod и не покидает модуль (§16.13): наружу уходит только DTO без
+// user_id и без названия сессии — этой колонки в схеме нет, и контракт согласован без неё.
+import { Router } from "express";
+import type { Request, Response } from "express";
+import { z } from "zod";
+
+import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
+import { COOKIE_NAMES, getCookie } from "../cookies.ts";
+import { errorEnvelope } from "../http.ts";
+import { createMemoryRateLimitStore, createRateLimiter } from "../rate-limit.ts";
+import { createUserClient } from "../supabase.ts";
+import type { SupabaseEnv } from "../supabase.ts";
+
+// ARCHITECT: строгая схема читаемого набора колонок: границы совпадают с CHECK-ами схемы (mode 1..32,
+// tutor_id 1..64). strictObject отклоняет лишние ключи — набор колонок ровно тот, что мы выбрали.
+const SessionRowSchema = z.strictObject({
+    id: z.uuid(),
+    user_id: z.uuid(),
+    tutor_id: z.string().min(1).max(64),
+    mode: z.string().min(1).max(32),
+    created_at: z.string().min(1),
+    updated_at: z.string().min(1),
+});
+
+const SessionListSchema = z.array(SessionRowSchema);
+
+// ARCHITECT: лимит чтения стоит первым middleware, чтобы поток отсекался до Supabase. Счёт в памяти —
+// дев/тесты: инстансы Vercel не делят память, прод получит общий RateLimitStore (как в profile.ts).
+const READ_WINDOW_MS = 15 * 60_000;
+const READ_MAX = 60;
+// ARCHITECT: limit 50 — защита от неограниченного чтения; порядок под существующий
+// sessions_user_created_idx (user_id, created_at desc, id desc).
+const READ_LIMIT = 50;
+
+export function createSessionsRouter(options: { readonly env: SupabaseEnv }): Router {
+    const { env } = options;
+    const router = Router();
+    const readLimiter = createRateLimiter({
+        store: createMemoryRateLimitStore(),
+        windowMs: READ_WINDOW_MS,
+        max: READ_MAX,
+        scope: "sessions:read",
+    });
+    // ARCHITECT: кэш проверки токена — на экземпляр роутера: verifyAccessToken сам ограничивает срок записи
+    // min от ttl кэша и exp токена.
+    const tokenCache = createInMemoryTokenCache();
+
+    // ARCHITECT: GET — безопасный метод: смысла запроса чтение не меняет, поэтому CSRF не применяется (как /api/profile).
+    router.get("/", readLimiter, async (req: Request, res: Response) => {
+        const accessToken = getCookie(req, COOKIE_NAMES.accessToken);
+
+        if (accessToken === undefined) {
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        let payload;
+
+        try {
+            payload = await verifyAccessToken(env, accessToken, tokenCache);
+        } catch {
+            // ARCHITECT: просроченный, поддельный и чужой токен отвечают одинаково, без деталей (§16.4).
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        // ARCHITECT: чтение под RLS select-own; userId только из токена, eq user_id — defense in depth поверх
+        // RLS, а query-параметры клиента (?userId/?id) не читаются вовсе.
+        const { data, error } = await createUserClient(env, accessToken)
+            .from("sessions")
+            .select("id, user_id, tutor_id, mode, created_at, updated_at")
+            .eq("user_id", payload.userId)
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .limit(READ_LIMIT);
+
+        if (error !== null) throw error;
+
+        const parsed = SessionListSchema.safeParse(data);
+
+        if (!parsed.success) throw parsed.error;
+
+        const sessions = parsed.data.map((row) => ({
+            id: row.id,
+            tutorId: row.tutor_id,
+            mode: row.mode,
+            createdAt: row.created_at,
+            updatedAt: row.updated_at,
+        }));
+
+        res.status(200).json({ sessions });
+    });
+
+    return router;
+}

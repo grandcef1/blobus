@@ -11,6 +11,7 @@ import type { RateLimitStore } from "./rate-limit.ts";
 import { createAuthRouter } from "./routes/auth.ts";
 import type { AuthLimiters } from "./routes/auth.ts";
 import { createProfileRouter } from "./routes/profile.ts";
+import { createSessionsRouter } from "./routes/sessions.ts";
 import type { SupabaseEnv } from "./supabase.ts";
 
 const SERVICE_NAME = "blobus-api";
@@ -116,8 +117,9 @@ export function buildApp(registerRoutes?: (app: Express) => void, env?: Supabase
             "/api/auth",
             createAuthRouter({ env, limiters: createAuthLimiters(createMemoryRateLimitStore()) })
         );
-        // ARCHITECT: доменный роутер чтения монтируется рядом с auth, до шва registerRoutes и 404-fallback.
+        // ARCHITECT: доменные роутеры чтения монтируются рядом с auth, до шва registerRoutes и 404-fallback.
         app.use("/api/profile", createProfileRouter({ env }));
+        app.use("/api/sessions", createSessionsRouter({ env }));
     }
 
     // ARCHITECT: шов registerRoutes: доменные маршруты следующих фаз подключаются здесь, то есть до

@@ -57,6 +57,7 @@
       "description": "Un error inesperado de la interfaz. Recarga la página: normalmente es suficiente.",
       "reload": "Recargar la página"
     },
+    "sessionExpired": "La sesión ha caducado, vuelve a entrar",
     "updateAvailable": {
       "title": "Actualización disponible",
       "description": "Parte de la interfaz no se cargó: hay una versión nueva.",

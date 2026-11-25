@@ -57,6 +57,7 @@
       "description": "An unexpected interface error. Reload the page — that is usually enough.",
       "reload": "Reload page"
     },
+    "sessionExpired": "Session expired, log in again",
     "updateAvailable": {
       "title": "Update available",
       "description": "Part of the interface failed to load: a new version was released.",

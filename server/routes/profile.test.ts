@@ -37,6 +37,8 @@ interface ProfileBody {
         readonly dailyMinutes: number;
         readonly memberSince: string;
         readonly onboardingCompleted: boolean;
+        readonly avatarUrl: string | null;
+        readonly providerAvatarUrl: string | null;
     };
 }
 
@@ -387,11 +389,13 @@ describe("GET /api/profile", () => {
             expect(response.status).toBe(200);
             // ARCHITECT: наружу уходят только поля DTO: ни email, ни id, ни updated_at.
             expect(Object.keys(body.profile).sort()).toEqual([
+                "avatarUrl",
                 "dailyMinutes",
                 "displayName",
                 "locale",
                 "memberSince",
                 "onboardingCompleted",
+                "providerAvatarUrl",
             ]);
             // ARCHITECT: свежий аккаунт получает дефолты строки profiles и null-флаг онбординга.
             expect(body.profile).toEqual({
@@ -400,6 +404,8 @@ describe("GET /api/profile", () => {
                 dailyMinutes: 20,
                 memberSince: db.created_at,
                 onboardingCompleted: false,
+                avatarUrl: null,
+                providerAvatarUrl: null,
             });
         });
     }, 30_000);
@@ -1118,6 +1124,151 @@ describe("DELETE /api/profile/avatar", () => {
 
             await clearAvatars(bob.id);
             expect(alicePath).not.toBe(bobPath);
+        });
+    }, 60_000);
+});
+/** Обновляет user_metadata пользователя: так проверяется валидация картинки провайдера на границе токена. */
+async function setProviderAvatar(userId: string, avatarUrl: string): Promise<void> {
+    const { error } = await createAdminClient().auth.admin.updateUserById(userId, {
+        user_metadata: { avatar_url: avatarUrl },
+    });
+
+    if (error !== null) throw error;
+}
+
+describe("GET /api/profile: аватар", () => {
+    it("4.1 без аватара: avatarUrl и providerAvatarUrl равны null", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const response = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: cookieHeader(me.jar) },
+            });
+            const body = (await response.json()) as ProfileBody;
+
+            expect(response.status).toBe(200);
+            expect(body.profile.avatarUrl).toBeNull();
+            expect(body.profile.providerAvatarUrl).toBeNull();
+        });
+    }, 30_000);
+
+    it("4.2 после загрузки: avatarUrl подписан, ссылка отдаёт картинку", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const uploaded = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 65_536) },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const uploadedBody = (await uploaded.json()) as { avatarPath: string };
+            const response = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: cookieHeader(me.jar) },
+            });
+            const body = (await response.json()) as ProfileBody;
+            const avatarUrl = body.profile.avatarUrl;
+
+            expect(response.status).toBe(200);
+            expect(avatarUrl).not.toBeNull();
+
+            if (avatarUrl === null) throw new Error("avatarUrl не подписан");
+
+            expect(avatarUrl).toContain(uploadedBody.avatarPath);
+
+            const image = await fetch(avatarUrl);
+
+            expect(image.status).toBe(200);
+            expect((await image.arrayBuffer()).byteLength).toBeGreaterThan(0);
+
+            await clearAvatars(me.id);
+        });
+    }, 60_000);
+
+    it("4.3 чужой префикс в avatar_path: avatarUrl null, остальной профиль цел", async () => {
+        await withApp(async (app) => {
+            const alice = await freshSession(app.baseUrl);
+            const bob = await freshSession(app.baseUrl);
+            const updated = await createAdminClient()
+                .from("profiles")
+                .update({ avatar_path: `${bob.id}/stolen.png` })
+                .eq("id", alice.id);
+
+            expect(updated.error).toBeNull();
+
+            const response = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: cookieHeader(alice.jar) },
+            });
+            const body = (await response.json()) as ProfileBody;
+
+            expect(response.status).toBe(200);
+            expect(body.profile.avatarUrl).toBeNull();
+            expect(body.profile.displayName).toBe("");
+            expect(body.profile.locale).toBe("ru");
+            expect(body.profile.dailyMinutes).toBe(20);
+        });
+    }, 30_000);
+    it("4.4 Google-картинка проходит allowlist и отдаётся в providerAvatarUrl", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const providerUrl = "https://lh3.googleusercontent.com/a/test-avatar";
+
+            await setProviderAvatar(me.id, providerUrl);
+            // ARCHITECT: новая сессия — новый токен, поэтому verifyAccessToken читает свежие metadata.
+            const jar = await loginSession(app.baseUrl, me.email);
+            const response = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: cookieHeader(jar) },
+            });
+            const body = (await response.json()) as ProfileBody;
+
+            expect(response.status).toBe(200);
+            expect(body.profile.providerAvatarUrl).toBe(providerUrl);
+        });
+    }, 30_000);
+
+    it("4.5 невалидный провайдерский URL: http, чужой хост, javascript и мусор дают null", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const invalidUrls = [
+                "http://lh3.googleusercontent.com/a/test-avatar",
+                "https://evil.example.test/a/test-avatar",
+                "javascript:alert(1)",
+                "not a url",
+            ];
+
+            for (const invalidUrl of invalidUrls) {
+                await setProviderAvatar(me.id, invalidUrl);
+                const jar = await loginSession(app.baseUrl, me.email);
+                const response = await fetch(`${app.baseUrl}/api/profile`, {
+                    headers: { cookie: cookieHeader(jar) },
+                });
+                const body = (await response.json()) as ProfileBody;
+
+                expect(response.status).toBe(200);
+                expect(body.profile.providerAvatarUrl).toBeNull();
+            }
+        });
+    }, 60_000);
+
+    it("4.6 после DELETE avatarUrl снова null", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+
+            await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 65_536) },
+                headers
+            );
+            await deleteJson(app.baseUrl, "/api/profile/avatar", headers);
+
+            const response = await fetch(`${app.baseUrl}/api/profile`, {
+                headers: { cookie: cookieHeader(me.jar) },
+            });
+            const body = (await response.json()) as ProfileBody;
+
+            expect(response.status).toBe(200);
+            expect(body.profile.avatarUrl).toBeNull();
+            expect(await avatarNames(me.id)).toEqual([]);
         });
     }, 60_000);
 });

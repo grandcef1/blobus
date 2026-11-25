@@ -14,6 +14,34 @@ export interface TokenPayload {
     readonly aud: string;
     /** Секунды из claims токена, как в JWT, а не миллисекунды. */
     readonly exp: number;
+    /** Картинка из Google-профиля: уже провалидированный https-URL или null. */
+    readonly providerAvatarUrl: string | null;
+}
+
+// ARCHITECT: user_metadata правится самим пользователем, поэтому это недоверенные данные (§16.2): картинку
+// провайдера валидируем на границе проверки токена, а не в роутерах. Разрешён только https и хост
+// googleusercontent.com (или его поддомен) — всё прочее превращается в null.
+const PROVIDER_AVATAR_HOST = "googleusercontent.com";
+
+function readProviderAvatarUrl(metadata: unknown): string | null {
+    if (typeof metadata !== "object" || metadata === null) return null;
+
+    const source = metadata as { avatar_url?: unknown; picture?: unknown };
+    const candidate = typeof source.avatar_url === "string" ? source.avatar_url : source.picture;
+
+    if (typeof candidate !== "string") return null;
+
+    try {
+        const url = new URL(candidate);
+        const allowedHost =
+            url.hostname === PROVIDER_AVATAR_HOST ||
+            url.hostname.endsWith(`.${PROVIDER_AVATAR_HOST}`);
+
+        return url.protocol === "https:" && allowedHost ? candidate : null;
+    } catch {
+        // Не URL — значит, не картинка провайдера: наружу уходит null, детали не нужны.
+        return null;
+    }
 }
 
 export interface TokenCacheEntry {
@@ -49,7 +77,10 @@ export function createInMemoryTokenCache(ttlMs = 60_000): TokenCache {
 
             // ARCHITECT: expiresAt = min(ttl, exp токена), чтобы кэш не держал истёкший токен: ttl знает
             // только кэш, поэтому срок токена приходит в записи, а ограничение накладывается здесь.
-            entries.set(key, { payload: entry.payload, expiresAt: Math.min(entry.expiresAt, now + ttlMs) });
+            entries.set(key, {
+                payload: entry.payload,
+                expiresAt: Math.min(entry.expiresAt, now + ttlMs),
+            });
         },
     };
 }
@@ -61,7 +92,9 @@ function readExpirySeconds(token: string): number {
     if (claims === undefined) throw new Error(INVALID_TOKEN);
 
     try {
-        const parsed = JSON.parse(Buffer.from(claims, "base64url").toString("utf8")) as { exp?: unknown };
+        const parsed = JSON.parse(Buffer.from(claims, "base64url").toString("utf8")) as {
+            exp?: unknown;
+        };
 
         if (typeof parsed.exp === "number") return parsed.exp;
     } catch {
@@ -94,6 +127,7 @@ export async function verifyAccessToken(
         email: data.user.email ?? null,
         aud: data.user.aud,
         exp,
+        providerAvatarUrl: readProviderAvatarUrl(data.user.user_metadata),
     };
 
     // ARCHITECT: в запись идёт срок самого токена: кэш ограничит его своим ttl через min.

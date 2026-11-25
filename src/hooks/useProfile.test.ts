@@ -46,6 +46,8 @@ const FIXTURE: ProfileDto = {
     dailyMinutes: 15,
     memberSince: "2026-10-01T08:00:00.000Z",
     onboardingCompleted: true,
+    avatarUrl: null,
+    providerAvatarUrl: null,
 };
 
 let queryClient: QueryClient;

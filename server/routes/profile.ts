@@ -17,12 +17,14 @@ import { createServiceClient, createUserClient } from "../supabase.ts";
 import type { SupabaseEnv } from "../supabase.ts";
 
 // ARCHITECT: nullable означает отсутствие строки профиля — аномалию контура, которую отдаём как 404 без
-// деталей; иначе разбирается ровно набор колонок чтения.
+// деталей; иначе разбирается ровно набор колонок чтения. avatar_path опционален: PATCH-обработчик читает
+// свой набор колонок без него, и схема не должна ломать его разбор.
 const ProfileRowSchema = z
     .object({
         display_name: z.string(),
         locale: z.enum(["ru", "en", "es"]),
         daily_minutes: z.number().int(),
+        avatar_path: z.string().nullable().optional(),
         created_at: z.string(),
         onboarding_completed_at: z.string().nullable(),
     })
@@ -63,6 +65,8 @@ const AVATAR_BUCKET = "avatars";
 // человеку и отсекает скрипт, забивающий бакет.
 const AVATAR_WINDOW_MS = 15 * 60_000;
 const AVATAR_MAX = 10;
+// ARCHITECT: signed URL живёт 10 минут: этого хватает на загрузку страницы, а угнанная ссылка быстро протухает.
+const AVATAR_SIGNED_URL_TTL_SECONDS = 600;
 
 export function createProfileRouter(options: { readonly env: SupabaseEnv }): Router {
     const { env } = options;
@@ -112,7 +116,9 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
         // (§16.2, §16.5): даже при подставленном чужом id база вернёт только свою строку.
         const { data, error } = await createUserClient(env, accessToken)
             .from("profiles")
-            .select("display_name, locale, daily_minutes, created_at, onboarding_completed_at")
+            .select(
+                "display_name, locale, daily_minutes, avatar_path, created_at, onboarding_completed_at"
+            )
             .eq("id", payload.userId)
             .maybeSingle();
 
@@ -128,13 +134,31 @@ export function createProfileRouter(options: { readonly env: SupabaseEnv }): Rou
             return;
         }
 
+        // ARCHITECT: подписываем только свой объект: ключ генерил сервер с префиксом userId, поэтому чужой или
+        // битый префикс не подписывается — иначе чтение профиля стало бы IDOR на чужую картинку (§16.5).
+        let avatarUrl: string | null = null;
+        const avatarPath = parsed.data.avatar_path;
+
+        if (typeof avatarPath === "string" && avatarPath.startsWith(`${payload.userId}/`)) {
+            const signed = await createServiceClient(env)
+                .storage.from(AVATAR_BUCKET)
+                .createSignedUrl(avatarPath, AVATAR_SIGNED_URL_TTL_SECONDS);
+
+            if (signed.error !== null) throw signed.error;
+
+            avatarUrl = signed.data.signedUrl;
+        }
+
         // ARCHITECT: наружу уходит только DTO: имена колонок и внутренний тип строки не проходят за границу.
+        // providerAvatarUrl уже провалидирован при проверке токена, здесь повторно не проверяется.
         const profile = {
             displayName: parsed.data.display_name,
             locale: parsed.data.locale,
             dailyMinutes: parsed.data.daily_minutes,
             memberSince: parsed.data.created_at,
             onboardingCompleted: parsed.data.onboarding_completed_at !== null,
+            avatarUrl,
+            providerAvatarUrl: payload.providerAvatarUrl,
         };
 
         res.status(200).json({ profile });

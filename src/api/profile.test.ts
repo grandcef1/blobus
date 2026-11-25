@@ -40,6 +40,8 @@ describe("real-режим: fetchProfile читает DTO через apiFetch", (
         dailyMinutes: 15,
         memberSince: "2026-10-01T08:00:00.000Z",
         onboardingCompleted: true,
+        avatarUrl: "http://127.0.0.1:54321/storage/v1/object/sign/avatars/u-1/a.png?token=test",
+        providerAvatarUrl: "https://lh3.googleusercontent.com/a/test-avatar",
     };
 
     beforeEach(() => {
@@ -68,11 +70,13 @@ describe("real-режим: fetchProfile читает DTO через apiFetch", (
         expect(result).toEqual(fixture);
         // ARCHITECT: наружу уходит ровно контракт DTO: лишних полей адаптер не добавляет.
         expect(Object.keys(result).sort()).toEqual([
+            "avatarUrl",
             "dailyMinutes",
             "displayName",
             "locale",
             "memberSince",
             "onboardingCompleted",
+            "providerAvatarUrl",
         ]);
         expect(apiFetchMock).toHaveBeenCalledWith("/profile");
     });
@@ -115,6 +119,9 @@ describe("real-режим: updateProfile пишет DTO через apiFetch", ()
         dailyMinutes: 35,
         memberSince: "2026-10-01T08:00:00.000Z",
         onboardingCompleted: true,
+        // ARCHITECT: PATCH пока не отдаёт avatar-поля (B-8 меняет только GET); в фикстуре они нужны для типа.
+        avatarUrl: null,
+        providerAvatarUrl: null,
     };
 
     beforeEach(() => {
@@ -251,5 +258,67 @@ describe("real-режим: транспорт аватара", () => {
         });
         await expect(profile.deleteAvatar()).rejects.toMatchObject({ statusCode: 401 });
         await expect(profile.deleteAvatar()).rejects.toMatchObject({ statusCode: 403 });
+    });
+});
+describe("мок-режим: аватар в DTO профиля", () => {
+    it("5.6 fetchProfile без загрузки: avatarUrl и providerAvatarUrl равны null", async () => {
+        const profile = await fetchProfile();
+
+        expect(profile.avatarUrl).toBeNull();
+        expect(profile.providerAvatarUrl).toBeNull();
+    });
+
+    it("5.7 upload -> fetchProfile: avatarUrl равен переданному data URL", async () => {
+        const image = "data:image/png;base64,BBBB";
+
+        await uploadAvatar(image);
+        const profile = await fetchProfile();
+
+        expect(profile.avatarUrl).toBe(image);
+        expect(profile.providerAvatarUrl).toBeNull();
+    });
+
+    it("5.8 delete -> fetchProfile: avatarUrl снова null", async () => {
+        await uploadAvatar("data:image/png;base64,BBBB");
+        await deleteAvatar();
+
+        const profile = await fetchProfile();
+
+        expect(profile.avatarUrl).toBeNull();
+    });
+});
+
+describe("real-режим: avatar-поля в ответе профиля", () => {
+    const fixture: ProfileDto = {
+        displayName: "Ученик",
+        locale: "ru",
+        dailyMinutes: 20,
+        memberSince: "2026-10-01T08:00:00.000Z",
+        onboardingCompleted: true,
+        avatarUrl: "http://127.0.0.1:54321/storage/v1/object/sign/avatars/u-1/a.png?token=test",
+        providerAvatarUrl: "https://lh3.googleusercontent.com/a/test-avatar",
+    };
+
+    beforeEach(() => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        vi.resetModules();
+    });
+
+    afterEach(() => {
+        apiFetchMock.mockReset();
+        vi.unstubAllEnvs();
+        vi.resetModules();
+        vi.restoreAllMocks();
+    });
+
+    it("5.9 fetchProfile переносит avatarUrl и providerAvatarUrl без изменений", async () => {
+        apiFetchMock.mockResolvedValue({ profile: fixture });
+        const profile = await import("@/api/profile");
+
+        const result = await profile.fetchProfile();
+
+        expect(result.avatarUrl).toBe(fixture.avatarUrl);
+        expect(result.providerAvatarUrl).toBe(fixture.providerAvatarUrl);
+        expect(apiFetchMock).toHaveBeenCalledWith("/profile");
     });
 });

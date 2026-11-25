@@ -41,7 +41,12 @@ let accessToken: string | undefined;
 
 /** Отдаёт созданные значения и падает громко: пропуск тестов скрыл бы поломку окружения. */
 function ctx(): { env: SupabaseEnv; userId: string; userEmail: string; accessToken: string } {
-    if (env === undefined || userId === undefined || userEmail === undefined || accessToken === undefined) {
+    if (
+        env === undefined ||
+        userId === undefined ||
+        userEmail === undefined ||
+        accessToken === undefined
+    ) {
         throw new Error("local Supabase stack is not running: run npx supabase start");
     }
 
@@ -62,7 +67,8 @@ async function rejectionOf(call: Promise<unknown>): Promise<Error> {
 
 /** Токен формы JWT с заданным exp: подпись невалидна, поэтому Supabase Auth такой токен отвергает. */
 function tokenWithExpiry(exp: number): string {
-    const part = (value: unknown): string => Buffer.from(JSON.stringify(value)).toString("base64url");
+    const part = (value: unknown): string =>
+        Buffer.from(JSON.stringify(value)).toString("base64url");
 
     return `${part({ alg: "HS256", typ: "JWT" })}.${part({ aud: "authenticated", exp, sub: userId })}.signature`;
 }
@@ -90,7 +96,10 @@ beforeAll(async () => {
     userId = created.data.user.id;
     userEmail = email;
 
-    const signedIn = await createAnonClient().auth.signInWithPassword({ email, password: PASSWORD });
+    const signedIn = await createAnonClient().auth.signInWithPassword({
+        email,
+        password: PASSWORD,
+    });
 
     if (signedIn.error !== null || signedIn.data.session === null) {
         throw signedIn.error ?? new Error("signInWithPassword не вернул сессию");
@@ -114,7 +123,12 @@ beforeEach(() => {
 
 describe("проверка access-токена", () => {
     it("отдаёт userId и email пользователя, вошедшего по токену", async () => {
-        const { env: stackEnv, accessToken: token, userId: expectedId, userEmail: expectedEmail } = ctx();
+        const {
+            env: stackEnv,
+            accessToken: token,
+            userId: expectedId,
+            userEmail: expectedEmail,
+        } = ctx();
         const payload = await verifyAccessToken(stackEnv, token);
 
         expect(payload.userId).toBe(expectedId);
@@ -164,7 +178,13 @@ describe("проверка access-токена", () => {
         const { env: stackEnv, userId: id } = ctx();
         const exp = Math.floor(Date.now() / 1000) - 60;
         const expired = tokenWithExpiry(exp);
-        const payload: TokenPayload = { userId: id, email: null, aud: "authenticated", exp };
+        const payload: TokenPayload = {
+            userId: id,
+            email: null,
+            aud: "authenticated",
+            exp,
+            providerAvatarUrl: null,
+        };
         const cache = createInMemoryTokenCache();
 
         cache.set(expired, { payload, expiresAt: exp * 1000 });
@@ -186,4 +206,3 @@ describe("проверка access-токена", () => {
         expect(getUserMock).not.toHaveBeenCalled();
     }, 15_000);
 });
-

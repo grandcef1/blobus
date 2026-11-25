@@ -20,6 +20,10 @@ export interface ProfileDto {
     dailyMinutes: number;
     memberSince: string;
     onboardingCompleted: boolean;
+    /** Короткоживущий signed URL своей картинки; null — своей картинки нет. */
+    avatarUrl: string | null;
+    /** Картинка Google-профиля (уже провалидированная на сервере); null — провайдерской нет. */
+    providerAvatarUrl: string | null;
 }
 
 // ARCHITECT: адаптерный мок: имя переиспользуется из общего мока (§5.4), остальные поля — дефолты строки
@@ -30,14 +34,26 @@ export const MOCK_PROFILE: ProfileDto = {
     dailyMinutes: 20,
     memberSince: "2026-11-03T14:22:00.000Z",
     onboardingCompleted: true,
+    avatarUrl: null,
+    providerAvatarUrl: null,
 };
+
+// ARCHITECT: мок-состояние аватара: путь и сама картинка. В моках показываем data URL, а не путь — иначе UI
+// ходил бы за ней на сервер, которого в мок-режиме нет.
+let mockAvatarPath: string | null = null;
+let mockAvatarDataUrl: string | null = null;
 
 // ARCHITECT: реальный транспорт — apiFetch (cookie-сессия + CSRF + 401→refresh), не apiClient: чтение
 // аутентифицировано кукой. Двойная реализация через USE_MOCKS по образцу billing.ts; наружу уходит только DTO.
 export async function fetchProfile(): Promise<ProfileDto> {
     if (USE_MOCKS) {
         await delayMock();
-        return MOCK_PROFILE;
+
+        return {
+            ...MOCK_PROFILE,
+            avatarUrl: mockAvatarPath === null ? null : mockAvatarDataUrl,
+            providerAvatarUrl: null,
+        };
     }
 
     const { profile } = await apiFetch<{ profile: ProfileDto }>("/profile");
@@ -76,14 +92,13 @@ export async function updateProfile(input: UpdateProfileInput): Promise<ProfileD
 }
 
 // ARCHITECT: транспорт аватара без ресайза: компактный base64 готовит UI (B-9), сервер валидирует картинку.
-// ProfileDto пока не содержит avatar-полей — расширение в B-8.
-let mockAvatarPath: string | null = null;
 
 /** Загружает готовый data URL аватара и возвращает ключ объекта в бакете. */
 export async function uploadAvatar(image: string): Promise<{ avatarPath: string }> {
     if (USE_MOCKS) {
         await delayMock();
         mockAvatarPath = `mock/${crypto.randomUUID()}.png`;
+        mockAvatarDataUrl = image;
 
         return { avatarPath: mockAvatarPath };
     }
@@ -100,6 +115,7 @@ export async function deleteAvatar(): Promise<{ avatarPath: null }> {
     if (USE_MOCKS) {
         await delayMock();
         mockAvatarPath = null;
+        mockAvatarDataUrl = null;
 
         return { avatarPath: null };
     }

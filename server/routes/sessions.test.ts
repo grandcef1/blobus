@@ -272,7 +272,7 @@ beforeAll(() => {
         SUPABASE_PUBLISHABLE_KEY: stack.publishableKey,
         SUPABASE_SECRET_KEY: stack.secretKey,
     };
-});
+}, 30_000);
 
 // ARCHITECT: уборка не должна прятать результат тестов: удаляются все аккаунты прогона по префиксу, а
 // ошибка удаления гасится — иначе падение afterAll выглядело бы как падение проверок.

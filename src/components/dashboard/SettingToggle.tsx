@@ -1,17 +1,28 @@
 // ARCHITECT: строка настроек с тумблером: подпись, пояснение и монохромный переключатель. Вынесена
 // из страницы, чтобы настройки оставались в пределах лимита строк и читались по частям.
 
+// ARCHITECT: disabled — нативный атрибут кнопки: пока идёт сохранение, строка гаснет и не принимает клики.
+
 import { motion } from "framer-motion";
+import { FOCUS_RING } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 
 interface SettingToggleProps {
     label: string;
     description: string;
     checked: boolean;
+    /** Блокировка на время сохранения: гасит строку и запрещает переключение. */
+    disabled?: boolean;
     onChange: (checked: boolean) => void;
 }
 
-export function SettingToggle({ label, description, checked, onChange }: SettingToggleProps) {
+export function SettingToggle({
+    label,
+    description,
+    checked,
+    disabled,
+    onChange,
+}: SettingToggleProps) {
     return (
         <div className="flex items-center justify-between rounded-xl bg-[#141416] px-4 py-3">
             <div className="min-w-0 flex-1">
@@ -24,8 +35,11 @@ export function SettingToggle({ label, description, checked, onChange }: Setting
                 role="switch"
                 aria-checked={checked}
                 aria-label={label}
+                disabled={disabled}
                 className={cn(
                     "relative ml-4 h-5 w-9 shrink-0 rounded-full transition-colors",
+                    FOCUS_RING,
+                    disabled && "cursor-not-allowed opacity-50",
                     checked ? "bg-[#f0f0f5]" : "bg-[#1a1a1c]"
                 )}
             >

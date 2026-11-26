@@ -22,9 +22,6 @@ import { toast } from "@/store/toast";
 import type { SettingsState } from "@/types/settings";
 
 const SETTINGS_KEY = ["settings"] as const;
-// ARCHITECT: SettingToggle не принимает disabled, а его файл вне задачи: на время мутации строка
-// оборачивается в disabled-fieldset — нативная блокировка кнопки-переключателя без правок компонента.
-const TOGGLE_FIELD = "m-0 border-0 p-0";
 
 export function SettingsPage() {
     const { t } = useTranslation("dashboard");
@@ -111,14 +108,13 @@ export function SettingsPage() {
                             {t("settings.preferences.title")}
                         </h2>
                         <div className="space-y-2">
-                            <fieldset disabled={busy} className={TOGGLE_FIELD}>
-                                <SettingToggle
-                                    label={t("settings.preferences.soundEffects.label")}
-                                    description={t("settings.preferences.soundEffects.description")}
-                                    checked={preferences.soundEffects}
-                                    onChange={(checked) => toggle("soundEffects", checked)}
-                                />
-                            </fieldset>
+                            <SettingToggle
+                                label={t("settings.preferences.soundEffects.label")}
+                                description={t("settings.preferences.soundEffects.description")}
+                                checked={preferences.soundEffects}
+                                disabled={busy}
+                                onChange={(checked) => toggle("soundEffects", checked)}
+                            />
 
                             <SettingSelect
                                 label={t("settings.preferences.language.label")}
@@ -134,16 +130,13 @@ export function SettingsPage() {
                                 ]}
                             />
 
-                            <fieldset disabled={busy} className={TOGGLE_FIELD}>
-                                <SettingToggle
-                                    label={t("settings.preferences.autoCorrection.label")}
-                                    description={t(
-                                        "settings.preferences.autoCorrection.description"
-                                    )}
-                                    checked={preferences.autoCorrection}
-                                    onChange={(checked) => toggle("autoCorrection", checked)}
-                                />
-                            </fieldset>
+                            <SettingToggle
+                                label={t("settings.preferences.autoCorrection.label")}
+                                description={t("settings.preferences.autoCorrection.description")}
+                                checked={preferences.autoCorrection}
+                                disabled={busy}
+                                onChange={(checked) => toggle("autoCorrection", checked)}
+                            />
                         </div>
                     </div>
                 </div>

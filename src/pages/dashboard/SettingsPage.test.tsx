@@ -174,6 +174,10 @@ describe("SettingsPage", () => {
 
         await waitFor(() => expect(soundToggle()).toBeDisabled());
 
+        // ARCHITECT: блокировка нативная (атрибут кнопки) и видна: строка гаснет, обёрток-fieldset нет.
+        expect(soundToggle()).toHaveClass("opacity-50");
+        expect(soundToggle().closest("fieldset")).toBeNull();
+
         // ARCHITECT: прямой клик по disabled-контролу — гард обязан держать и этот путь, не только разметку.
         fireEvent.click(soundToggle());
 

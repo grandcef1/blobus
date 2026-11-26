@@ -131,9 +131,15 @@
   "vocabulary": {
     "title": "Vocabulario",
     "count": "{{total}} palabras en la colección",
-    "review": "Repasar",
-    "searchPlaceholder": "Buscar una palabra o su traducción",
-    "pronounce": "Pronunciar {{word}}"
+    "review": {
+      "done": "Por hoy es todo",
+      "due": "Para repasar: {{count}}",
+      "forget": "No la recuerdo",
+      "label": "Repasar",
+      "remember": "La recuerdo",
+      "showAnswer": "Mostrar respuesta"
+    },
+    "searchPlaceholder": "Buscar una palabra o su traducción"
   },
   "tutors": {
     "title": "Nuestros tutores",

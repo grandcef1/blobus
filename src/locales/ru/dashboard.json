@@ -131,9 +131,15 @@
   "vocabulary": {
     "title": "Словарь",
     "count": "{{total}} слов в коллекции",
-    "review": "Повторить",
-    "searchPlaceholder": "Поиск слова или перевода",
-    "pronounce": "Произнести {{word}}"
+    "review": {
+      "done": "На сегодня всё",
+      "due": "К повтору: {{count}}",
+      "forget": "Не помню",
+      "label": "Повторить",
+      "remember": "Помню",
+      "showAnswer": "Показать ответ"
+    },
+    "searchPlaceholder": "Поиск слова или перевода"
   },
   "tutors": {
     "title": "Наши репетиторы",

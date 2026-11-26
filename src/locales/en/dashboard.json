@@ -131,9 +131,15 @@
   "vocabulary": {
     "title": "Vocabulary",
     "count": "{{total}} words in your collection",
-    "review": "Review",
-    "searchPlaceholder": "Search a word or translation",
-    "pronounce": "Pronounce {{word}}"
+    "review": {
+      "done": "That's all for today",
+      "due": "Due for review: {{count}}",
+      "forget": "I don't remember",
+      "label": "Review",
+      "remember": "I remember",
+      "showAnswer": "Show answer"
+    },
+    "searchPlaceholder": "Search a word or translation"
   },
   "tutors": {
     "title": "Our tutors",

@@ -1,6 +1,6 @@
 // ARCHITECT: страница проверяется на моке useVocabulary — сервер здесь не нужен, контракт чтения уже
 // покрыт server/routes/vocabulary.test.ts. Негативные проверки обязательны: null-поля не рендерятся,
-// мёртвая кнопка повторения скрыта в real-режиме, ошибка даёт повтор запроса.
+// пустой словарь и пустой поиск различаются, ошибка даёт повтор запроса, режим повторения пишет исход.
 
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -12,9 +12,13 @@ import type { VocabularyEntryDto } from "@/api/progress";
 import type { VocabularyResult } from "@/hooks/useVocabulary";
 import type { VocabularyWord } from "@/types/progress";
 
-const { useVocabularyMock } = vi.hoisted(() => ({ useVocabularyMock: vi.fn() }));
+const { useVocabularyMock, markWordReviewedMock } = vi.hoisted(() => ({
+    useVocabularyMock: vi.fn(),
+    markWordReviewedMock: vi.fn(),
+}));
 
 vi.mock("@/hooks/useVocabulary", () => ({ useVocabulary: useVocabularyMock }));
+vi.mock("@/api/progress", () => ({ markWordReviewed: markWordReviewedMock }));
 
 const refetchMock = vi.fn(async () => undefined);
 
@@ -42,6 +46,19 @@ const BARE_ENTRY: VocabularyEntryDto = {
     sourceLessonId: null,
     stage: 2,
     nextDueAt: "2026-11-18T09:30:00.000Z",
+    createdAt: "2026-11-17T09:00:00.000Z",
+    updatedAt: "2026-11-17T09:30:00.000Z",
+};
+
+const FUTURE_ENTRY: VocabularyEntryDto = {
+    id: "a1b2c3d4-0003-4000-8000-000000000003",
+    term: "postpone",
+    translation: "откладывать",
+    context: null,
+    exampleTranslation: null,
+    sourceLessonId: null,
+    stage: 3,
+    nextDueAt: "2099-01-01T00:00:00.000Z",
     createdAt: "2026-11-17T09:00:00.000Z",
     updatedAt: "2026-11-17T09:30:00.000Z",
 };
@@ -91,6 +108,8 @@ function mockResult(words: VocabularyWord[]): VocabularyResult {
 
 beforeEach(() => {
     refetchMock.mockClear();
+    markWordReviewedMock.mockReset();
+    markWordReviewedMock.mockResolvedValue(ENTRIES[0]);
 });
 
 afterEach(() => {
@@ -105,13 +124,14 @@ describe("VocabularyPage на реальных записях", () => {
         expect(screen.getByRole("heading", { name: "collaborate" })).toBeInTheDocument();
         expect(screen.getByText("сотрудничать")).toBeInTheDocument();
         expect(screen.getByText("We need to collaborate on this project.")).toBeInTheDocument();
+        expect(screen.getByText("Нам нужно сотрудничать над этим проектом.")).toBeInTheDocument();
         expect(screen.queryByText("85%")).not.toBeInTheDocument();
         expect(screen.queryByText("/kəˈlæbəreɪt/")).not.toBeInTheDocument();
         expect(
             screen.queryByRole("button", { name: "Произнести collaborate" })
         ).not.toBeInTheDocument();
-        expect(screen.queryByRole("button", { name: "Повторить" })).not.toBeInTheDocument();
         expect(screen.getByText("1 слов в коллекции")).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Повторить" })).toBeEnabled();
     });
 
     it("6.2 real translation=null и context=null: эти строки не рендерятся", () => {
@@ -156,14 +176,50 @@ describe("VocabularyPage на реальных записях", () => {
         expect(refetchMock).toHaveBeenCalledTimes(1);
     });
 
-    it("6.6 mock: элемент с mastery и озвучкой, кнопка повторения на месте", () => {
+    it("6.6 mock: та же карточка без mastery и озвучки, повтор доступен", () => {
         useVocabularyMock.mockReturnValue(mockResult([MOCK_WORD]));
         renderWithProviders(<VocabularyPage />);
 
-        expect(screen.getByText(MOCK_WORD.word)).toBeInTheDocument();
-        expect(screen.getByText("85%")).toBeInTheDocument();
-        expect(screen.getByText("/kəˈlæbəreɪt/")).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Произнести collaborate" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Повторить" })).toBeInTheDocument();
+        expect(screen.getByRole("heading", { name: "collaborate" })).toBeInTheDocument();
+        expect(screen.getByText("We need to collaborate on this project.")).toBeInTheDocument();
+        expect(screen.queryByText("85%")).not.toBeInTheDocument();
+        expect(screen.queryByText("/kəˈlæbəreɪt/")).not.toBeInTheDocument();
+        expect(
+            screen.queryByRole("button", { name: "Произнести collaborate" })
+        ).not.toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Повторить" })).toBeEnabled();
+    });
+
+    it("6.7 повторение: ответ, «Помню» пишет исход, очередь заканчивается", async () => {
+        const user = userEvent.setup();
+        useVocabularyMock.mockReturnValue(realResult({ entries: ENTRIES }));
+        renderWithProviders(<VocabularyPage />);
+
+        await user.click(screen.getByRole("button", { name: "Повторить" }));
+
+        expect(screen.getByText("К повтору: 1")).toBeInTheDocument();
+        expect(screen.queryByText("сотрудничать")).not.toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Показать ответ" }));
+
+        expect(screen.getByText("сотрудничать")).toBeInTheDocument();
+        expect(screen.getByText("Нам нужно сотрудничать над этим проектом.")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Помню" }));
+
+        expect(markWordReviewedMock).toHaveBeenCalledWith(ENTRIES[0].id, "remembered");
+        expect(await screen.findByText("На сегодня всё")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Закрыть" }));
+
+        expect(screen.getByRole("heading", { name: "collaborate" })).toBeInTheDocument();
+    });
+
+    it("6.8 повторение недоступно, когда ни одно слово не подошло по сроку", () => {
+        useVocabularyMock.mockReturnValue(realResult({ entries: [FUTURE_ENTRY] }));
+        renderWithProviders(<VocabularyPage />);
+
+        expect(screen.getByRole("heading", { name: "postpone" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Повторить" })).toBeDisabled();
     });
 });

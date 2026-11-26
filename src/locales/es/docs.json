@@ -26,7 +26,7 @@
     "listeningWhyTitle": "Para qué sirve la comprensión auditiva",
     "listeningWhyBody": "Las preguntas principales se leen, mientras que la prueba de comprensión auditiva mide cuánto entiendes al oír y aparece en tu perfil como un nivel aparte. Es opcional: tu nivel se define también sin ella.",
     "listeningHowTitle": "Cómo hacer la prueba de comprensión auditiva",
-    "listeningHowBody": "Activa Añadir una prueba de comprensión auditiva antes del test y tras las preguntas principales llegan seis tareas. Pulsa Escuchar (cada tarea permite dos escuchas, con la voz en inglés de tu navegador) y elige una respuesta. Si la omites, la tarjeta «Comprensión auditiva sin comprobar» te espera en Resumen, y Comprobar comprensión auditiva también está en la pantalla de resultados."
+    "listeningHowBody": "La comprensión auditiva es una prueba aparte en la pantalla /listening: seis tareas con dos escuchas cada una, con la voz en inglés de tu navegador. Pulsa Escuchar y elige una respuesta. No forma parte del test de nivel: el resultado se guarda en tu navegador, no cambia el nivel del test en el servidor y se pierde al recargar. La tarjeta «Comprensión auditiva sin comprobar» con su botón Comprobar te espera en Resumen."
   },
   "modes": {
     "title": "Modos de estudio",
@@ -83,14 +83,14 @@
   },
   "limits": {
     "title": "Limitaciones de la versión actual",
-    "intro": "Blobus es ahora una parte de cliente sin servidor: los datos salen de ejemplos incorporados y las acciones se ejecutan en tu navegador. Esto es lo que significa en la práctica.",
+    "intro": "Parte de Blobus ya vive en el servidor, y el resto sigue saliendo de ejemplos incorporados y de la memoria del navegador. Aquí tienes qué se guarda dónde.",
     "localTitle": "Qué funciona en local",
-    "localBody": "El registro, el acceso con Google, la confirmación del correo y los pagos son simulados: se aceptan cualquier datos y no se cobra nada. Tu cuenta, el idioma y la suscripción se guardan en el navegador, mientras que las sesiones y el resultado del test viven en la memoria de la página, así que al recargar se pierden las sesiones creadas y el resultado del test. El contador de mensajes de la página Suscripción no avanza mientras chateas.",
+    "localBody": "El registro y el acceso pasan por Supabase, mientras que tu perfil, la lista de sesiones y el resultado del test de nivel se guardan en el servidor: pertenecen a tu cuenta y sobreviven a una recarga. Resumen y progreso, el historial del chat, el pago y los límites del plan, el catálogo de tutores, las destrezas del perfil y la prueba de comprensión auditiva siguen saliendo de ejemplos incorporados o viven en la memoria de la página: se pierden al recargar, y el contador de mensajes de la página Suscripción no avanza mientras chateas. En una compilación sin servidor (modo mock) todo lo demás también es local.",
     "chatTitle": "Diálogo y datos",
     "chatBody": "El tutor todavía no responde: los mensajes enviados solo se añaden al historial. Las tarjetas de corrección, cuestionario y palabra nueva existen solo en dos sesiones de ejemplo, y las cifras de Resumen, las lecciones y la lista de Vocabulario salen de ejemplos, no de tu práctica.",
     "unfinishedTitle": "Qué todavía no funciona",
     "unfinishedBody": "Los botones de entrada de voz, adjuntar archivo, Escuchar, Pronunciar y Repasar están en la interfaz pero no hacen nada (la reproducción de audio solo funciona en la comprobación de comprensión auditiva); los interruptores de sonido y autocorrección no se guardan, y el horario del asistente no se usa en ningún sitio. Los nombres de los modos y los nombres, rasgos e historias de los tutores aparecen en ruso sea cual sea el idioma de la interfaz.",
     "serverTitle": "Qué traerá la parte de servidor",
-    "serverBody": "Lo siguiente en la lista son una parte de servidor, los pagos y el modo de voz; los datos que ahora salen de ejemplos deberían pasar al servidor. No hay fechas, y hasta entonces el comportamiento en el navegador puede diferir de lo descrito aquí."
+    "serverBody": "Lo siguiente en la lista son los pagos, las respuestas del tutor en el chat y el modo de voz; los datos que ahora salen de ejemplos deberían pasar al servidor. No hay fechas, y hasta entonces el comportamiento en el navegador puede diferir de lo descrito aquí."
   }
 }

@@ -26,7 +26,7 @@
     "listeningWhyTitle": "Why there is a listening check",
     "listeningWhyBody": "The main questions are read, while the listening check tests understanding by ear and appears in your profile as a separate level. It is optional: your level is set without it.",
     "listeningHowTitle": "How to take the listening check",
-    "listeningHowBody": "Turn on Add a listening check before the test and six tasks follow the main questions. Press Play (each task allows two plays, read aloud by your browser’s English voice) and choose an answer. If you skip it, the Listening not checked card waits in Overview, and Check listening is also on the result screen."
+    "listeningHowBody": "The listening check is a separate screen at /listening: six tasks with two plays each, read aloud by your browser’s English voice. Press Play and choose an answer. It is not part of the level test: the result is kept in your browser, does not change the server-side test level and is lost on reload. The Listening not checked card with its Check button waits in Overview."
   },
   "modes": {
     "title": "Learning modes",
@@ -83,14 +83,14 @@
   },
   "limits": {
     "title": "Limits of the current version",
-    "intro": "Blobus is currently a front end without a server: data comes from built-in samples and actions run in your browser. Here is what that means in practice.",
+    "intro": "Part of Blobus already lives on the server, while the rest still comes from built-in samples and browser memory. Here is what is stored where.",
     "localTitle": "What runs locally",
-    "localBody": "Sign-up, Google sign-in, email confirmation and payments are simulated: any details are accepted and nothing is charged. Your account, language and subscription are kept in the browser, while sessions and the test result live in page memory, so created sessions and the test result are lost on reload. The message counter on the subscription page does not move as you chat.",
+    "localBody": "Sign-up and sign-in run through Supabase, while your profile, session list and level test result are kept on the server: they belong to your account and survive a reload. Overview and progress, chat history, payment and plan limits, the tutor catalog, profile skills and the listening check still come from built-in samples or live in page memory — they are lost on reload, and the message counter on the subscription page does not move as you chat. In a build without a server (mock mode) everything else is local too.",
     "chatTitle": "Dialogue and data",
     "chatBody": "The tutor does not reply yet: sent messages are only added to the history. Correction, quiz and new word cards exist only in two sample sessions, and the Overview figures, lessons and the Vocabulary list come from samples rather than your own practice.",
     "unfinishedTitle": "What does not work yet",
     "unfinishedBody": "The voice input, file attachment, Listen, Pronounce and Review buttons are in the interface but do nothing (audio playback works only in the listening check); the sound and auto-correction switches are not saved, and the schedule from the wizard is not used anywhere. Mode names and tutor names, traits and backstories appear in Russian whatever the interface language.",
     "serverTitle": "What the server side will bring",
-    "serverBody": "Next on the list are a server side, payments and voice mode; the data that now comes from samples should move to the server. There are no dates, and until then behaviour in the browser may differ from what is described here."
+    "serverBody": "Next on the list are payments, tutor replies in the chat and voice mode; the data that now comes from samples should move to the server. There are no dates, and until then behaviour in the browser may differ from what is described here."
   }
 }

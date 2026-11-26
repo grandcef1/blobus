@@ -4,7 +4,12 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
 
-import { createAdminClient, createAnonClient, createUserClient, readLocalStack } from "./test-stack.ts";
+import {
+    createAdminClient,
+    createAnonClient,
+    createUserClient,
+    readLocalStack,
+} from "./test-stack.ts";
 import type { StackClient } from "./test-stack.ts";
 
 interface Actor {
@@ -17,6 +22,8 @@ interface QuotaFixture {
     readonly anon: StackClient;
     readonly actorA: Actor;
     readonly actorB: Actor;
+    /** Пользователь с нулевыми лимитами: первая строка дня тоже обязана отказывать. */
+    readonly actorC: Actor;
 }
 
 interface QuotaRemaining {
@@ -44,7 +51,8 @@ const PASSWORD = `quota-${randomUUID()}-pass`;
 let fixture: QuotaFixture | undefined;
 
 function ctx(): QuotaFixture {
-    if (fixture === undefined) throw new Error("local Supabase stack is not running: run npx supabase start");
+    if (fixture === undefined)
+        throw new Error("local Supabase stack is not running: run npx supabase start");
 
     return fixture;
 }
@@ -57,7 +65,8 @@ function asRemaining(value: unknown): QuotaRemaining {
     const lessons = record.lessons_remaining;
     const messages = record.messages_remaining;
 
-    if (typeof lessons !== "number" || typeof messages !== "number") throw new Error("RPC вернул неожиданную форму");
+    if (typeof lessons !== "number" || typeof messages !== "number")
+        throw new Error("RPC вернул неожиданную форму");
 
     return { lessons_remaining: lessons, messages_remaining: messages };
 }
@@ -70,7 +79,8 @@ function asUsage(value: unknown): UsageSnapshot {
     const lessons = record.lessons_used;
     const messages = record.messages_used;
 
-    if (typeof lessons !== "number" || typeof messages !== "number") throw new Error("RPC вернул неожиданную форму");
+    if (typeof lessons !== "number" || typeof messages !== "number")
+        throw new Error("RPC вернул неожиданную форму");
 
     return { lessons_used: lessons, messages_used: messages };
 }
@@ -88,19 +98,29 @@ async function expectQuotaError(
 
 async function createActor(admin: StackClient, prefix: string): Promise<Actor> {
     const email = `${prefix}-${randomUUID()}@example.test`;
-    const created = await admin.auth.admin.createUser({ email, password: PASSWORD, email_confirm: true });
+    const created = await admin.auth.admin.createUser({
+        email,
+        password: PASSWORD,
+        email_confirm: true,
+    });
 
     if (created.error !== null || created.data.user === null) {
         throw created.error ?? new Error("createUser не вернул пользователя");
     }
 
-    const signedIn = await createAnonClient().auth.signInWithPassword({ email, password: PASSWORD });
+    const signedIn = await createAnonClient().auth.signInWithPassword({
+        email,
+        password: PASSWORD,
+    });
 
     if (signedIn.error !== null || signedIn.data.session === null) {
         throw signedIn.error ?? new Error("signInWithPassword не вернул сессию");
     }
 
-    return { id: created.data.user.id, client: createUserClient(signedIn.data.session.access_token) };
+    return {
+        id: created.data.user.id,
+        client: createUserClient(signedIn.data.session.access_token),
+    };
 }
 
 beforeAll(async () => {
@@ -108,15 +128,29 @@ beforeAll(async () => {
     const admin = createAdminClient();
     const actorA = await createActor(admin, "quota-a");
     const actorB = await createActor(admin, "quota-b");
+    const actorC = await createActor(admin, "quota-c");
 
     // ARCHITECT: тариф и счётчики заводит только service-role: у пользовательского ключа нет execute на RPC.
     const createdA = await admin.rpc("get_or_create_entitlements", { p_user_id: actorA.id });
     const createdB = await admin.rpc("get_or_create_entitlements", { p_user_id: actorB.id });
+    const createdC = await admin.rpc("get_or_create_entitlements", { p_user_id: actorC.id });
 
     if (createdA.error !== null) throw createdA.error;
     if (createdB.error !== null) throw createdB.error;
+    if (createdC.error !== null) throw createdC.error;
 
-    fixture = { admin, anon: createAnonClient(), actorA, actorB };
+    // ARCHITECT: нулевой лимит — крайний случай ветки «первой строки дня»: CHECK схемы разрешает 0, поэтому
+    // отказ должен приходить из функции, а не из ограничения таблицы.
+    const zeroed = await admin
+        .from("entitlements")
+        .update({ daily_lessons_limit: 0, daily_messages_limit: 0 })
+        .eq("user_id", actorC.id)
+        .select("id");
+
+    expect(zeroed.error).toBeNull();
+    expect(zeroed.data).toHaveLength(1);
+
+    fixture = { admin, anon: createAnonClient(), actorA, actorB, actorC };
 }, 30_000);
 
 // ARCHITECT: уборка идемпотентна: пользователи удаляются вместе со своими квотами по каскаду.
@@ -125,6 +159,7 @@ afterAll(async () => {
 
     await fixture.admin.auth.admin.deleteUser(fixture.actorA.id);
     await fixture.admin.auth.admin.deleteUser(fixture.actorB.id);
+    await fixture.admin.auth.admin.deleteUser(fixture.actorC.id);
 });
 
 describe("квоты и атомарный резерв", () => {
@@ -135,7 +170,10 @@ describe("квоты и атомарный резерв", () => {
         expect(first.error).toBeNull();
         expect(asRemaining(first.data).lessons_remaining).toBe(FREE_LESSONS - 1);
 
-        await expectQuotaError(admin.rpc("reserve_lesson", { p_user_id: actorA.id }), QUOTA_LESSONS);
+        await expectQuotaError(
+            admin.rpc("reserve_lesson", { p_user_id: actorA.id }),
+            QUOTA_LESSONS
+        );
     }, 15_000);
 
     it("возвращает резерв урока и разрешает новый", async () => {
@@ -165,7 +203,10 @@ describe("квоты и атомарный резерв", () => {
         expect(last.error).toBeNull();
         expect(asRemaining(last.data).messages_remaining).toBe(0);
 
-        await expectQuotaError(admin.rpc("reserve_message", { p_user_id: actorA.id }), QUOTA_MESSAGES);
+        await expectQuotaError(
+            admin.rpc("reserve_message", { p_user_id: actorA.id }),
+            QUOTA_MESSAGES
+        );
     }, 30_000);
 
     it("не пробивает лимит параллельными запросами", async () => {
@@ -217,7 +258,11 @@ describe("квоты и атомарный резерв", () => {
         const { admin, actorA } = ctx();
         const updated = await admin
             .from("entitlements")
-            .update({ plan: "pro", daily_lessons_limit: PRO_LESSONS, daily_messages_limit: PRO_MESSAGES })
+            .update({
+                plan: "pro",
+                daily_lessons_limit: PRO_LESSONS,
+                daily_messages_limit: PRO_MESSAGES,
+            })
             .eq("user_id", actorA.id)
             .select("id");
         const cleared = await admin.from("usage_counters").delete().eq("user_id", actorA.id);
@@ -239,7 +284,10 @@ describe("квоты и атомарный резерв", () => {
 
         // ARCHITECT: при лимите 300 счётчик проверяется до инкремента, поэтому 300-я попытка успешна
         // (остаток 0), а падает следующая — так и должен работать guard «used < limit».
-        await expectQuotaError(admin.rpc("reserve_message", { p_user_id: actorA.id }), QUOTA_MESSAGES);
+        await expectQuotaError(
+            admin.rpc("reserve_message", { p_user_id: actorA.id }),
+            QUOTA_MESSAGES
+        );
     }, 60_000);
 
     it("сбрасывает счётчики новой строкой на новую дату", async () => {
@@ -261,7 +309,10 @@ describe("квоты и атомарный резерв", () => {
         expect(reserved.error).toBeNull();
         expect(asRemaining(reserved.data).lessons_remaining).toBe(PRO_LESSONS - 1);
 
-        const rows = await admin.from("usage_counters").select("date, lessons_used").eq("user_id", actorA.id);
+        const rows = await admin
+            .from("usage_counters")
+            .select("date, lessons_used")
+            .eq("user_id", actorA.id);
         const old = (rows.data ?? []).filter((row) => row.date === yesterday);
         const fresh = (rows.data ?? []).filter((row) => row.date !== yesterday);
 
@@ -299,5 +350,36 @@ describe("квоты и атомарный резерв", () => {
         expect(denied.error).not.toBeNull();
         expect(denied.error?.code).toBe(DENIED);
         expect(denied.data).toBeNull();
+    }, 15_000);
+
+    // ARCHITECT: главный негатив фикса «первой строки дня»: при лимите 0 ветка not found раньше выдавала одно
+    // бесплатное сообщение, потому что вставляла счётчик без проверки.
+    it("при дневном лимите сообщений 0 первое сообщение дня отказывает", async () => {
+        const { admin, actorC } = ctx();
+
+        await expectQuotaError(
+            admin.rpc("reserve_message", { p_user_id: actorC.id }),
+            QUOTA_MESSAGES
+        );
+
+        const counters = await admin.from("usage_counters").select("id").eq("user_id", actorC.id);
+
+        expect(counters.error).toBeNull();
+        // ARCHITECT: отказ не создаёт строку дня — счётчик не «сгорает» на один запрос за сутки.
+        expect(counters.data ?? []).toHaveLength(0);
+    }, 15_000);
+
+    it("при дневном лимите уроков 0 первый урок дня отказывает", async () => {
+        const { admin, actorC } = ctx();
+
+        await expectQuotaError(
+            admin.rpc("reserve_lesson", { p_user_id: actorC.id }),
+            QUOTA_LESSONS
+        );
+
+        const counters = await admin.from("usage_counters").select("id").eq("user_id", actorC.id);
+
+        expect(counters.error).toBeNull();
+        expect(counters.data ?? []).toHaveLength(0);
     }, 15_000);
 });

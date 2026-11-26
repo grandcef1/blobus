@@ -56,7 +56,8 @@
   },
   "sessions": {
     "create": {
-      "error": "Could not create the session"
+      "error": "Could not create the session",
+      "noPlacement": "Take the level test first"
     },
     "title": "Sessions",
     "subtitle": "Dialogues with your tutor, newest first",

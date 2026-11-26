@@ -23,15 +23,19 @@ function isLearningMode(mode: string): mode is LearningMode {
     return Object.prototype.hasOwnProperty.call(MODE_LABEL_KEYS, mode);
 }
 
+/** Ключ метки режима для перевода: null — режим неизвестен, и он показывается как данные. */
+export function getModeLabelKey(mode: string): ModeLabelKey | null {
+    return isLearningMode(mode) ? MODE_LABEL_KEYS[mode] : null;
+}
+
 /** Заголовок сводки: «имя блобатара · метка режима»; неизвестный режим показывается как данные. */
 export function getSessionTitle(
     summary: SessionSummaryDto,
     t: (key: SessionTitleKey) => string
 ): string {
     const name = getBlobatarById(summary.tutorId)?.name ?? t("sessions.card.tutorFallback");
-    const modeLabel = isLearningMode(summary.mode)
-        ? t(MODE_LABEL_KEYS[summary.mode])
-        : summary.mode;
+    const modeKey = getModeLabelKey(summary.mode);
+    const modeLabel = modeKey === null ? summary.mode : t(modeKey);
 
     return `${name} · ${modeLabel}`;
 }

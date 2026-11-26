@@ -43,6 +43,21 @@
   "confirm": {
     "cancel": "Cancelar"
   },
+  "feed": {
+    "typing": "El tutor está escribiendo",
+    "error": "No se pudo obtener respuesta",
+    "limit": "Ya no te quedan mensajes por hoy",
+    "retry": "Reintentar",
+    "remaining": "Mensajes restantes: {{count}}"
+  },
+  "card": {
+    "check": "Comprobar",
+    "correct": "Correcto",
+    "answerLabel": "Respuesta",
+    "answerPlaceholder": "Escribe tu respuesta",
+    "orderLabel": "Forma la frase",
+    "orderHint": "Toca las palabras en orden"
+  },
   "input": {
     "placeholder": "Escribe un mensaje en inglés...",
     "attachFile": "Adjuntar un archivo",
@@ -63,6 +78,7 @@
     "listen": "Escuchar",
     "examples": "Ejemplos",
     "similar": "Similares:",
+    "context": "Ejemplo de la lección",
     "save": "Guardar en el vocabulario",
     "remove": "Quitar del vocabulario",
     "pos": {

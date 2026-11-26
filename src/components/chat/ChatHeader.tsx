@@ -19,11 +19,19 @@ interface ChatHeaderProps {
     session: EnhancedChatSession;
     /** Режим просмотра: только аватар, тема и подпись, без меню и прогресса. */
     readOnly?: boolean;
+    /** Подпись под заголовком: у реальной сессии это режим — имя уже в самом заголовке. */
+    subtitle?: string;
     onUpdated?: (session: EnhancedChatSession) => void;
     onDeleted?: () => void;
 }
 
-export function ChatHeader({ session, readOnly = false, onUpdated, onDeleted }: ChatHeaderProps) {
+export function ChatHeader({
+    session,
+    readOnly = false,
+    subtitle,
+    onUpdated,
+    onDeleted,
+}: ChatHeaderProps) {
     const repetitor = getBlobatarById(session.repetitorId);
     const mode = MOCK_LEARNING_MODES.find((item) => item.id === session.learningMode);
 
@@ -41,9 +49,11 @@ export function ChatHeader({ session, readOnly = false, onUpdated, onDeleted }: 
                 <BlobatarAvatar id={session.repetitorId} className="size-8" />
 
                 <div className="min-w-0">
-                    <h1 className="truncate text-sm font-semibold text-[#f0f0f5]">{session.title}</h1>
+                    <h1 className="truncate text-sm font-semibold text-[#f0f0f5]">
+                        {session.title}
+                    </h1>
                     <p className="truncate text-xs text-[#f0f0f5]/40">
-                        {repetitor?.name} · {mode?.label}
+                        {subtitle ?? `${repetitor?.name} · ${mode?.label}`}
                     </p>
                 </div>
             </div>

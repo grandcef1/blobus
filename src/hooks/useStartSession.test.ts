@@ -15,6 +15,7 @@ const {
     createSessionMock,
     createSessionSummaryMock,
     getResultMock,
+    fetchPlacementResultDtoMock,
     levelForModeMock,
     navigateMock,
     toastErrorMock,
@@ -24,6 +25,7 @@ const {
     createSessionMock: vi.fn(),
     createSessionSummaryMock: vi.fn(),
     getResultMock: vi.fn(),
+    fetchPlacementResultDtoMock: vi.fn(),
     levelForModeMock: vi.fn(),
     navigateMock: vi.fn(),
     toastErrorMock: vi.fn(),
@@ -42,7 +44,11 @@ vi.mock("@/api/sessions", async (importOriginal) => {
 
 vi.mock("@/api/placement", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/api/placement")>();
-    return { ...actual, getResult: getResultMock };
+    return {
+        ...actual,
+        getResult: getResultMock,
+        fetchPlacementResultDto: fetchPlacementResultDtoMock,
+    };
 });
 
 vi.mock("@/lib/placement", async (importOriginal) => {
@@ -73,6 +79,9 @@ const CREATED: SessionSummaryDto = {
     updatedAt: "2026-11-21T09:00:00.000Z",
 };
 
+// ARCHITECT: результат теста уровня — входной гейт real-ветки: без него сессия не создаётся (server/routes/chat.ts).
+const PLACEMENT = { level: "B1", score: 58, createdAt: "2026-11-20T09:00:00.000Z" } as const;
+
 let queryClient: QueryClient;
 let invalidateSpy: ReturnType<typeof vi.spyOn>;
 
@@ -99,12 +108,14 @@ async function loadHook(): Promise<{
 beforeEach(() => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
     invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    fetchPlacementResultDtoMock.mockResolvedValue(PLACEMENT);
 });
 
 afterEach(() => {
     createSessionMock.mockReset();
     createSessionSummaryMock.mockReset();
     getResultMock.mockReset();
+    fetchPlacementResultDtoMock.mockReset();
     levelForModeMock.mockReset();
     navigateMock.mockReset();
     toastErrorMock.mockReset();
@@ -135,7 +146,7 @@ describe("useStartSession", () => {
         expect(createSessionSummaryMock).not.toHaveBeenCalled();
     });
 
-    it("4.2 real-режим: сводка без targetLevel, инвалидация списка, переход в список", async () => {
+    it("4.2 real-режим: гейт пройден, сводка без targetLevel, инвалидация, переход в чат", async () => {
         vi.stubEnv("VITE_USE_MOCKS", "false");
         createSessionSummaryMock.mockResolvedValue(CREATED);
         const { useStartSession } = await loadHook();
@@ -145,11 +156,27 @@ describe("useStartSession", () => {
             await result.current.startSession("nova", "grammar");
         });
 
+        expect(fetchPlacementResultDtoMock).toHaveBeenCalled();
         expect(createSessionSummaryMock).toHaveBeenCalledWith({ tutorId: "nova", mode: "grammar" });
-        // ARCHITECT: ключ ["sessions"] общий со списком и сайдбаром — инвалидация обновляет оба.
+        // ARCHITECT: ключ ["sessions"] общий со списком, сайдбаром и кэшем чата — инвалидация обновляет все.
         expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["sessions"] });
-        expect(navigateMock).toHaveBeenCalledWith("/app/sessions", { replace: true });
+        expect(navigateMock).toHaveBeenCalledWith(`/app/chat/${CREATED.id}`, { replace: true });
         expect(createSessionMock).not.toHaveBeenCalled();
+    });
+
+    it("4.2а без результата теста: сессия не создаётся, переход к прохождению теста", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        fetchPlacementResultDtoMock.mockResolvedValue(null);
+        const { useStartSession } = await loadHook();
+        const { result } = renderHook(() => useStartSession(), { wrapper: Wrapper });
+
+        await act(async () => {
+            await result.current.startSession("nova", "grammar");
+        });
+
+        expect(createSessionSummaryMock).not.toHaveBeenCalled();
+        expect(toastErrorMock).toHaveBeenCalledWith("sessions.create.noPlacement");
+        expect(navigateMock).toHaveBeenCalledWith("/onboarding", { replace: true });
     });
 
     it("4.3 real ошибка создания: тост и переход в список", async () => {
@@ -225,7 +252,7 @@ describe("useStartSession", () => {
             await first;
         });
 
-        expect(navigateMock).toHaveBeenCalledWith("/app/sessions", { replace: true });
+        expect(navigateMock).toHaveBeenCalledWith(`/app/chat/${CREATED.id}`, { replace: true });
 
         // ARCHITECT: finally снимает гард: следующий осознанный старт снова создаёт сессию.
         createSessionSummaryMock.mockResolvedValue(CREATED);

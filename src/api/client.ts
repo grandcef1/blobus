@@ -296,3 +296,81 @@ export async function apiFetch<T>(path: string, options: ApiFetchOptions = {}): 
         }
     }
 }
+
+export interface ApiStreamOptions {
+    method?: "GET" | "POST";
+    /** Тело запроса: сериализуется в JSON автоматически. */
+    body?: unknown;
+    /** Отмена вызова: обрыв соединения или уход со страницы. */
+    signal?: AbortSignal;
+}
+
+// ARCHITECT: потоковый транспорт (SSE чата): та же cookie-сессия, тот же CSRF-заголовок и тот же конверт
+// ошибок, что у apiFetch, но тело ответа не разбирается — поток читает вызывающий. Переиграть поток после
+// первого кадра нельзя, поэтому 401 обновляется один раз до его старта: повтор уходит целиком и только пока
+// ответ не получен; после старта ошибка уходит событием error (см. api/chat.ts).
+export async function apiStream(path: string, options: ApiStreamOptions = {}): Promise<Response> {
+    try {
+        return await sendApiStream(path, options);
+    } catch (error) {
+        // ARCHITECT: auth-пути не обновляются: refresh → 401 → refresh зациклился бы (как в apiFetch).
+        const expired =
+            error instanceof ApiError &&
+            error.statusCode === 401 &&
+            !path.startsWith(AUTH_PATH_PREFIX);
+
+        if (!expired) {
+            logError(error);
+            throw error;
+        }
+
+        try {
+            await sendApiRequest("/auth/refresh", { method: "POST" });
+
+            return await sendApiStream(path, options);
+        } catch (retryError) {
+            logError(retryError);
+            throw retryError;
+        }
+    }
+}
+
+/** Один потоковый запрос без повторов: fetch → разбор конверта ошибки → поток для вызывающего. */
+async function sendApiStream(path: string, options: ApiStreamOptions): Promise<Response> {
+    const method = options.method ?? "GET";
+    const headers: Record<string, string> = {
+        "Content-Type": "application/json",
+        // ARCHITECT: сервер отвечает text/event-stream; Accept фиксирует ожидание до первого кадра.
+        Accept: "text/event-stream",
+    };
+
+    if (MUTATING_METHODS.includes(method)) headers["x-csrf-token"] = await readCsrfToken();
+
+    let response: Response;
+
+    try {
+        response = await fetch(`${API_BASE_URL}${path}`, {
+            method,
+            credentials: "include",
+            headers,
+            body: options.body === undefined ? undefined : JSON.stringify(options.body),
+            signal: options.signal,
+        });
+    } catch (error) {
+        // ARCHITECT: отмена до старта потока приводится к тому же ApiError, что и в apiFetch: верхние слои
+        // различают только статус, а тексты берутся из существующих ключей словаря.
+        if (error instanceof DOMException && error.name === "AbortError") {
+            throw new ApiError(0, i18n.t("errors.api.timeout", { ns: "common" }));
+        }
+
+        throw new ApiError(0, i18n.t("errors.api.offline", { ns: "common" }));
+    }
+
+    if (!response.ok)
+        throw toEnvelopeError(response.status, await response.json().catch(() => null));
+
+    if (response.body === null)
+        throw new ApiError(0, i18n.t("errors.api.offline", { ns: "common" }));
+
+    return response;
+}

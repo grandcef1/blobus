@@ -35,4 +35,24 @@ export interface Blobatar {
     persona: BlobatarPersona;
 }
 
-export type BlobatarId = "miya" | "oscar" | "luna" | "max" | "alex" | "zoe" | "nova" | "kai" | "lira" | "orion";
+// ARCHITECT: id персонажей объявлены константой: тот же список нужен и типу, и allowlist'у клиента — id из
+// GET /api/tutors обязан совпасть с серверным каталогом, поэтому источник у них один.
+export const BLOBATAR_IDS = [
+    "miya",
+    "oscar",
+    "luna",
+    "max",
+    "alex",
+    "zoe",
+    "nova",
+    "kai",
+    "lira",
+    "orion",
+] as const;
+
+export type BlobatarId = (typeof BLOBATAR_IDS)[number];
+
+/** Проверка id из внешнего ответа: чужая строка не становится BlobatarId и не попадает в аватар. */
+export function isBlobatarId(id: string): id is BlobatarId {
+    return BLOBATAR_IDS.some((value) => value === id);
+}

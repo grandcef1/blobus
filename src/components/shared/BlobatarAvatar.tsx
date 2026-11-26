@@ -9,7 +9,7 @@ import { getBlobatarById } from "@/api/mocks/blobatars";
 import { cn } from "@/lib/utils";
 
 export interface BlobatarAvatarProps {
-    /** Идентификатор персонажа; устаревшие id нормализует getBlobatarById. */
+    /** Идентификатор персонажа из каталога: неизвестный id даёт заглушку вместо аватара. */
     id: string;
     /** Размер и тон плашки: size-*, p-*, bg-*. */
     className?: string;

@@ -87,9 +87,9 @@
     "localTitle": "What runs locally",
     "localBody": "Sign-up and sign-in run through Supabase, while your profile, session list and level test result are kept on the server: they belong to your account and survive a reload. Overview and progress, chat history, payment and plan limits, the tutor catalog, profile skills and the listening check still come from built-in samples or live in page memory — they are lost on reload, and the message counter on the subscription page does not move as you chat. In a build without a server (mock mode) everything else is local too.",
     "chatTitle": "Dialogue and data",
-    "chatBody": "The tutor does not reply yet: sent messages are only added to the history. Correction, quiz and new word cards exist only in two sample sessions, and the Overview figures, lessons and the Vocabulary list come from samples rather than your own practice.",
+    "chatBody": "The tutor replies in real time: the answer streams in, and the correction, quiz and new word cards are built from that answer. The Overview figures, lessons and the Vocabulary list still come from samples rather than your own practice.",
     "unfinishedTitle": "What does not work yet",
-    "unfinishedBody": "The voice input, file attachment, Listen, Pronounce and Review buttons are in the interface but do nothing (audio playback works only in the listening check); the sound and auto-correction switches are not saved, and the schedule from the wizard is not used anywhere. Mode names and tutor names, traits and backstories appear in Russian whatever the interface language.",
+    "unfinishedBody": "The voice input, file attachment, Listen, Pronounce and Review buttons are in the interface but do nothing (audio playback works only in the listening check), and the schedule from the wizard is not used anywhere. Mode names and tutor names, traits and backstories appear in Russian whatever the interface language.",
     "serverTitle": "What the server side will bring",
     "serverBody": "Next on the list are payments, tutor replies in the chat and voice mode; the data that now comes from samples should move to the server. There are no dates, and until then behaviour in the browser may differ from what is described here."
   }

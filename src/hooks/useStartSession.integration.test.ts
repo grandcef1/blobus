@@ -16,6 +16,7 @@ const {
     createSessionMock,
     createSessionSummaryMock,
     getResultMock,
+    fetchPlacementResultDtoMock,
     levelForModeMock,
     navigateMock,
     toastErrorMock,
@@ -25,6 +26,7 @@ const {
     createSessionMock: vi.fn(),
     createSessionSummaryMock: vi.fn(),
     getResultMock: vi.fn(),
+    fetchPlacementResultDtoMock: vi.fn(),
     levelForModeMock: vi.fn(),
     navigateMock: vi.fn(),
     toastErrorMock: vi.fn(),
@@ -43,7 +45,11 @@ vi.mock("@/api/sessions", async (importOriginal) => {
 
 vi.mock("@/api/placement", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/api/placement")>();
-    return { ...actual, getResult: getResultMock };
+    return {
+        ...actual,
+        getResult: getResultMock,
+        fetchPlacementResultDto: fetchPlacementResultDtoMock,
+    };
 });
 
 vi.mock("@/lib/placement", async (importOriginal) => {
@@ -74,6 +80,10 @@ const CREATED: SessionSummaryDto = {
     updatedAt: "2026-11-23T09:00:00.000Z",
 };
 
+// ARCHITECT: результат теста уровня — входной гейт real-ветки: без него сессия не создаётся, поэтому все
+// real-сценарии стартуют с пройденным тестом.
+const PLACEMENT = { level: "B1", score: 58, createdAt: "2026-11-22T09:00:00.000Z" } as const;
+
 let queryClient: QueryClient;
 let invalidateSpy: ReturnType<typeof vi.spyOn>;
 
@@ -100,12 +110,14 @@ async function loadHook(): Promise<{
 beforeEach(() => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
     invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
+    fetchPlacementResultDtoMock.mockResolvedValue(PLACEMENT);
 });
 
 afterEach(() => {
     createSessionMock.mockReset();
     createSessionSummaryMock.mockReset();
     getResultMock.mockReset();
+    fetchPlacementResultDtoMock.mockReset();
     levelForModeMock.mockReset();
     navigateMock.mockReset();
     toastErrorMock.mockReset();
@@ -136,7 +148,7 @@ describe("useStartSession: сквозной сценарий", () => {
         expect(invalidateSpy).not.toHaveBeenCalled();
     });
 
-    it("5.2 real-ветка успех: сводка без targetLevel, инвалидация и переход в список", async () => {
+    it("5.2 real-ветка успех: сводка без targetLevel, инвалидация и переход в чат", async () => {
         vi.stubEnv("VITE_USE_MOCKS", "false");
         createSessionSummaryMock.mockResolvedValue(CREATED);
         const { useStartSession } = await loadHook();
@@ -149,7 +161,7 @@ describe("useStartSession: сквозной сценарий", () => {
         // ARCHITECT: targetLevel в реальной схеме нет — в теле только tutorId и mode.
         expect(createSessionSummaryMock).toHaveBeenCalledWith({ tutorId: "nova", mode: "grammar" });
         expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["sessions"] });
-        expect(navigateMock).toHaveBeenCalledWith("/app/sessions", { replace: true });
+        expect(navigateMock).toHaveBeenCalledWith(`/app/chat/${CREATED.id}`, { replace: true });
         expect(createSessionMock).not.toHaveBeenCalled();
     });
 
@@ -211,7 +223,7 @@ describe("useStartSession: сквозной сценарий", () => {
         });
 
         expect(navigateMock).toHaveBeenCalledTimes(1);
-        expect(navigateMock).toHaveBeenCalledWith("/app/sessions", { replace: true });
+        expect(navigateMock).toHaveBeenCalledWith(`/app/chat/${CREATED.id}`, { replace: true });
     });
 
     it("5.6 неполные данные: создание не вызывается, переход в список без тоста", async () => {

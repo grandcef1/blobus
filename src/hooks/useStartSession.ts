@@ -1,8 +1,9 @@
 // ARCHITECT: старт сессии вынесен из мастера: финал полного флоу и режима session делают одно и то же,
 // а ветка мок/реал различается навигацией и целевым уровнем, поэтому она живёт в отдельном хуке и тесте.
-// ARCHITECT: real-ветка ведёт на список — чат реальных сессий подключится в фазе C. Инвалидация
-// ["sessions"] обновляет список и сайдбар: ключ общий. targetLevel есть только в мок-ветке — колонки
-// в реальной схеме нет.
+// ARCHITECT: real-ветка перед созданием сессии проверяет результат теста уровня: без него сервер откажет в чате,
+// а уровень сессии взять негде (server/routes/chat.ts). Нет результата — сессия не создаётся, пользователь
+// возвращается к прохождению теста. Инвалидация ["sessions"] обновляет список, сайдбар и кэш чата: ключ общий.
+// targetLevel есть только в мок-ветке — колонки в реальной схеме нет.
 
 import { useRef } from "react";
 import { useTranslation } from "react-i18next";
@@ -10,7 +11,7 @@ import { useNavigate } from "react-router-dom";
 import { useQueryClient } from "@tanstack/react-query";
 
 import { ApiError } from "@/api/client";
-import { getResult } from "@/api/placement";
+import { fetchPlacementResultDto, getResult } from "@/api/placement";
 import { createSession, createSessionSummary } from "@/api/sessions";
 import { USE_MOCKS } from "@/lib/env";
 import { levelForMode } from "@/lib/placement";
@@ -63,9 +64,23 @@ export function useStartSession(): StartSessionApi {
             }
 
             try {
-                await createSessionSummary({ tutorId: blobatarId, mode: learningMode });
+                // ARCHITECT: гейт старта: результат теста уровня приходит с сервера, а не из памяти страницы —
+                // «на глаз» уровень не выставляется, и без него сессия не создаётся (§16.2).
+                const placement = await fetchPlacementResultDto();
+
+                if (placement === null) {
+                    toast.error(t("sessions.create.noPlacement"));
+                    navigate("/onboarding", { replace: true });
+                    return;
+                }
+
+                const created = await createSessionSummary({
+                    tutorId: blobatarId,
+                    mode: learningMode,
+                });
                 await queryClient.invalidateQueries({ queryKey: ["sessions"] });
-                navigate("/app/sessions", { replace: true });
+                // ARCHITECT: чат реальных сессий открывается сразу: сессия уже создана, и список — лишний шаг.
+                navigate(`/app/chat/${created.id}`, { replace: true });
             } catch (error) {
                 // ARCHITECT: один тост на 401: терминальный тост и редирект делает общий useAuthExpiry
                 // внутри useSessions, когда список откроется.

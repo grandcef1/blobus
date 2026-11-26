@@ -11,12 +11,17 @@ import { cn } from "@/lib/utils";
 interface MessageBubbleProps {
     message: EnhancedMessage;
     session: EnhancedChatSession;
+    /** Подчёркивание реплики: под ответом идёт карточка разбора, и правка относится к этой фразе. */
+    marked?: boolean;
 }
 
 const BODY_TEXT = "text-[15px] leading-[1.6] text-[#f0f0f5]/90 md:text-base";
 const AUTHOR_NAME = "mb-1 text-xs font-medium text-[#f0f0f5]/60";
+// ARCHITECT: правка помечается подчёркиванием, а не цветом: цвет в ленте оставлен значимым состояниям
+// карточек, а разбор ошибки виден целиком в карточке под этой репликой.
+const MARKED_TEXT = "underline decoration-dotted decoration-[#f0f0f5]/30 underline-offset-4";
 
-export function MessageBubble({ message, session }: MessageBubbleProps) {
+export function MessageBubble({ message, session, marked = false }: MessageBubbleProps) {
     const isUser = message.role === "user";
     const repetitor = getBlobatarById(session.repetitorId);
 
@@ -29,7 +34,9 @@ export function MessageBubble({ message, session }: MessageBubbleProps) {
                         BODY_TEXT
                     )}
                 >
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className={cn("whitespace-pre-wrap", marked && MARKED_TEXT)}>
+                        {message.content}
+                    </p>
                 </div>
             </div>
         );

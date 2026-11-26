@@ -43,6 +43,21 @@
   "confirm": {
     "cancel": "Cancel"
   },
+  "feed": {
+    "typing": "The tutor is typing",
+    "error": "Could not get a reply",
+    "limit": "You are out of messages for today",
+    "retry": "Try again",
+    "remaining": "Messages left: {{count}}"
+  },
+  "card": {
+    "check": "Check",
+    "correct": "Correct",
+    "answerLabel": "Answer",
+    "answerPlaceholder": "Type your answer",
+    "orderLabel": "Build the sentence",
+    "orderHint": "Tap the words in order"
+  },
   "input": {
     "placeholder": "Write a message in English...",
     "attachFile": "Attach a file",
@@ -63,6 +78,7 @@
     "listen": "Listen",
     "examples": "Examples",
     "similar": "Similar:",
+    "context": "Used in the lesson",
     "save": "Save to vocabulary",
     "remove": "Remove from vocabulary",
     "pos": {

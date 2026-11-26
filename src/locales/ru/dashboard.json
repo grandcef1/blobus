@@ -122,6 +122,7 @@
   },
   "settings": {
     "title": "Настройки",
+    "error": "Не удалось сохранить настройки",
     "preferences": {
       "title": "Предпочтения",
       "soundEffects": {

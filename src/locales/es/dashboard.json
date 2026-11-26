@@ -135,9 +135,17 @@
         "en": "Inglés",
         "es": "Español"
       },
+      "explanationLanguage": {
+        "label": "Idioma de las explicaciones"
+      },
       "autoCorrection": {
         "label": "Autocorrección",
         "description": "Corregir los errores del chat automáticamente"
+      },
+      "voice": {
+        "label": "Leer respuestas en voz alta",
+        "descriptionFree": "Voz estándar del dispositivo. Pro incluye voz premium.",
+        "descriptionPro": "Voz premium del tutor."
       }
     }
   },

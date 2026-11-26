@@ -135,9 +135,17 @@
         "en": "English",
         "es": "Spanish"
       },
+      "explanationLanguage": {
+        "label": "Explanation language"
+      },
       "autoCorrection": {
         "label": "Auto-correction",
         "description": "Fix mistakes in chat automatically"
+      },
+      "voice": {
+        "label": "Read answers aloud",
+        "descriptionFree": "Standard device voice. Pro gets a premium voice.",
+        "descriptionPro": "Premium tutor voice."
       }
     }
   },

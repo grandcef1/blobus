@@ -5,18 +5,28 @@
 import { apiFetch } from "@/api/client";
 import { delayMock } from "@/api/mockDelay";
 import { USE_MOCKS } from "@/lib/env";
+import { DEFAULT_LANGUAGE } from "@/lib/i18n";
 import type { SettingsState } from "@/types/settings";
 
-/** Два toggle, которые страница реально рендерит: остальных полей у сервера нет. */
+/** Настройки, которые рендерит страница: сервер отдаёт ровно эти четыре ключа. */
 export type SettingsPreferences = SettingsState["preferences"];
+/** Патч настроек: сервер сливает присланные ключи с сохранёнными, поэтому поле можно менять по одному. */
+export type SettingsPatch = Partial<SettingsPreferences>;
 
 export const DEFAULT_SETTINGS: SettingsState = {
-    preferences: { soundEffects: true, autoCorrection: true },
+    preferences: {
+        soundEffects: true,
+        autoCorrection: true,
+        explanationLocale: DEFAULT_LANGUAGE,
+        voiceEnabled: false,
+    },
+    plan: "free",
 };
 
-/** Конверт ответа GET/PATCH /api/settings (server/routes/settings.ts). */
+/** Конверт ответа GET/PATCH /api/settings (server/routes/settings.ts): тариф идёт рядом с настройками. */
 interface SettingsEnvelope {
     settings: SettingsPreferences;
+    plan: SettingsState["plan"];
 }
 
 // ARCHITECT: маппер один на чтение и запись: форма серверного конверта не покидает модуль (§16.13).
@@ -25,7 +35,10 @@ function toSettingsState(envelope: SettingsEnvelope): SettingsState {
         preferences: {
             soundEffects: envelope.settings.soundEffects,
             autoCorrection: envelope.settings.autoCorrection,
+            explanationLocale: envelope.settings.explanationLocale,
+            voiceEnabled: envelope.settings.voiceEnabled,
         },
+        plan: envelope.plan,
     };
 }
 
@@ -39,16 +52,19 @@ export async function fetchSettings(): Promise<SettingsState> {
     return toSettingsState(await apiFetch<SettingsEnvelope>("/settings"));
 }
 
-/** Сохраняет оба toggle целиком: у сервера полный DTO, частичных патчей нет. */
-export async function updateSettings(preferences: SettingsPreferences): Promise<SettingsState> {
+/** Сохраняет переданные поля: сервер делает merge, поэтому тело — частичный патч, а не полный DTO. */
+export async function updateSettings(patch: SettingsPatch): Promise<SettingsState> {
     if (USE_MOCKS) {
         await delayMock();
 
-        return { preferences };
+        return {
+            plan: DEFAULT_SETTINGS.plan,
+            preferences: { ...DEFAULT_SETTINGS.preferences, ...patch },
+        };
     }
 
     // ARCHITECT: тело уходит объектом: apiFetch сериализует его сам и сам ставит CSRF-заголовок.
     return toSettingsState(
-        await apiFetch<SettingsEnvelope>("/settings", { method: "PATCH", body: preferences })
+        await apiFetch<SettingsEnvelope>("/settings", { method: "PATCH", body: patch })
     );
 }

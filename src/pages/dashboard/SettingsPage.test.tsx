@@ -1,6 +1,8 @@
 // ARCHITECT: настройки проверяются на моках api-слоя: страница читает данные запросом, а запись идёт
 // оптимистичной мутацией. Свой QueryClient (в renderWithProviders его не видно) нужен ради шпиона на
 // invalidateQueries, а MemoryRouter — из-за useAuthExpiry внутри страницы. Язык-стор реальный.
+// ARCHITECT: тариф и описание озвучки приходят в том же ответе: мок fetchSettings меняет plan, чтобы проверить
+// оба описания, и значения preference-полей, чтобы увидеть их на строке.
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor } from "@testing-library/react";
@@ -13,6 +15,7 @@ import { ApiError } from "@/api/client";
 import { SettingsPage } from "@/pages/dashboard/SettingsPage";
 import { resetStores } from "@/test/utils";
 import { useLanguageStore } from "@/store/language";
+import i18n, { DEFAULT_LANGUAGE } from "@/lib/i18n";
 import type { SettingsState } from "@/types/settings";
 
 const { fetchSettingsMock, updateSettingsMock, toastErrorMock } = vi.hoisted(() => ({
@@ -31,7 +34,15 @@ vi.mock("@/store/toast", async (importOriginal) => {
     return { ...actual, toast: { ...actual.toast, error: toastErrorMock } };
 });
 
-const DATA: SettingsState = { preferences: { soundEffects: true, autoCorrection: true } };
+const DATA: SettingsState = {
+    preferences: {
+        soundEffects: true,
+        autoCorrection: true,
+        explanationLocale: "ru",
+        voiceEnabled: false,
+    },
+    plan: "free",
+};
 
 let queryClient: QueryClient;
 let invalidateSpy: ReturnType<typeof vi.spyOn>;
@@ -74,8 +85,19 @@ function soundToggle(): HTMLElement {
     return screen.getByRole("switch", { name: "Звуковые эффекты" });
 }
 
-beforeEach(() => {
+function voiceToggle(): HTMLElement {
+    return screen.getByRole("switch", { name: "Озвучивать ответы" });
+}
+
+function explanationSelect(): HTMLElement {
+    return screen.getByRole("combobox", { name: "Язык объяснений" });
+}
+
+// ARCHITECT: тест 6 переключает язык интерфейса, а смена асинхронна: сброс возвращает ru, иначе следующие
+// тесты увидели бы английские подписи, хотя проверяют русские строки словаря.
+beforeEach(async () => {
     resetStores();
+    await i18n.changeLanguage(DEFAULT_LANGUAGE);
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
     invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
     fetchSettingsMock.mockResolvedValue(DATA);
@@ -99,7 +121,7 @@ describe("SettingsPage", () => {
 
         expect(container.querySelector('[aria-busy="true"]')).toBeInTheDocument();
 
-        deferred.resolve({ preferences: { soundEffects: false, autoCorrection: true } });
+        deferred.resolve({ ...DATA, preferences: { ...DATA.preferences, soundEffects: false } });
 
         const sound = await screen.findByRole("switch", { name: "Звуковые эффекты" });
 
@@ -122,16 +144,11 @@ describe("SettingsPage", () => {
 
         // ARCHITECT: значение перевернулось до ответа сервера — это и есть оптимистичный отклик.
         await waitFor(() => expect(soundToggle()).toHaveAttribute("aria-checked", "false"));
-        // ARCHITECT: первым аргументом уходит полный DTO, второй добавляет react-query (контекст мутации).
-        expect(updateSettingsMock).toHaveBeenCalledWith(
-            {
-                soundEffects: false,
-                autoCorrection: true,
-            },
-            expect.anything()
-        );
+        // ARCHITECT: первым аргументом уходит только изменённое поле — патч сливает сервер, — второй
+        // аргумент добавляет react-query (контекст мутации).
+        expect(updateSettingsMock).toHaveBeenCalledWith({ soundEffects: false }, expect.anything());
 
-        deferred.resolve({ preferences: { soundEffects: false, autoCorrection: true } });
+        deferred.resolve({ ...DATA, preferences: { ...DATA.preferences, soundEffects: false } });
 
         await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["settings"] }));
     });
@@ -183,7 +200,7 @@ describe("SettingsPage", () => {
 
         expect(updateSettingsMock).toHaveBeenCalledTimes(1);
 
-        deferred.resolve({ preferences: { soundEffects: false, autoCorrection: true } });
+        deferred.resolve({ ...DATA, preferences: { ...DATA.preferences, soundEffects: false } });
 
         await waitFor(() => expect(soundToggle()).not.toBeDisabled());
     });
@@ -194,6 +211,10 @@ describe("SettingsPage", () => {
         await renderLoaded();
         await user.selectOptions(screen.getByRole("combobox", { name: "Язык" }), "en");
 
+        // ARCHITECT: ждём сначала сам i18n: смена языка асинхронна (загрузка бандла и changeLanguage), и без
+        // ожидания она догнала бы следующий тест, подменив ему подписи. Значение стора проверяется вторым:
+        // его дефолт совпадает с языком jsdom, поэтому один он ничего не доказывает.
+        await waitFor(() => expect(i18n.language).toBe("en"));
         await waitFor(() => expect(useLanguageStore.getState().lang).toBe("en"));
         expect(updateSettingsMock).not.toHaveBeenCalled();
         expect(invalidateSpy).not.toHaveBeenCalled();
@@ -215,5 +236,71 @@ describe("SettingsPage", () => {
 
         await waitFor(() => expect(fetchSettingsMock).toHaveBeenCalledTimes(2));
         await screen.findByRole("switch", { name: "Звуковые эффекты" });
+    });
+
+    it("8: показывает язык объяснений и озвучку с серверными значениями", async () => {
+        fetchSettingsMock.mockResolvedValue({
+            ...DATA,
+            preferences: { ...DATA.preferences, explanationLocale: "en", voiceEnabled: true },
+        });
+
+        await renderLoaded();
+
+        expect(explanationSelect()).toHaveValue("en");
+        expect(voiceToggle()).toHaveAttribute("aria-checked", "true");
+        // ARCHITECT: free-тариф озвучивает голосом устройства, но тумблер не заблокирован.
+        expect(
+            screen.getByText("Стандартный голос устройства. В Pro — премиум-голос.")
+        ).toBeInTheDocument();
+        expect(voiceToggle()).not.toBeDisabled();
+    });
+
+    it("9: смена языка объяснений уходит патчем, видна сразу и инвалидирует кэш", async () => {
+        const user = userEvent.setup();
+        const deferred = makeDeferred<SettingsState>();
+
+        updateSettingsMock.mockReturnValue(deferred.promise);
+        await renderLoaded();
+
+        await user.selectOptions(explanationSelect(), "es");
+
+        await waitFor(() => expect(explanationSelect()).toHaveValue("es"));
+        expect(updateSettingsMock).toHaveBeenCalledWith(
+            { explanationLocale: "es" },
+            expect.anything()
+        );
+
+        deferred.resolve({
+            ...DATA,
+            preferences: { ...DATA.preferences, explanationLocale: "es" },
+        });
+
+        await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["settings"] }));
+    });
+
+    it("10: тумблер озвучки сохраняется тем же частичным патчем", async () => {
+        const user = userEvent.setup();
+        const deferred = makeDeferred<SettingsState>();
+
+        updateSettingsMock.mockReturnValue(deferred.promise);
+        await renderLoaded();
+
+        await user.click(voiceToggle());
+
+        await waitFor(() => expect(voiceToggle()).toHaveAttribute("aria-checked", "true"));
+        expect(updateSettingsMock).toHaveBeenCalledWith({ voiceEnabled: true }, expect.anything());
+
+        deferred.resolve({ ...DATA, preferences: { ...DATA.preferences, voiceEnabled: true } });
+
+        await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["settings"] }));
+    });
+
+    it("11: описание озвучки зависит от тарифа, в Pro тумблер тоже доступен", async () => {
+        fetchSettingsMock.mockResolvedValue({ ...DATA, plan: "pro" });
+
+        await renderLoaded();
+
+        expect(screen.getByText("Премиум-голос репетитора.")).toBeInTheDocument();
+        expect(voiceToggle()).not.toBeDisabled();
     });
 });

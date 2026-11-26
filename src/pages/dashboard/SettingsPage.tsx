@@ -1,8 +1,9 @@
-// ARCHITECT: Настройки — компактные, без иконок в заголовках, монохромные toggle'и. Два переключателя
-// (звук и автокоррекция) читаются и пишутся реальным API: источник правды — сервер (P-1), страница лишь
-// показывает оптимистичное значение и откатывает его, если запрос не прошёл.
-// ARCHITECT: язык остаётся на store/language: сервер про него ничего не знает, а смена сразу применяет
-// переводы и сохраняется в localStorage.
+// ARCHITECT: Настройки — компактные, без иконок в заголовках, монохромные строки. Пять настроек (звук, язык
+// интерфейса, язык объяснений, автокоррекция, озвучка) читаются и пишутся реальным API: источник правды —
+// сервер, страница лишь показывает оптимистичное значение и откатывает его, если запрос не прошёл.
+// ARCHITECT: язык интерфейса остаётся на store/language (сервер про него не знает), а язык объяснений и
+// озвучка живут в preferences и уходят на сервер частичным патчем. Тариф приходит из ответа и меняет только
+// описание озвучки: тумблер доступен обоим тарифам — free озвучивает голосом устройства.
 
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
@@ -10,7 +11,7 @@ import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
 import { fetchSettings, updateSettings } from "@/api/settings";
-import type { SettingsPreferences } from "@/api/settings";
+import type { SettingsPatch } from "@/api/settings";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { SettingSelect } from "@/components/dashboard/SettingSelect";
 import { SettingToggle } from "@/components/dashboard/SettingToggle";
@@ -22,6 +23,19 @@ import { toast } from "@/store/toast";
 import type { SettingsState } from "@/types/settings";
 
 const SETTINGS_KEY = ["settings"] as const;
+
+// ARCHITECT: константы на модуле, а не в теле компонента: подписи языков одни и те же у языка интерфейса и
+// языка объяснений, а описание озвучки выбирается по тарифу.
+const LANGUAGE_OPTION_KEYS = {
+    ru: "settings.preferences.language.ru",
+    en: "settings.preferences.language.en",
+    es: "settings.preferences.language.es",
+} as const;
+
+const VOICE_DESCRIPTION_KEYS = {
+    free: "settings.preferences.voice.descriptionFree",
+    pro: "settings.preferences.voice.descriptionPro",
+} as const;
 
 export function SettingsPage() {
     const { t } = useTranslation("dashboard");
@@ -37,17 +51,23 @@ export function SettingsPage() {
 
     const mutation = useMutation({
         mutationFn: updateSettings,
-        // ARCHITECT: оптимистичный toggle: значение меняется сразу, а onError возвращает снимок — при
-        // медленной сети интерфейс не ждёт ответа, но и не врёт при отказе.
-        onMutate: async (preferences) => {
+        // ARCHITECT: оптимистичный патч: меняется только присланное поле, а снимок возвращается при отказе —
+        // при медленной сети интерфейс не ждёт ответа, но и не врёт при ошибке.
+        onMutate: async (patch) => {
             await queryClient.cancelQueries({ queryKey: SETTINGS_KEY });
             const previous = queryClient.getQueryData<SettingsState>(SETTINGS_KEY);
 
-            queryClient.setQueryData<SettingsState>(SETTINGS_KEY, { preferences });
+            // ARCHITECT: патч накладывается на текущее состояние: тариф и незатронутые настройки целы.
+            if (previous !== undefined) {
+                queryClient.setQueryData<SettingsState>(SETTINGS_KEY, {
+                    ...previous,
+                    preferences: { ...previous.preferences, ...patch },
+                });
+            }
 
             return { previous };
         },
-        onError: (error, _preferences, context) => {
+        onError: (error, _patch, context) => {
             if (context?.previous !== undefined) {
                 queryClient.setQueryData(SETTINGS_KEY, context.previous);
             }
@@ -80,14 +100,17 @@ export function SettingsPage() {
         );
     }
 
-    const preferences = query.data.preferences;
+    const { preferences, plan } = query.data;
+    // ARCHITECT: опции собираются один раз: обе строки языка показывают один и тот же список подписей.
+    const languageOptions = SUPPORTED_LANGUAGES.map((code) => ({
+        value: code,
+        label: t(LANGUAGE_OPTION_KEYS[code]),
+    }));
     const busy = mutation.isPending;
 
-    const toggle = (key: keyof SettingsPreferences, checked: boolean): void => {
+    const update = (patch: SettingsPatch): void => {
         // ARCHITECT: гард от параллельных: пока идёт мутация, второй клик игнорируется (§16.7).
-        if (busy) return;
-
-        mutation.mutate({ ...preferences, [key]: checked });
+        if (!busy) mutation.mutate(patch);
     };
 
     return (
@@ -113,7 +136,7 @@ export function SettingsPage() {
                                 description={t("settings.preferences.soundEffects.description")}
                                 checked={preferences.soundEffects}
                                 disabled={busy}
-                                onChange={(checked) => toggle("soundEffects", checked)}
+                                onChange={(checked) => update({ soundEffects: checked })}
                             />
 
                             <SettingSelect
@@ -123,11 +146,17 @@ export function SettingsPage() {
                                     const next = SUPPORTED_LANGUAGES.find((code) => code === value);
                                     if (next) setLanguage(next);
                                 }}
-                                options={[
-                                    { value: "ru", label: t("settings.preferences.language.ru") },
-                                    { value: "en", label: t("settings.preferences.language.en") },
-                                    { value: "es", label: t("settings.preferences.language.es") },
-                                ]}
+                                options={languageOptions}
+                            />
+
+                            <SettingSelect
+                                label={t("settings.preferences.explanationLanguage.label")}
+                                value={preferences.explanationLocale}
+                                onChange={(value) => {
+                                    const next = SUPPORTED_LANGUAGES.find((code) => code === value);
+                                    if (next) update({ explanationLocale: next });
+                                }}
+                                options={languageOptions}
                             />
 
                             <SettingToggle
@@ -135,7 +164,15 @@ export function SettingsPage() {
                                 description={t("settings.preferences.autoCorrection.description")}
                                 checked={preferences.autoCorrection}
                                 disabled={busy}
-                                onChange={(checked) => toggle("autoCorrection", checked)}
+                                onChange={(checked) => update({ autoCorrection: checked })}
+                            />
+
+                            <SettingToggle
+                                label={t("settings.preferences.voice.label")}
+                                description={t(VOICE_DESCRIPTION_KEYS[plan])}
+                                checked={preferences.voiceEnabled}
+                                disabled={busy}
+                                onChange={(checked) => update({ voiceEnabled: checked })}
                             />
                         </div>
                     </div>

@@ -135,9 +135,17 @@
         "en": "English",
         "es": "Español"
       },
+      "explanationLanguage": {
+        "label": "Язык объяснений"
+      },
       "autoCorrection": {
         "label": "Автокоррекция",
         "description": "Исправлять ошибки в чате автоматически"
+      },
+      "voice": {
+        "label": "Озвучивать ответы",
+        "descriptionFree": "Стандартный голос устройства. В Pro — премиум-голос.",
+        "descriptionPro": "Премиум-голос репетитора."
       }
     }
   },

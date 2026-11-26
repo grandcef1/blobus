@@ -8,7 +8,8 @@ import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from
 
 import { buildApp } from "../app.ts";
 import { COOKIE_NAMES, configureCookies } from "../cookies.ts";
-import { QUESTIONS, computePlacement, levelForScore } from "../placementCatalog.ts";
+import { QUESTIONS, QUESTION_IDS, computePlacement, levelForScore } from "../placementCatalog.ts";
+import type { PlacementAnswer } from "../placementCatalog.ts";
 import type { SupabaseEnv } from "../supabase.ts";
 import {
     createAdminClient,
@@ -63,8 +64,8 @@ const PASSWORD = `Placement-${randomUUID()}-1`;
 const CSRF_HEADER = "x-csrf-token";
 /** Код Postgres «недостаточно прав»: у authenticated на placement_results есть только select. */
 const INSUFFICIENT_PRIVILEGE = "42501";
-/** Размер банка: он же верхняя граница числа ответов в теле. */
-const TOTAL_QUESTIONS = 60;
+/** Размер формы: столько же ответов обязан прислать клиент — набор один на всех. */
+const TOTAL_QUESTIONS = 30;
 /** Набор ключей вопроса в ответе: correctIndex в него не входит и попасть не может. */
 const QUESTION_KEYS = ["id", "level", "options", "prompt", "skill"];
 const OPTION_KEYS = ["id", "text"];
@@ -245,14 +246,14 @@ async function dbResults(
 }
 
 /**
- * Ответы по банку сервера: первые `correct` — верные, остальные — заведомо неверные (сдвиг варианта на
- * один). Ожидаемые балл и уровень тесты задают литералами, поэтому формула проверяется, а не повторяется.
+ * Полный комплект ответов формы: `correct` первых заданий отвечены верно, остальные — заведомо неверно
+ * (сдвиг варианта на один). Ожидаемые балл и уровень тесты задают литералами, поэтому формула проверяется,
+ * а не повторяется за кодом.
  */
 function answers(
-    correct: number,
-    wrong: number
+    correct: number
 ): readonly { readonly questionId: string; readonly choice: number }[] {
-    return QUESTIONS.slice(0, correct + wrong).map((question, index) => ({
+    return QUESTIONS.map((question, index) => ({
         questionId: question.id,
         choice: index < correct ? question.correctIndex : (question.correctIndex + 1) % 4,
     }));
@@ -339,13 +340,13 @@ describe("GET /api/placement", () => {
                 }
             }
 
-            // ARCHITECT: первое задание банка — то же, что в клиентском источнике (перенос 1:1).
-            expect(body.questions?.[0]?.prompt).toBe("She ___ a teacher.");
+            // ARCHITECT: первое задание формы — A1 grammar, как в банке (порядок показа: A1..C2).
+            expect(body.questions?.[0]?.prompt).toBe("Tom ___ a new bicycle.");
             expect(body.questions?.[0]?.options.map((option) => option.text)).toEqual([
-                "is",
-                "are",
-                "am",
-                "be",
+                "have",
+                "has",
+                "having",
+                "is have",
             ]);
         });
     }, 30_000);
@@ -375,12 +376,12 @@ describe("POST /api/placement", () => {
     it("3: считает балл и уровень сам, затем отдаёт результат на GET", async () => {
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
-            // ARCHITECT: 6 верных из 10 — это 60 баллов и полоса B2 (60-74): ожидания заданы литералами,
+            // ARCHITECT: 18 верных из 30 — это 60 баллов и полоса B2 (60-74): ожидания заданы литералами,
             // поэтому формула и полосы проверяются, а не повторяются за кодом.
             const response = await postJson(
                 app.baseUrl,
                 "/api/placement",
-                { answers: answers(6, 4) },
+                { answers: answers(18) },
                 mutationHeaders(me.jar, app.baseUrl)
             );
             const body = (await response.json()) as ResultBody;
@@ -407,7 +408,7 @@ describe("POST /api/placement", () => {
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
             const headers = mutationHeaders(me.jar, app.baseUrl);
-            const valid = answers(2, 0);
+            const valid = answers(0);
             const invalidBodies: readonly unknown[] = [
                 { answers: valid, score: 100 },
                 { answers: valid, level: "C2" },
@@ -428,22 +429,33 @@ describe("POST /api/placement", () => {
         });
     }, 30_000);
 
-    it("5: отклоняет 400 выбор вне 0..3, чужой questionId, пустой и слишком длинный список", async () => {
+    it("5: отклоняет 400 неполный, дублирующий, лишний и неверный комплект ответов", async () => {
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
             const headers = mutationHeaders(me.jar, app.baseUrl);
-            const valid = answers(1, 0)[0];
-            const oversized = Array.from({ length: TOTAL_QUESTIONS + 1 }, (_value, index) => ({
-                questionId: QUESTIONS[index % QUESTIONS.length].id,
-                choice: 0,
-            }));
+            const full = answers(0);
+            const incomplete = full.slice(0, TOTAL_QUESTIONS - 1);
+            const duplicated = [...full.slice(0, TOTAL_QUESTIONS - 1), full[0]];
+            const unknown = [
+                ...full.slice(0, TOTAL_QUESTIONS - 1),
+                { ...full[0], questionId: "grammar_zz_1" },
+            ];
+            const oversized = [...full, { ...full[0] }];
+            // ARCHITECT: «отвечу только то, что знаю» — подмножество A1+A2: форма отвечается целиком, иначе
+            // клиент считал бы балл по выгодному ему набору (чит закрыт).
+            const easyOnly = QUESTIONS.filter(
+                (question) => question.level === "A1" || question.level === "A2"
+            ).map((question) => ({ questionId: question.id, choice: question.correctIndex }));
             const invalidBodies: readonly unknown[] = [
-                { answers: [{ ...valid, choice: 4 }] },
-                { answers: [{ ...valid, choice: -1 }] },
-                { answers: [{ ...valid, choice: 1.5 }] },
-                { answers: [{ ...valid, questionId: "grammar_zz_1" }] },
-                { answers: [] },
+                { answers: incomplete },
+                { answers: duplicated },
+                { answers: unknown },
                 { answers: oversized },
+                { answers: easyOnly },
+                { answers: [] },
+                { answers: full.map((answer) => ({ ...answer, choice: 4 })) },
+                { answers: full.map((answer) => ({ ...answer, choice: -1 })) },
+                { answers: full.map((answer) => ({ ...answer, choice: 1.5 })) },
             ];
 
             for (const body of invalidBodies) {
@@ -464,13 +476,13 @@ describe("POST /api/placement", () => {
             const first = await postJson(
                 app.baseUrl,
                 "/api/placement",
-                { answers: answers(3, 7) },
+                { answers: answers(9) },
                 headers
             );
             const second = await postJson(
                 app.baseUrl,
                 "/api/placement",
-                { answers: answers(10, 0) },
+                { answers: answers(30) },
                 headers
             );
             const firstBody = (await first.json()) as ResultBody;
@@ -494,7 +506,7 @@ describe("владение, лимиты и гранты /api/placement", () => 
             const tampered = await postJson(
                 app.baseUrl,
                 "/api/placement",
-                { answers: answers(4, 0), userId: bob.id },
+                { answers: answers(12), userId: bob.id },
                 mutationHeaders(alice.jar, app.baseUrl)
             );
 
@@ -505,7 +517,7 @@ describe("владение, лимиты и гранты /api/placement", () => 
             const own = await postJson(
                 app.baseUrl,
                 "/api/placement",
-                { answers: answers(4, 0) },
+                { answers: answers(12) },
                 mutationHeaders(alice.jar, app.baseUrl)
             );
 
@@ -528,7 +540,7 @@ describe("владение, лимиты и гранты /api/placement", () => 
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
             const headers = mutationHeaders(me.jar, app.baseUrl);
-            const body = { answers: answers(1, 0) };
+            const body = { answers: answers(1) };
             const attempted: number[] = [];
 
             for (let attempt = 0; attempt < 10; attempt += 1) {
@@ -549,11 +561,11 @@ describe("владение, лимиты и гранты /api/placement", () => 
     it("9: клиент не пишет placement_results напрямую, но читает свой результат", async () => {
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
-            // ARCHITECT: 1 верный из 2 — 50 баллов и полоса B1: подтверждает, что балл в БД серверный.
+            // ARCHITECT: 15 верных из 30 — 50 баллов и полоса B1: подтверждает, что балл в БД серверный.
             const submitted = await postJson(
                 app.baseUrl,
                 "/api/placement",
-                { answers: answers(1, 1) },
+                { answers: answers(15) },
                 mutationHeaders(me.jar, app.baseUrl)
             );
 
@@ -629,4 +641,146 @@ describe("скоринг уровня", () => {
             expect(levelForScore(score)).toBe(level);
         }
     });
+
+    it("13: калибровка формы — набор по уровням даёт ожидаемую полосу", () => {
+        /** Ответы формы: уровни из `solid` верны целиком, `partial` — первые три задания уровня. */
+        const solved = (solid: readonly string[], partial?: string): readonly PlacementAnswer[] => {
+            const half = new Set(
+                QUESTIONS.filter((question) => question.level === partial)
+                    .slice(0, 3)
+                    .map((question) => question.id)
+            );
+
+            return QUESTIONS.map((question) => ({
+                questionId: question.id,
+                choice:
+                    solid.includes(question.level) || half.has(question.id)
+                        ? question.correctIndex
+                        : (question.correctIndex + 1) % 4,
+            }));
+        };
+
+        // Только бытовой уровень: 5 верных из 30 — 17 баллов, полоса A1.
+        expect(computePlacement(solved(["A1"]))).toEqual({ score: 17, level: "A1" });
+        // A1 и A2 целиком, остальное неверно: 10 верных из 30 — 33 балла, полоса A2.
+        expect(computePlacement(solved(["A1", "A2"]))).toEqual({ score: 33, level: "A2" });
+        // A1 + A2 + половина B1 (3 задания из 5): 13 верных из 30 — 43 балла, полоса B1.
+        expect(computePlacement(solved(["A1", "A2"], "B1"))).toEqual({ score: 43, level: "B1" });
+        // Вся форма: 30 верных — 100 баллов, полоса C2.
+        expect(computePlacement(solved(["A1", "A2", "B1", "B2", "C1", "C2"]))).toEqual({
+            score: 100,
+            level: "C2",
+        });
+    });
+});
+
+describe("форма и один результат на пользователя", () => {
+    it("14: форма зафиксирована: 30 заданий, по 2 grammar и 3 general на уровень", () => {
+        expect(QUESTIONS).toHaveLength(TOTAL_QUESTIONS);
+        expect(QUESTION_IDS.size).toBe(TOTAL_QUESTIONS);
+        expect(new Set(QUESTIONS.map((question) => question.id)).size).toBe(TOTAL_QUESTIONS);
+
+        for (const level of ["A1", "A2", "B1", "B2", "C1", "C2"]) {
+            const group = QUESTIONS.filter((question) => question.level === level);
+
+            expect(group).toHaveLength(5);
+            expect(group.filter((question) => question.skill === "grammar")).toHaveLength(2);
+            expect(group.filter((question) => question.skill === "general")).toHaveLength(3);
+        }
+
+        for (const question of QUESTIONS) {
+            // ARCHITECT: рубрика формы: ровно четыре разных варианта, верный — один из них, стем не пустой.
+            expect(question.options).toHaveLength(4);
+            expect(question.correctIndex).toBeGreaterThanOrEqual(0);
+            expect(question.correctIndex).toBeLessThanOrEqual(3);
+            expect(new Set(question.options.map((option) => option.text)).size).toBe(4);
+            expect(question.prompt.trim().length).toBeGreaterThan(0);
+        }
+    });
+
+    it("15: порядок ответов не важен — комплект тот же", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/placement",
+                { answers: [...answers(15)].reverse() },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as ResultBody;
+
+            // ARCHITECT: скоринг идёт по id, поэтому перемешанный комплект даёт тот же балл.
+            expect(response.status).toBe(200);
+            expect(body.result.score).toBe(50);
+            expect(body.result.level).toBe("B1");
+        });
+    }, 30_000);
+
+    it("16: второй результат для того же пользователя не создаётся — unique index", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const submitted = await postJson(
+                app.baseUrl,
+                "/api/placement",
+                { answers: answers(18) },
+                headers
+            );
+            const body = (await submitted.json()) as ResultBody;
+
+            expect(submitted.status).toBe(200);
+            expect(body.result.score).toBe(60);
+
+            // ARCHITECT: прямой insert второй строки упирается в placement_results_user_id_unique — та же
+            // защита срабатывает при гонке двух одновременных отправок (§16.9).
+            const second = await createAdminClient()
+                .from("placement_results")
+                .insert({ user_id: me.id, level: "C2", score: 100 });
+
+            expect(second.error?.code).toBe("23505");
+            expect(await dbResults(me.id)).toEqual([{ level: "B2", score: 60 }]);
+
+            // ARCHITECT: повторная отправка полного комплекта возвращает сохранённое и ничего не перезаписывает.
+            const again = await postJson(
+                app.baseUrl,
+                "/api/placement",
+                { answers: answers(30) },
+                headers
+            );
+            const againBody = (await again.json()) as ResultBody;
+
+            expect(again.status).toBe(200);
+            expect(againBody).toEqual(body);
+            expect(await dbResults(me.id)).toEqual([{ level: "B2", score: 60 }]);
+        });
+    }, 30_000);
+
+    it("17: готовый результат, записанный сервером напрямую, POST возвращает как есть", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            // ARCHITECT: форма теста не пересдаётся: если результат уже записан (например биллингом или
+            // поддержкой), отправка ответов отдаёт именно его, а не пересчитывает заново.
+            const inserted = await createAdminClient()
+                .from("placement_results")
+                .insert({ user_id: me.id, level: "C1", score: 80 })
+                .select("level, score, created_at")
+                .single();
+
+            expect(inserted.error).toBeNull();
+
+            const response = await postJson(
+                app.baseUrl,
+                "/api/placement",
+                { answers: answers(30) },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as ResultBody;
+
+            expect(response.status).toBe(200);
+            expect(body.result.level).toBe("C1");
+            expect(body.result.score).toBe(80);
+            expect(body.result.createdAt).toBe(inserted.data?.created_at);
+            expect(await dbResults(me.id)).toEqual([{ level: "C1", score: 80 }]);
+        });
+    }, 30_000);
 });

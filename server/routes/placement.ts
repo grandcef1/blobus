@@ -33,7 +33,8 @@ interface PlacementResultDto {
 }
 
 // ARCHITECT: тело отправки — только ответы: score, level и userId выводятся на сервере, а лишние ключи
-// отклоняет strictObject (§16.2, §16.6). Верхняя граница — весь банк: больше вопросов, чем есть, не бывает.
+// отклоняет strictObject (§16.2, §16.6). Длина ровно как в банке: форма фиксированная, поэтому пропущенный
+// вопрос 400-й, а не «меньше знаменатель, выше балл».
 const SubmitSchema = z.strictObject({
     answers: z
         .array(
@@ -42,8 +43,7 @@ const SubmitSchema = z.strictObject({
                 choice: z.number().int().min(0).max(3),
             })
         )
-        .min(1)
-        .max(QUESTIONS.length),
+        .length(QUESTIONS.length),
 });
 
 // ARCHITECT: лимит чтения стоит первым middleware, чтобы поток отсекался до Supabase. Счёт в памяти —
@@ -56,6 +56,8 @@ const WRITE_WINDOW_MS = 15 * 60_000;
 const WRITE_MAX = 10;
 
 const SELECTED_COLUMNS = "level, score, created_at";
+/** Код Postgres «нарушение уникальности»: placement_results_user_id_unique держит один результат на юзера. */
+const UNIQUE_VIOLATION = "23505";
 
 type PlacementClient = ReturnType<typeof createUserClient>;
 
@@ -165,9 +167,15 @@ export function createPlacementRouter(options: { readonly env: SupabaseEnv }): R
             return;
         }
 
-        // ARCHITECT: неизвестный questionId — битое тело, а не «неверный ответ»: маршрут отклоняет его до
-        // скоринга, иначе чужой id молча не засчитывался бы и занижал балл (§16.6).
-        if (parsed.data.answers.some((answer) => !QUESTION_IDS.has(answer.questionId))) {
+        // ARCHITECT: форма отвечается целиком: множество id обязано совпасть с банком — без пропусков, дублей
+        // и лишних, иначе клиент считал бы балл по выгодному ему подмножеству (§16.2). Порядок ответов
+        // значения не имеет: скоринг идёт по id.
+        const submitted = new Set(parsed.data.answers.map((answer) => answer.questionId));
+
+        if (
+            submitted.size !== QUESTIONS.length ||
+            ![...submitted].every((questionId) => QUESTION_IDS.has(questionId))
+        ) {
             res.status(400).json(errorEnvelope("BAD_REQUEST", res));
             return;
         }
@@ -190,7 +198,20 @@ export function createPlacementRouter(options: { readonly env: SupabaseEnv }): R
             .select(SELECTED_COLUMNS)
             .single();
 
-        if (inserted.error !== null) throw inserted.error;
+        if (inserted.error !== null) {
+            // ARCHITECT: unique(user_id) — при гонке двух одновременных отправок вторая получает 23505: тогда
+            // отдаём уже сохранённый результат, а не 500 (строгая идемпотентность, §16.9).
+            if (inserted.error.code === UNIQUE_VIOLATION) {
+                const raced = await readResultRow(client, payload.userId);
+
+                if (raced !== null) {
+                    res.status(200).json({ result: toResultDto(raced) });
+                    return;
+                }
+            }
+
+            throw inserted.error;
+        }
 
         const row = PlacementRowSchema.safeParse(inserted.data);
 

@@ -78,6 +78,13 @@
     "avatar": {
       "alt": "Profile photo",
       "change": "Change photo",
+      "crop": {
+        "apply": "Apply",
+        "cancel": "Cancel",
+        "hint": "Drag the photo and choose the zoom",
+        "reset": "Reset",
+        "zoom": "Zoom"
+      },
       "dialog": {
         "hint": "JPG or PNG, up to 8 MB",
         "title": "Profile photo"

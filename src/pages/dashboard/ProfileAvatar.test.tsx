@@ -1,7 +1,7 @@
-// ARCHITECT: обойма аватара: мок api-слоя, подготовки файла и тостов, свой QueryClient со шпионом на
-// invalidateQueries (renderWithProviders создал бы клиент, за которым не видно инвалидацию). Проверяются
-// карточка (ховер-оверлей вместо двух кнопок) и модалка: негативы — 401 без тоста, невалидный файл,
-// in-flight гард, Escape без мутаций.
+// ARCHITECT: обойма аватара: мок api-слоя, декодирования файла, рендера кропа и тостов, свой QueryClient со
+// шпионом на invalidateQueries (renderWithProviders создал бы клиент, за которым не видно инвалидацию).
+// Проверяются карточка (ховер-оверлей), модалка (спиннер активного действия, шаг кропа, гарды) и реальные
+// функции avatarImage (валидация, геометрия кропа, рендер через canvas).
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
@@ -12,12 +12,15 @@ import type { ReactElement, ReactNode } from "react";
 import { ApiError } from "@/api/client";
 import { ProfileAvatar } from "@/pages/dashboard/ProfileAvatar";
 
-const { uploadAvatarMock, deleteAvatarMock, prepareMock, toastErrorMock } = vi.hoisted(() => ({
-    uploadAvatarMock: vi.fn(),
-    deleteAvatarMock: vi.fn(),
-    prepareMock: vi.fn(),
-    toastErrorMock: vi.fn(),
-}));
+const { uploadAvatarMock, deleteAvatarMock, decodeMock, renderMock, toastErrorMock } = vi.hoisted(
+    () => ({
+        uploadAvatarMock: vi.fn(),
+        deleteAvatarMock: vi.fn(),
+        decodeMock: vi.fn(),
+        renderMock: vi.fn(),
+        toastErrorMock: vi.fn(),
+    })
+);
 
 vi.mock("@/api/profile", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/api/profile")>();
@@ -26,7 +29,7 @@ vi.mock("@/api/profile", async (importOriginal) => {
 
 vi.mock("@/lib/avatarImage", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/lib/avatarImage")>();
-    return { ...actual, prepareAvatarDataUrl: prepareMock };
+    return { ...actual, decodeAvatarFile: decodeMock, renderCroppedAvatar: renderMock };
 });
 
 vi.mock("@/store/toast", async (importOriginal) => {
@@ -37,6 +40,7 @@ vi.mock("@/store/toast", async (importOriginal) => {
 const OWN_URL = "http://127.0.0.1:54321/storage/v1/object/sign/avatars/u-1/a.png?token=1";
 const PROVIDER_URL = "https://lh3.googleusercontent.com/a/test-avatar";
 const DATA_URL = "data:image/jpeg;base64,AAAA";
+const ZOOM_LABEL = "Масштаб";
 
 let queryClient: QueryClient;
 let invalidateSpy: ReturnType<typeof vi.spyOn>;
@@ -63,6 +67,17 @@ function makeFile(type = "image/png", size = 1024): File {
     return new File([new Uint8Array(size)], "avatar.png", { type });
 }
 
+/** Декодированная картинка: у элемента достаточно размеров и src — canvas в тестах подменён. */
+function makeImage(width = 800, height = 600): HTMLImageElement {
+    const image = new Image();
+
+    image.width = width;
+    image.height = height;
+    image.src = "blob:fake";
+
+    return image;
+}
+
 /** Файловый input живёт в портале диалога: ищем его в document.body, а не в контейнере рендера. */
 function fileInput(): HTMLInputElement {
     const input = document.body.querySelector('input[type="file"]');
@@ -79,6 +94,17 @@ async function openDialog(user: ReturnType<typeof userEvent.setup>): Promise<HTM
     return screen.findByRole("dialog");
 }
 
+/** Выбор картинки: модалка обязана перейти в шаг кропа, а не грузить файл напрямую. */
+async function pickFile(user: ReturnType<typeof userEvent.setup>): Promise<void> {
+    await user.upload(fileInput(), makeFile());
+
+    await screen.findByRole("slider", { name: ZOOM_LABEL });
+}
+
+function cropButton(name: string): HTMLElement {
+    return screen.getByRole("button", { name });
+}
+
 /** Закрытие модалки: подтверждает, что мутация действительно довела обработчик до конца. */
 async function expectDialogClosed(): Promise<void> {
     await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
@@ -87,13 +113,15 @@ async function expectDialogClosed(): Promise<void> {
 beforeEach(() => {
     queryClient = new QueryClient({ defaultOptions: { queries: { retry: false, gcTime: 0 } } });
     invalidateSpy = vi.spyOn(queryClient, "invalidateQueries");
-    prepareMock.mockResolvedValue(DATA_URL);
+    decodeMock.mockResolvedValue(makeImage());
+    renderMock.mockReturnValue(DATA_URL);
 });
 
 afterEach(() => {
     uploadAvatarMock.mockReset();
     deleteAvatarMock.mockReset();
-    prepareMock.mockReset();
+    decodeMock.mockReset();
+    renderMock.mockReset();
     toastErrorMock.mockReset();
     vi.restoreAllMocks();
 });
@@ -113,7 +141,7 @@ describe("ProfileAvatar", () => {
         expect(screen.queryByRole("button", { name: "Удалить фото" })).not.toBeInTheDocument();
     });
 
-    it("10: цепочка своя → Google → User и замена битого источника", () => {
+    it("12: цепочка своя → Google → User и замена битого источника", () => {
         const own = renderAvatar({ avatarUrl: OWN_URL });
 
         expect(own.container.querySelector("img")?.getAttribute("src")).toBe(OWN_URL);
@@ -161,8 +189,8 @@ describe("AvatarEditDialog", () => {
 
         await openDialog(user);
 
-        expect(screen.getByRole("button", { name: "Загрузить фото" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Удалить фото" })).toBeInTheDocument();
+        expect(cropButton("Загрузить фото")).toBeInTheDocument();
+        expect(cropButton("Удалить фото")).toBeInTheDocument();
 
         await user.keyboard("{Escape}");
         await expectDialogClosed();
@@ -172,81 +200,56 @@ describe("AvatarEditDialog", () => {
 
         await openDialog(user);
 
-        expect(screen.getByRole("button", { name: "Загрузить фото" })).toBeInTheDocument();
+        expect(cropButton("Загрузить фото")).toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Удалить фото" })).not.toBeInTheDocument();
     });
 
-    it("4: выбор файла: подготовка, upload, инвалидация и закрытие диалога", async () => {
+    it("4: во время удаления на кнопке спиннер, остальные действия заблокированы", async () => {
+        const user = userEvent.setup();
+        let resolveDelete: (value: { avatarPath: null }) => void = () => undefined;
+
+        renderAvatar({ avatarUrl: OWN_URL });
+        deleteAvatarMock.mockReturnValue(
+            new Promise((resolve) => {
+                resolveDelete = resolve;
+            })
+        );
+
+        await openDialog(user);
+        await user.click(cropButton("Удалить фото"));
+
+        const remove = cropButton("Удалить фото");
+
+        await waitFor(() => expect(remove).toHaveAttribute("aria-busy", "true"));
+        expect(cropButton("Загрузить фото")).toBeDisabled();
+
+        resolveDelete({ avatarPath: null });
+
+        await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["profile"] }));
+        await expectDialogClosed();
+        expect(uploadAvatarMock).not.toHaveBeenCalled();
+    });
+
+    it("5: выбор файла открывает кроппер и пока ничего не грузит", async () => {
         const user = userEvent.setup();
         const file = makeFile();
 
         renderAvatar();
-        uploadAvatarMock.mockResolvedValue({ avatarPath: "u-1/new.png" });
 
         await openDialog(user);
         await user.upload(fileInput(), file);
 
-        await waitFor(() => expect(uploadAvatarMock).toHaveBeenCalledWith(DATA_URL));
-        expect(prepareMock).toHaveBeenCalledWith(file);
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["profile"] });
-
-        await expectDialogClosed();
-    });
-
-    it("5: «Удалить фото»: deleteAvatar, инвалидация и закрытие диалога", async () => {
-        const user = userEvent.setup();
-
-        renderAvatar({ avatarUrl: OWN_URL });
-        deleteAvatarMock.mockResolvedValue({ avatarPath: null });
-
-        await openDialog(user);
-        await user.click(screen.getByRole("button", { name: "Удалить фото" }));
-
-        await waitFor(() => expect(deleteAvatarMock).toHaveBeenCalledTimes(1));
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["profile"] });
-        expect(uploadAvatarMock).not.toHaveBeenCalled();
-
-        await expectDialogClosed();
-    });
-    it("6: ошибка upload: 500 даёт тост и открытый диалог, 401 — без тоста", async () => {
-        const user = userEvent.setup();
-
-        renderAvatar();
-        await openDialog(user);
-
-        uploadAvatarMock.mockRejectedValueOnce(new ApiError(500, "Internal"));
-        await user.upload(fileInput(), makeFile());
-        await waitFor(() =>
-            expect(toastErrorMock).toHaveBeenCalledWith("Не удалось обновить фото")
-        );
-
-        // ARCHITECT: при ошибке модалка остаётся открытой — видно, что действие не прошло.
-        expect(screen.getByRole("dialog")).toBeInTheDocument();
-
-        toastErrorMock.mockReset();
-        uploadAvatarMock.mockRejectedValueOnce(new ApiError(401, "Unauthorized"));
-        await user.upload(fileInput(), makeFile());
-        await waitFor(() => expect(uploadAvatarMock).toHaveBeenCalledTimes(2));
-
-        // ARCHITECT: 401 разбирает общий useAuthExpiry через useProfile — свой тост был бы вторым.
-        expect(toastErrorMock).not.toHaveBeenCalled();
-    });
-
-    it("7: сбой подготовки файла: тост invalid, upload не вызван", async () => {
-        const user = userEvent.setup();
-
-        renderAvatar();
-        prepareMock.mockRejectedValue(new Error("bad file"));
-        await openDialog(user);
-        await user.upload(fileInput(), makeFile());
-
-        await waitFor(() =>
-            expect(toastErrorMock).toHaveBeenCalledWith("Подойдёт JPG или PNG до 8 МБ")
-        );
+        expect(await screen.findByRole("slider", { name: ZOOM_LABEL })).toBeInTheDocument();
+        expect(cropButton("Сбросить")).toBeInTheDocument();
+        expect(cropButton("Отмена")).toBeInTheDocument();
+        expect(cropButton("Применить")).toBeInTheDocument();
+        expect(screen.getByText("Перетащите фото и выберите масштаб")).toBeInTheDocument();
+        expect(decodeMock).toHaveBeenCalledWith(file);
+        expect(screen.queryByRole("button", { name: "Загрузить фото" })).not.toBeInTheDocument();
         expect(uploadAvatarMock).not.toHaveBeenCalled();
     });
 
-    it("8: in-flight: второй файл до завершения не запускает второй upload", async () => {
+    it("6: «Применить» грузит обрезанное фото, показывает спиннер и закрывает модалку", async () => {
         const user = userEvent.setup();
         let resolveUpload: (value: { avatarPath: string }) => void = () => undefined;
 
@@ -258,18 +261,119 @@ describe("AvatarEditDialog", () => {
         );
 
         await openDialog(user);
+        await pickFile(user);
+        await user.click(cropButton("Применить"));
+
+        await waitFor(() => expect(uploadAvatarMock).toHaveBeenCalledWith(DATA_URL));
+        expect(renderMock).toHaveBeenCalledTimes(1);
+
+        // ARCHITECT: пока грузится, спиннер стоит на кнопке применения, а прочие контролы заблокированы.
+        const apply = cropButton("Применить");
+
+        expect(apply).toHaveAttribute("aria-busy", "true");
+        expect(cropButton("Сбросить")).toBeDisabled();
+        expect(cropButton("Отмена")).toBeDisabled();
+
+        resolveUpload({ avatarPath: "u-1/new.png" });
+
+        await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["profile"] }));
+        await expectDialogClosed();
+    });
+
+    it("7: «Отмена» в кроппере возвращает к выбору файла без загрузки", async () => {
+        const user = userEvent.setup();
+
+        renderAvatar();
+
+        await openDialog(user);
+        await pickFile(user);
+        await user.click(cropButton("Отмена"));
+
+        await waitFor(() =>
+            expect(screen.queryByRole("slider", { name: ZOOM_LABEL })).not.toBeInTheDocument()
+        );
+        expect(cropButton("Загрузить фото")).toBeInTheDocument();
+        expect(uploadAvatarMock).not.toHaveBeenCalled();
+    });
+
+    it("8: невалидный файл даёт тост и не открывает кроппер", async () => {
+        const user = userEvent.setup();
+
+        renderAvatar();
+
+        await openDialog(user);
+
+        // ARCHITECT: тип вне accept отсекает сам input — до нашего декодера файл не доходит.
+        await user.upload(fileInput(), makeFile("image/gif"));
+
+        expect(decodeMock).not.toHaveBeenCalled();
+
+        decodeMock.mockRejectedValueOnce(new Error("image could not be decoded"));
         await user.upload(fileInput(), makeFile());
+
+        await waitFor(() =>
+            expect(toastErrorMock).toHaveBeenCalledWith("Подойдёт JPG или PNG до 8 МБ")
+        );
+        expect(screen.queryByRole("slider", { name: ZOOM_LABEL })).not.toBeInTheDocument();
+        expect(uploadAvatarMock).not.toHaveBeenCalled();
+    });
+
+    it("9: двойной «Применить» до ответа даёт одну загрузку", async () => {
+        const user = userEvent.setup();
+        let resolveUpload: (value: { avatarPath: string }) => void = () => undefined;
+
+        renderAvatar();
+        uploadAvatarMock.mockReturnValue(
+            new Promise((resolve) => {
+                resolveUpload = resolve;
+            })
+        );
+
+        await openDialog(user);
+        await pickFile(user);
+
+        const apply = cropButton("Применить");
+
+        await user.click(apply);
         await waitFor(() => expect(uploadAvatarMock).toHaveBeenCalledTimes(1));
 
-        await user.upload(fileInput(), makeFile());
+        // ARCHITECT: прямой клик по disabled-кнопке — гард обязан держать и этот путь, а не только disabled.
+        fireEvent.click(apply);
 
         expect(uploadAvatarMock).toHaveBeenCalledTimes(1);
 
         resolveUpload({ avatarPath: "u-1/new.png" });
-        await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["profile"] }));
+        await expectDialogClosed();
     });
 
-    it("9: Escape закрывает диалог без мутаций", async () => {
+    it("10: ошибка загрузки: 500 даёт тост и оставляет кроппер, 401 — без тоста", async () => {
+        const user = userEvent.setup();
+
+        renderAvatar();
+        uploadAvatarMock.mockRejectedValueOnce(new ApiError(500, "Internal"));
+
+        await openDialog(user);
+        await pickFile(user);
+        await user.click(cropButton("Применить"));
+
+        await waitFor(() =>
+            expect(toastErrorMock).toHaveBeenCalledWith("Не удалось обновить фото")
+        );
+        expect(screen.getByRole("slider", { name: ZOOM_LABEL })).toBeInTheDocument();
+
+        toastErrorMock.mockReset();
+        uploadAvatarMock.mockRejectedValueOnce(new ApiError(401, "Unauthorized"));
+
+        await user.click(cropButton("Применить"));
+
+        await waitFor(() => expect(uploadAvatarMock).toHaveBeenCalledTimes(2));
+
+        // ARCHITECT: 401 разбирает общий useAuthExpiry через useProfile — свой тост был бы вторым.
+        expect(toastErrorMock).not.toHaveBeenCalled();
+        expect(screen.getByRole("slider", { name: ZOOM_LABEL })).toBeInTheDocument();
+    });
+
+    it("11: Escape закрывает модалку без мутаций", async () => {
         const user = userEvent.setup();
 
         renderAvatar({ avatarUrl: OWN_URL });
@@ -282,23 +386,65 @@ describe("AvatarEditDialog", () => {
     });
 });
 
-describe("prepareAvatarDataUrl (реальный модуль)", () => {
-    it("11: неподдерживаемый тип файла отклоняется", async () => {
-        const { prepareAvatarDataUrl } =
+describe("avatarImage (реальный модуль)", () => {
+    it("13: валидация файла, геометрия кропа и рендер рамки", async () => {
+        const { clampOffset, computeCropRect, decodeAvatarFile, renderCroppedAvatar } =
             await vi.importActual<typeof import("@/lib/avatarImage")>("@/lib/avatarImage");
 
+        // ARCHITECT: тип и вес отклоняются до декодирования — память декодера не тратится впустую.
         await expect(
-            prepareAvatarDataUrl(new File(["x"], "a.gif", { type: "image/gif" }))
+            decodeAvatarFile(new File(["x"], "a.gif", { type: "image/gif" }))
         ).rejects.toThrow();
+        await expect(
+            decodeAvatarFile(
+                new File([new Uint8Array(8 * 1024 * 1024 + 1)], "big.png", { type: "image/png" })
+            )
+        ).rejects.toThrow();
+
+        const image = makeImage(800, 400);
+        const base = { viewport: 256, zoom: 1, offsetX: 0, offsetY: 0 };
+        const centered = computeCropRect(image, base);
+
+        // ARCHITECT: zoom=1 и offset=0 — центральный квадрат по короткой стороне источника.
+        expect(centered.displayScale).toBeCloseTo(0.64);
+        expect(centered.side).toBe(400);
+        expect(centered.sx).toBe(200);
+        expect(centered.sy).toBe(0);
+        expect(computeCropRect(image, { ...base, zoom: 2 }).side).toBe(200);
+
+        // ARCHITECT: за краем окна пустых полос не бывает — смещение обрезается по текущему масштабу.
+        expect(clampOffset(image, { ...base, zoom: 2, offsetX: 1000, offsetY: -1000 })).toEqual({
+            x: 384,
+            y: -128,
+        });
+        expect(clampOffset(image, base)).toEqual({ x: 0, y: 0 });
+
+        const drawImage = vi.fn();
+
+        vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+            drawImage,
+        } as unknown as CanvasRenderingContext2D);
+        vi.spyOn(HTMLCanvasElement.prototype, "toDataURL").mockReturnValue(DATA_URL);
+
+        expect(renderCroppedAvatar(image, { ...base, zoom: 2 })).toBe(DATA_URL);
+        expect(drawImage).toHaveBeenCalledWith(image, 300, 100, 200, 200, 0, 0, 512, 512);
     });
 
-    it("12: файл больше 8 МБ отклоняется", async () => {
-        const { prepareAvatarDataUrl } =
+    it("14: слишком длинный data URL перекодируется под лимит сервера", async () => {
+        const { renderCroppedAvatar } =
             await vi.importActual<typeof import("@/lib/avatarImage")>("@/lib/avatarImage");
-        const big = new File([new Uint8Array(8 * 1024 * 1024 + 1)], "big.png", {
-            type: "image/png",
-        });
 
-        await expect(prepareAvatarDataUrl(big)).rejects.toThrow();
+        vi.spyOn(HTMLCanvasElement.prototype, "getContext").mockReturnValue({
+            drawImage: vi.fn(),
+        } as unknown as CanvasRenderingContext2D);
+
+        const toDataURL = vi
+            .spyOn(HTMLCanvasElement.prototype, "toDataURL")
+            .mockReturnValueOnce("x".repeat(400_000))
+            .mockReturnValue(DATA_URL);
+        const transform = { viewport: 256, zoom: 1, offsetX: 0, offsetY: 0 };
+
+        expect(renderCroppedAvatar(makeImage(800, 800), transform)).toBe(DATA_URL);
+        expect(toDataURL).toHaveBeenCalledTimes(2);
     });
 });

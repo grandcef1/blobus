@@ -10,6 +10,7 @@ import { buildApp } from "../app.ts";
 import { COOKIE_NAMES, configureCookies } from "../cookies.ts";
 import type { SupabaseEnv } from "../supabase.ts";
 import { createAdminClient, readLocalStack } from "../test-stack.ts";
+import { VOICE_IDS } from "../tutorCatalog.ts";
 
 interface RunningApp {
     readonly server: Server;
@@ -24,10 +25,11 @@ interface ErrorEnvelopeBody {
     };
 }
 
-/** Репетитор как его видит клиент: те же четыре поля, что в перенесённом источнике. */
+/** Репетитор как его видит клиент: те же поля, что в перенесённом источнике, плюс профиль голоса. */
 interface TutorBody {
     readonly id: string;
     readonly name: string;
+    readonly voiceId: string;
     readonly traits: Record<string, unknown>;
     readonly persona: {
         readonly traits: readonly string[];
@@ -65,7 +67,7 @@ const EXPECTED_TUTORS: readonly { readonly id: string; readonly name: string }[]
 
 // ARCHITECT: строгие наборы ключей DTO: значения отсортированы так, как их отдаёт Object.keys().sort(),
 // поэтому лишнее (служебное) поле ловится сравнением, а не глазами.
-const TUTOR_KEYS = ["id", "name", "persona", "traits"];
+const TUTOR_KEYS = ["id", "name", "persona", "traits", "voiceId"];
 const PERSONA_KEYS = ["story", "teachingStyle", "traits"];
 const TRAIT_KEYS = [
     "body.n",
@@ -81,6 +83,8 @@ const TRAIT_KEYS = [
 
 let env: SupabaseEnv | undefined;
 let userEmail: string | undefined;
+/** Список профилей голоса как строк: проверка идёт значением из ответа, а не литералом теста. */
+const VOICE_ID_LIST: readonly string[] = VOICE_IDS;
 
 /** Отдаёт окружение стека и падает громко: пропуск тестов скрыл бы поломку окружения. */
 function ctxEnv(): SupabaseEnv {
@@ -316,6 +320,8 @@ describe("GET /api/tutors", () => {
                 expect(tutor.persona.traits).toHaveLength(3);
                 expect(tutor.persona.teachingStyle.length).toBeGreaterThan(0);
                 expect(tutor.persona.story.length).toBeGreaterThan(0);
+                // ARCHITECT: профиль голоса обязан быть из каталога: клиент выбирает голос озвучки только по нему.
+                expect(VOICE_ID_LIST).toContain(tutor.voiceId);
             }
         });
     }, 30_000);

@@ -16,6 +16,7 @@ import { createProfileRouter } from "./routes/profile.ts";
 import { createProgressRouter } from "./routes/progress.ts";
 import { createSessionsRouter } from "./routes/sessions.ts";
 import { createSettingsRouter } from "./routes/settings.ts";
+import { createTtsRouter } from "./routes/tts.ts";
 import { createTutorsRouter } from "./routes/tutors.ts";
 import { createVocabularyRouter } from "./routes/vocabulary.ts";
 import type { SupabaseEnv } from "./supabase.ts";
@@ -139,6 +140,9 @@ export function buildApp(registerRoutes?: (app: Express) => void, env?: Supabase
         app.use("/api/chat", createChatRouter({ env }));
         app.use("/api/sessions", createSessionsRouter({ env }));
         app.use("/api/settings", createSettingsRouter({ env }));
+        // ARCHITECT: озвучка ответа — платный путь: ключ приходит тем же env, а без ключа роутер остаётся
+        // в fail-closed (500) и доступа к синтезу не открывает.
+        app.use("/api/tts", createTtsRouter({ env }));
         app.use("/api/tutors", createTutorsRouter({ env }));
         app.use("/api/vocabulary", createVocabularyRouter({ env }));
     }

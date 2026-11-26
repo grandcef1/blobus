@@ -26,8 +26,10 @@ export const VocabWordSchema = z.strictObject({
 
 export type VocabWord = z.infer<typeof VocabWordSchema>;
 
-/** Фрагмент правки: исправленная фраза ученика, правило и примеры к нему. */
+/** Фрагмент правки: дословный фрагмент реплики ученика, правило и примеры к нему. */
 export const CorrectionSchema = z.strictObject({
+    // ARCHITECT: fragment — подстрока сообщения ученика (её проверяет keepVerbatimCorrections): клиент
+    // подчёркивает ровно этот участок реплики, поэтому «исправленный вариант» уходит в rule и examples.
     fragment: z.string().trim().min(1).max(240),
     rule: z.string().trim().min(1).max(240),
     examples: z.array(z.string().trim().min(1).max(240)).max(3),
@@ -84,13 +86,27 @@ export interface ChatUsage {
     readonly messagesRemaining: number;
 }
 
-/** Контракт события done: текст ответа, карточки и usage — ровно то, что клиент кладёт в сообщение. */
+/** Контракт события done: текст ответа, карточки, профиль голоса и usage — ровно то, что клиент кладёт в сообщение. */
 export interface ChatDonePayload {
     readonly reply: string;
     readonly corrections: readonly Correction[];
     readonly quiz: Quiz | null;
     readonly vocabWord: VocabWord | null;
+    // ARCHITECT: голос репетитора уходит вместе с ответом: модель его не выбирает, значение берётся из
+    // каталога по tutor_id сессии (server/tutorCatalog.ts).
+    readonly voiceId: string;
     readonly usage: ChatUsage;
+}
+
+// ARCHITECT: fragment — недоверенный вывод модели, но требование к нему сильнее схемы: он обязан быть
+// подстрокой сообщения ученика, иначе подчёркивать в реплике нечего. Такие правки отбрасываются, а не
+// роняют ответ: текст репетитора важнее испорченной карточки (§16.8).
+/** Оставляет только правки, чей фрагмент дословно входит в сообщение ученика. */
+export function keepVerbatimCorrections(
+    corrections: readonly Correction[],
+    message: string
+): Correction[] {
+    return corrections.filter((correction) => message.includes(correction.fragment));
 }
 
 /**

@@ -10,7 +10,12 @@ import { z } from "zod";
 import { createOpenRouterClient } from "../ai/openrouter.ts";
 import type { AiClient } from "../ai/openrouter.ts";
 import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
-import { ChatRequestSchema, parseCards, stripCardsMarker } from "../chat/contract.ts";
+import {
+    ChatRequestSchema,
+    keepVerbatimCorrections,
+    parseCards,
+    stripCardsMarker,
+} from "../chat/contract.ts";
 import type { ChatDonePayload, VocabWord } from "../chat/contract.ts";
 import { HISTORY_LIMIT, buildSystemPrompt, selectHistory } from "../chat/prompt.ts";
 import type { ChatHistoryMessage, ExplanationLocale } from "../chat/prompt.ts";
@@ -515,15 +520,22 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                 { systemPrompt, history: promptHistory, message, signal: abort.signal },
                 (text) => writeSse(res, "delta", { text })
             );
-            const cards = parseCards(reply.cardsJson);
+            const parsedCards = parseCards(reply.cardsJson);
 
             // ARCHITECT: битый JSON карточек — битый ответ: не сохраняем, возвращаем квоту и сообщаем об
             // ошибке событием, а не HTTP-статусом (заголовки уже отправлены).
-            if (cards === null) {
+            if (parsedCards === null) {
                 await releaseMessage(service, payload.userId);
                 writeSse(res, "error", { code: "INTERNAL" });
                 return;
             }
+
+            // ARCHITECT: правки фильтруются после схемы: fragment обязан быть подстрокой сообщения ученика,
+            // иначе подчёркивать в реплике нечего. Отброшенная правка не роняет ответ (§16.8).
+            const cards = {
+                ...parsedCards,
+                corrections: keepVerbatimCorrections(parsedCards.corrections, message),
+            };
 
             const usage = {
                 promptTokens: reply.usage.promptTokens,
@@ -551,7 +563,9 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                     lesson_id: lessonId,
                     role: "assistant",
                     content: reply.text.slice(0, MESSAGE_MAX_CHARS),
-                    payload: { cards, usage },
+                    // ARCHITECT: профиль голоса сохраняется вместе с карточками: после перезагрузки ленты
+                    // кнопка озвучки восстанавливается по тому же значению каталога.
+                    payload: { cards, usage, voiceId: tutor.voiceId },
                 },
             ]);
 
@@ -565,6 +579,7 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                 corrections: cards.corrections,
                 quiz: cards.quiz,
                 vocabWord: cards.vocabWord,
+                voiceId: tutor.voiceId,
                 usage: { ...usage, messagesRemaining: reserve.data.messages_remaining },
             };
 

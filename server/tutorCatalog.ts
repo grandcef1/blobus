@@ -8,6 +8,14 @@
 export type TutorId =
     "miya" | "oscar" | "luna" | "max" | "alex" | "zoe" | "nova" | "kai" | "lira" | "orion";
 
+// ARCHITECT: профиль голоса — наш стабильный идентификатор (язык и тембр), а не имя голоса провайдера:
+// каталог остаётся источником персонажа, а конкретный голос TTS-провайдера задаёт server/ai/tts.ts.
+// Модель голос не назначает: карта детерминированная (§16.2).
+export const VOICE_IDS = ["en-US-female", "en-US-male", "en-GB-female", "en-GB-male"] as const;
+
+/** Профиль голоса репетитора: одно из значений VOICE_IDS. */
+export type VoiceId = (typeof VOICE_IDS)[number];
+
 /** Геометрия и палитра блобатара: форма, цвет и пропорции, а не текст. */
 export interface TutorTraits {
     readonly shape: number;
@@ -36,6 +44,8 @@ export interface TutorPersona {
 export interface Tutor {
     readonly id: TutorId;
     readonly name: string;
+    /** Профиль голоса: задан данными, а не моделью, поэтому озвучка воспроизводима. */
+    readonly voiceId: VoiceId;
     readonly traits: TutorTraits;
     readonly persona: TutorPersona;
 }
@@ -45,6 +55,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "miya",
         name: "Мия",
+        voiceId: "en-US-female",
         traits: {
             shape: 0.8,
             hue: 0.92,
@@ -66,6 +77,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "oscar",
         name: "Оскар",
+        voiceId: "en-US-male",
         traits: {
             shape: 0.2,
             hue: 0.55,
@@ -87,6 +99,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "luna",
         name: "Луна",
+        voiceId: "en-GB-female",
         traits: {
             shape: 0.65,
             hue: 0.72,
@@ -107,6 +120,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "max",
         name: "Макс",
+        voiceId: "en-GB-male",
         traits: {
             shape: 0.15,
             hue: 0.08,
@@ -128,6 +142,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "alex",
         name: "Алекс",
+        voiceId: "en-US-male",
         traits: {
             shape: 0.45,
             hue: 0.33,
@@ -149,6 +164,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "zoe",
         name: "Зои",
+        voiceId: "en-GB-female",
         traits: {
             shape: 0.9,
             hue: 0.15,
@@ -169,6 +185,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "nova",
         name: "Нова",
+        voiceId: "en-US-female",
         traits: {
             shape: 0.55,
             hue: 0.45,
@@ -189,6 +206,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "kai",
         name: "Кай",
+        voiceId: "en-GB-male",
         traits: {
             shape: 0.35,
             hue: 0.62,
@@ -210,6 +228,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "lira",
         name: "Лира",
+        voiceId: "en-US-female",
         traits: {
             shape: 0.75,
             hue: 0.82,
@@ -231,6 +250,7 @@ export const TUTORS: readonly Tutor[] = [
     {
         id: "orion",
         name: "Орион",
+        voiceId: "en-US-male",
         traits: {
             shape: 0.25,
             hue: 0.18,

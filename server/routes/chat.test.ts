@@ -60,7 +60,9 @@ function withApp(run: (app: RunningApp) => Promise<void>): Promise<void> {
 const VALID_CARDS = {
     corrections: [
         {
-            fragment: "Yesterday I went to the cinema with my friend.",
+            // ARCHITECT: фрагмент правки — дословная подстрока сообщения ученика: сервер сверяет вхождение и
+            // отбрасывает всё, что модель не процитировала (server/chat/contract.ts).
+            fragment: MESSAGE,
             rule: "Past Simple",
             examples: ["I went home early."],
         },
@@ -543,6 +545,66 @@ describe("POST /api/chat", () => {
             expect(user?.content).toContain("forged");
         });
     }, 30_000);
+    it("13.1: done несёт профиль голоса репетитора и сохраняет его в payload", async () => {
+        await withApp(async (app) => {
+            const me = await userWithSession(app.baseUrl);
+            const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
+            const payload = events.find((entry) => entry.event === "done")?.data as {
+                readonly voiceId: string;
+            };
+
+            // ARCHITECT: голос выбирает не модель, а каталог по tutor_id сессии: miya → en-US-female.
+            expect(payload.voiceId).toBe("en-US-female");
+
+            const messages = await dbMessages(me.sessionId);
+            const saved = messages.find((row) => row.role === "assistant")?.payload as {
+                readonly voiceId: string;
+            };
+
+            // ARCHITECT: профиль голоса лежит и в сохранённой реплике: после перезагрузки ленты кнопка
+            // озвучки восстанавливается по тому же значению.
+            expect(saved.voiceId).toBe("en-US-female");
+        });
+    }, 30_000);
+
+    it("13.2: правка с фрагментом вне сообщения отбрасывается, ответ не теряется", async () => {
+        await withApp(async (app) => {
+            const me = await userWithSession(app.baseUrl);
+            openRouterReply = () =>
+                sseResponse([
+                    rawReply(ANSWER_TEXT, {
+                        ...VALID_CARDS,
+                        corrections: [
+                            VALID_CARDS.corrections[0],
+                            {
+                                fragment: "I am agree with you.",
+                                rule: "выдуманный фрагмент",
+                                examples: ["I agree with you."],
+                            },
+                        ],
+                    }),
+                ]);
+
+            const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
+            const done = events.find((entry) => entry.event === "done");
+            const payload = done?.data as {
+                readonly corrections: readonly { readonly fragment: string }[];
+            };
+
+            // ARCHITECT: подчёркивать в реплике можно только то, что в ней есть: невалидная правка
+            // отбрасывается, а валидная и текст репетитора остаются.
+            expect(payload.corrections).toHaveLength(1);
+            expect(payload.corrections[0]?.fragment).toBe(VALID_CARDS.corrections[0].fragment);
+
+            const messages = await dbMessages(me.sessionId);
+            const cards = messages.find((row) => row.role === "assistant")?.payload as {
+                readonly cards: { readonly corrections: readonly unknown[] };
+            };
+
+            expect(cards.cards.corrections).toHaveLength(1);
+        });
+    }, 30_000);
+
     describe("GET /api/chat/history", () => {
         /** Ссылка истории: единственный параметр, который читает роутер. */
         function historyPath(sessionId: string, extra = ""): string {

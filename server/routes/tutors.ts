@@ -17,6 +17,9 @@ import type { Tutor, TutorPersonaTraits, TutorTraits } from "../tutorCatalog.ts"
 export interface TutorDto {
     readonly id: string;
     readonly name: string;
+    // ARCHITECT: профиль голоса уходит вместе с карточкой: клиент выбирает голос озвучки по нему, а не по
+    // порядку карточек или догадке (§16.2).
+    readonly voiceId: string;
     readonly traits: TutorTraits;
     readonly persona: {
         readonly traits: TutorPersonaTraits;
@@ -25,13 +28,14 @@ export interface TutorDto {
     };
 }
 
-// ARCHITECT: явный маппер вместо отдачи объекта каталога: наружу уходит новый объект из четырёх полей,
+// ARCHITECT: явный маппер вместо отдачи объекта каталога: наружу уходит новый объект из пяти полей,
 // поэтому служебное поле каталога не утечёт в ответ, а правка ответа не тронет источник (массив tone
 // копируется — это единственное изменяемое значение).
 function toTutorDto(tutor: Tutor): TutorDto {
     return {
         id: tutor.id,
         name: tutor.name,
+        voiceId: tutor.voiceId,
         traits: { ...tutor.traits, tone: [...tutor.traits.tone] },
         persona: { ...tutor.persona },
     };

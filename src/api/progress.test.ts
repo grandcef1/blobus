@@ -9,6 +9,7 @@ import {
     addVocabularyEntry,
     fetchVocabulary,
     fetchVocabularyEntries,
+    markWordReviewed,
 } from "@/api/progress";
 import type { VocabularyEntryDto } from "@/api/progress";
 import { MOCK_VOCABULARY } from "@/api/mocks/progress";
@@ -42,6 +43,8 @@ describe("real-режим: fetchVocabularyEntries читает ресурсны�
             translation: "сотрудничать",
             context: "We need to collaborate on this project.",
             sourceLessonId: null,
+            stage: 1,
+            nextDueAt: "2026-11-19T08:00:00.000Z",
             createdAt: "2026-11-19T08:00:00.000Z",
             updatedAt: "2026-11-19T08:00:00.000Z",
         },
@@ -51,6 +54,8 @@ describe("real-режим: fetchVocabularyEntries читает ресурсны�
             translation: null,
             context: null,
             sourceLessonId: "a1b2c3d4-0003-4000-8000-000000000003",
+            stage: 2,
+            nextDueAt: "2026-11-20T09:40:00.000Z",
             createdAt: "2026-11-17T14:12:00.000Z",
             updatedAt: "2026-11-18T09:40:00.000Z",
         },
@@ -86,7 +91,9 @@ describe("real-режим: fetchVocabularyEntries читает ресурсны�
             "context",
             "createdAt",
             "id",
+            "nextDueAt",
             "sourceLessonId",
+            "stage",
             "term",
             "translation",
             "updatedAt",
@@ -132,7 +139,9 @@ describe("мок-режим: addVocabularyEntry пишет в мок-списо�
             "context",
             "createdAt",
             "id",
+            "nextDueAt",
             "sourceLessonId",
+            "stage",
             "term",
             "translation",
             "updatedAt",
@@ -158,6 +167,8 @@ describe("real-режим: addVocabularyEntry создаёт слово чере
         translation: "озарение",
         context: "A happy accident.",
         sourceLessonId: null,
+        stage: 1,
+        nextDueAt: "2026-11-22T10:00:00.000Z",
         createdAt: "2026-11-22T10:00:00.000Z",
         updatedAt: "2026-11-22T10:00:00.000Z",
     };
@@ -220,6 +231,124 @@ describe("real-режим: addVocabularyEntry создаёт слово чере
         });
         await expect(progress.addVocabularyEntry({ term: "serendipity" })).rejects.toMatchObject({
             statusCode: 403,
+        });
+    });
+});
+
+/** Допуск на время выполнения: nextDueAt сверяется окном ±1 минута. */
+const DAY_MS = 24 * 60 * 60 * 1000;
+const DUE_TOLERANCE_MS = 60 * 1000;
+
+/** Проверяет, что nextDueAt отстоит от «сейчас» на days дней с допуском на время выполнения. */
+function expectDueInDays(nextDueAt: string, days: number): void {
+    const delta = Date.parse(nextDueAt) - Date.now();
+
+    expect(Math.abs(delta - days * DAY_MS)).toBeLessThan(DUE_TOLERANCE_MS);
+}
+
+describe("мок-режим: markWordReviewed двигает шаг Лейтнера", () => {
+    const REMEMBERED_ID = "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a11";
+    const FORGOTTEN_ID = "7e2b4c91-5d68-4a3f-8b1c-2f9a0d7e6b22";
+
+    /** Ставит фикстурам известный шаг: тесты мока делят один массив, поэтому состояние сбрасывается. */
+    function seed(stage: number): void {
+        const remembered = MOCK_VOCABULARY_ENTRIES.find((item) => item.id === REMEMBERED_ID);
+        const forgotten = MOCK_VOCABULARY_ENTRIES.find((item) => item.id === FORGOTTEN_ID);
+
+        if (remembered === undefined || forgotten === undefined)
+            throw new Error("фикстура мока потеряна");
+
+        remembered.stage = stage;
+        forgotten.stage = 3;
+    }
+
+    beforeEach(() => {
+        seed(1);
+    });
+
+    it("8.1 «помню»: шаг 1 -> 2, nextDueAt через 3 дня, apiFetch не тронут", async () => {
+        const entry = await markWordReviewed(REMEMBERED_ID, "remembered");
+
+        expect(apiFetchMock).not.toHaveBeenCalled();
+        expect(entry.stage).toBe(2);
+        expectDueInDays(entry.nextDueAt, 3);
+        expect(MOCK_VOCABULARY_ENTRIES.find((item) => item.id === REMEMBERED_ID)?.stage).toBe(2);
+    });
+
+    it("8.2 «забыл»: шаг 3 -> 1, nextDueAt через 1 день", async () => {
+        const entry = await markWordReviewed(FORGOTTEN_ID, "forgotten");
+
+        expect(apiFetchMock).not.toHaveBeenCalled();
+        expect(entry.stage).toBe(1);
+        expectDueInDays(entry.nextDueAt, 1);
+        expect(MOCK_VOCABULARY_ENTRIES.find((item) => item.id === FORGOTTEN_ID)?.stage).toBe(1);
+    });
+
+    it("8.3 неизвестный id — бросает и не трогает список", async () => {
+        const before = MOCK_VOCABULARY_ENTRIES.length;
+
+        await expect(
+            markWordReviewed("a1b2c3d4-0009-4000-8000-000000000009", "remembered")
+        ).rejects.toThrow();
+        expect(MOCK_VOCABULARY_ENTRIES).toHaveLength(before);
+    });
+});
+
+describe("real-режим: markWordReviewed пишет исход через доменный роутер", () => {
+    const reviewed: VocabularyEntryDto = {
+        id: "a1b2c3d4-0006-4000-8000-000000000006",
+        term: "collaborate",
+        translation: "сотрудничать",
+        context: "We need to collaborate on this project.",
+        sourceLessonId: null,
+        stage: 2,
+        nextDueAt: "2026-11-25T10:00:00.000Z",
+        createdAt: "2026-11-22T10:00:00.000Z",
+        updatedAt: "2026-11-22T10:00:00.000Z",
+    };
+
+    beforeEach(() => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        vi.resetModules();
+    });
+
+    afterEach(() => {
+        apiFetchMock.mockReset();
+        vi.unstubAllEnvs();
+        vi.resetModules();
+        vi.restoreAllMocks();
+    });
+
+    /** Модуль подгружается заново под реальный VITE_USE_MOCKS=false. */
+    function loadRealProgress(): Promise<typeof import("@/api/progress")> {
+        return import("@/api/progress");
+    }
+
+    it("8.4 PATCH /vocabulary/<id> с телом { reviewed } и распаковка .entry", async () => {
+        apiFetchMock.mockResolvedValue({ entry: reviewed });
+        const progress = await loadRealProgress();
+
+        const result = await progress.markWordReviewed(reviewed.id, "remembered");
+
+        expect(result).toEqual(reviewed);
+        expect(apiFetchMock).toHaveBeenCalledWith(`/vocabulary/${reviewed.id}`, {
+            method: "PATCH",
+            body: { reviewed: "remembered" },
+        });
+    });
+
+    it("8.5 пробрасывает 400 и 404, не глотая их", async () => {
+        const { ApiError } = await import("@/api/client");
+        apiFetchMock
+            .mockRejectedValueOnce(new ApiError(400, "Request could not be validated"))
+            .mockRejectedValueOnce(new ApiError(404, "Resource not found"));
+        const progress = await loadRealProgress();
+
+        await expect(progress.markWordReviewed(reviewed.id, "remembered")).rejects.toMatchObject({
+            statusCode: 400,
+        });
+        await expect(progress.markWordReviewed(reviewed.id, "forgotten")).rejects.toMatchObject({
+            statusCode: 404,
         });
     });
 });

@@ -25,6 +25,8 @@ const ENTRIES: VocabularyEntryDto[] = [
         translation: "сотрудничать",
         context: "We need to collaborate on this project.",
         sourceLessonId: null,
+        stage: 1,
+        nextDueAt: "2026-11-18T09:00:00.000Z",
         createdAt: "2026-11-18T09:00:00.000Z",
         updatedAt: "2026-11-18T09:30:00.000Z",
     },
@@ -36,6 +38,8 @@ const BARE_ENTRY: VocabularyEntryDto = {
     translation: null,
     context: null,
     sourceLessonId: null,
+    stage: 2,
+    nextDueAt: "2026-11-18T09:30:00.000Z",
     createdAt: "2026-11-17T09:00:00.000Z",
     updatedAt: "2026-11-17T09:30:00.000Z",
 };

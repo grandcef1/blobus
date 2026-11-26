@@ -315,7 +315,9 @@ export type Database = {
                     context: string | null;
                     created_at: string;
                     id: string;
+                    next_due_at: string;
                     source_lesson_id: string | null;
+                    stage: number;
                     term: string;
                     translation: string | null;
                     updated_at: string;
@@ -326,7 +328,9 @@ export type Database = {
                     context?: string | null;
                     created_at?: string;
                     id?: string;
+                    next_due_at?: string;
                     source_lesson_id?: string | null;
+                    stage?: number;
                     term: string;
                     translation?: string | null;
                     updated_at?: string;
@@ -336,7 +340,9 @@ export type Database = {
                     context?: string | null;
                     created_at?: string;
                     id?: string;
+                    next_due_at?: string;
                     source_lesson_id?: string | null;
+                    stage?: number;
                     term?: string;
                     translation?: string | null;
                     updated_at?: string;

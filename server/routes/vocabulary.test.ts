@@ -35,6 +35,8 @@ interface VocabularyDto {
     readonly translation: string | null;
     readonly context: string | null;
     readonly sourceLessonId: string | null;
+    readonly stage: number;
+    readonly nextDueAt: string;
     readonly createdAt: string;
     readonly updatedAt: string;
 }
@@ -172,6 +174,19 @@ function postJson(
     });
 }
 
+function patchJson(
+    baseUrl: string,
+    path: string,
+    body: unknown,
+    headers: Record<string, string>
+): Promise<Response> {
+    return fetch(`${baseUrl}${path}`, {
+        method: "PATCH",
+        headers: { "content-type": "application/json", ...headers },
+        body: JSON.stringify(body),
+    });
+}
+
 /** Сессия в куках после логина: access, refresh и уже ротированный csrf. */
 async function loginSession(baseUrl: string, email: string): Promise<Jar> {
     const pair = await fetchCsrfPair(baseUrl);
@@ -277,7 +292,9 @@ async function insertLesson(userId: string): Promise<string> {
 async function dbVocabulary(userId: string): Promise<VocabularyDto[]> {
     const { data, error } = await createAdminClient()
         .from("vocabulary")
-        .select("id, user_id, term, translation, context, source_lesson_id, created_at, updated_at")
+        .select(
+            "id, user_id, term, translation, context, source_lesson_id, stage, next_due_at, created_at, updated_at"
+        )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -291,6 +308,8 @@ async function dbVocabulary(userId: string): Promise<VocabularyDto[]> {
         translation: row.translation,
         context: row.context,
         sourceLessonId: row.source_lesson_id,
+        stage: row.stage,
+        nextDueAt: row.next_due_at,
         createdAt: row.created_at,
         updatedAt: row.updated_at,
     }));
@@ -379,11 +398,17 @@ describe("GET /api/vocabulary", () => {
                 "context",
                 "createdAt",
                 "id",
+                "nextDueAt",
                 "sourceLessonId",
+                "stage",
                 "term",
                 "translation",
                 "updatedAt",
             ]);
+            // ARCHITECT: миграция проставила существующим словам шаг 1 и ближайший показ, поэтому все
+            // строки сразу попадают в очередь повторения.
+            expect(body.vocabulary.every((entry) => entry.stage === 1)).toBe(true);
+            expect(body.vocabulary.every((entry) => entry.nextDueAt.length > 0)).toBe(true);
 
             // ARCHITECT: null из БД остаётся null: пустая строка соврала бы про отсутствие перевода.
             const bare = body.vocabulary.find((entry) => entry.term === "Deadline");
@@ -578,7 +603,9 @@ async function dbEntryById(
 ): Promise<{ readonly dto: VocabularyDto; readonly userId: string }> {
     const { data, error } = await createAdminClient()
         .from("vocabulary")
-        .select("id, user_id, term, translation, context, source_lesson_id, created_at, updated_at")
+        .select(
+            "id, user_id, term, translation, context, source_lesson_id, stage, next_due_at, created_at, updated_at"
+        )
         .eq("id", id)
         .single();
 
@@ -591,6 +618,8 @@ async function dbEntryById(
             translation: data.translation,
             context: data.context,
             sourceLessonId: data.source_lesson_id,
+            stage: data.stage,
+            nextDueAt: data.next_due_at,
             createdAt: data.created_at,
             updatedAt: data.updated_at,
         },
@@ -637,11 +666,14 @@ describe("POST /api/vocabulary", () => {
                 "context",
                 "createdAt",
                 "id",
+                "nextDueAt",
                 "sourceLessonId",
+                "stage",
                 "term",
                 "translation",
                 "updatedAt",
             ]);
+            expect(body.entry.stage).toBe(1);
         });
     }, 30_000);
 
@@ -830,4 +862,266 @@ describe("POST /api/vocabulary", () => {
         expect(inserted.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
         expect(await entryCount(userId)).toBe(0);
     }, 30_000);
+});
+
+/** Допуск на время выполнения запроса: интервал следующего показа сверяется окном ±2 минуты. */
+const DUE_TOLERANCE_MS = 2 * 60 * 1000;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+/** Ставит строке словаря заданный шаг: нужен, чтобы проверить переходы с середины лестницы. */
+async function setStage(id: string, stage: number): Promise<void> {
+    const { error } = await createAdminClient().from("vocabulary").update({ stage }).eq("id", id);
+
+    if (error !== null) throw error;
+}
+
+/** Проверяет, что nextDueAt отстоит от «сейчас» на days дней с допуском на время запроса. */
+function expectDueInDays(nextDueAt: string, days: number): void {
+    const delta = Date.parse(nextDueAt) - Date.now();
+
+    expect(Math.abs(delta - days * DAY_MS)).toBeLessThan(DUE_TOLERANCE_MS);
+}
+
+describe("PATCH /api/vocabulary/:id", () => {
+    it("6.1 «помню» на шаге 1: 200, шаг 2 и повтор через 3 дня", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const id = await insertVocabulary(me.id, {
+                term: "collaborate",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+            const response = await patchJson(
+                app.baseUrl,
+                `/api/vocabulary/${id}`,
+                { reviewed: "remembered" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { entry: VocabularyDto };
+            const stored = await dbEntryById(id);
+
+            expect(response.status).toBe(200);
+            expect(body.entry.stage).toBe(2);
+            expectDueInDays(body.entry.nextDueAt, 3);
+            expect(body.entry).toEqual(stored.dto);
+            expect(stored.dto.stage).toBe(2);
+            expect(stored.userId).toBe(me.id);
+        });
+    }, 30_000);
+
+    it("6.2 «помню» на пятом шаге: шаг остаётся 5, повтор через 90 дней", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const id = await insertVocabulary(me.id, {
+                term: "collaborate",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+            await setStage(id, 5);
+
+            const response = await patchJson(
+                app.baseUrl,
+                `/api/vocabulary/${id}`,
+                { reviewed: "remembered" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { entry: VocabularyDto };
+
+            expect(response.status).toBe(200);
+            expect(body.entry.stage).toBe(5);
+            expectDueInDays(body.entry.nextDueAt, 90);
+        });
+    }, 30_000);
+
+    it("6.3 «забыл» с третьего шага: шаг 1 и повтор через 1 день", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const id = await insertVocabulary(me.id, {
+                term: "collaborate",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+            await setStage(id, 3);
+
+            const response = await patchJson(
+                app.baseUrl,
+                `/api/vocabulary/${id}`,
+                { reviewed: "forgotten" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { entry: VocabularyDto };
+            const stored = await dbEntryById(id);
+
+            expect(response.status).toBe(200);
+            expect(body.entry.stage).toBe(1);
+            expectDueInDays(body.entry.nextDueAt, 1);
+            expect(stored.dto.stage).toBe(1);
+        });
+    }, 30_000);
+
+    it("6.4 отклоняет 400: невалидный исход, лишнее поле, невалидный id", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const id = await insertVocabulary(me.id, {
+                term: "collaborate",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const invalidBodies: readonly unknown[] = [
+                { reviewed: "maybe" },
+                { reviewed: "remembered", stage: 4 },
+                {},
+            ];
+
+            for (const body of invalidBodies) {
+                const response = await patchJson(
+                    app.baseUrl,
+                    `/api/vocabulary/${id}`,
+                    body,
+                    headers
+                );
+
+                expect(response.status).toBe(400);
+                expect(errorBody(await response.json()).error.code).toBe("BAD_REQUEST");
+            }
+
+            const badId = await patchJson(
+                app.baseUrl,
+                "/api/vocabulary/not-a-uuid",
+                { reviewed: "remembered" },
+                headers
+            );
+
+            expect(badId.status).toBe(400);
+            expect((await dbEntryById(id)).dto.stage).toBe(1);
+        });
+    }, 30_000);
+
+    it("6.5 401 без куки и с поддельным токеном, сентинел не утекает", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const id = await insertVocabulary(me.id, {
+                term: "collaborate",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const sentinel = "forged-review-token-sentinel";
+            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
+
+            try {
+                const anonymous = await patchJson(
+                    app.baseUrl,
+                    `/api/vocabulary/${id}`,
+                    { reviewed: "remembered" },
+                    mutationHeaders(pair, app.baseUrl)
+                );
+                const forged = await patchJson(
+                    app.baseUrl,
+                    `/api/vocabulary/${id}`,
+                    { reviewed: "remembered" },
+                    {
+                        ...mutationHeaders(pair, app.baseUrl),
+                        cookie: `${cookieHeader(pair)}; ${COOKIE_NAMES.accessToken}=${sentinel}`,
+                    }
+                );
+                const forgedText = await forged.text();
+
+                expect(anonymous.status).toBe(401);
+                expect(forged.status).toBe(401);
+                expect(errorBody(JSON.parse(forgedText)).error.code).toBe("UNAUTHORIZED");
+                expect(forgedText).not.toContain(sentinel);
+                expect(forgedText).not.toContain("stack");
+                expect(errorSpy.mock.calls.flat().map(String).join("\n")).not.toContain(sentinel);
+                expect((await dbEntryById(id)).dto.stage).toBe(1);
+            } finally {
+                errorSpy.mockRestore();
+            }
+        });
+    }, 30_000);
+
+    it("6.6 403 без CSRF-пары, шаг не меняется", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const id = await insertVocabulary(me.id, {
+                term: "collaborate",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+            const response = await patchJson(
+                app.baseUrl,
+                `/api/vocabulary/${id}`,
+                { reviewed: "remembered" },
+                { cookie: cookieHeader(me.jar), origin: app.baseUrl }
+            );
+
+            expect(response.status).toBe(403);
+            expect((await dbEntryById(id)).dto.stage).toBe(1);
+        });
+    }, 30_000);
+
+    it("6.7 чужое слово отдаёт 404 и не меняется", async () => {
+        await withApp(async (app) => {
+            const alice = await freshUser(app.baseUrl);
+            const bob = await freshUser(app.baseUrl);
+            const id = await insertVocabulary(alice.id, {
+                term: "collaborate",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+
+            const response = await patchJson(
+                app.baseUrl,
+                `/api/vocabulary/${id}`,
+                { reviewed: "remembered" },
+                mutationHeaders(bob.jar, app.baseUrl)
+            );
+
+            expect(response.status).toBe(404);
+            expect(errorBody(await response.json()).error.code).toBe("NOT_FOUND");
+            expect((await dbEntryById(id)).dto.stage).toBe(1);
+        });
+    }, 30_000);
+
+    it("6.8 несуществующее слово отдаёт 404", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const response = await patchJson(
+                app.baseUrl,
+                `/api/vocabulary/${randomUUID()}`,
+                { reviewed: "remembered" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+
+            expect(response.status).toBe(404);
+        });
+    }, 30_000);
+
+    it("6.9 ограничивает повторение шестьюдесятью запросами за 15 минут", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const id = await insertVocabulary(me.id, {
+                term: "collaborate",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const attempted: number[] = [];
+
+            for (let attempt = 0; attempt < 60; attempt += 1) {
+                const response = await patchJson(
+                    app.baseUrl,
+                    `/api/vocabulary/${id}`,
+                    { reviewed: "remembered" },
+                    headers
+                );
+
+                attempted.push(response.status);
+            }
+
+            const limited = await patchJson(
+                app.baseUrl,
+                `/api/vocabulary/${id}`,
+                { reviewed: "remembered" },
+                headers
+            );
+
+            expect(attempted).toEqual(Array.from({ length: 60 }, () => 200));
+            expect(limited.status).toBe(429);
+            expect(limited.headers.get("retry-after")).toBeTruthy();
+        });
+    }, 60_000);
 });

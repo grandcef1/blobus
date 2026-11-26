@@ -27,8 +27,36 @@ export interface VocabularyEntryDto {
     translation: string | null;
     context: string | null;
     sourceLessonId: string | null;
+    /** Шаг Лейтнера 1..5: двигается исходом повторения. */
+    stage: number;
+    /** Когда слово снова показывать: ISO-строка, считает сервер. */
+    nextDueAt: string;
     createdAt: string;
     updatedAt: string;
+}
+
+/** Исход повторения карточки: «помню» двигает шаг вперёд, «забыл» возвращает на первый. */
+export type ReviewOutcome = "remembered" | "forgotten";
+
+// ARCHITECT: мок повторяет серверный переход по шагам Лейтнера (server/routes/vocabulary.ts), потому что
+// клиент не импортирует серверный модуль; одинаковые интервалы закреплены тестами обеих сторон.
+const REVIEW_INTERVAL_DAYS: readonly number[] = [1, 3, 7, 14, 30];
+const REVIEW_MAX_STAGE = 5;
+const PINNED_INTERVAL_DAYS = 90;
+const DAY_MS = 24 * 60 * 60 * 1000;
+
+function nextReviewStep(
+    stage: number,
+    outcome: ReviewOutcome
+): { readonly stage: number; readonly intervalDays: number } {
+    if (outcome === "forgotten") return { stage: 1, intervalDays: 1 };
+
+    const nextStage = Math.min(stage + 1, REVIEW_MAX_STAGE);
+    // ARCHITECT: закреплённое слово (шаг 5) остаётся на пятом шаге и уходит на 90 дней, как на сервере.
+    const intervalDays =
+        stage === REVIEW_MAX_STAGE ? PINNED_INTERVAL_DAYS : REVIEW_INTERVAL_DAYS[nextStage - 1];
+
+    return { stage: nextStage, intervalDays };
 }
 
 // ARCHITECT: адаптерный мок в границах серверной схемы (term 1..120, translation <=240, context <=500),
@@ -40,6 +68,8 @@ export const MOCK_VOCABULARY_ENTRIES: VocabularyEntryDto[] = [
         translation: "сотрудничать",
         context: "We need to collaborate on this project.",
         sourceLessonId: null,
+        stage: 1,
+        nextDueAt: "2026-11-16T18:02:00.000Z",
         createdAt: "2026-11-16T18:02:00.000Z",
         updatedAt: "2026-11-16T18:02:00.000Z",
     },
@@ -49,6 +79,8 @@ export const MOCK_VOCABULARY_ENTRIES: VocabularyEntryDto[] = [
         translation: null,
         context: null,
         sourceLessonId: null,
+        stage: 1,
+        nextDueAt: "2026-11-15T07:10:00.000Z",
         createdAt: "2026-11-14T09:27:00.000Z",
         updatedAt: "2026-11-15T07:10:00.000Z",
     },
@@ -94,6 +126,8 @@ export async function addVocabularyEntry(input: AddVocabularyInput): Promise<Voc
             translation: input.translation ?? null,
             context: input.context ?? null,
             sourceLessonId: null,
+            stage: 1,
+            nextDueAt: now,
             createdAt: now,
             updatedAt: now,
         };
@@ -107,6 +141,35 @@ export async function addVocabularyEntry(input: AddVocabularyInput): Promise<Voc
     const { entry } = await apiFetch<{ entry: VocabularyEntryDto }>("/vocabulary", {
         method: "POST",
         body: input,
+    });
+
+    return entry;
+}
+
+// ARCHITECT: запись исхода повторения: шаг и дату следующего показа считает сервер, клиент только сообщает
+// «помню»/«забыл». Мок двигает ту же запись в MOCK_VOCABULARY_ENTRIES, чтобы повторный рендер увидел новый шаг.
+export async function markWordReviewed(
+    id: string,
+    outcome: ReviewOutcome
+): Promise<VocabularyEntryDto> {
+    if (USE_MOCKS) {
+        await delayMock();
+        const entry = MOCK_VOCABULARY_ENTRIES.find((item) => item.id === id);
+
+        if (entry === undefined) throw new Error(`Слово не найдено: ${id}`);
+
+        const step = nextReviewStep(entry.stage, outcome);
+
+        entry.stage = step.stage;
+        entry.nextDueAt = new Date(Date.now() + step.intervalDays * DAY_MS).toISOString();
+        entry.updatedAt = new Date().toISOString();
+
+        return entry;
+    }
+
+    const { entry } = await apiFetch<{ entry: VocabularyEntryDto }>(`/vocabulary/${id}`, {
+        method: "PATCH",
+        body: { reviewed: outcome },
     });
 
     return entry;

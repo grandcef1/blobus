@@ -314,6 +314,7 @@ export type Database = {
                 Row: {
                     context: string | null;
                     created_at: string;
+                    example_translation: string | null;
                     id: string;
                     next_due_at: string;
                     source_lesson_id: string | null;
@@ -327,6 +328,7 @@ export type Database = {
                 Insert: {
                     context?: string | null;
                     created_at?: string;
+                    example_translation?: string | null;
                     id?: string;
                     next_due_at?: string;
                     source_lesson_id?: string | null;
@@ -339,6 +341,7 @@ export type Database = {
                 Update: {
                     context?: string | null;
                     created_at?: string;
+                    example_translation?: string | null;
                     id?: string;
                     next_due_at?: string;
                     source_lesson_id?: string | null;

@@ -25,7 +25,9 @@ export interface VocabularyEntryDto {
     id: string;
     term: string;
     translation: string | null;
+    /** Пример предложения (context) и его перевод: null, если перевода нет. */
     context: string | null;
+    exampleTranslation: string | null;
     sourceLessonId: string | null;
     /** Шаг Лейтнера 1..5: двигается исходом повторения. */
     stage: number;
@@ -59,14 +61,16 @@ function nextReviewStep(
     return { stage: nextStage, intervalDays };
 }
 
-// ARCHITECT: адаптерный мок в границах серверной схемы (term 1..120, translation <=240, context <=500),
-// без PII; null остаётся null — озвучки, уровня освоения и примеров в БД нет, и через API они не приходят.
+// ARCHITECT: адаптерный мок в границах серверной схемы (term 1..120, translation <=240, context <=500,
+// example_translation <=500), без PII; null остаётся null — озвучки и уровня освоения в БД нет, и через
+// API они не приходят.
 export const MOCK_VOCABULARY_ENTRIES: VocabularyEntryDto[] = [
     {
         id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a11",
         term: "collaborate",
         translation: "сотрудничать",
         context: "We need to collaborate on this project.",
+        exampleTranslation: "Нам нужно сотрудничать над этим проектом.",
         sourceLessonId: null,
         stage: 1,
         nextDueAt: "2026-11-16T18:02:00.000Z",
@@ -78,6 +82,7 @@ export const MOCK_VOCABULARY_ENTRIES: VocabularyEntryDto[] = [
         term: "deadline",
         translation: null,
         context: null,
+        exampleTranslation: null,
         sourceLessonId: null,
         stage: 1,
         nextDueAt: "2026-11-15T07:10:00.000Z",
@@ -104,6 +109,7 @@ export interface AddVocabularyInput {
     term: string;
     translation?: string | null;
     context?: string | null;
+    exampleTranslation?: string | null;
 }
 
 // ARCHITECT: мок-ветка повторяет серверную идемпотентность: дубль по lower(term) возвращает существующую
@@ -125,6 +131,7 @@ export async function addVocabularyEntry(input: AddVocabularyInput): Promise<Voc
             term,
             translation: input.translation ?? null,
             context: input.context ?? null,
+            exampleTranslation: input.exampleTranslation ?? null,
             sourceLessonId: null,
             stage: 1,
             nextDueAt: now,

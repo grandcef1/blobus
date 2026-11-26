@@ -34,6 +34,7 @@ interface VocabularyDto {
     readonly term: string;
     readonly translation: string | null;
     readonly context: string | null;
+    readonly exampleTranslation: string | null;
     readonly sourceLessonId: string | null;
     readonly stage: number;
     readonly nextDueAt: string;
@@ -50,6 +51,7 @@ interface VocabularyInput {
     readonly createdAt: string;
     readonly translation?: string | null;
     readonly context?: string | null;
+    readonly exampleTranslation?: string | null;
     readonly sourceLessonId?: string | null;
 }
 
@@ -256,6 +258,7 @@ async function insertVocabulary(userId: string, input: VocabularyInput): Promise
             term: input.term,
             translation: input.translation ?? null,
             context: input.context ?? null,
+            example_translation: input.exampleTranslation ?? null,
             source_lesson_id: input.sourceLessonId ?? null,
             created_at: input.createdAt,
         })
@@ -293,7 +296,7 @@ async function dbVocabulary(userId: string): Promise<VocabularyDto[]> {
     const { data, error } = await createAdminClient()
         .from("vocabulary")
         .select(
-            "id, user_id, term, translation, context, source_lesson_id, stage, next_due_at, created_at, updated_at"
+            "id, user_id, term, translation, context, example_translation, source_lesson_id, stage, next_due_at, created_at, updated_at"
         )
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
@@ -307,6 +310,7 @@ async function dbVocabulary(userId: string): Promise<VocabularyDto[]> {
         term: row.term,
         translation: row.translation,
         context: row.context,
+        exampleTranslation: row.example_translation,
         sourceLessonId: row.source_lesson_id,
         stage: row.stage,
         nextDueAt: row.next_due_at,
@@ -356,6 +360,7 @@ describe("GET /api/vocabulary", () => {
                 term: "collaborate",
                 translation: "сотрудничать",
                 context: "We need to collaborate on this project.",
+                exampleTranslation: "Нам нужно сотрудничать над этим проектом.",
                 sourceLessonId: lessonId,
                 createdAt: "2026-11-18T10:00:00.000Z",
             });
@@ -397,6 +402,7 @@ describe("GET /api/vocabulary", () => {
             expect(Object.keys(body.vocabulary[0]).sort()).toEqual([
                 "context",
                 "createdAt",
+                "exampleTranslation",
                 "id",
                 "nextDueAt",
                 "sourceLessonId",
@@ -414,11 +420,13 @@ describe("GET /api/vocabulary", () => {
             const bare = body.vocabulary.find((entry) => entry.term === "Deadline");
             expect(bare?.translation).toBeNull();
             expect(bare?.context).toBeNull();
+            expect(bare?.exampleTranslation).toBeNull();
             expect(bare?.sourceLessonId).toBeNull();
 
             const linked = body.vocabulary.find((entry) => entry.term === "collaborate");
             expect(linked?.translation).toBe("сотрудничать");
             expect(linked?.context).toBe("We need to collaborate on this project.");
+            expect(linked?.exampleTranslation).toBe("Нам нужно сотрудничать над этим проектом.");
             expect(linked?.sourceLessonId).toBe(lessonId);
         });
     }, 30_000);
@@ -604,7 +612,7 @@ async function dbEntryById(
     const { data, error } = await createAdminClient()
         .from("vocabulary")
         .select(
-            "id, user_id, term, translation, context, source_lesson_id, stage, next_due_at, created_at, updated_at"
+            "id, user_id, term, translation, context, example_translation, source_lesson_id, stage, next_due_at, created_at, updated_at"
         )
         .eq("id", id)
         .single();
@@ -617,6 +625,7 @@ async function dbEntryById(
             term: data.term,
             translation: data.translation,
             context: data.context,
+            exampleTranslation: data.example_translation,
             sourceLessonId: data.source_lesson_id,
             stage: data.stage,
             nextDueAt: data.next_due_at,
@@ -650,6 +659,7 @@ describe("POST /api/vocabulary", () => {
                     term: "Serendipity",
                     translation: "озарение",
                     context: "A happy accident.",
+                    exampleTranslation: "Счастливая случайность.",
                 },
                 mutationHeaders(me.jar, app.baseUrl)
             );
@@ -661,10 +671,12 @@ describe("POST /api/vocabulary", () => {
             expect(stored.userId).toBe(me.id);
             expect(body.entry.translation).toBe("озарение");
             expect(body.entry.context).toBe("A happy accident.");
+            expect(body.entry.exampleTranslation).toBe("Счастливая случайность.");
             expect(body.entry.sourceLessonId).toBeNull();
             expect(Object.keys(body.entry).sort()).toEqual([
                 "context",
                 "createdAt",
+                "exampleTranslation",
                 "id",
                 "nextDueAt",
                 "sourceLessonId",
@@ -702,6 +714,25 @@ describe("POST /api/vocabulary", () => {
             expect(await entryCount(me.id)).toBe(1);
         });
     }, 30_000);
+
+    it("3.9 без exampleTranslation: перевод примера остаётся null", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const response = await postJson(
+                app.baseUrl,
+                "/api/vocabulary",
+                { term: "Resilience" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { entry: VocabularyDto };
+            const stored = await dbEntryById(body.entry.id);
+
+            expect(response.status).toBe(201);
+            expect(body.entry.exampleTranslation).toBeNull();
+            expect(stored.dto.exampleTranslation).toBeNull();
+        });
+    }, 30_000);
+
     it("3.3 отклоняет 400: пустой term, длинные поля и лишние ключи", async () => {
         await withApp(async (app) => {
             const me = await freshUser(app.baseUrl);
@@ -711,6 +742,7 @@ describe("POST /api/vocabulary", () => {
                 { term: "x".repeat(121) },
                 { term: "ok", translation: "t".repeat(241) },
                 { term: "ok", context: "c".repeat(501) },
+                { term: "ok", exampleTranslation: "e".repeat(501) },
                 // ARCHITECT: user_id и source_lesson_id приходят не от клиента — strictObject их отклоняет.
                 { term: "ok", userId: "a1b2c3d4-0001-4000-8000-000000000001" },
                 { term: "ok", sourceLessonId: "a1b2c3d4-0002-4000-8000-000000000002" },

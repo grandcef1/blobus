@@ -73,6 +73,7 @@ const ENTRIES: VocabularyEntryDto[] = [
         term: "collaborate",
         translation: "сотрудничать",
         context: "We need to collaborate on this project.",
+        exampleTranslation: "Нам нужно сотрудничать над этим проектом.",
         sourceLessonId: null,
         stage: 1,
         nextDueAt: "2026-11-18T09:00:00.000Z",

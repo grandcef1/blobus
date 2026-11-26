@@ -42,6 +42,7 @@ describe("real-режим: fetchVocabularyEntries читает ресурсны�
             term: "collaborate",
             translation: "сотрудничать",
             context: "We need to collaborate on this project.",
+            exampleTranslation: "Нам нужно сотрудничать над этим проектом.",
             sourceLessonId: null,
             stage: 1,
             nextDueAt: "2026-11-19T08:00:00.000Z",
@@ -53,6 +54,7 @@ describe("real-режим: fetchVocabularyEntries читает ресурсны�
             term: "deadline",
             translation: null,
             context: null,
+            exampleTranslation: null,
             sourceLessonId: "a1b2c3d4-0003-4000-8000-000000000003",
             stage: 2,
             nextDueAt: "2026-11-20T09:40:00.000Z",
@@ -90,6 +92,7 @@ describe("real-режим: fetchVocabularyEntries читает ресурсны�
         expect(Object.keys(result[0]).sort()).toEqual([
             "context",
             "createdAt",
+            "exampleTranslation",
             "id",
             "nextDueAt",
             "sourceLessonId",
@@ -98,8 +101,10 @@ describe("real-режим: fetchVocabularyEntries читает ресурсны�
             "translation",
             "updatedAt",
         ]);
+        expect(result[0].exampleTranslation).toBe("Нам нужно сотрудничать над этим проектом.");
         expect(result[1].translation).toBeNull();
         expect(result[1].context).toBeNull();
+        expect(result[1].exampleTranslation).toBeNull();
     });
 
     it("6.3 пустой конверт { vocabulary: [] } даёт пустой массив", async () => {
@@ -134,10 +139,12 @@ describe("мок-режим: addVocabularyEntry пишет в мок-списо�
         expect(entry.term).toBe("Serendipity");
         expect(entry.translation).toBe("озарение");
         expect(entry.context).toBeNull();
+        expect(entry.exampleTranslation).toBeNull();
         expect(entry.sourceLessonId).toBeNull();
         expect(Object.keys(entry).sort()).toEqual([
             "context",
             "createdAt",
+            "exampleTranslation",
             "id",
             "nextDueAt",
             "sourceLessonId",
@@ -148,6 +155,21 @@ describe("мок-режим: addVocabularyEntry пишет в мок-списо�
         ]);
         expect(MOCK_VOCABULARY_ENTRIES).toHaveLength(before + 1);
         expect(MOCK_VOCABULARY_ENTRIES.some((item) => item.id === entry.id)).toBe(true);
+    });
+
+    it("5.6 кладёт перевод примера в мок-запись", async () => {
+        // ARCHITECT: термин уникален для этого теста: дубль по lower(term) вернул бы запись 5.1 без перевода.
+        const entry = await addVocabularyEntry({
+            term: "Tenacity",
+            context: "Her tenacity impressed the team.",
+            exampleTranslation: "Её упорство впечатлило команду.",
+        });
+
+        expect(apiFetchMock).not.toHaveBeenCalled();
+        expect(entry.exampleTranslation).toBe("Её упорство впечатлило команду.");
+        expect(
+            MOCK_VOCABULARY_ENTRIES.find((item) => item.id === entry.id)?.exampleTranslation
+        ).toBe("Её упорство впечатлило команду.");
     });
 
     it("5.2 дубль по lower(term): та же запись, длина списка не растёт", async () => {
@@ -166,6 +188,7 @@ describe("real-режим: addVocabularyEntry создаёт слово чере
         term: "serendipity",
         translation: "озарение",
         context: "A happy accident.",
+        exampleTranslation: "Счастливая случайность.",
         sourceLessonId: null,
         stage: 1,
         nextDueAt: "2026-11-22T10:00:00.000Z",
@@ -197,11 +220,13 @@ describe("real-режим: addVocabularyEntry создаёт слово чере
             term: "serendipity",
             translation: "озарение",
             context: "A happy accident.",
+            exampleTranslation: "Счастливая случайность.",
         };
 
         const result = await progress.addVocabularyEntry(input);
 
         expect(result).toEqual(created);
+        expect(result.exampleTranslation).toBe("Счастливая случайность.");
         // ARCHITECT: тело уходит объектом — apiFetch сериализует сам; строка была бы JSON внутри JSON.
         expect(apiFetchMock).toHaveBeenCalledWith("/vocabulary", {
             method: "POST",
@@ -300,6 +325,7 @@ describe("real-режим: markWordReviewed пишет исход через д�
         term: "collaborate",
         translation: "сотрудничать",
         context: "We need to collaborate on this project.",
+        exampleTranslation: "Нам нужно сотрудничать над этим проектом.",
         sourceLessonId: null,
         stage: 2,
         nextDueAt: "2026-11-25T10:00:00.000Z",

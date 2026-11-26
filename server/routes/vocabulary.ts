@@ -1,7 +1,8 @@
 // ARCHITECT: доменный роутер чтения словаря: свои строки public.vocabulary читаются пользовательским клиентом
 // под RLS select-own, а userId берётся только из проверенного access-токена, никогда из клиента (§16.2, §16.5).
 // ARCHITECT: ответ PostgREST разбирается Zod и не покидает модуль (§16.13): наружу уходит только DTO без
-// user_id; озвучки, уровня освоения и примеров в схеме нет, поэтому контракт согласован без них.
+// user_id; озвучки и уровня освоения в схеме нет, а пример предложения — это context, его перевод хранится
+// в example_translation.
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { z } from "zod";
@@ -22,6 +23,7 @@ const VocabularyRowSchema = z.strictObject({
     term: z.string().min(1).max(120),
     translation: z.string().max(240).nullable(),
     context: z.string().max(500).nullable(),
+    example_translation: z.string().max(500).nullable(),
     source_lesson_id: z.uuid().nullable(),
     stage: z.number().int().min(1).max(5),
     next_due_at: z.string().min(1),
@@ -39,6 +41,7 @@ const CreateVocabularySchema = z.strictObject({
     term: z.string().trim().min(1).max(120),
     translation: z.string().max(240).nullable().optional(),
     context: z.string().max(500).nullable().optional(),
+    exampleTranslation: z.string().max(500).nullable().optional(),
 });
 
 // ARCHITECT: код Postgres «нарушение уникальности»: unique (user_id, lower(term)) — повтор слова не ошибка.
@@ -92,6 +95,7 @@ interface VocabularyEntry {
     readonly term: string;
     readonly translation: string | null;
     readonly context: string | null;
+    readonly exampleTranslation: string | null;
     readonly sourceLessonId: string | null;
     readonly stage: number;
     readonly nextDueAt: string;
@@ -105,6 +109,7 @@ function toVocabularyEntry(row: VocabularyRow): VocabularyEntry {
         term: row.term,
         translation: row.translation,
         context: row.context,
+        exampleTranslation: row.example_translation,
         sourceLessonId: row.source_lesson_id,
         stage: row.stage,
         nextDueAt: row.next_due_at,
@@ -177,7 +182,7 @@ export function createVocabularyRouter(options: { readonly env: SupabaseEnv }): 
         const { data, error } = await createUserClient(env, accessToken)
             .from("vocabulary")
             .select(
-                "id, user_id, term, translation, context, source_lesson_id, stage, next_due_at, created_at, updated_at"
+                "id, user_id, term, translation, context, example_translation, source_lesson_id, stage, next_due_at, created_at, updated_at"
             )
             .eq("user_id", payload.userId)
             .order("created_at", { ascending: false })
@@ -196,6 +201,7 @@ export function createVocabularyRouter(options: { readonly env: SupabaseEnv }): 
             term: row.term,
             translation: row.translation,
             context: row.context,
+            exampleTranslation: row.example_translation,
             sourceLessonId: row.source_lesson_id,
             stage: row.stage,
             nextDueAt: row.next_due_at,
@@ -236,7 +242,7 @@ export function createVocabularyRouter(options: { readonly env: SupabaseEnv }): 
         // проверенным userId, source_lesson_id пока null — слова из уроков придут в фазе C.
         const client = createServiceClient(env);
         const columns =
-            "id, user_id, term, translation, context, source_lesson_id, stage, next_due_at, created_at, updated_at";
+            "id, user_id, term, translation, context, example_translation, source_lesson_id, stage, next_due_at, created_at, updated_at";
         const inserted = await client
             .from("vocabulary")
             .insert({
@@ -244,6 +250,7 @@ export function createVocabularyRouter(options: { readonly env: SupabaseEnv }): 
                 term: parsed.data.term,
                 translation: parsed.data.translation ?? null,
                 context: parsed.data.context ?? null,
+                example_translation: parsed.data.exampleTranslation ?? null,
             })
             .select(columns)
             .single();
@@ -309,7 +316,7 @@ export function createVocabularyRouter(options: { readonly env: SupabaseEnv }): 
 
         const client = createServiceClient(env);
         const columns =
-            "id, user_id, term, translation, context, source_lesson_id, stage, next_due_at, created_at, updated_at";
+            "id, user_id, term, translation, context, example_translation, source_lesson_id, stage, next_due_at, created_at, updated_at";
         const current = await client
             .from("vocabulary")
             .select(columns)

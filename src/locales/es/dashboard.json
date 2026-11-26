@@ -143,6 +143,16 @@
   },
   "vocabulary": {
     "title": "Vocabulario",
+    "add": {
+      "cancel": "Cancelar",
+      "error": "No se pudo añadir la palabra",
+      "example": "Ejemplo",
+      "exampleTranslation": "Traducción del ejemplo",
+      "submit": "Añadir",
+      "term": "Palabra",
+      "title": "Añadir palabra",
+      "translation": "Traducción"
+    },
     "count": "{{total}} palabras en la colección",
     "review": {
       "done": "Por hoy es todo",

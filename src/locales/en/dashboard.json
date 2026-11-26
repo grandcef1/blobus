@@ -143,6 +143,16 @@
   },
   "vocabulary": {
     "title": "Vocabulary",
+    "add": {
+      "cancel": "Cancel",
+      "error": "Couldn't add the word",
+      "example": "Example",
+      "exampleTranslation": "Example translation",
+      "submit": "Add",
+      "term": "Word",
+      "title": "Add word",
+      "translation": "Translation"
+    },
     "count": "{{total}} words in your collection",
     "review": {
       "done": "That's all for today",

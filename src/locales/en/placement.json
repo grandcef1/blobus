@@ -6,22 +6,18 @@
       "questions": "Thirty questions: five for each CEFR level, from A1 to C2.",
       "duration": "About ten minutes at a calm pace.",
       "adaptive": "The form is the same for everyone, so the level is measured on one scale."
-    },
-    "listeningToggle": "Add a listening check",
-    "listeningHint": "Six short listening tasks after the main questions. You can also take it later — a card will appear in Overview."
+    }
   },
   "test": {
     "question": "Question {{number}} of {{total}}",
     "optionsLabel": "Answer options",
     "error": "Could not reach the test server",
-    "toListening": "Go to listening",
     "toResults": "Go to results"
   },
   "listening": {
     "title": "Listening check",
     "intro": "Listen to the recording before answering. Each clip can be played only twice — answer after listening.",
     "name": "Listening",
-    "stepSubtitle": "Six listening tasks.",
     "play": "Play",
     "playsLeft": "Plays left: {{remaining}}/{{max}}",
     "playsLimit": "Play limit",

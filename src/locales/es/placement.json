@@ -6,22 +6,18 @@
       "questions": "Treinta preguntas: cinco por cada nivel del MCER, de A1 a C2.",
       "duration": "Unos diez minutos a un ritmo tranquilo.",
       "adaptive": "La forma es la misma para todos, así que el nivel se mide con una sola escala."
-    },
-    "listeningToggle": "Añadir una prueba de comprensión auditiva",
-    "listeningHint": "Seis tareas cortas de comprensión auditiva después de las preguntas principales. También puedes hacerla más tarde: aparecerá una tarjeta en Resumen."
+    }
   },
   "test": {
     "question": "Pregunta {{number}} de {{total}}",
     "optionsLabel": "Opciones de respuesta",
     "error": "No se pudo conectar con el servidor del test",
-    "toListening": "Ir a comprensión auditiva",
     "toResults": "Ir a resultados"
   },
   "listening": {
     "title": "Prueba de comprensión auditiva",
     "intro": "Escucha la grabación antes de responder. Cada fragmento se puede escuchar solo dos veces: responde después de escucharlo.",
     "name": "Comprensión auditiva",
-    "stepSubtitle": "Seis tareas de comprensión auditiva.",
     "play": "Escuchar",
     "playsLeft": "Reproducciones restantes: {{remaining}}/{{max}}",
     "playsLimit": "Límite de escuchas",

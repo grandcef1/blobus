@@ -1,5 +1,7 @@
 // ARCHITECT: интро теста уровня — отдельный блок шага: описание занимает половину файла, а
 // оркестратор фаз должен оставаться читаемым.
+// ARCHITECT: опции аудирования здесь больше нет (C-0d3c): фиксированная форма 30 его не содержит, а сама
+// проверка осталась отдельным экраном /listening.
 
 import { useTranslation } from "react-i18next";
 import { StepCard } from "@/components/onboarding/StepCard";
@@ -8,11 +10,8 @@ import { StepNav } from "@/components/onboarding/StepNav";
 import { ONBOARDING_STEP_TITLE_KEYS } from "@/types/onboarding";
 
 interface PlacementIntroProps {
-    /** Включена ли проверка аудирования после основных вопросов. */
-    withListening: boolean;
     /** Есть незаконченная сессия теста: тогда кнопка продолжает её, а не начинает заново. */
     hasProgress: boolean;
-    onToggleListening: (value: boolean) => void;
     onStart: () => void;
     onBack: () => void;
     step: number;
@@ -28,9 +27,7 @@ const INTRO_POINTS = [
 ] as const;
 
 export function PlacementIntro({
-    withListening,
     hasProgress,
-    onToggleListening,
     onStart,
     onBack,
     step,
@@ -61,25 +58,6 @@ export function PlacementIntro({
                         </li>
                     ))}
                 </ul>
-
-                {/* ARCHITECT: аудирование — opt-in в описании теста: по умолчанию выключено, потому
-                    что его можно пройти когда угодно, а звук в тесте уровня не всем нужен. */}
-                <label className="mt-5 flex min-h-11 cursor-pointer items-start gap-3 border-t border-white/5 pt-4">
-                    <input
-                        type="checkbox"
-                        checked={withListening}
-                        onChange={(event) => onToggleListening(event.target.checked)}
-                        className="mt-1 size-4 shrink-0 accent-[#f0f0f5]"
-                    />
-                    <span className="min-w-0">
-                        <span className="block text-sm text-[#f0f0f5]">
-                            {t("intro.listeningToggle")}
-                        </span>
-                        <span className="mt-1 block text-xs leading-[1.6] text-[#f0f0f5]/50">
-                            {t("intro.listeningHint")}
-                        </span>
-                    </span>
-                </label>
             </StepCard>
 
             <StepNav

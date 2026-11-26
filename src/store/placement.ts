@@ -9,12 +9,10 @@ import { create } from "zustand";
 import { persist, createJSONStorage } from "zustand/middleware";
 import type { PlacementQuestionDto } from "@/types/placement";
 
-export type PlacementPhase = "intro" | "questions" | "listening" | "result";
+export type PlacementPhase = "intro" | "questions" | "result";
 
 interface PlacementSessionData {
     phase: PlacementPhase;
-    /** Включена ли проверка аудирования после основных вопросов. */
-    includeListening: boolean;
     /** Банк формы: вопросы приходят при старте теста, в интро список пуст. */
     questions: PlacementQuestionDto[];
     /** Ответы по id задания: сохранённый ответ не меняется — он уже учитывается в серверном балле. */
@@ -25,12 +23,11 @@ interface PlacementSessionData {
 
 interface PlacementSessionActions {
     /** Старт: сбрасывает прошлую сессию и кладёт уже загруженный банк. */
-    start: (includeListening: boolean, questions: readonly PlacementQuestionDto[]) => void;
+    start: (questions: readonly PlacementQuestionDto[]) => void;
     answer: (itemId: string, optionId: string) => void;
     goNext: () => void;
     goPrev: () => void;
     setPhase: (phase: PlacementPhase) => void;
-    setIncludeListening: (value: boolean) => void;
     reset: () => void;
 }
 
@@ -39,7 +36,6 @@ export type PlacementSession = PlacementSessionData & PlacementSessionActions;
 function emptySession(): PlacementSessionData {
     return {
         phase: "intro",
-        includeListening: false,
         questions: [],
         answers: {},
         currentIndex: 0,
@@ -52,10 +48,9 @@ export const usePlacementSession = create<PlacementSession>()(
             ...emptySession(),
             // ARCHITECT: старт — единственная точка, где прогресс теста начинается заново: он обнуляет
             // прошлую сессию и ставит загруженный банк.
-            start: (includeListening, questions) =>
+            start: (questions) =>
                 set({
                     phase: "questions",
-                    includeListening,
                     questions: [...questions],
                     answers: {},
                     currentIndex: 0,
@@ -77,16 +72,15 @@ export const usePlacementSession = create<PlacementSession>()(
                 })),
             goPrev: () => set((state) => ({ currentIndex: Math.max(0, state.currentIndex - 1) })),
             setPhase: (phase) => set({ phase }),
-            setIncludeListening: (includeListening) => set({ includeListening }),
             // ARCHITECT: сброс только по явному завершению теста: навигация по мастеру его не трогает.
             reset: () => set(emptySession()),
         }),
         {
             name: "blobus-placement",
             storage: createJSONStorage(() => sessionStorage),
-            // ARCHITECT: адаптивная сессия (v0) несовместима с фиксированной формой: смена версии сбрасывает
-            // её в пустой старт, поэтому старые trackState/askedItemIds не читаются вовсе.
-            version: 1,
+            // ARCHITECT: смена версии сбрасывает несовместимые сессии: v0 — адаптивный движок, v1 — опция
+            // аудирования в мастере (C-0d3c удалил её вместе с фазой listening).
+            version: 2,
             migrate: () => emptySession(),
             merge: (persisted, current) => {
                 // ARCHITECT: повреждённое состояние (фаза вопросов без загруженного банка, чужой shape) не

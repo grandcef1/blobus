@@ -14,7 +14,6 @@ interface PlacementTestPhaseProps {
     number: number;
     total: number;
     selectedOptionId: string | null;
-    withListening: boolean;
     onSelect: (optionId: string) => void;
     onBack: () => void;
     onNext: () => void;
@@ -27,7 +26,6 @@ export function PlacementTestPhase({
     number,
     total,
     selectedOptionId,
-    withListening,
     onSelect,
     onBack,
     onNext,
@@ -36,10 +34,9 @@ export function PlacementTestPhase({
 }: PlacementTestPhaseProps) {
     const { t } = useTranslation("placement");
     const { t: tCommon } = useTranslation("common");
-    // ARCHITECT: последний вопрос — ровно двадцатый: граница сравнивается строго с общим числом
-    // вопросов, той же величиной, что и счётчик «Вопрос N из total».
+    // ARCHITECT: последний вопрос — тот, чей номер равен размеру банка: и граница, и счётчик «Вопрос N из
+    // total» считаются от одной величины — total.
     const isLast = number === total;
-    const lastLabel = withListening ? t("test.toListening") : t("test.toResults");
 
     return (
         <div className="mx-auto w-full max-w-xl">
@@ -61,7 +58,7 @@ export function PlacementTestPhase({
             <StepNav
                 onBack={onBack}
                 onNext={onNext}
-                nextLabel={isLast ? lastLabel : t("shell.next")}
+                nextLabel={isLast ? t("test.toResults") : t("shell.next")}
                 disabled={selectedOptionId === null}
             />
         </div>

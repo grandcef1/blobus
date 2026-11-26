@@ -13,7 +13,6 @@ import { useTranslation } from "react-i18next";
 import {
     fetchPlacementQuestions,
     fetchPlacementResultDto,
-    saveListeningResult,
     saveResult,
     submitPlacementAnswers,
 } from "@/api/placement";
@@ -35,7 +34,6 @@ interface PlacementTestController {
     questionNumber: number;
     total: number;
     selectedOptionId: string | null;
-    includeListening: boolean;
     isLastQuestion: boolean;
     /** Есть незаконченная сессия: кнопка описания продолжает её, а не начинает заново. */
     hasProgress: boolean;
@@ -43,8 +41,6 @@ interface PlacementTestController {
     advance: () => void;
     back: () => void;
     startOrResume: () => void;
-    toggleListening: (value: boolean) => void;
-    finishListening: (level: EnglishLevel) => void;
     /** Выход из сводки: закрывает сессию и отдаёт уровень мастеру. */
     complete: () => void;
 }
@@ -69,7 +65,6 @@ export function usePlacementTest(
     const { t } = useTranslation("placement");
     const {
         phase: sessionPhase,
-        includeListening,
         questions,
         answers,
         currentIndex,
@@ -78,7 +73,6 @@ export function usePlacementTest(
         goNext,
         goPrev,
         setPhase,
-        setIncludeListening,
         reset,
     } = usePlacementSession();
 
@@ -186,13 +180,6 @@ export function usePlacementTest(
 
             if (dto === null) return;
 
-            // ARCHITECT: аудирование идёт сразу после ответов и остаётся локальным до Placement 1A: сервер
-            // знает только основной результат.
-            if (includeListening) {
-                setPhase("listening");
-                return;
-            }
-
             setPhase("result");
         })();
     };
@@ -203,7 +190,6 @@ export function usePlacementTest(
         questionNumber,
         total,
         selectedOptionId,
-        includeListening,
         isLastQuestion,
         hasProgress,
         answer: (optionId) => {
@@ -230,20 +216,13 @@ export function usePlacementTest(
                 try {
                     const loaded = await fetchPlacementQuestions();
 
-                    start(includeListening, loaded);
+                    start(loaded);
                 } catch {
                     toast.error(t("test.error"));
                 } finally {
                     loadingRef.current = false;
                 }
             })();
-        },
-        toggleListening: setIncludeListening,
-        finishListening: (level) => {
-            // ARCHITECT: аудирование остаётся локальным до Placement 1A: уровень дозаписывается в legacy-мост,
-            // серверная строка результата при этом не меняется.
-            setSavedResult(saveListeningResult(level));
-            setPhase("result");
         },
         complete: () => {
             if (savedResult === null) return;

@@ -10,7 +10,6 @@ import { FIXED_PLACEMENT_QUESTIONS } from "@/api/mocks/placementFixed";
 import { usePlacementTest } from "@/hooks/usePlacementTest";
 import { usePlacementSession } from "@/store/placement";
 import type { PlacementAnswerDto, PlacementResult, PlacementResultDto } from "@/types/placement";
-import type { EnglishLevel } from "@/types/onboarding";
 
 // ARCHITECT: адаптер мокается целиком: тесты проверяют поведение шага, а не транспорт.
 const { adapter, toastErrorMock } = vi.hoisted(() => ({
@@ -19,7 +18,6 @@ const { adapter, toastErrorMock } = vi.hoisted(() => ({
         submitPlacementAnswers: vi.fn(),
         fetchPlacementResultDto: vi.fn(),
         saveResult: vi.fn(),
-        saveListeningResult: vi.fn(),
     },
     toastErrorMock: vi.fn(),
 }));
@@ -65,7 +63,7 @@ async function flush(): Promise<void> {
 
 describe("стор фиксированной сессии", () => {
     it("старт кладёт банк, ответ фиксируется один раз, курсор не выходит за банк", () => {
-        usePlacementSession.getState().start(false, QUESTIONS);
+        usePlacementSession.getState().start(QUESTIONS);
 
         const started = usePlacementSession.getState();
 
@@ -91,33 +89,54 @@ describe("стор фиксированной сессии", () => {
     });
 
     it("сброс возвращает сессию в интро и очищает банк", () => {
-        usePlacementSession.getState().start(true, QUESTIONS);
+        usePlacementSession.getState().start(QUESTIONS);
         usePlacementSession.getState().reset();
 
         const state = usePlacementSession.getState();
 
         expect(state.phase).toBe("intro");
         expect(state.questions).toEqual([]);
-        expect(state.includeListening).toBe(false);
         expect(state.currentIndex).toBe(0);
     });
 
-    it("версия 1: migrate сбрасывает адаптивную сессию, повреждённое состояние не восстанавливается", () => {
+    it("версия 2: migrate сбрасывает старые сессии, повреждённое состояние не восстанавливается", () => {
         const options = usePlacementSession.persist.getOptions();
 
-        expect(options.version).toBe(1);
-        // ARCHITECT: состояние v0 (адаптивный движок с trackState) несовместимо с фиксированной формой.
+        expect(options.version).toBe(2);
+        // ARCHITECT: v0 — адаптивный движок (trackState/askedItemIds), v1 — опция аудирования в мастере.
         expect(
             options.migrate?.(
                 { phase: "questions", trackState: { grammar: {} }, askedItemIds: ["grammar_a1_1"] },
                 0
             )
         ).toMatchObject({ phase: "intro", questions: [], answers: {}, currentIndex: 0 });
+        expect(
+            options.migrate?.(
+                {
+                    phase: "listening",
+                    includeListening: true,
+                    questions: [...QUESTIONS],
+                    answers: {},
+                    currentIndex: TOTAL - 1,
+                },
+                1
+            )
+        ).toMatchObject({ phase: "intro", questions: [], answers: {}, currentIndex: 0 });
+
+        const current = usePlacementSession.getState();
+
+        // ARCHITECT: целая сессия восстанавливается как есть.
+        const restored = options.merge?.(
+            { phase: "questions", questions: [...QUESTIONS], answers: {}, currentIndex: 5 },
+            current
+        );
+
+        expect(restored?.phase).toBe("questions");
+        expect(restored?.currentIndex).toBe(5);
 
         // ARCHITECT: фаза вопросов без загруженного банка — повреждение: шаг возвращается в интро.
-        const current = usePlacementSession.getState();
         const corrupt = options.merge?.(
-            { phase: "questions", includeListening: false, answers: {}, currentIndex: 3 },
+            { phase: "questions", answers: {}, currentIndex: 3 },
             current
         );
 
@@ -141,11 +160,6 @@ describe("хук шага теста", () => {
             }
         );
         adapter.saveResult.mockImplementation((result: PlacementResult) => result);
-        adapter.saveListeningResult.mockImplementation((level: EnglishLevel) => ({
-            ...BRIDGE,
-            listening: level,
-            listeningSkipped: false,
-        }));
     });
 
     afterEach(() => {
@@ -256,27 +270,6 @@ describe("хук шага теста", () => {
         expect(result.current.phase).toBe("questions");
         expect(result.current.savedResult).toBeNull();
         expect(result.current.isLastQuestion).toBe(true);
-    });
-
-    it("аудирование: после отправки фаза listening, finishListening дозаписывает уровень", async () => {
-        const { result } = renderHook(() => usePlacementTest(vi.fn()));
-
-        await flush();
-        act(() => result.current.toggleListening(true));
-        act(() => result.current.startOrResume());
-        await flush();
-        act(() => answerAllThenReachLast(1));
-
-        act(() => result.current.advance());
-        await flush();
-
-        expect(result.current.phase).toBe("listening");
-
-        act(() => result.current.finishListening("B2"));
-
-        expect(adapter.saveListeningResult).toHaveBeenCalledWith("B2");
-        expect(result.current.savedResult?.listening).toBe("B2");
-        expect(result.current.phase).toBe("result");
     });
 
     it("готовый результат открывает шаг на итоге, complete отдаёт уровень мастеру", async () => {

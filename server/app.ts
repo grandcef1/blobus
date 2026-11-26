@@ -10,6 +10,7 @@ import { createMemoryRateLimitStore, createRateLimiter } from "./rate-limit.ts";
 import type { RateLimitStore } from "./rate-limit.ts";
 import { createAuthRouter } from "./routes/auth.ts";
 import type { AuthLimiters } from "./routes/auth.ts";
+import { createChatRouter } from "./routes/chat.ts";
 import { createPlacementRouter } from "./routes/placement.ts";
 import { createProfileRouter } from "./routes/profile.ts";
 import { createSessionsRouter } from "./routes/sessions.ts";
@@ -130,6 +131,9 @@ export function buildApp(registerRoutes?: (app: Express) => void, env?: Supabase
         // внутри роутера свои лимитеры чтения и отправки.
         app.use("/api/placement", createPlacementRouter({ env }));
         app.use("/api/profile", createProfileRouter({ env }));
+        // ARCHITECT: чат — единственный роутер с заказом модели: ключ OpenRouter приходит в env из
+        // composition root, а без ключа роутер остаётся в fail-closed (500) и доступа не открывает.
+        app.use("/api/chat", createChatRouter({ env }));
         app.use("/api/sessions", createSessionsRouter({ env }));
         app.use("/api/settings", createSettingsRouter({ env }));
         app.use("/api/tutors", createTutorsRouter({ env }));

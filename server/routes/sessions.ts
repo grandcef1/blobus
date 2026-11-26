@@ -13,6 +13,7 @@ import { errorEnvelope } from "../http.ts";
 import { createMemoryRateLimitStore, createRateLimiter } from "../rate-limit.ts";
 import { createServiceClient, createUserClient } from "../supabase.ts";
 import type { SupabaseEnv } from "../supabase.ts";
+import { TUTORS } from "../tutorCatalog.ts";
 
 // ARCHITECT: строгая схема читаемого набора колонок: границы совпадают с CHECK-ами схемы (mode 1..32,
 // tutor_id 1..64). strictObject отклоняет лишние ключи — набор колонок ровно тот, что мы выбрали.
@@ -27,21 +28,9 @@ const SessionRowSchema = z.strictObject({
 
 const SessionListSchema = z.array(SessionRowSchema);
 
-// ARCHITECT: allowlist записи не зависит от клиентского каталога: фронтенд присылает только известные
-// значения, а всё прочее отклоняется 400, а не попадает строкой в БД (§16.2). Единый источник каталога —
-// отдельный долг.
-const TUTOR_ID_ALLOWLIST: ReadonlySet<string> = new Set([
-    "miya",
-    "oscar",
-    "luna",
-    "max",
-    "alex",
-    "zoe",
-    "nova",
-    "kai",
-    "lira",
-    "orion",
-]);
+// ARCHITECT: allowlist репетиторов выводится из каталога TUTORS: единый источник правды, поэтому список не
+// может разойтись с тем, что отдаёт GET /api/tutors, и дубль значений исчез.
+const TUTOR_ID_ALLOWLIST: ReadonlySet<string> = new Set(TUTORS.map((tutor) => tutor.id));
 const MODE_ALLOWLIST: ReadonlySet<string> = new Set([
     "interview",
     "speaking",

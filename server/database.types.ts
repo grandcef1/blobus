@@ -104,6 +104,7 @@ export type Database = {
                     created_at: string;
                     id: string;
                     lesson_id: string;
+                    payload: NonNullable<Json>;
                     role: string;
                 };
                 ComputedFields: never;
@@ -112,6 +113,7 @@ export type Database = {
                     created_at?: string;
                     id?: string;
                     lesson_id: string;
+                    payload?: NonNullable<Json>;
                     role: string;
                 };
                 Update: {
@@ -119,6 +121,7 @@ export type Database = {
                     created_at?: string;
                     id?: string;
                     lesson_id?: string;
+                    payload?: NonNullable<Json>;
                     role?: string;
                 };
                 Relationships: [
@@ -289,6 +292,7 @@ export type Database = {
                     id: string;
                     lessons_used: number;
                     messages_used: number;
+                    tokens_used: number;
                     updated_at: string;
                     user_id: string;
                 };
@@ -299,6 +303,7 @@ export type Database = {
                     id?: string;
                     lessons_used?: number;
                     messages_used?: number;
+                    tokens_used?: number;
                     updated_at?: string;
                     user_id: string;
                 };
@@ -308,6 +313,7 @@ export type Database = {
                     id?: string;
                     lessons_used?: number;
                     messages_used?: number;
+                    tokens_used?: number;
                     updated_at?: string;
                     user_id?: string;
                 };
@@ -387,6 +393,7 @@ export type Database = {
                     isSetofReturn: false;
                 };
             };
+            record_ai_tokens: { Args: { p_tokens: number; p_user_id: string }; Returns: Json };
             release_lesson: { Args: { p_user_id: string }; Returns: Json };
             release_message: { Args: { p_user_id: string }; Returns: Json };
             reserve_lesson: { Args: { p_user_id: string }; Returns: Json };

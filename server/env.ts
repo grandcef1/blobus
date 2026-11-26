@@ -16,6 +16,9 @@ export const ServerEnvSchema = z.object({
     SUPABASE_URL: z.string().url(),
     SUPABASE_PUBLISHABLE_KEY: z.string().startsWith("sb_publishable_"),
     SUPABASE_SECRET_KEY: z.string().startsWith("sb_secret_"),
+    // ARCHITECT: ключ OpenRouter только серверный и обязательный: без него чат не работает, поэтому
+    // отсутствие ключа останавливает старт (fail-fast), а не проявляется 500 на первом сообщении (§16.3).
+    OPENROUTER_API_KEY: z.string().min(1),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;

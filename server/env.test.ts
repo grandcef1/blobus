@@ -11,6 +11,7 @@ const VALID_SOURCE = {
     SUPABASE_URL: "http://127.0.0.1:54321",
     SUPABASE_PUBLISHABLE_KEY: "sb_publishable_test",
     SUPABASE_SECRET_KEY: "sb_secret_test",
+    OPENROUTER_API_KEY: "sk-or-test-key",
 } as const;
 
 /** Возвращает текст ошибки loadEnv или падает, если ошибки не было: негативные проверки обязательны. */
@@ -33,10 +34,16 @@ describe("loadEnv", () => {
         expect(env.SUPABASE_URL).toBe(VALID_SOURCE.SUPABASE_URL);
         expect(env.SUPABASE_PUBLISHABLE_KEY).toBe(VALID_SOURCE.SUPABASE_PUBLISHABLE_KEY);
         expect(env.SUPABASE_SECRET_KEY).toBe(VALID_SOURCE.SUPABASE_SECRET_KEY);
+        expect(env.OPENROUTER_API_KEY).toBe(VALID_SOURCE.OPENROUTER_API_KEY);
     });
 
-    it("бросает, если отсутствует любой ключ Supabase, и называет его", () => {
-        for (const key of ["SUPABASE_URL", "SUPABASE_PUBLISHABLE_KEY", "SUPABASE_SECRET_KEY"] as const) {
+    it("бросает, если отсутствует любой обязательный ключ, и называет его", () => {
+        for (const key of [
+            "SUPABASE_URL",
+            "SUPABASE_PUBLISHABLE_KEY",
+            "SUPABASE_SECRET_KEY",
+            "OPENROUTER_API_KEY",
+        ] as const) {
             const source: Record<string, string> = { ...VALID_SOURCE };
             delete source[key];
 
@@ -78,8 +85,18 @@ describe("loadEnv", () => {
         expect(message).not.toContain("staging");
     });
 
+    it("бросает на пустой ключ OpenRouter: чат без ключа не поднимается", () => {
+        const message = loadEnvError({ ...VALID_SOURCE, OPENROUTER_API_KEY: "" });
+
+        expect(message).toContain("OPENROUTER_API_KEY");
+    });
+
     it("отбрасывает неизвестные ключи: VITE_* и посторонние секреты не входят в server-env", () => {
-        const env = loadEnv({ ...VALID_SOURCE, VITE_SECRET: "sentinel-value", OPENROUTER_API_KEY: "sk-sentinel" });
+        const env = loadEnv({
+            ...VALID_SOURCE,
+            VITE_SECRET: "sentinel-value",
+            VITE_OPENROUTER_API_KEY: "sk-sentinel",
+        });
 
         expect(Object.keys(env)).toEqual([
             "NODE_ENV",
@@ -87,6 +104,7 @@ describe("loadEnv", () => {
             "SUPABASE_URL",
             "SUPABASE_PUBLISHABLE_KEY",
             "SUPABASE_SECRET_KEY",
+            "OPENROUTER_API_KEY",
         ]);
         expect(Object.keys(ServerEnvSchema.shape)).toEqual([
             "NODE_ENV",
@@ -94,9 +112,12 @@ describe("loadEnv", () => {
             "SUPABASE_URL",
             "SUPABASE_PUBLISHABLE_KEY",
             "SUPABASE_SECRET_KEY",
+            "OPENROUTER_API_KEY",
         ]);
+        // ARCHITECT: серверный ключ входит в env только под своим именем: VITE_-вариант остаётся
+        // фронтенд-переменной и серверной не становится.
         expect(env).not.toHaveProperty("VITE_SECRET");
-        expect(env).not.toHaveProperty("OPENROUTER_API_KEY");
+        expect(env).not.toHaveProperty("VITE_OPENROUTER_API_KEY");
     });
 
     it("не включает значение-сентинел в текст ошибки для SUPABASE_URL", () => {

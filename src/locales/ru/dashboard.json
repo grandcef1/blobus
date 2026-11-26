@@ -7,7 +7,6 @@
     "help": "Центр помощи",
     "settings": "Настройки",
     "billing": "Подписка",
-    "admin": "Админ",
     "profile": "Профиль",
     "newSession": "Новая сессия",
     "recentSessions": "Недавние сессии",
@@ -180,43 +179,5 @@
     "title": "Наши репетиторы",
     "subtitle": "Характер и стиль каждого — выберите подходящего",
     "details": "Подробнее"
-  },
-  "admin": {
-    "title": "Админ",
-    "subtitle": "Состояние аккаунтов и обращений",
-    "metrics": {
-      "users": "Пользователей",
-      "active": "Активных сегодня",
-      "tickets": "Открытых тикетов",
-      "critical": "Критических"
-    },
-    "users": {
-      "title": "Пользователи",
-      "export": "Экспорт",
-      "searchPlaceholder": "Поиск",
-      "searchLabel": "Поиск пользователей",
-      "planFilterLabel": "Фильтр по тарифу",
-      "allPlans": "Все тарифы",
-      "issues": "{{total}} в поддержку",
-      "status": {
-        "active": "Активен",
-        "suspended": "Заблокирован",
-        "pending": "Ожидает"
-      }
-    },
-    "tickets": {
-      "title": "Последние тикеты",
-      "actions": "Действия с тикетом",
-      "status": {
-        "open": "Открыт",
-        "inProgress": "В работе",
-        "resolved": "Решён"
-      },
-      "priority": {
-        "high": "Высокий",
-        "medium": "Средний",
-        "low": "Низкий"
-      }
-    }
   }
 }

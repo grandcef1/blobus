@@ -7,7 +7,6 @@
     "help": "Help centre",
     "settings": "Settings",
     "billing": "Subscription",
-    "admin": "Admin",
     "profile": "Profile",
     "newSession": "New session",
     "recentSessions": "Recent sessions",
@@ -180,43 +179,5 @@
     "title": "Our tutors",
     "subtitle": "Character and style of each — pick the one that fits",
     "details": "Read more"
-  },
-  "admin": {
-    "title": "Admin",
-    "subtitle": "Account and request status",
-    "metrics": {
-      "users": "Users",
-      "active": "Active today",
-      "tickets": "Open tickets",
-      "critical": "Critical"
-    },
-    "users": {
-      "title": "Users",
-      "export": "Export",
-      "searchPlaceholder": "Search",
-      "searchLabel": "Search users",
-      "planFilterLabel": "Plan filter",
-      "allPlans": "All plans",
-      "issues": "{{total}} to support",
-      "status": {
-        "active": "Active",
-        "suspended": "Suspended",
-        "pending": "Pending"
-      }
-    },
-    "tickets": {
-      "title": "Recent tickets",
-      "actions": "Ticket actions",
-      "status": {
-        "open": "Open",
-        "inProgress": "In progress",
-        "resolved": "Resolved"
-      },
-      "priority": {
-        "high": "High",
-        "medium": "Medium",
-        "low": "Low"
-      }
-    }
   }
 }

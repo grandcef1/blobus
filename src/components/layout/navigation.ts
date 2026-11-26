@@ -3,7 +3,15 @@
 // чего шапка и меню могли разойтись. Здесь же лежит правило активности: чат относится к
 // разделу «Сессии».
 
-import { BookOpen, CreditCard, LayoutDashboard, LifeBuoy, MessagesSquare, Settings, Shield, Users } from "lucide-react";
+import {
+    BookOpen,
+    CreditCard,
+    LayoutDashboard,
+    LifeBuoy,
+    MessagesSquare,
+    Settings,
+    Users,
+} from "lucide-react";
 import i18n from "@/lib/i18n";
 
 // ARCHITECT: фокус-кольцо для строк меню. Один токен на сайдбар, drawer и топбар, иначе
@@ -21,7 +29,6 @@ const NAV_LABEL_KEYS = {
     help: "nav.help",
     settings: "nav.settings",
     billing: "nav.billing",
-    admin: "nav.admin",
     profile: "nav.profile",
 } as const;
 
@@ -34,8 +41,6 @@ export interface AppNavItem {
     icon: typeof LayoutDashboard;
     /** Префиксы путей, на которых пункт активен, если они шире href. */
     activePrefixes?: string[];
-    /** Пункт виден только администратору: раздел закрыт AdminRoute. */
-    requiresAdmin?: boolean;
 }
 
 // ARCHITECT: стартовая страница приложения. Вошедший пользователь попадает сюда: «Обзор» показывает
@@ -44,7 +49,12 @@ export interface AppNavItem {
 export const APP_HOME_PATH = "/app/overview";
 
 export const PRIMARY_NAV_ITEMS: AppNavItem[] = [
-    { id: "overview", labelKey: NAV_LABEL_KEYS.overview, href: APP_HOME_PATH, icon: LayoutDashboard },
+    {
+        id: "overview",
+        labelKey: NAV_LABEL_KEYS.overview,
+        href: APP_HOME_PATH,
+        icon: LayoutDashboard,
+    },
     {
         id: "sessions",
         labelKey: NAV_LABEL_KEYS.sessions,
@@ -52,7 +62,12 @@ export const PRIMARY_NAV_ITEMS: AppNavItem[] = [
         icon: MessagesSquare,
         activePrefixes: ["/app/sessions", "/app/chat"],
     },
-    { id: "vocabulary", labelKey: NAV_LABEL_KEYS.vocabulary, href: "/app/vocabulary", icon: BookOpen },
+    {
+        id: "vocabulary",
+        labelKey: NAV_LABEL_KEYS.vocabulary,
+        href: "/app/vocabulary",
+        icon: BookOpen,
+    },
     // ARCHITECT: «Репетиторы» стоят рядом со словарём: это учебная группа, а не сервис. Страница
     // нужна к моменту смены репетитора в сессии, поэтому ссылка есть и в меню чата.
     { id: "tutors", labelKey: NAV_LABEL_KEYS.tutors, href: "/app/tutors", icon: Users },
@@ -64,9 +79,6 @@ export const PRIMARY_NAV_ITEMS: AppNavItem[] = [
 export const SECONDARY_NAV_ITEMS: AppNavItem[] = [
     { id: "settings", labelKey: NAV_LABEL_KEYS.settings, href: "/app/settings", icon: Settings },
     { id: "billing", labelKey: NAV_LABEL_KEYS.billing, href: "/app/billing", icon: CreditCard },
-    // ARCHITECT: пункт виден только владельцу: экран закрыт AdminRoute, а настоящая проверка роли
-    // будет на бэкенде (RLS).
-    { id: "admin", labelKey: NAV_LABEL_KEYS.admin, href: "/app/admin", icon: Shield, requiresAdmin: true },
 ];
 
 export function isNavItemActive(item: AppNavItem, pathname: string): boolean {

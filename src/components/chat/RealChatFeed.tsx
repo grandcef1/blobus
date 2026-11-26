@@ -3,11 +3,14 @@
 // size-8 (2rem) плюс gap-3 (0.75rem) — колонка совпадает без пустого блока-заполнителя.
 // ARCHITECT: aria-live="polite" на постоянном контейнере объявляет растущий ответ: текст приходит дельт-ами,
 // и без live-региона скринридер прочитал бы только кадр по уходу фокуса (как в строке разбора викторины).
+// ARCHITECT: пока ответ печатается, рядом с подписью встаёт кнопка остановки: прерванная генерация не
+// сохраняется, а повтор доступен из той же ленты (server/routes/chat.ts возвращает резерв квоты, §16.7).
 
 import { useEffect, useRef } from "react";
 import { useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import type { ChatErrorKind, ChatFeedMessage } from "@/hooks/useChat";
+import { stopPlayback } from "@/lib/speechPlayback";
 import type { EnhancedChatSession, EnhancedMessage } from "@/types/session";
 import { CorrectionsRow } from "./messages/CorrectionsRow";
 import { MessageBubble } from "./messages/MessageBubble";
@@ -20,7 +23,12 @@ interface RealChatFeedProps {
     readonly isStreaming: boolean;
     readonly error: ChatErrorKind | null;
     readonly messagesRemaining: number | null;
+    /** Настройка voiceEnabled: выключена — кнопки озвучки в ленте нет. */
+    readonly voiceEnabled: boolean;
+    /** Тариф из entitlements: pro озвучивает провайдер, остальные читают браузерным синтезом. */
+    readonly proPlan: boolean;
     readonly onRetry: () => void;
+    readonly onStop: () => void;
 }
 
 const RETRY_BUTTON =
@@ -45,7 +53,10 @@ export function RealChatFeed({
     isStreaming,
     error,
     messagesRemaining,
+    voiceEnabled,
+    proPlan,
     onRetry,
+    onStop,
 }: RealChatFeedProps) {
     const { t } = useTranslation("chat");
     const shouldReduceMotion = useReducedMotion();
@@ -55,6 +66,11 @@ export function RealChatFeed({
     useEffect(() => {
         bottomRef.current?.scrollIntoView({ behavior: shouldReduceMotion ? "auto" : "smooth" });
     }, [messages.length, isStreaming, shouldReduceMotion]);
+
+    // ARCHITECT: новый поток снимает озвучку: прошлый ответ не должен читаться поверх нового.
+    useEffect(() => {
+        if (isStreaming) stopPlayback();
+    }, [isStreaming]);
 
     return (
         <div
@@ -67,15 +83,33 @@ export function RealChatFeed({
                     const next = messages[index + 1];
                     // ARCHITECT: подчёркивание реплики ученика выводится из карточек следующего ответа:
                     // разбор относится к этой фразе, отдельной связи между сообщениями нет.
-                    const marked =
-                        message.role === "user" && (next?.cards?.corrections.length ?? 0) > 0;
+                    const highlights =
+                        message.role === "user"
+                            ? (next?.cards?.corrections ?? []).map(
+                                  (correction) => correction.fragment
+                              )
+                            : [];
+                    // ARCHITECT: у незавершённого ответа кнопки озвучки нет: текст ещё не полный.
+                    const voice =
+                        message.role === "assistant" &&
+                        message.voiceId !== null &&
+                        !(isStreaming && index === messages.length - 1)
+                            ? {
+                                  messageId: message.id,
+                                  text: message.content,
+                                  voiceId: message.voiceId,
+                                  enabled: voiceEnabled,
+                                  proPlan,
+                              }
+                            : undefined;
 
                     return (
                         <div key={message.id} className="flex flex-col gap-3">
                             <MessageBubble
                                 message={toBubbleMessage(message, session.id)}
                                 session={session}
-                                marked={marked}
+                                highlights={highlights}
+                                voice={voice}
                             />
 
                             {message.cards !== null && (
@@ -90,7 +124,12 @@ export function RealChatFeed({
                 })}
 
                 {isStreaming && (
-                    <p className="pl-11 text-xs text-[#f0f0f5]/40">{t("feed.typing")}</p>
+                    <div className="flex items-center gap-3 pl-11">
+                        <p className="text-xs text-[#f0f0f5]/40">{t("feed.typing")}</p>
+                        <button type="button" onClick={onStop} className={RETRY_BUTTON}>
+                            {t("feed.stop")}
+                        </button>
+                    </div>
                 )}
 
                 {error !== null && (

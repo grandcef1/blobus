@@ -1,10 +1,11 @@
 // ARCHITECT: навигация сайдбара: рабочие разделы, разделитель, служебные разделы. Пункт
 // «Уроки» убран, потому что он вёл на /app/chat без id и открывал дашборд; вместо него
 // «Обзор» и «Сессии». Профиль живёт внизу отдельной карточкой, поэтому в списке его нет.
+// ARCHITECT: админ-раздел убран вместе с мок-панелью: пункт меню и маршрут без серверной части
+// показывали бы выдуманные аккаунты и тикеты как настоящие данные.
 
 import { useLocation } from "react-router-dom";
 import { cn } from "@/lib/utils";
-import { useAuthStore } from "@/store/auth";
 import { PRIMARY_NAV_ITEMS, SECONDARY_NAV_ITEMS, isNavItemActive } from "./navigation";
 import { SidebarNavLink } from "./SidebarNavLink";
 
@@ -14,11 +15,6 @@ interface SidebarNavProps {
 
 export function SidebarNav({ isCollapsed }: SidebarNavProps) {
     const { pathname } = useLocation();
-    // ARCHITECT: «Админ» показывается только владельцу. Гейт здесь ради UX, а не ради защиты:
-    // реальная проверка роли будет на бэкенде (RLS). Селектор отдаёт примитив, поэтому список
-    // пересобирается при смене роли, а не на каждое изменение объекта пользователя.
-    const isAdmin = useAuthStore((state) => state.user?.role === "admin");
-    const secondaryItems = SECONDARY_NAV_ITEMS.filter((item) => !item.requiresAdmin || isAdmin);
 
     return (
         <div className={cn("shrink-0 space-y-1", isCollapsed ? "px-2" : "px-3")}>
@@ -33,7 +29,7 @@ export function SidebarNav({ isCollapsed }: SidebarNavProps) {
 
             <hr className="my-3 border-t border-white/5" />
 
-            {secondaryItems.map((item) => (
+            {SECONDARY_NAV_ITEMS.map((item) => (
                 <SidebarNavLink
                     key={item.id}
                     item={item}

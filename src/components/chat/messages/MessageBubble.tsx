@@ -2,17 +2,31 @@
 // ARCHITECT: ширина строки ограничена и долей пузыря, и мерой читаемости 70ch: на широком экране
 // процент не срабатывает, и текст разъезжается на всю ленту. Контраст смягчён: тело сообщения —
 // white/90 на #111113 / #141416, цветных бордеров нет.
+// ARCHITECT: правка помечается подчёркиванием ровно в том месте реплики ученика, где стоит фрагмент, а не
+// всей строкой: остальной текст остаётся обычным, разбор правила идёт карточкой под репликой.
 
 import type { EnhancedChatSession, EnhancedMessage } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
+import { VoiceButton } from "@/components/chat/VoiceButton";
+import { highlightFragments } from "@/lib/highlightFragments";
 import { cn } from "@/lib/utils";
+
+/** Озвучка реплики: undefined — кнопки нет (мок-лента, выключенная настройка, незавершённый ответ). */
+interface MessageVoice {
+    readonly messageId: string;
+    readonly text: string;
+    readonly voiceId: string | null;
+    readonly enabled: boolean;
+    readonly proPlan: boolean;
+}
 
 interface MessageBubbleProps {
     message: EnhancedMessage;
     session: EnhancedChatSession;
-    /** Подчёркивание реплики: под ответом идёт карточка разбора, и правка относится к этой фразе. */
-    marked?: boolean;
+    /** Дословные фрагменты правок этого сообщения: подчёркивается только их место в реплике. */
+    highlights?: readonly string[];
+    voice?: MessageVoice;
 }
 
 const BODY_TEXT = "text-[15px] leading-[1.6] text-[#f0f0f5]/90 md:text-base";
@@ -21,7 +35,7 @@ const AUTHOR_NAME = "mb-1 text-xs font-medium text-[#f0f0f5]/60";
 // карточек, а разбор ошибки виден целиком в карточке под этой репликой.
 const MARKED_TEXT = "underline decoration-dotted decoration-[#f0f0f5]/30 underline-offset-4";
 
-export function MessageBubble({ message, session, marked = false }: MessageBubbleProps) {
+export function MessageBubble({ message, session, highlights = [], voice }: MessageBubbleProps) {
     const isUser = message.role === "user";
     const repetitor = getBlobatarById(session.repetitorId);
 
@@ -34,8 +48,12 @@ export function MessageBubble({ message, session, marked = false }: MessageBubbl
                         BODY_TEXT
                     )}
                 >
-                    <p className={cn("whitespace-pre-wrap", marked && MARKED_TEXT)}>
-                        {message.content}
+                    <p className="whitespace-pre-wrap">
+                        {highlightFragments(message.content, highlights).map((segment, index) => (
+                            <span key={index} className={segment.marked ? MARKED_TEXT : undefined}>
+                                {segment.text}
+                            </span>
+                        ))}
                     </p>
                 </div>
             </div>
@@ -54,6 +72,8 @@ export function MessageBubble({ message, session, marked = false }: MessageBubbl
                     )}
                 >
                     <p className="whitespace-pre-wrap">{message.content}</p>
+
+                    {voice !== undefined && <VoiceButton {...voice} />}
                 </div>
             </div>
         </div>

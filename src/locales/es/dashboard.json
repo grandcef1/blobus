@@ -7,7 +7,6 @@
     "help": "Centro de ayuda",
     "settings": "Ajustes",
     "billing": "Suscripción",
-    "admin": "Admin",
     "profile": "Perfil",
     "newSession": "Nueva sesión",
     "recentSessions": "Sesiones recientes",
@@ -180,43 +179,5 @@
     "title": "Nuestros tutores",
     "subtitle": "El carácter y el estilo de cada uno: elige el que te encaje",
     "details": "Ver más"
-  },
-  "admin": {
-    "title": "Admin",
-    "subtitle": "Estado de las cuentas y las solicitudes",
-    "metrics": {
-      "users": "Usuarios",
-      "active": "Activos hoy",
-      "tickets": "Tickets abiertos",
-      "critical": "Críticos"
-    },
-    "users": {
-      "title": "Usuarios",
-      "export": "Exportar",
-      "searchPlaceholder": "Buscar",
-      "searchLabel": "Buscar usuarios",
-      "planFilterLabel": "Filtro por plan",
-      "allPlans": "Todos los planes",
-      "issues": "{{total}} a soporte",
-      "status": {
-        "active": "Activo",
-        "suspended": "Bloqueado",
-        "pending": "Pendiente"
-      }
-    },
-    "tickets": {
-      "title": "Últimos tickets",
-      "actions": "Acciones del ticket",
-      "status": {
-        "open": "Abierto",
-        "inProgress": "En curso",
-        "resolved": "Resuelto"
-      },
-      "priority": {
-        "high": "Alta",
-        "medium": "Media",
-        "low": "Baja"
-      }
-    }
   }
 }

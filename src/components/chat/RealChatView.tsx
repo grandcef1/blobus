@@ -11,6 +11,7 @@ import { useParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { fetchSessionSummaries } from "@/api/sessions";
+import { fetchSettings } from "@/api/settings";
 import { ChatHeader } from "@/components/chat/ChatHeader";
 import { ChatInput } from "@/components/chat/ChatInput";
 import { ChatNotFound } from "@/components/chat/ChatNotFound";
@@ -45,6 +46,14 @@ export function RealChatView() {
     });
 
     useAuthExpiry(error, isSuccess);
+
+    // ARCHITECT: ключ ["settings"] тот же, что у страницы настроек: переход между экранами не делает второй
+    // запрос, а переключатель озвучки в настройках виден чату без перезагрузки страницы.
+    const { data: settings } = useQuery({
+        queryKey: ["settings"],
+        queryFn: fetchSettings,
+        enabled: userId !== null,
+    });
 
     const chat = useChat(sessionId);
 
@@ -83,7 +92,10 @@ export function RealChatView() {
                 isStreaming={chat.isStreaming}
                 error={chat.error}
                 messagesRemaining={chat.messagesRemaining}
+                voiceEnabled={settings?.preferences.voiceEnabled ?? false}
+                proPlan={settings?.plan === "pro"}
                 onRetry={chat.retry}
+                onStop={chat.stop}
             />
             <ChatInput disabled={chat.isStreaming} onSend={chat.send} />
         </div>

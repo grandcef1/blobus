@@ -122,10 +122,6 @@
       "tickets": {
         "title": "Todavía no hay solicitudes",
         "description": "Escribe al soporte y la respuesta llegará a esta lista."
-      },
-      "users": {
-        "title": "No hay usuarios",
-        "description": "Las cuentas aparecerán en esta lista."
       }
     },
     "search": {
@@ -231,8 +227,6 @@
     "examples": "Ejemplos"
   },
   "guards": {
-    "adminTitle": "Sin acceso",
-    "adminDescription": "Esta sección solo está disponible para administradores.",
     "authTitle": "Se requiere iniciar sesión",
     "authDescription": "Abre /app solo después de iniciar sesión."
   },

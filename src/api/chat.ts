@@ -63,12 +63,14 @@ export interface ChatUsage {
     readonly messagesRemaining: number;
 }
 
-/** Контракт события done целиком: текст ответа, карточки и usage. */
+/** Контракт события done целиком: текст ответа, карточки, профиль голоса и usage. */
 export interface ChatReply {
     readonly reply: string;
     readonly corrections: readonly ChatCorrection[];
     readonly quiz: ChatQuiz | null;
     readonly vocabWord: ChatVocabWord | null;
+    /** Профиль голоса репетитора: null — сервер его не прислал, озвучки не будет. */
+    readonly voiceId: string | null;
     readonly usage: ChatUsage;
 }
 
@@ -265,12 +267,23 @@ function readReply(value: unknown): ChatReply | null {
     const corrections = readCorrections(record.corrections);
     const quiz = record.quiz === null ? null : readQuiz(record.quiz);
     const vocabWord = record.vocabWord === null ? null : readVocabWord(record.vocabWord);
+    // ARCHITECT: профиль голоса необязателен: ответ старого сервера приходит без него — тогда кнопки озвучки
+    // нет, а текст реплики остаётся читаемым.
+    const voiceId = readOptionalString(record.voiceId, 32);
 
     if (reply === null || usage === null || corrections === null) return null;
+    if (voiceId === null) return null;
     if (record.quiz !== null && quiz === null) return null;
     if (record.vocabWord !== null && vocabWord === null) return null;
 
-    return { reply, corrections, quiz, vocabWord, usage };
+    return {
+        reply,
+        corrections,
+        quiz,
+        vocabWord,
+        voiceId: voiceId === "" ? null : voiceId,
+        usage,
+    };
 }
 
 /** Карточки ответа: правки, квиз и слово урока — ровно те три блока, что уходят событием done. */
@@ -286,6 +299,8 @@ export interface ChatHistoryMessage {
     readonly role: "user" | "assistant";
     readonly content: string;
     readonly cards: ChatCards | null;
+    /** Профиль голоса из payload ответа: null — запись без него (сохранена до появления озвучки). */
+    readonly voiceId: string | null;
 }
 
 // ARCHITECT: payload строки писал наш роутер, но источник карточек — модель, то есть недоверенный вывод (§16.8):
@@ -310,6 +325,15 @@ function readStoredCards(payload: unknown): ChatCards | null {
     return { corrections, quiz, vocabWord };
 }
 
+// ARCHITECT: профиль голоса лежит в payload рядом с карточками: у записей, сохранённых до появления озвучки,
+// поля нет — тогда кнопки у реплики не будет, а текст остаётся читаемым.
+function readStoredVoiceId(payload: unknown): string | null {
+    const record = asRecord(payload);
+    const voiceId = record === null ? null : readOptionalString(record.voiceId, 32);
+
+    return voiceId === null || voiceId === "" ? null : voiceId;
+}
+
 /** Строка конверта истории: форма недоверенная, поэтому каждое поле читается отдельно. */
 function readHistoryMessage(value: unknown): ChatHistoryMessage | null {
     const record = asRecord(value);
@@ -327,6 +351,7 @@ function readHistoryMessage(value: unknown): ChatHistoryMessage | null {
         role,
         content,
         cards: role === "assistant" ? readStoredCards(record.payload) : null,
+        voiceId: role === "assistant" ? readStoredVoiceId(record.payload) : null,
     };
 }
 

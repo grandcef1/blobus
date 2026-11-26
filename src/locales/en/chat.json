@@ -48,7 +48,12 @@
     "error": "Could not get a reply",
     "limit": "You are out of messages for today",
     "retry": "Try again",
-    "remaining": "Messages left: {{count}}"
+    "remaining": "Messages left: {{count}}",
+    "stop": "Stop"
+  },
+  "voice": {
+    "play": "Play the reply",
+    "stop": "Stop playback"
   },
   "card": {
     "check": "Check",

@@ -122,10 +122,6 @@
       "tickets": {
         "title": "No requests yet",
         "description": "Write to support and the reply will land in this list."
-      },
-      "users": {
-        "title": "No users",
-        "description": "Accounts will appear in this list."
       }
     },
     "search": {
@@ -231,8 +227,6 @@
     "examples": "Examples"
   },
   "guards": {
-    "adminTitle": "Access denied",
-    "adminDescription": "This section is only available to administrators.",
     "authTitle": "Sign-in required",
     "authDescription": "Open /app only after signing in."
   },

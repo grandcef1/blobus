@@ -17,12 +17,14 @@ import { USE_MOCKS } from "@/lib/env";
 import { toast } from "@/store/toast";
 import type { EnhancedChatSession } from "@/types/session";
 
-/** Сообщение ленты чата: реплика и карточки ответа (у реплики ученика карточек нет). */
+/** Сообщение ленты чата: реплика, карточки ответа и профиль голоса репетитора (у реплики ученика его нет). */
 export interface ChatFeedMessage {
     readonly id: string;
     readonly role: "user" | "assistant";
     readonly content: string;
     readonly cards: ChatCards | null;
+    /** Профиль голоса из ответа модели: null — озвучки нет (старая запись или реплика ученика). */
+    readonly voiceId: string | null;
 }
 
 /** Причина, по которой ответ не пришёл: исчерпан дневной лимит или сорвался поток. */
@@ -35,6 +37,8 @@ interface ChatCommon {
     readonly send: (text: string) => void;
     /** Повтор последнего сообщения: доступен после обрыва, ошибки потока и лимита. */
     readonly retry: () => void;
+    /** Остановка генерации: прерванный ответ не сохраняется, тот же текст остаётся доступен для повтора. */
+    readonly stop: () => void;
 }
 
 export interface MockChatResult extends ChatCommon {
@@ -88,6 +92,7 @@ function useMockChat(sessionId: string): MockChatResult {
         session,
         send,
         retry: NOOP,
+        stop: NOOP,
         applySession: setPatch,
     };
 }
@@ -149,6 +154,7 @@ function useRealChat(sessionId: string): RealChatResult {
                     role: message.role,
                     content: message.content,
                     cards: message.cards,
+                    voiceId: message.voiceId,
                 })),
                 historyLoaded: true,
                 // ARCHITECT: удачная загрузка снимает прошлую ошибку: кнопка повтора возвращает ленту, а не баннер.
@@ -216,6 +222,7 @@ function useRealChat(sessionId: string): RealChatResult {
                 role: "assistant",
                 content: "",
                 cards: null,
+                voiceId: null,
             };
 
             setState((previous) => {
@@ -225,6 +232,7 @@ function useRealChat(sessionId: string): RealChatResult {
                     role: "user",
                     content,
                     cards: null,
+                    voiceId: null,
                 };
 
                 return {
@@ -266,6 +274,7 @@ function useRealChat(sessionId: string): RealChatResult {
                                       quiz: reply.quiz,
                                       vocabWord: reply.vocabWord,
                                   },
+                                  voiceId: reply.voiceId,
                               }
                             : message
                     ),
@@ -327,6 +336,12 @@ function useRealChat(sessionId: string): RealChatResult {
         void run(content, false);
     }, [reloadHistory, run]);
 
+    // ARCHITECT: остановка по кнопке — тот же обрыв, что и уход со страницы: сервер возвращает резерв квоты,
+    // а незавершённая реплика не сохраняется (§16.7).
+    const stop = useCallback(() => {
+        abortRef.current?.abort();
+    }, []);
+
     // ARCHITECT: уход со страницы обрывает поток: сервер возвращает резерв квоты, а браузер не держит соединение.
     useEffect(
         () => () => {
@@ -346,6 +361,7 @@ function useRealChat(sessionId: string): RealChatResult {
         messages: live.messages,
         send,
         retry,
+        stop,
     };
 }
 

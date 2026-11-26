@@ -48,7 +48,12 @@
     "error": "No se pudo obtener respuesta",
     "limit": "Ya no te quedan mensajes por hoy",
     "retry": "Reintentar",
-    "remaining": "Mensajes restantes: {{count}}"
+    "remaining": "Mensajes restantes: {{count}}",
+    "stop": "Detener"
+  },
+  "voice": {
+    "play": "Escuchar la respuesta",
+    "stop": "Detener la reproducción"
   },
   "card": {
     "check": "Comprobar",

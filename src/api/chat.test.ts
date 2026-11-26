@@ -83,12 +83,16 @@ describe("streamChatReply", () => {
                 corrections: [CORRECTION],
                 quiz: { type: "gap-fill", prompt: "No ___ needed.", answer: "am" },
                 vocabWord: VOCAB,
+                voiceId: "en-US-female",
                 usage: USAGE,
             }),
         ]);
 
         expect(deltas).toEqual(["Good ", "start."]);
         expect(reply.reply).toBe("Good start.");
+        // ARCHITECT: профиль голоса читается из того же события, что и карточки: клиент озвучивает реплику
+        // голосом каталога, а не выбранным на клиенте.
+        expect(reply.voiceId).toBe("en-US-female");
         expect(reply.corrections).toHaveLength(1);
         expect(reply.corrections[0]?.fragment).toBe("I agree with you.");
         expect(reply.quiz).toEqual({ type: "gap-fill", prompt: "No ___ needed.", answer: "am" });
@@ -235,6 +239,7 @@ describe("streamChatReply", () => {
                     payload: {
                         cards: { corrections: [CORRECTION], quiz: null, vocabWord: VOCAB },
                         usage: { model: "model-x" },
+                        voiceId: "en-GB-male",
                     },
                 },
             ],
@@ -246,6 +251,9 @@ describe("streamChatReply", () => {
         expect(apiFetchMock).toHaveBeenCalledWith(`/chat/history?sessionId=${SESSION_ID}`);
         expect(history.map((message) => message.role)).toEqual(["user", "assistant"]);
         expect(history[0]?.cards).toBeNull();
+        // ARCHITECT: реплика ученика озвучки не имеет, а профиль голоса ответа читается из payload.
+        expect(history[0]?.voiceId).toBeNull();
+        expect(history[1]?.voiceId).toBe("en-GB-male");
         expect(history[1]?.cards?.corrections).toHaveLength(1);
         expect(history[1]?.cards?.vocabWord?.term).toBe("deadline");
         expect(history[1]?.cards?.quiz).toBeNull();
@@ -285,6 +293,8 @@ describe("streamChatReply", () => {
         ]);
         expect(history[0]?.content).toBe("Hello");
         expect(history[0]?.cards).toBeNull();
+        // ARCHITECT: запись без профиля голоса — не ошибка: реплика читается текстом, кнопки просто нет.
+        expect(history[0]?.voiceId).toBeNull();
     });
 
     it("2.8 конверт без списка сообщений — ошибка чтения истории", async () => {

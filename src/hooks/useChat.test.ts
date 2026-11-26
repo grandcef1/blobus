@@ -81,6 +81,7 @@ const REPLY: ChatReply = {
         answerId: "a",
     },
     vocabWord: { term: "deadline", translation: "срок", context: "The deadline is Friday." },
+    voiceId: "en-US-female",
     usage: {
         promptTokens: 120,
         completionTokens: 60,
@@ -395,5 +396,81 @@ describe("useChat", () => {
         expect(fetchChatHistoryMock).toHaveBeenCalledTimes(2);
         expect(realOf(result.current).error).toBeNull();
         expect(streamChatReplyMock).not.toHaveBeenCalled();
+    });
+
+    it("1.9 real: профиль голоса из done попадает в реплику репетитора", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        streamChatReplyMock.mockResolvedValue(REPLY);
+
+        const { useChat } = await loadHook();
+        const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+        await waitFor(() => expect(realOf(result.current).isLoading).toBe(false));
+
+        act(() => {
+            realOf(result.current).send("Hello");
+        });
+
+        // ARCHITECT: ждём именно завершения ответа: placeholder встаёт в ленту сразу, а профиль голоса
+        // приходит событием done.
+        await waitFor(() => expect(realOf(result.current).messages[1]?.content).toBe(REPLY.reply));
+
+        // ARCHITECT: реплика ученика озвучки не имеет, у ответа профиль голоса приходит с сервера.
+        expect(realOf(result.current).messages[0]?.voiceId).toBeNull();
+        expect(realOf(result.current).messages[1]?.voiceId).toBe("en-US-female");
+    });
+
+    it("1.10 стоп отменяет поток: прерванный ответ не сохраняется, повтор доступен", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        // ARCHITECT: присваивание идёт из коллбэка, поэтому сигнал читается через поле объекта.
+        const captured: { signal: AbortSignal | null } = { signal: null };
+        const { useChat, ApiError } = await loadHook();
+
+        streamChatReplyMock.mockImplementation(
+            (_input: unknown, handlers: { signal: AbortSignal }) =>
+                new Promise<ChatReply>((_resolve, reject) => {
+                    captured.signal = handlers.signal;
+                    handlers.signal.addEventListener("abort", () =>
+                        reject(new ApiError(0, "aborted"))
+                    );
+                })
+        );
+
+        const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+        await waitFor(() => expect(realOf(result.current).isLoading).toBe(false));
+
+        act(() => {
+            realOf(result.current).send("I am agree with you.");
+        });
+
+        expect(realOf(result.current).isStreaming).toBe(true);
+
+        act(() => {
+            realOf(result.current).stop();
+        });
+
+        await waitFor(() => expect(realOf(result.current).isStreaming).toBe(false));
+
+        const afterStop = realOf(result.current);
+
+        expect(captured.signal?.aborted).toBe(true);
+        // ARCHITECT: прерванная реплика ассистента уходит из ленты целиком, реплика ученика остаётся, и
+        // ошибки нет: остановка — не сбой (§16.9).
+        expect(afterStop.messages).toHaveLength(1);
+        expect(afterStop.messages[0]?.role).toBe("user");
+        expect(afterStop.error).toBeNull();
+        expect(toastErrorMock).not.toHaveBeenCalled();
+
+        streamChatReplyMock.mockResolvedValue(REPLY);
+
+        act(() => {
+            realOf(result.current).retry();
+        });
+
+        await waitFor(() => expect(realOf(result.current).messages).toHaveLength(2));
+        expect(
+            realOf(result.current).messages.filter((message) => message.role === "user")
+        ).toHaveLength(1);
     });
 });

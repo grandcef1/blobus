@@ -3,25 +3,25 @@
 // подменяется только для openrouter.ai, поэтому транспорт работает как есть, а Supabase идёт на локальный
 // стек (§16.14: негативные проверки обязательны).
 import { randomUUID } from "node:crypto";
-import type { Server } from "node:http";
-import type { AddressInfo } from "node:net";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { MODEL_ALLOWLIST } from "../ai/openrouter.ts";
-import { buildApp } from "../app.ts";
 import { CARDS_MARKER } from "../chat/contract.ts";
 import { COOKIE_NAMES, configureCookies } from "../cookies.ts";
 import { createAdminClient, readLocalStack } from "../test-stack.ts";
+import {
+    cookieHeader,
+    createConfirmedUser,
+    errorBody,
+    fetchCsrfPair,
+    getJson,
+    loginSession,
+    mutationHeaders,
+    postJson,
+    withApp as runWithApp,
+} from "../test-http.ts";
+import type { Jar, RunningApp } from "../test-http.ts";
 import type { ChatEnv } from "./chat.ts";
-
-interface RunningApp {
-    readonly server: Server;
-    readonly baseUrl: string;
-}
-
-interface ErrorEnvelopeBody {
-    readonly error: { readonly code: string; readonly message: string; readonly requestId: string };
-}
 
 /** Событие SSE как его видит клиент: имя и разобранный JSON. */
 interface SseEvent {
@@ -29,12 +29,8 @@ interface SseEvent {
     readonly data: unknown;
 }
 
-/** Куки как их видит клиент: имя → значение, без атрибутов. */
-type Jar = Record<string, string>;
-
 const EMAIL_PREFIX = `chat-${randomUUID()}`;
 const PASSWORD = `Chat-${randomUUID()}-1`;
-const CSRF_HEADER = "x-csrf-token";
 /** Уровень и балл теста уровня: чат открывается только при наличии строки placement_results. */
 const PLACEMENT_LEVEL = "B1";
 const PLACEMENT_SCORE = 47;
@@ -56,140 +52,9 @@ function ctxEnv(): ChatEnv {
     return env;
 }
 
-/** Поднимает приложение на случайном порту и возвращает адрес для запросов. */
-async function startApp(): Promise<RunningApp> {
-    const server = buildApp(undefined, ctxEnv()).listen(0);
-
-    await new Promise<void>((resolve) => {
-        server.once("listening", () => resolve());
-    });
-
-    const address: AddressInfo | string | null = server.address();
-
-    if (address === null || typeof address === "string") {
-        throw new Error("Тестовый сервер не сообщил TCP-адрес");
-    }
-
-    return { server, baseUrl: `http://127.0.0.1:${address.port}` };
-}
-
-/** Сначала рвём keep-alive соединения fetch, потом ждём close: иначе прогон висит до таймаута. */
-async function stopApp(server: Server): Promise<void> {
-    server.closeAllConnections();
-
-    await new Promise<void>((resolve) => {
-        server.close(() => resolve());
-    });
-}
-
 /** Приложение живёт один тест: лимиты в памяти экземпляра не перетекают в соседние проверки. */
-async function withApp(run: (app: RunningApp) => Promise<void>): Promise<void> {
-    const running = await startApp();
-
-    try {
-        await run(running);
-    } finally {
-        await stopApp(running.server);
-    }
-}
-/** Set-Cookie конкретной куки из ответа; undefined, если кука не выставлена. */
-function setCookieHeader(response: Response, name: string): string | undefined {
-    return response.headers.getSetCookie().find((header) => header.startsWith(`${name}=`));
-}
-
-/** Значение куки из Set-Cookie: от «имя=» до первого «;». */
-function cookieValue(header: string): string {
-    return header.slice(header.indexOf("=") + 1).split(";")[0];
-}
-
-/** Дополняет хранилище кук ответом: пустое значение снимает куку, как это делает браузер. */
-function applyCookies(jar: Jar, response: Response): Jar {
-    const next: Jar = { ...jar };
-
-    for (const header of response.headers.getSetCookie()) {
-        const pair = header.split(";")[0];
-        const name = pair.slice(0, pair.indexOf("=")).trim();
-        const value = cookieValue(pair);
-
-        if (value === "") delete next[name];
-        else next[name] = value;
-    }
-
-    return next;
-}
-
-/** Заголовок Cookie из хранилища: браузерного поведения здесь нет, состав задаёт тест. */
-function cookieHeader(jar: Jar): string {
-    return Object.entries(jar)
-        .map(([name, value]) => `${name}=${value}`)
-        .join("; ");
-}
-
-/** Заголовки мутации: куки сессии, csrf-токен из них и same-origin Origin. */
-function mutationHeaders(jar: Jar, baseUrl: string): Record<string, string> {
-    return {
-        cookie: cookieHeader(jar),
-        [CSRF_HEADER]: jar[COOKIE_NAMES.csrfToken] ?? "",
-        origin: baseUrl,
-    };
-}
-
-/** CSRF-пара как её соберёт фронтенд: токен берётся безопасным GET и лежит в куке. */
-async function fetchCsrfPair(baseUrl: string): Promise<Jar> {
-    const response = await fetch(`${baseUrl}/api/auth/csrf`);
-    const header = setCookieHeader(response, COOKIE_NAMES.csrfToken);
-
-    if (header === undefined) throw new Error("GET /api/auth/csrf не выставил csrf-куку");
-
-    return { [COOKIE_NAMES.csrfToken]: cookieValue(header) };
-}
-
-function postJson(
-    baseUrl: string,
-    path: string,
-    body: unknown,
-    headers: Record<string, string>
-): Promise<Response> {
-    return fetch(`${baseUrl}${path}`, {
-        method: "POST",
-        headers: { "content-type": "application/json", ...headers },
-        body: JSON.stringify(body),
-    });
-}
-
-/** Сессия в куках после логина: access, refresh и уже ротированный csrf. */
-async function loginSession(baseUrl: string, email: string): Promise<Jar> {
-    const pair = await fetchCsrfPair(baseUrl);
-    const response = await postJson(
-        baseUrl,
-        "/api/auth/login",
-        { email, password: PASSWORD },
-        mutationHeaders(pair, baseUrl)
-    );
-
-    if (response.status !== 200)
-        throw new Error(`логин тестового пользователя не удался: ${response.status}`);
-
-    return applyCookies(pair, response);
-}
-
-/** Пользователь с подтверждённой почтой: пароль прогона один, аккаунт живёт до afterAll. */
-async function createConfirmedUser(email: string): Promise<string> {
-    const created = await createAdminClient().auth.admin.createUser({
-        email,
-        password: PASSWORD,
-        email_confirm: true,
-    });
-
-    if (created.data.user === null)
-        throw new Error("админ-создание пользователя не вернуло запись");
-
-    return created.data.user.id;
-}
-
-/** Ошибка конверта из тела ответа: негативные проверки читают код, а не текст. */
-function errorBody(body: unknown): ErrorEnvelopeBody {
-    return body as ErrorEnvelopeBody;
+function withApp(run: (app: RunningApp) => Promise<void>): Promise<void> {
+    return runWithApp(ctxEnv(), run);
 }
 /** Карточки валидной формы: тот же JSON, что вернёт модель в happy path. */
 const VALID_CARDS = {
@@ -283,8 +148,8 @@ async function userWithSession(
     options: { readonly placement?: boolean } = {}
 ): Promise<{ readonly id: string; readonly jar: Jar; readonly sessionId: string }> {
     const email = `${EMAIL_PREFIX}-${randomUUID()}@example.test`;
-    const id = await createConfirmedUser(email);
-    const jar = await loginSession(baseUrl, email);
+    const id = await createConfirmedUser(email, PASSWORD);
+    const jar = await loginSession(baseUrl, email, PASSWORD);
 
     if (options.placement !== false) {
         const inserted = await createAdminClient()
@@ -678,4 +543,105 @@ describe("POST /api/chat", () => {
             expect(user?.content).toContain("forged");
         });
     }, 30_000);
+    describe("GET /api/chat/history", () => {
+        /** Ссылка истории: единственный параметр, который читает роутер. */
+        function historyPath(sessionId: string, extra = ""): string {
+            return `/api/chat/history?sessionId=${sessionId}${extra}`;
+        }
+
+        it("14: отвечает 401 без куки сессии и на поддельную куку", async () => {
+            await withApp(async (app) => {
+                const sessionId = randomUUID();
+                const anonymous = await fetch(`${app.baseUrl}${historyPath(sessionId)}`);
+                const forged = await fetch(`${app.baseUrl}${historyPath(sessionId)}`, {
+                    headers: { cookie: `${COOKIE_NAMES.accessToken}=forged-history-token` },
+                });
+
+                expect(anonymous.status).toBe(401);
+                expect(errorBody(await anonymous.json()).error.code).toBe("UNAUTHORIZED");
+                expect(forged.status).toBe(401);
+            });
+        }, 30_000);
+
+        it("15: отвечает 400 на лишний параметр и на неверный sessionId", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                const extra = await getJson(
+                    app.baseUrl,
+                    historyPath(me.sessionId, `&userId=${me.id}`),
+                    me.jar
+                );
+                const broken = await getJson(app.baseUrl, historyPath("not-a-uuid"), me.jar);
+
+                expect(extra.status).toBe(400);
+                expect(errorBody(await extra.json()).error.code).toBe("BAD_REQUEST");
+                expect(broken.status).toBe(400);
+            });
+        }, 30_000);
+
+        it("16: чужая и несуществующая сессия отвечают одинаково 404", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                const other = await userWithSession(app.baseUrl);
+                const foreign = await getJson(app.baseUrl, historyPath(other.sessionId), me.jar);
+                const missing = await getJson(app.baseUrl, historyPath(randomUUID()), me.jar);
+
+                expect(foreign.status).toBe(404);
+                expect(errorBody(await foreign.json()).error.code).toBe("NOT_FOUND");
+                expect(missing.status).toBe(404);
+                expect(errorBody(await missing.json()).error.code).toBe("NOT_FOUND");
+            });
+        }, 30_000);
+
+        it("17: отдаёт пару сообщений по возрастанию времени, с карточками и usage ответа", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                const sent = await sendMessage(app, me.jar, me.sessionId);
+
+                expect(sent.status).toBe(200);
+                await sent.text();
+
+                const response = await getJson(app.baseUrl, historyPath(me.sessionId), me.jar);
+                const body = (await response.json()) as {
+                    readonly messages: readonly {
+                        readonly id: string;
+                        readonly role: string;
+                        readonly content: string;
+                        readonly payload: { readonly cards?: unknown; readonly usage?: unknown };
+                        readonly createdAt: string;
+                    }[];
+                };
+
+                expect(response.status).toBe(200);
+                expect(body.messages.map((message) => message.role)).toEqual(["user", "assistant"]);
+                expect(body.messages[0]?.content).toBe(MESSAGE);
+                expect(body.messages[0]?.payload).toEqual({});
+                expect(body.messages[1]?.content).toBe(ANSWER_TEXT);
+                // ARCHITECT: карточки и usage — те же данные, что ушли событием done: история отдаёт их как payload.
+                expect(body.messages[1]?.payload.cards).toMatchObject({ quiz: { type: "choice" } });
+                expect(body.messages[1]?.payload.usage).toMatchObject({
+                    model: MODEL_ALLOWLIST[0],
+                });
+                expect(Date.parse(body.messages[0]?.createdAt ?? "")).toBeLessThanOrEqual(
+                    Date.parse(body.messages[1]?.createdAt ?? "")
+                );
+            });
+        }, 30_000);
+
+        it("18: держит лимит чтения — 61-й запрос за окно отвечает 429", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                let status = 0;
+
+                for (let index = 0; index < 61; index += 1) {
+                    const response = await getJson(app.baseUrl, historyPath(me.sessionId), me.jar);
+
+                    status = response.status;
+                    await response.text();
+                }
+
+                expect(status).toBe(429);
+            });
+        }, 60_000);
+    });
 });

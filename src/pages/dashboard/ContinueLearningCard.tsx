@@ -1,57 +1,84 @@
-// ARCHITECT: блок продолжения обучения — инвертированная светлая карточка, часть узнаваемого
-// вида дашборда, поэтому палитра карточки сохранена. Ссылка вместо href: переход внутри SPA
-// без перезагрузки; entrance-анимация осталась на обёртке, чтобы анимация не спорила с Link.
-// Полоса прогресса — общий ProgressBar в инвертированном тоне (на светлом фоне тёмная заливка).
+// ARCHITECT: блок продолжения обучения — инвертированная светлая карточка, часть узнаваемого вида дашборда,
+// поэтому палитра сохранена. Сессий нет — карточка превращается в приглашение к мастеру: пустой блок на старте
+// читался бы как сбой, а вход в первый урок должен быть на виду.
+// ARCHITECT: полоса «общего прогресса» убрана: такой метрики схема не измеряет. Вместо неё — счётчики сессий и
+// сообщений, те же числа, что в метриках строкой выше.
 
 import { motion } from "framer-motion";
 import { ArrowRight } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { Link } from "react-router-dom";
+import type { ProgressDto } from "@/api/progress";
+import type { SessionSummaryDto } from "@/api/sessions";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
-import { ProgressBar } from "@/components/shared/ProgressBar";
+import { getSessionTitle } from "@/lib/sessionTitle";
 import { cn } from "@/lib/utils";
-import type { EnhancedChatSession } from "@/types/session";
-import type { UserProgress } from "@/types/progress";
 
 interface ContinueLearningCardProps {
-    session: EnhancedChatSession;
-    progress: UserProgress;
+    readonly session: SessionSummaryDto | null;
+    readonly progress: ProgressDto;
 }
+
+const CARD = cn(
+    "group flex items-center gap-4 rounded-2xl bg-[#d7d7df] p-4 transition-colors hover:bg-[#e0e0e8] md:gap-5 md:p-5",
+    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
+);
+const ARROW_BADGE =
+    "hidden size-11 shrink-0 items-center justify-center rounded-full bg-black/[0.08] transition-colors group-hover:bg-black/[0.14] sm:flex";
 
 export function ContinueLearningCard({ session, progress }: ContinueLearningCardProps) {
     const { t } = useTranslation("dashboard");
 
     return (
-        <motion.div initial={{ opacity: 0, y: 8 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.25 }}>
+        <motion.div
+            initial={{ opacity: 0, y: 8 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.25 }}
+        >
             <Link
-                to={`/app/chat/${session.id}`}
-                className={cn(
-                    "group flex items-center gap-4 rounded-2xl bg-[#d7d7df] p-4 transition-colors hover:bg-[#e0e0e8] md:gap-5 md:p-5",
-                    "focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] focus-visible:ring-offset-2 focus-visible:ring-offset-black"
-                )}
+                to={session === null ? "/session/new" : `/app/chat/${session.id}`}
+                className={CARD}
             >
-                {/* ARCHITECT: инвертированная светлая карточка — плашка и заглушка тёмные,
-                    поэтому тона передаются явно; размеры остались прежними. */}
-                <BlobatarAvatar
-                    id={session.repetitorId}
-                    className="size-14 bg-black/[0.08] md:size-16"
-                    placeholderClassName="bg-black/10"
-                />
+                {session === null ? (
+                    <span className="min-w-0 flex-1">
+                        <p className="text-xs font-medium uppercase tracking-wider text-black/45">
+                            {t("overview.continue.emptyTitle")}
+                        </p>
+                        <p className="mt-1 text-lg font-semibold text-black">
+                            {t("overview.continue.emptyAction")}
+                        </p>
+                        <p className="mt-2 text-xs text-black/50">
+                            {t("overview.continue.emptyHint")}
+                        </p>
+                    </span>
+                ) : (
+                    <>
+                        {/* ARCHITECT: на светлой карточке плашка и заглушка аватара тёмные, поэтому тона
+                            передаются явно — как было до перехода на реальные данные. */}
+                        <BlobatarAvatar
+                            id={session.tutorId}
+                            className="size-14 bg-black/[0.08] md:size-16"
+                            placeholderClassName="bg-black/10"
+                        />
 
-                <div className="min-w-0 flex-1">
-                    <p className="text-xs font-medium uppercase tracking-wider text-black/45">
-                        {t("overview.continueLearning")}
-                    </p>
-                    <p className="mt-1 truncate text-lg font-semibold text-black">{session.title}</p>
-                    <div className="mt-3 flex items-center gap-3">
-                        <ProgressBar value={progress.overallProgress} tone="inverted" className="w-40" />
-                        <span className="shrink-0 text-sm tabular-nums text-black/50">
-                            {progress.overallProgress}%
+                        <span className="min-w-0 flex-1">
+                            <p className="text-xs font-medium uppercase tracking-wider text-black/45">
+                                {t("overview.continueLearning")}
+                            </p>
+                            <p className="mt-1 truncate text-lg font-semibold text-black">
+                                {getSessionTitle(session, t)}
+                            </p>
+                            <p className="mt-2 text-xs text-black/50">
+                                {t("overview.continue.meta", {
+                                    sessions: progress.sessionsTotal,
+                                    messages: progress.messagesTotal,
+                                })}
+                            </p>
                         </span>
-                    </div>
-                </div>
+                    </>
+                )}
 
-                <span className="hidden size-11 shrink-0 items-center justify-center rounded-full bg-black/[0.08] transition-colors group-hover:bg-black/[0.14] sm:flex">
+                <span className={ARROW_BADGE}>
                     <ArrowRight className="size-5 text-black" aria-hidden="true" />
                 </span>
             </Link>

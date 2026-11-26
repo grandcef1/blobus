@@ -1,12 +1,12 @@
 // ARCHITECT: скелетоны повторяют финальную раскладку экранов: каркас тот же, поэтому контент встаёт
-// на место без скачка, а не «переезжает» после загрузки. Размеры заданы теми же утилитами, что и
-// страницы, поэтому на 360px скелетон не создаёт горизонтального скролла.
+// на место без скачка. Раскладка «Обзора» — карточка продолжения, четыре метрики, недельная активность и
+// последние сессии, поэтому скелетон повторяет именно её.
 
 import { Skeleton } from "@/components/ui/skeleton";
 
 const METRICS = [0, 1, 2, 3];
-const PROGRESS_ROWS = [0, 1, 2, 3];
-const LESSON_ROWS = [0, 1, 2];
+const WEEK_BARS = [0, 1, 2, 3, 4, 5, 6];
+const SESSION_ROWS = [0, 1, 2];
 
 export function OverviewSkeleton() {
     return (
@@ -34,9 +34,9 @@ export function OverviewSkeleton() {
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
                         <div className="rounded-2xl bg-[#111113] p-4 md:p-5">
                             <Skeleton className="h-5 w-44" />
-                            <div className="mt-4 space-y-3">
-                                {PROGRESS_ROWS.map((id) => (
-                                    <Skeleton key={id} className="h-16 rounded-xl" />
+                            <div className="mt-4 flex h-32 items-end gap-2">
+                                {WEEK_BARS.map((id) => (
+                                    <Skeleton key={id} className="h-24 flex-1 rounded-sm" />
                                 ))}
                             </div>
                         </div>
@@ -44,7 +44,7 @@ export function OverviewSkeleton() {
                         <div className="rounded-2xl bg-[#111113] p-4 md:p-5">
                             <Skeleton className="h-5 w-32" />
                             <div className="mt-4 space-y-2">
-                                {LESSON_ROWS.map((id) => (
+                                {SESSION_ROWS.map((id) => (
                                     <Skeleton key={id} className="h-14 rounded-xl" />
                                 ))}
                             </div>

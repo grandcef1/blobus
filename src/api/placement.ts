@@ -5,8 +5,8 @@
 import { apiFetch } from "@/api/client";
 import { delayMock } from "@/api/mockDelay";
 import { FIXED_PLACEMENT_QUESTIONS, scoreFixedPlacement } from "@/api/mocks/placementFixed";
-import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import { USE_MOCKS } from "@/lib/env";
+import { DEFAULT_LEVEL } from "@/lib/placement";
 import type { EnglishLevel } from "@/types/onboarding";
 import type {
     PlacementAnswerDto,
@@ -27,17 +27,9 @@ export function getResult(): PlacementResult | null {
     return stored;
 }
 
-// ARCHITECT: профиль читает результат асинхронно: скелетон страницы закрывает и навыки, поэтому
-// уровень приходит тем же запросом, что прогресс и данные пользователя.
-export async function fetchPlacementResult(): Promise<PlacementResult | null> {
-    await delayMock();
-
-    return stored;
-}
-
-// ARCHITECT: аудирование дозаписывается в сохранённый результат. Если основного теста ещё не было
-// (например, профиль открыли раньше мастера), база собирается из текущего уровня профиля — иначе
-// уровень аудирования негде хранить, и подсказка «не проверено» осталась бы навсегда.
+// ARCHITECT: аудирование дозаписывается в сохранённый результат. Если основного теста ещё не было (например,
+// профиль открыли раньше мастера), база собирается из уровня по умолчанию — иначе уровень аудирования негде
+// хранить, и подсказка «не проверено» осталась бы навсегда.
 export function saveListeningResult(level: EnglishLevel): PlacementResult {
     stored = { ...(stored ?? createFallbackResult()), listening: level, listeningSkipped: false };
 
@@ -45,14 +37,12 @@ export function saveListeningResult(level: EnglishLevel): PlacementResult {
 }
 
 function createFallbackResult(): PlacementResult {
-    const level = MOCK_USER_PROGRESS.currentLevel;
-
     return {
         score: 0,
-        overall: level,
-        grammar: level,
-        speaking: level,
-        general: level,
+        overall: DEFAULT_LEVEL,
+        grammar: DEFAULT_LEVEL,
+        speaking: DEFAULT_LEVEL,
+        general: DEFAULT_LEVEL,
         listening: null,
         listeningSkipped: true,
         takenAt: Date.now(),

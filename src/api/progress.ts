@@ -3,15 +3,84 @@
 // состояние загрузки, синхронные моки остаются источником данных.
 
 import { apiFetch } from "@/api/client";
-import { MOCK_USER_PROGRESS, MOCK_VOCABULARY } from "@/api/mocks/progress";
+import { MOCK_VOCABULARY } from "@/api/mocks/progress";
 import { delayMock } from "@/api/mockDelay";
+import type { SessionSummaryDto } from "@/api/sessions";
 import { USE_MOCKS } from "@/lib/env";
-import type { UserProgress, VocabularyWord } from "@/types/progress";
+import type { EnglishLevel } from "@/types/onboarding";
+import type { VocabularyWord } from "@/types/progress";
 
-export async function fetchUserProgress(): Promise<UserProgress> {
-    await delayMock();
+/** Активность одного дня недели: сообщения ученика за календарный день. */
+export interface ProgressDayDto {
+    readonly date: string;
+    readonly messages: number;
+}
 
-    return MOCK_USER_PROGRESS;
+// ARCHITECT: сводка прогресса — ровно те метрики, которые измеряет сервер (GET /api/progress). Минут практики,
+// достижений и прогресса по режимам в схеме нет, поэтому их нет и в контракте: экран не выдумывает числа.
+export interface ProgressDto {
+    readonly level: EnglishLevel | null;
+    readonly score: number | null;
+    readonly sessionsTotal: number;
+    readonly messagesTotal: number;
+    readonly wordsTotal: number;
+    readonly wordsDueToday: number;
+    readonly streakDays: number;
+    readonly weeklyActivity: readonly ProgressDayDto[];
+    readonly recentSessions: readonly SessionSummaryDto[];
+}
+
+/** Сообщения по дням недели от старого к новому: 0 — день без активности, а не пропуск дня. */
+const MOCK_WEEK = [9, 0, 14, 6, 11, 3, 8] as const;
+
+// ARCHITECT: мок прогресса повторяет форму серверного DTO, поэтому экран не знает, откуда пришли данные.
+// Идентификаторы сессий совпадают с мок-хранилищем: «продолжить обучение» в мок-режиме ведёт в живой диалог.
+export const MOCK_PROGRESS: ProgressDto = {
+    level: "B1",
+    score: 58,
+    sessionsTotal: 2,
+    messagesTotal: 34,
+    wordsTotal: 23,
+    wordsDueToday: 6,
+    streakDays: 4,
+    weeklyActivity: MOCK_WEEK.map((messages, index) => ({
+        // ARCHITECT: миллисекунды суток записаны здесь числом, а не общей константой: мок-фикстура вычисляется при
+        // импорте модуля, а DAY_MS объявлена ниже — обращение к ней было бы ошибкой временной зоны видимости.
+        date: new Date(Date.now() - (MOCK_WEEK.length - 1 - index) * 24 * 60 * 60 * 1000)
+            .toISOString()
+            .slice(0, 10),
+        messages,
+    })),
+    recentSessions: [
+        {
+            id: "session_interview_1",
+            tutorId: "max",
+            mode: "interview",
+            createdAt: "2026-11-18T09:14:00.000Z",
+            updatedAt: "2026-11-18T09:41:00.000Z",
+        },
+        {
+            id: "session_speaking_1",
+            tutorId: "luna",
+            mode: "speaking",
+            createdAt: "2026-11-16T18:02:00.000Z",
+            updatedAt: "2026-11-16T18:27:00.000Z",
+        },
+    ],
+};
+
+// ARCHITECT: реальный транспорт — apiFetch (cookie-сессия + 401→refresh), не apiClient: чтение аутентифицировано
+// кукой. Конверт { progress } распаковывается здесь, наружу уходит DTO.
+export async function fetchProgressDto(): Promise<ProgressDto> {
+    if (USE_MOCKS) {
+        await delayMock();
+
+        return MOCK_PROGRESS;
+    }
+
+    const { progress } = await apiFetch<{ readonly progress: ProgressDto }>("/progress");
+
+    return progress;
 }
 
 export async function fetchVocabulary(): Promise<VocabularyWord[]> {

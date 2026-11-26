@@ -13,6 +13,7 @@ import type { AuthLimiters } from "./routes/auth.ts";
 import { createChatRouter } from "./routes/chat.ts";
 import { createPlacementRouter } from "./routes/placement.ts";
 import { createProfileRouter } from "./routes/profile.ts";
+import { createProgressRouter } from "./routes/progress.ts";
 import { createSessionsRouter } from "./routes/sessions.ts";
 import { createSettingsRouter } from "./routes/settings.ts";
 import { createTutorsRouter } from "./routes/tutors.ts";
@@ -131,6 +132,8 @@ export function buildApp(registerRoutes?: (app: Express) => void, env?: Supabase
         // внутри роутера свои лимитеры чтения и отправки.
         app.use("/api/placement", createPlacementRouter({ env }));
         app.use("/api/profile", createProfileRouter({ env }));
+        // ARCHITECT: сводка прогресса — чтение своих строк под RLS плюс агрегат счётчиков сервисным ключом.
+        app.use("/api/progress", createProgressRouter({ env }));
         // ARCHITECT: чат — единственный роутер с заказом модели: ключ OpenRouter приходит в env из
         // composition root, а без ключа роутер остаётся в fail-closed (500) и доступа не открывает.
         app.use("/api/chat", createChatRouter({ env }));

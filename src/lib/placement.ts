@@ -2,9 +2,13 @@
 // выбор дорожки для новой сессии. Адаптивный движок теста удалён в C-0d3b: форму из 30 вопросов и уровень
 // считает сервер (server/routes/placement.ts), клиент его не пересчитывает.
 
-import { MOCK_USER_PROGRESS } from "@/api/mocks/progress";
 import type { PlacementResult } from "@/types/placement";
 import type { EnglishLevel, LearningMode } from "@/types/onboarding";
+
+// ARCHITECT: уровень по умолчанию для мок-веток: пока серверного теста нет, дорожки новой сессии опираются на
+// него (B1 — середина шкалы). Раньше это значение бралось из мок-метрик прогресса, которые удалены вместе с
+// выдуманными показателями.
+export const DEFAULT_LEVEL: EnglishLevel = "B1";
 
 /** Одна строка о том, что уровень значит на практике — без оценок и мотивации. */
 // ARCHITECT: карта хранит ключи placement-неймспейса, а не готовые подписи: резолв делает потребитель
@@ -37,7 +41,7 @@ export function estimateListeningLevel(correct: number, total: number): EnglishL
 
 /** Уровень для новой сессии: дорожка теста выбирается по режиму, к которому идёт человек. */
 export function levelForMode(mode: LearningMode, result: PlacementResult | null): EnglishLevel {
-    if (result === null) return MOCK_USER_PROGRESS.currentLevel;
+    if (result === null) return DEFAULT_LEVEL;
 
     switch (mode) {
         case "grammar":

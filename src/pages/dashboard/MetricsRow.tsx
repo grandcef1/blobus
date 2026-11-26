@@ -1,38 +1,42 @@
-// ARCHITECT: четыре метрики: две колонки на телефоне и четыре с lg. Иконки без цветных плиток —
-// состояние передаёт число, а не заливка; значения tabular-nums, чтобы цифры не «плясали».
+// ARCHITECT: четыре метрики «Обзора» — только измеримые: сессии, свои сообщения, слова и серия дней. Минуты
+// практики и достижения из схемы убраны: их в данных нет, а показывать выдуманные числа нельзя. Две колонки на
+// телефоне и четыре с lg; иконки без цветных плиток, значения tabular-nums.
 
-import { BookOpen, Clock, Flame, Trophy } from "lucide-react";
+import { BookOpen, Flame, Layers, MessageSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import type { UserProgress } from "@/types/progress";
+import type { ProgressDto } from "@/api/progress";
 
 interface MetricsRowProps {
-    progress: UserProgress;
+    readonly progress: ProgressDto;
 }
 
 export function MetricsRow({ progress }: MetricsRowProps) {
     const { t } = useTranslation("dashboard");
-    const totalWords =
-        progress.modeProgress.interview.wordsLearned +
-        progress.modeProgress.speaking.wordsLearned +
-        progress.modeProgress.grammar.wordsLearned +
-        progress.modeProgress.general.wordsLearned;
-
-    const unlockedAchievements = progress.achievements.filter((item) => item.unlockedAt).length;
 
     const metrics = [
-        { id: "streak", icon: Flame, label: t("overview.metrics.streak"), value: progress.streakDays },
-        { id: "words", icon: BookOpen, label: t("overview.metrics.words"), value: totalWords },
         {
-            id: "minutes",
-            icon: Clock,
-            label: t("overview.metrics.minutes"),
-            value: progress.totalStudyMinutes,
+            id: "sessions",
+            icon: Layers,
+            label: t("overview.metrics.sessions"),
+            value: progress.sessionsTotal,
         },
         {
-            id: "achievements",
-            icon: Trophy,
-            label: t("overview.metrics.achievements"),
-            value: unlockedAchievements,
+            id: "messages",
+            icon: MessageSquare,
+            label: t("overview.metrics.messages"),
+            value: progress.messagesTotal,
+        },
+        {
+            id: "words",
+            icon: BookOpen,
+            label: t("overview.metrics.words"),
+            value: progress.wordsTotal,
+        },
+        {
+            id: "streak",
+            icon: Flame,
+            label: t("overview.metrics.streak"),
+            value: progress.streakDays,
         },
     ];
 
@@ -41,10 +45,16 @@ export function MetricsRow({ progress }: MetricsRowProps) {
             {metrics.map((metric) => (
                 <div key={metric.id} className="rounded-xl bg-[#141416] p-4 md:p-5">
                     <div className="flex items-center gap-2 text-[#f0f0f5]/40">
-                        <metric.icon className="size-4 shrink-0" strokeWidth={1.5} aria-hidden="true" />
+                        <metric.icon
+                            className="size-4 shrink-0"
+                            strokeWidth={1.5}
+                            aria-hidden="true"
+                        />
                         <p className="truncate text-xs">{metric.label}</p>
                     </div>
-                    <p className="mt-2 text-2xl font-semibold tabular-nums text-[#f0f0f5]">{metric.value}</p>
+                    <p className="mt-2 text-2xl font-semibold tabular-nums text-[#f0f0f5]">
+                        {metric.value}
+                    </p>
                 </div>
             ))}
         </div>

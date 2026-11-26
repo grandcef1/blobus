@@ -8,21 +8,14 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
-import { sendMessage, streamChatReply } from "@/api/chat";
-import type { ChatCorrection, ChatQuiz, ChatVocabWord } from "@/api/chat";
+import { fetchChatHistory, sendMessage, streamChatReply } from "@/api/chat";
+import type { ChatCards, ChatHistoryMessage } from "@/api/chat";
 import { fetchSessionById } from "@/api/sessions";
 import { useAuthExpiry } from "@/hooks/useAuthExpiry";
 import { useMockQuery } from "@/hooks/useMockQuery";
 import { USE_MOCKS } from "@/lib/env";
 import { toast } from "@/store/toast";
 import type { EnhancedChatSession } from "@/types/session";
-
-/** Карточки ответа: правки, квиз и слово урока — ровно то, что пришло событием done. */
-export interface ChatCards {
-    readonly corrections: readonly ChatCorrection[];
-    readonly quiz: ChatQuiz | null;
-    readonly vocabWord: ChatVocabWord | null;
-}
 
 /** Сообщение ленты чата: реплика и карточки ответа (у реплики ученика карточек нет). */
 export interface ChatFeedMessage {
@@ -55,6 +48,8 @@ export interface MockChatResult extends ChatCommon {
 export interface RealChatResult extends ChatCommon {
     readonly kind: "real";
     readonly messages: readonly ChatFeedMessage[];
+    /** true, пока история сессии в пути: ленте нужен скелетон, а не пустой экран. */
+    readonly isLoading: boolean;
 }
 
 export type ChatResult = MockChatResult | RealChatResult;
@@ -103,6 +98,8 @@ interface LiveChatState {
     readonly isStreaming: boolean;
     readonly error: ChatErrorKind | null;
     readonly messagesRemaining: number | null;
+    /** false до завершения загрузки истории: лента показывает скелетон, пока сообщения в пути. */
+    readonly historyLoaded: boolean;
 }
 
 // ARCHITECT: состояние помечено своей сессией: при переходе на другую id лента не переиспользуется, а новый
@@ -110,11 +107,25 @@ interface LiveChatState {
 function withSession(previous: LiveChatState, sessionId: string): LiveChatState {
     return previous.sessionId === sessionId
         ? previous
-        : { sessionId, messages: [], isStreaming: false, error: null, messagesRemaining: null };
+        : {
+              sessionId,
+              messages: [],
+              isStreaming: false,
+              error: null,
+              messagesRemaining: null,
+              historyLoaded: false,
+          };
 }
 
 function idleState(sessionId: string): LiveChatState {
-    return { sessionId, messages: [], isStreaming: false, error: null, messagesRemaining: null };
+    return {
+        sessionId,
+        messages: [],
+        isStreaming: false,
+        error: null,
+        messagesRemaining: null,
+        historyLoaded: false,
+    };
 }
 
 function useRealChat(sessionId: string): RealChatResult {
@@ -128,6 +139,70 @@ function useRealChat(sessionId: string): RealChatResult {
 
     // ARCHITECT: 401 терминальный (apiStream уже пробовал refresh) уходит в общий хук: тост и редирект — его.
     useAuthExpiry(expired, expired === null);
+
+    const applyHistory = useCallback(
+        (history: readonly ChatHistoryMessage[]): void => {
+            setState((previous) => ({
+                ...withSession(previous, sessionId),
+                messages: history.map((message) => ({
+                    id: message.id,
+                    role: message.role,
+                    content: message.content,
+                    cards: message.cards,
+                })),
+                historyLoaded: true,
+                // ARCHITECT: удачная загрузка снимает прошлую ошибку: кнопка повтора возвращает ленту, а не баннер.
+                error: null,
+            }));
+        },
+        [sessionId]
+    );
+
+    const applyHistoryFailure = useCallback(
+        (failure: unknown): void => {
+            // ARCHITECT: сбой истории не отменяет диалог: лента показывает полосу ошибки с повтором, а
+            // терминальный 401 уходит общему useAuthExpiry — реакция на истёкшую сессия одна на все чтения.
+            if (failure instanceof ApiError && failure.statusCode === 401) setExpired(failure);
+
+            setState((previous) => ({
+                ...withSession(previous, sessionId),
+                historyLoaded: true,
+                error: "stream",
+            }));
+        },
+        [sessionId]
+    );
+
+    // ARCHITECT: состояние ставится только из колбэка запроса (как в useMockQuery): правило
+    // react-hooks/set-state-in-effect запрещает синхронный setState в теле эффекта, а ожидание ответа — это уже
+    // асинхронная граница.
+    useEffect(() => {
+        if (USE_MOCKS) return;
+
+        let isActive = true;
+
+        void fetchChatHistory(sessionId).then(
+            (history) => {
+                if (isActive) applyHistory(history);
+            },
+            (failure: unknown) => {
+                if (isActive) applyHistoryFailure(failure);
+            }
+        );
+
+        return () => {
+            isActive = false;
+        };
+    }, [sessionId, applyHistory, applyHistoryFailure]);
+
+    /** Повторная загрузка истории: тот же путь, что у эффекта, но по кнопке — setState вне эффекта разрешён. */
+    const reloadHistory = useCallback(async (): Promise<void> => {
+        try {
+            applyHistory(await fetchChatHistory(sessionId));
+        } catch (failure) {
+            applyHistoryFailure(failure);
+        }
+    }, [applyHistory, applyHistoryFailure, sessionId]);
 
     const run = useCallback(
         async (content: string, appendUser: boolean): Promise<void> => {
@@ -237,12 +312,20 @@ function useRealChat(sessionId: string): RealChatResult {
         [run]
     );
 
+    // ARCHITECT: повтор возвращает диалог к жизни: есть неотправленное сообщение — отправляем его, иначе
+    // перезагружаем историю: сбой загрузки ленты лечится тем же кнопочным повтором.
     const retry = useCallback(() => {
+        if (USE_MOCKS || abortRef.current !== null) return;
+
         const content = pendingRef.current;
-        if (USE_MOCKS || content === null || abortRef.current !== null) return;
+
+        if (content === null) {
+            void reloadHistory();
+            return;
+        }
 
         void run(content, false);
-    }, [run]);
+    }, [reloadHistory, run]);
 
     // ARCHITECT: уход со страницы обрывает поток: сервер возвращает резерв квоты, а браузер не держит соединение.
     useEffect(
@@ -256,6 +339,7 @@ function useRealChat(sessionId: string): RealChatResult {
 
     return {
         kind: "real",
+        isLoading: !live.historyLoaded,
         isStreaming: live.isStreaming,
         error: live.error,
         messagesRemaining: live.messagesRemaining,

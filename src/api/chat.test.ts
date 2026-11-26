@@ -5,11 +5,14 @@
 
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-const { apiStreamMock } = vi.hoisted(() => ({ apiStreamMock: vi.fn() }));
+const { apiStreamMock, apiFetchMock } = vi.hoisted(() => ({
+    apiStreamMock: vi.fn(),
+    apiFetchMock: vi.fn(),
+}));
 
 vi.mock("@/api/client", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/api/client")>();
-    return { ...actual, apiStream: apiStreamMock };
+    return { ...actual, apiFetch: apiFetchMock, apiStream: apiStreamMock };
 });
 
 const SESSION_ID = "5b1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a11";
@@ -66,6 +69,7 @@ beforeEach(() => {
 
 afterEach(() => {
     apiStreamMock.mockReset();
+    apiFetchMock.mockReset();
     vi.restoreAllMocks();
 });
 
@@ -213,5 +217,81 @@ describe("streamChatReply", () => {
         await expect(readReply([frame("error", { code: "INTERNAL" })])).rejects.toThrow(
             "CHAT_STREAM_FAILED"
         );
+    });
+
+    it("2.6 fetchChatHistory читает конверт и берёт карточки из payload ответа", async () => {
+        apiFetchMock.mockResolvedValue({
+            messages: [
+                {
+                    id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a01",
+                    role: "user",
+                    content: "Hi",
+                    payload: {},
+                },
+                {
+                    id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a02",
+                    role: "assistant",
+                    content: "Hello",
+                    payload: {
+                        cards: { corrections: [CORRECTION], quiz: null, vocabWord: VOCAB },
+                        usage: { model: "model-x" },
+                    },
+                },
+            ],
+        });
+
+        const { fetchChatHistory } = await import("@/api/chat");
+        const history = await fetchChatHistory(SESSION_ID);
+
+        expect(apiFetchMock).toHaveBeenCalledWith(`/chat/history?sessionId=${SESSION_ID}`);
+        expect(history.map((message) => message.role)).toEqual(["user", "assistant"]);
+        expect(history[0]?.cards).toBeNull();
+        expect(history[1]?.cards?.corrections).toHaveLength(1);
+        expect(history[1]?.cards?.vocabWord?.term).toBe("deadline");
+        expect(history[1]?.cards?.quiz).toBeNull();
+    });
+
+    it("2.7 чужая роль отбрасывается, битые карточки не мешают тексту реплики", async () => {
+        apiFetchMock.mockResolvedValue({
+            messages: [
+                {
+                    id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a01",
+                    role: "system",
+                    content: "x",
+                    payload: {},
+                },
+                {
+                    id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a02",
+                    role: "assistant",
+                    content: "Hello",
+                    payload: { cards: { corrections: "битая форма", quiz: null, vocabWord: null } },
+                },
+                {
+                    id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a03",
+                    role: "user",
+                    content: "Hi",
+                    payload: {},
+                },
+            ],
+        });
+
+        const { fetchChatHistory } = await import("@/api/chat");
+        const history = await fetchChatHistory(SESSION_ID);
+
+        // ARCHITECT: строка с чужой ролью не показывается вовсе, а испорченные карточки не прячут ответ.
+        expect(history.map((message) => message.id)).toEqual([
+            "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a02",
+            "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a03",
+        ]);
+        expect(history[0]?.content).toBe("Hello");
+        expect(history[0]?.cards).toBeNull();
+    });
+
+    it("2.8 конверт без списка сообщений — ошибка чтения истории", async () => {
+        apiFetchMock.mockResolvedValue({ messages: null });
+
+        const { fetchChatHistory } = await import("@/api/chat");
+
+        await expect(fetchChatHistory(SESSION_ID)).rejects.toThrow("CHAT_STREAM_FAILED");
     });
 });

@@ -1,15 +1,12 @@
-// ARCHITECT: Обзор — стартовая страница приложения. Приветственная строка заменена названием
-// раздела с нейтральной подписью: обращение по имени и «Привет» — клише из чёрного списка
-// микрокопа.
-// ARCHITECT: прогресс и список сессий читаются одним запросом через useMockQuery, поэтому скелетон
-// здесь — настоящее состояние загрузки, а не декорация. Задержку держит мок-обёртка, и с реальным
-// API меняется только fetcher.
+// ARCHITECT: «Обзор» — стартовая страница приложения. Все показатели приходят одной сводкой GET /api/progress:
+// выдуманных метрик (минуты практики, достижения, прогресс по режимам) в схеме нет, поэтому экран их не
+// показывает — вместо них счётчики сессий, сообщений и слов плюс честная недельная активность.
+// ARCHITECT: сводку читает общий хук useProgress: те же данные нужны профилю, а скелетон здесь — настоящее
+// состояние загрузки, а не декорация.
 
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { fetchUserProgress } from "@/api/progress";
-import { fetchSessions } from "@/api/sessions";
-import { useMockQuery } from "@/hooks/useMockQuery";
+import { useProgress } from "@/hooks/useProgress";
 import { OverviewSkeleton } from "@/components/dashboard/skeletons/OverviewSkeleton";
 import { ContinueLearningCard } from "./ContinueLearningCard";
 import { ListeningPromptCard } from "./ListeningPromptCard";
@@ -17,20 +14,11 @@ import { MetricsRow } from "./MetricsRow";
 import { ProgressSection } from "./ProgressSection";
 import { RecentLessonsSection } from "./RecentLessonsSection";
 
-async function loadOverview() {
-    const [progress, sessions] = await Promise.all([fetchUserProgress(), fetchSessions()]);
-
-    return { progress, sessions };
-}
-
 export function DashboardPage() {
     const { t } = useTranslation("dashboard");
-    const { data, isLoading } = useMockQuery(loadOverview);
+    const { progress, isLoading } = useProgress();
 
-    if (isLoading || data === null) return <OverviewSkeleton />;
-
-    const { progress, sessions } = data;
-    const activeSession = sessions[0];
+    if (isLoading || progress === null) return <OverviewSkeleton />;
 
     return (
         <div className="min-h-[calc(100dvh-4rem)] p-4 md:p-6">
@@ -46,13 +34,20 @@ export function DashboardPage() {
                 </motion.header>
 
                 <div className="space-y-4">
-                    {activeSession && <ContinueLearningCard session={activeSession} progress={progress} />}
+                    <ContinueLearningCard
+                        session={progress.recentSessions[0] ?? null}
+                        progress={progress}
+                    />
                     <MetricsRow progress={progress} />
                     <ListeningPromptCard />
 
                     <div className="grid grid-cols-1 gap-4 lg:grid-cols-2">
-                        <ProgressSection progress={progress} />
-                        <RecentLessonsSection />
+                        <ProgressSection
+                            weeklyActivity={progress.weeklyActivity}
+                            level={progress.level}
+                            score={progress.score}
+                        />
+                        <RecentLessonsSection sessions={progress.recentSessions} />
                     </div>
                 </div>
             </div>

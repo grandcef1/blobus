@@ -66,6 +66,22 @@ const ReserveSchema = z.object({
     messages_remaining: z.number().int(),
 });
 
+// ARCHITECT: история — один параметр: id своей сессии. strictObject отклоняет лишние ключи query, поэтому
+// userId в запросе не проходит (§16.6).
+const HistoryQuerySchema = z.strictObject({
+    sessionId: z.uuid(),
+});
+
+// ARCHITECT: набор колонок истории строгий, а payload читается как unknown: его форму пишет наш же роутер
+// (карточки и usage), а разбирает клиент. Чужая форма строки — аномалия данных и уходит в общий обработчик.
+const HistoryMessageRowSchema = z.strictObject({
+    id: z.uuid(),
+    role: z.enum(["user", "assistant"]),
+    content: z.string().min(1).max(4000),
+    payload: z.unknown(),
+    created_at: z.string().min(1),
+});
+
 /** Лимит тела: 6 сообщений в минуту на пользователя (middleware считает то же окно по IP). */
 const CHAT_WINDOW_MS = 60_000;
 const CHAT_MAX = 6;
@@ -75,6 +91,12 @@ const MESSAGE_MAX_CHARS = 4000;
 const UNIQUE_VIOLATION = "23505";
 /** Текст исключения reserve_message: лимит сообщений на сегодня исчерпан. */
 const QUOTA_EXHAUSTED = "QUOTA_EXHAUSTED";
+// ARCHITECT: лимит чтения истории тот же, что у остальных чтений (server/routes/sessions.ts): 60 за 15 минут.
+// Счёт в памяти — дев/тесты: инстансы Vercel не делят память, прод получит общий RateLimitStore.
+const READ_WINDOW_MS = 15 * 60_000;
+const READ_MAX = 60;
+// ARCHITECT: свежий хвост диалога: limit в прямом порядке отдал бы начало переписки, а не последние реплики.
+const HISTORY_PAGE_LIMIT = 50;
 
 const SSE_HEADERS: Record<string, string> = {
     "content-type": "text/event-stream; charset=utf-8",
@@ -100,6 +122,23 @@ async function releaseMessage(client: ServiceClient, userId: string): Promise<vo
     const released = await client.rpc("release_message", { p_user_id: userId });
 
     if (released.error !== null) throw released.error;
+}
+
+/**
+ * Порядок реплик по возрастанию времени. Внутри одной метки времени первой идёт реплика ученика: пара пишется
+ * одной вставкой, поэтому created_at у неё одинаковый, а id случайный — без этого правила диалог в ленте и в
+ * промпте мог бы начаться с ответа репетитора.
+ */
+function orderHistoryAsc<T extends { readonly created_at: string; readonly role: string }>(
+    rows: readonly T[]
+): T[] {
+    return [...rows].sort((left, right) => {
+        if (left.created_at !== right.created_at)
+            return left.created_at < right.created_at ? -1 : 1;
+        if (left.role === right.role) return 0;
+
+        return left.role === "user" ? -1 : 1;
+    });
 }
 
 /** История сессии читается пользовательским клиентом под RLS select-own (§16.5). */
@@ -138,7 +177,7 @@ async function readHistory(
     if (!parsed.success) throw parsed.error;
 
     // ARCHITECT: из БД приходят новые сверху, в промпт уходят по возрастанию времени — порядок диалога.
-    return parsed.data.map((row) => ({ role: row.role, content: row.content })).reverse();
+    return orderHistoryAsc(parsed.data).map((row) => ({ role: row.role, content: row.content }));
 }
 
 /** Урок сессии: последний или новый — сообщения хранятся в уроке, а не в сессии. */
@@ -202,6 +241,14 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
         max: CHAT_MAX,
         scope: "chat:message",
     });
+    // ARCHITECT: чтение истории лимитируется отдельным scope: отправка сообщения платная, чтение — нет, и общий
+    // счётчик позволил бы вычитывать историю вместо ответов модели.
+    const historyLimiter = createRateLimiter({
+        store,
+        windowMs: READ_WINDOW_MS,
+        max: READ_MAX,
+        scope: "chat:history",
+    });
     // ARCHITECT: кэш проверки токена — на экземпляр роутера: verifyAccessToken сам ограничивает срок записи
     // min от ttl кэша и exp токена.
     const tokenCache = createInMemoryTokenCache();
@@ -209,6 +256,92 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
     const apiKey = env.OPENROUTER_API_KEY;
     const ai: AiClient | null =
         apiKey === undefined || apiKey === "" ? null : createOpenRouterClient({ apiKey });
+
+    // ARCHITECT: чтение истории — сохранённая пара сообщений своей сессии: роль, текст и payload с карточками.
+    // Порядок middleware как у остальных чтений: сначала лимитер, потом токен. CSRF не нужен — GET смысла не меняет.
+    router.get("/history", historyLimiter, async (req: Request, res: Response) => {
+        const accessToken = getCookie(req, COOKIE_NAMES.accessToken);
+
+        if (accessToken === undefined) {
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        let payload;
+
+        try {
+            payload = await verifyAccessToken(env, accessToken, tokenCache);
+        } catch {
+            // ARCHITECT: просроченный, поддельный и чужой токен отвечают одинаково, без деталей (§16.4).
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        const query = HistoryQuerySchema.safeParse(req.query);
+
+        if (!query.success) {
+            res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+            return;
+        }
+
+        const service = createServiceClient(env);
+        // ARCHITECT: чужая и несуществующая сессия отвечают одинаково: 404 не подтверждает существование чужих
+        // строк (§16.4). SessionRowSchema здесь не нужен — читаются два служебных поля.
+        const session = await service
+            .from("sessions")
+            .select("id, user_id")
+            .eq("id", query.data.sessionId)
+            .maybeSingle();
+
+        if (session.error !== null) throw session.error;
+
+        if (session.data === null || session.data.user_id !== payload.userId) {
+            res.status(404).json(errorEnvelope("NOT_FOUND", res));
+            return;
+        }
+
+        // ARCHITECT: уроки своей сессии читаются сервисным ключом после проверки владения сессией: их id —
+        // фильтр для чтения сообщений, и по нему же ограничен набор под RLS.
+        const lessons = await service
+            .from("lessons")
+            .select("id")
+            .eq("session_id", query.data.sessionId);
+
+        if (lessons.error !== null) throw lessons.error;
+
+        const lessonIds = (lessons.data ?? []).map((row) => row.id);
+
+        if (lessonIds.length === 0) {
+            res.status(200).json({ messages: [] });
+            return;
+        }
+
+        // ARCHITECT: сообщения читаются пользовательским клиентом под RLS select-own, а фильтр по lesson_id
+        // своей сессии — defense in depth поверх политики. Последние 50 берутся по убыванию и разворачиваются.
+        const messages = await createUserClient(env, accessToken)
+            .from("messages")
+            .select("id, role, content, payload, created_at")
+            .in("lesson_id", lessonIds)
+            .order("created_at", { ascending: false })
+            .order("id", { ascending: false })
+            .limit(HISTORY_PAGE_LIMIT);
+
+        if (messages.error !== null) throw messages.error;
+
+        const rows = z.array(HistoryMessageRowSchema).safeParse(messages.data);
+
+        if (!rows.success) throw rows.error;
+
+        res.status(200).json({
+            messages: orderHistoryAsc(rows.data).map((row) => ({
+                id: row.id,
+                role: row.role,
+                content: row.content,
+                payload: row.payload,
+                createdAt: row.created_at,
+            })),
+        });
+    });
 
     router.post("/", burstLimiter, validateCsrf, async (req: Request, res: Response) => {
         const accessToken = getCookie(req, COOKIE_NAMES.accessToken);

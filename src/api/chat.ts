@@ -6,7 +6,7 @@
 // ARCHITECT: вывод модели недоверенный и на клиенте (§16.8): кадр done разбирается по полям, чужая форма
 // считается обрывом потока, а не данными для рендера.
 
-import { ApiError, apiStream } from "@/api/client";
+import { ApiError, apiFetch, apiStream } from "@/api/client";
 import { appendMessage, getSessionById } from "@/api/sessions";
 import type { EnhancedChatSession } from "@/types/session";
 
@@ -271,6 +271,83 @@ function readReply(value: unknown): ChatReply | null {
     if (record.vocabWord !== null && vocabWord === null) return null;
 
     return { reply, corrections, quiz, vocabWord, usage };
+}
+
+/** Карточки ответа: правки, квиз и слово урока — ровно те три блока, что уходят событием done. */
+export interface ChatCards {
+    readonly corrections: readonly ChatCorrection[];
+    readonly quiz: ChatQuiz | null;
+    readonly vocabWord: ChatVocabWord | null;
+}
+
+/** Сообщение истории: роль, текст и карточки ответа (у реплики ученика карточек нет). */
+export interface ChatHistoryMessage {
+    readonly id: string;
+    readonly role: "user" | "assistant";
+    readonly content: string;
+    readonly cards: ChatCards | null;
+}
+
+// ARCHITECT: payload строки писал наш роутер, но источник карточек — модель, то есть недоверенный вывод (§16.8):
+// карточки разбираются теми же читателями, что и событие done. Битые карточки отбрасываются — текст реплики
+// важнее, и одна испорченная строка не должна прятать весь диалог.
+function readStoredCards(payload: unknown): ChatCards | null {
+    const record = asRecord(payload);
+    const cards = record === null ? null : asRecord(record.cards);
+
+    if (cards === null) return null;
+
+    const corrections = readCorrections(cards.corrections);
+
+    if (corrections === null) return null;
+
+    const quiz = cards.quiz === null || cards.quiz === undefined ? null : readQuiz(cards.quiz);
+    const vocabWord =
+        cards.vocabWord === null || cards.vocabWord === undefined
+            ? null
+            : readVocabWord(cards.vocabWord);
+
+    return { corrections, quiz, vocabWord };
+}
+
+/** Строка конверта истории: форма недоверенная, поэтому каждое поле читается отдельно. */
+function readHistoryMessage(value: unknown): ChatHistoryMessage | null {
+    const record = asRecord(value);
+
+    if (record === null) return null;
+
+    const id = readString(record.id, 64);
+    const role = record.role === "user" || record.role === "assistant" ? record.role : null;
+    const content = typeof record.content === "string" ? record.content : null;
+
+    if (id === null || role === null || content === null) return null;
+
+    return {
+        id,
+        role,
+        content,
+        cards: role === "assistant" ? readStoredCards(record.payload) : null,
+    };
+}
+
+// ARCHITECT: история читается cookie-сессией через apiFetch (CSRF GET-у не нужен, 401 обновляется транспортом).
+// Чужая и несуществующая сессия отвечают 404: для ленты это «диалог не найден», и хук показывает полосу ошибки.
+export async function fetchChatHistory(sessionId: string): Promise<ChatHistoryMessage[]> {
+    const { messages } = await apiFetch<{ readonly messages: readonly unknown[] }>(
+        `/chat/history?sessionId=${encodeURIComponent(sessionId)}`
+    );
+
+    if (!Array.isArray(messages)) throw new ApiError(500, STREAM_FAILED);
+
+    const history: ChatHistoryMessage[] = [];
+
+    for (const message of messages) {
+        const read = readHistoryMessage(message);
+        if (read === null) continue;
+        history.push(read);
+    }
+
+    return history;
 }
 
 /**

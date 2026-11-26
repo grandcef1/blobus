@@ -14,6 +14,7 @@ import type { EnhancedChatSession } from "@/types/session";
 
 const {
     streamChatReplyMock,
+    fetchChatHistoryMock,
     sendMessageMock,
     fetchSessionByIdMock,
     toastErrorMock,
@@ -21,6 +22,7 @@ const {
     tMock,
 } = vi.hoisted(() => ({
     streamChatReplyMock: vi.fn(),
+    fetchChatHistoryMock: vi.fn(),
     sendMessageMock: vi.fn(),
     fetchSessionByIdMock: vi.fn(),
     toastErrorMock: vi.fn(),
@@ -30,7 +32,12 @@ const {
 
 vi.mock("@/api/chat", async (importOriginal) => {
     const actual = await importOriginal<typeof import("@/api/chat")>();
-    return { ...actual, sendMessage: sendMessageMock, streamChatReply: streamChatReplyMock };
+    return {
+        ...actual,
+        fetchChatHistory: fetchChatHistoryMock,
+        sendMessage: sendMessageMock,
+        streamChatReply: streamChatReplyMock,
+    };
 });
 
 vi.mock("@/api/sessions", async (importOriginal) => {
@@ -113,10 +120,12 @@ function mockOf(chat: ChatResult): Extract<ChatResult, { kind: "mock" }> {
 
 beforeEach(() => {
     fetchSessionByIdMock.mockResolvedValue(null);
+    fetchChatHistoryMock.mockResolvedValue([]);
 });
 
 afterEach(() => {
     streamChatReplyMock.mockReset();
+    fetchChatHistoryMock.mockReset();
     sendMessageMock.mockReset();
     fetchSessionByIdMock.mockReset();
     toastErrorMock.mockReset();
@@ -140,6 +149,9 @@ describe("useChat", () => {
         );
         const { useChat } = await loadHook();
         const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+        // ARCHITECT: сначала ждём загрузку истории: она заменяет ленту, и отправка до неё потеряла бы реплику.
+        await waitFor(() => expect(realOf(result.current).isLoading).toBe(false));
 
         act(() => {
             realOf(result.current).send("  I am agree with you.  ");
@@ -181,6 +193,8 @@ describe("useChat", () => {
 
         const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
 
+        await waitFor(() => expect(realOf(result.current).isLoading).toBe(false));
+
         act(() => {
             realOf(result.current).send("I am agree with you.");
         });
@@ -218,6 +232,8 @@ describe("useChat", () => {
         streamChatReplyMock.mockRejectedValue(new ApiError(429, "RATE_LIMITED"));
 
         const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+        await waitFor(() => expect(realOf(result.current).isLoading).toBe(false));
 
         act(() => {
             realOf(result.current).send("Hello");
@@ -313,5 +329,71 @@ describe("useChat", () => {
         expect(sendMessageMock).toHaveBeenCalledWith(SESSION_ID, "Hi");
         expect(streamChatReplyMock).not.toHaveBeenCalled();
         expect(mockOf(result.current).isStreaming).toBe(false);
+    });
+
+    it("1.7 real: сохранённая история загружается вместе с карточками ответа", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        fetchChatHistoryMock.mockResolvedValue([
+            {
+                id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a01",
+                role: "user",
+                content: "Yesterday I go to the cinema.",
+                cards: null,
+            },
+            {
+                id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a02",
+                role: "assistant",
+                content: REPLY.reply,
+                cards: {
+                    corrections: REPLY.corrections,
+                    quiz: REPLY.quiz,
+                    vocabWord: REPLY.vocabWord,
+                },
+            },
+        ]);
+        const { useChat } = await loadHook();
+        const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+        await waitFor(() => expect(realOf(result.current).isLoading).toBe(false));
+
+        const chat = realOf(result.current);
+
+        expect(fetchChatHistoryMock).toHaveBeenCalledWith(SESSION_ID);
+        expect(chat.messages.map((message) => message.role)).toEqual(["user", "assistant"]);
+        expect(chat.messages[0]?.cards).toBeNull();
+        expect(chat.messages[1]?.cards?.quiz).toEqual(REPLY.quiz);
+        expect(chat.error).toBeNull();
+    });
+
+    it("1.8 real: сбой истории даёт полосу ошибки, кнопка повтора перезагружает её", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        const { useChat, ApiError } = await loadHook();
+        fetchChatHistoryMock.mockRejectedValue(new ApiError(500, "CHAT_STREAM_FAILED"));
+        const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+        await waitFor(() => expect(realOf(result.current).error).toBe("stream"));
+
+        expect(realOf(result.current).messages).toHaveLength(0);
+        // ARCHITECT: сбой загрузки истории — это не ошибка отправки: тостом его не сопровождаем, лечит кнопка.
+        expect(toastErrorMock).not.toHaveBeenCalled();
+
+        fetchChatHistoryMock.mockResolvedValue([
+            {
+                id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a03",
+                role: "user",
+                content: "Hello",
+                cards: null,
+            },
+        ]);
+
+        act(() => {
+            realOf(result.current).retry();
+        });
+
+        await waitFor(() => expect(realOf(result.current).messages).toHaveLength(1));
+
+        expect(fetchChatHistoryMock).toHaveBeenCalledTimes(2);
+        expect(realOf(result.current).error).toBeNull();
+        expect(streamChatReplyMock).not.toHaveBeenCalled();
     });
 });

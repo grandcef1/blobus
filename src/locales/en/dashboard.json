@@ -32,21 +32,29 @@
     "title": "Overview",
     "subtitle": "Progress by mode and recent lessons",
     "continueLearning": "Continue learning",
-    "metrics": {
-      "streak": "Day streak",
-      "words": "Words learned",
-      "minutes": "Minutes studied",
-      "achievements": "Achievements"
+    "continue": {
+      "meta": "Sessions: {{sessions}} · messages: {{messages}}",
+      "emptyTitle": "Nothing started yet",
+      "emptyAction": "Start the first session",
+      "emptyHint": "Pick a tutor and a mode — the chat opens right away."
     },
-    "progress": {
-      "title": "Progress by mode",
-      "lessonsWords": "{{lessons}} lessons · {{words}} words"
+    "metrics": {
+      "sessions": "Sessions",
+      "messages": "Messages",
+      "words": "Words in vocabulary",
+      "streak": "Day streak"
+    },
+    "activity": {
+      "title": "This week",
+      "day": "{{day}}: {{count}} messages",
+      "level": "Level from the test",
+      "levelUnknown": "not checked",
+      "score": "score {{score}}"
     },
     "recent": {
       "title": "Recent lessons",
       "viewAll": "View all",
-      "empty": "No completed lessons yet",
-      "duration": "{{minutes}} min"
+      "empty": "No sessions yet"
     },
     "listening": {
       "title": "Listening not checked",
@@ -103,22 +111,17 @@
       "save": "Save"
     },
     "stats": {
-      "achievements": "Achievements",
+      "sessions": "Sessions",
       "words": "Total words"
     },
     "skills": {
       "title": "Level by skill",
       "overall": "Overall",
-      "grammar": "Grammar",
-      "speaking": "Speaking practice",
       "listening": "Listening",
       "notChecked": "not checked",
+      "levelHint": "The level comes from the 30-question test.",
+      "score": "Test score: {{score}} of 100",
       "listeningHint": "A listening check — the card sits in Overview."
-    },
-    "modes": {
-      "title": "Progress by mode",
-      "strengths": "Strengths",
-      "weaknesses": "What to improve"
     }
   },
   "settings": {

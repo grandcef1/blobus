@@ -13,6 +13,7 @@ import type { AuthLimiters } from "./routes/auth.ts";
 import { createProfileRouter } from "./routes/profile.ts";
 import { createSessionsRouter } from "./routes/sessions.ts";
 import { createSettingsRouter } from "./routes/settings.ts";
+import { createTutorsRouter } from "./routes/tutors.ts";
 import { createVocabularyRouter } from "./routes/vocabulary.ts";
 import type { SupabaseEnv } from "./supabase.ts";
 
@@ -127,6 +128,7 @@ export function buildApp(registerRoutes?: (app: Express) => void, env?: Supabase
         app.use("/api/profile", createProfileRouter({ env }));
         app.use("/api/sessions", createSessionsRouter({ env }));
         app.use("/api/settings", createSettingsRouter({ env }));
+        app.use("/api/tutors", createTutorsRouter({ env }));
         app.use("/api/vocabulary", createVocabularyRouter({ env }));
     }
 

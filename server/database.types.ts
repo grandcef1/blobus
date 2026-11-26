@@ -165,6 +165,7 @@ export type Database = {
                     id: string;
                     locale: string;
                     onboarding_completed_at: string | null;
+                    plan: string;
                     preferences: NonNullable<Json>;
                     updated_at: string;
                 };
@@ -177,6 +178,7 @@ export type Database = {
                     id: string;
                     locale?: string;
                     onboarding_completed_at?: string | null;
+                    plan?: string;
                     preferences?: NonNullable<Json>;
                     updated_at?: string;
                 };
@@ -188,6 +190,7 @@ export type Database = {
                     id?: string;
                     locale?: string;
                     onboarding_completed_at?: string | null;
+                    plan?: string;
                     preferences?: NonNullable<Json>;
                     updated_at?: string;
                 };

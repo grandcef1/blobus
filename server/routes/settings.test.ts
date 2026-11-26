@@ -33,7 +33,10 @@ interface SettingsBody {
     readonly settings: {
         readonly autoCorrection: boolean;
         readonly soundEffects: boolean;
+        readonly explanationLocale: string;
+        readonly voiceEnabled: boolean;
     };
+    readonly plan: string;
 }
 
 /** Куки как их видит клиент: имя → значение, без атрибутов. */
@@ -42,8 +45,32 @@ type Jar = Record<string, string>;
 const EMAIL_PREFIX = `settings-${randomUUID()}`;
 const PASSWORD = `Settings-${randomUUID()}-1`;
 const CSRF_HEADER = "x-csrf-token";
-/** Код Postgres «недостаточно прав»: колоночного update-гранта на preferences у authenticated нет. */
+/** Код Postgres «недостаточно прав»: колоночного update-гранта на preferences и plan у authenticated нет. */
 const INSUFFICIENT_PRIVILEGE = "42501";
+/** Язык свежей строки profiles: он же дефолт explanationLocale, пока выбор не сохранён. */
+const DEFAULT_LOCALE = "ru";
+/** Тариф свежей строки: plan назначает сервер/биллинг, в схеме PATCH его нет. */
+const DEFAULT_PLAN = "free";
+/** Тело прежнего клиента P-2: остаётся валидным, потому что патч стал частичным. */
+const LEGACY_BODY = { autoCorrection: false, soundEffects: false } as const;
+
+/** Полный конверт ответа: план и незатронутые настройки присутствуют всегда, даже если их не присылали. */
+function expectedBody(preferences: {
+    readonly autoCorrection: boolean;
+    readonly soundEffects: boolean;
+    readonly explanationLocale?: string;
+    readonly voiceEnabled?: boolean;
+}): SettingsBody {
+    return {
+        settings: {
+            autoCorrection: preferences.autoCorrection,
+            soundEffects: preferences.soundEffects,
+            explanationLocale: preferences.explanationLocale ?? DEFAULT_LOCALE,
+            voiceEnabled: preferences.voiceEnabled ?? false,
+        },
+        plan: DEFAULT_PLAN,
+    };
+}
 
 let env: SupabaseEnv | undefined;
 
@@ -239,6 +266,20 @@ async function dbPreferences(id: string): Promise<unknown> {
     return data.preferences;
 }
 
+/** Язык и тариф строки: сверка ответа маршрута с источником правды сервисным клиентом (§16.5). */
+async function dbLocaleAndPlan(id: string): Promise<{ locale: string; plan: string }> {
+    const { data, error } = await createAdminClient()
+        .from("profiles")
+        .select("locale, plan")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (error !== null) throw error;
+    if (data === null) throw new Error("строка профиля тестового пользователя не создана");
+
+    return { locale: data.locale, plan: data.plan };
+}
+
 beforeAll(async () => {
     const stack = readLocalStack();
 
@@ -272,7 +313,7 @@ afterEach(() => {
 });
 
 describe("GET /api/settings", () => {
-    it("1: новый пользователь получает дефолты из пустого jsonb, без лишних ключей", async () => {
+    it("1: новый пользователь получает дефолты из пустого jsonb и plan, без лишних ключей", async () => {
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
             const response = await fetch(`${app.baseUrl}/api/settings`, {
@@ -281,10 +322,28 @@ describe("GET /api/settings", () => {
             const body = (await response.json()) as SettingsBody;
 
             expect(response.status).toBe(200);
-            // ARCHITECT: колонка хранит {} — дефолты подставляет схема чтения, поэтому конверт всегда полный.
-            expect(body.settings).toEqual({ autoCorrection: true, soundEffects: true });
-            expect(Object.keys(body.settings).sort()).toEqual(["autoCorrection", "soundEffects"]);
+            // ARCHITECT: колонка хранит {} — дефолты подставляет схема чтения, поэтому конверт всегда полный:
+            // язык строки задаёт explanationLocale, голос по умолчанию выключен, тариф — free.
+            expect(body).toEqual({
+                settings: {
+                    autoCorrection: true,
+                    soundEffects: true,
+                    explanationLocale: DEFAULT_LOCALE,
+                    voiceEnabled: false,
+                },
+                plan: DEFAULT_PLAN,
+            });
+            expect(Object.keys(body.settings).sort()).toEqual([
+                "autoCorrection",
+                "explanationLocale",
+                "soundEffects",
+                "voiceEnabled",
+            ]);
             expect(await dbPreferences(me.id)).toEqual({});
+            expect(await dbLocaleAndPlan(me.id)).toEqual({
+                locale: DEFAULT_LOCALE,
+                plan: DEFAULT_PLAN,
+            });
         });
     }, 30_000);
 
@@ -326,20 +385,13 @@ describe("GET /api/settings", () => {
             });
             const own = await fetch(`${app.baseUrl}/api/settings`, { headers: readHeaders });
 
+            const expected = expectedBody(LEGACY_BODY);
+
             expect(byId.status).toBe(200);
-            expect(((await byId.json()) as SettingsBody).settings).toEqual({
-                autoCorrection: false,
-                soundEffects: false,
-            });
+            expect((await byId.json()) as SettingsBody).toEqual(expected);
             expect(byUserId.status).toBe(200);
-            expect(((await byUserId.json()) as SettingsBody).settings).toEqual({
-                autoCorrection: false,
-                soundEffects: false,
-            });
-            expect(((await own.json()) as SettingsBody).settings).toEqual({
-                autoCorrection: false,
-                soundEffects: false,
-            });
+            expect((await byUserId.json()) as SettingsBody).toEqual(expected);
+            expect((await own.json()) as SettingsBody).toEqual(expected);
             expect(await dbPreferences(bob.id)).toEqual({});
         });
     }, 30_000);
@@ -361,11 +413,10 @@ describe("PATCH /api/settings", () => {
             });
 
             expect(response.status).toBe(200);
-            expect(body.settings).toEqual({ autoCorrection: false, soundEffects: false });
-            expect(((await read.json()) as SettingsBody).settings).toEqual({
-                autoCorrection: false,
-                soundEffects: false,
-            });
+            expect(body).toEqual(expectedBody(LEGACY_BODY));
+            expect((await read.json()) as SettingsBody).toEqual(expectedBody(LEGACY_BODY));
+            // ARCHITECT: merge пишет ровно присланные ключи: дефолтов в колонке не появляется, тело P-2
+            // не дописывает explanationLocale/voiceEnabled.
             expect(await dbPreferences(me.id)).toEqual({
                 autoCorrection: false,
                 soundEffects: false,
@@ -410,7 +461,7 @@ describe("PATCH /api/settings", () => {
         });
     }, 30_000);
 
-    it("6: отклоняет 400 неполные, неверные по типу и расширенные тела", async () => {
+    it("6: отклоняет 400 пустое, неверное по типу и расширенное тела, включая plan", async () => {
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
             const headers = mutationHeaders(me.jar, app.baseUrl);
@@ -419,12 +470,16 @@ describe("PATCH /api/settings", () => {
                 {},
                 { autoCorrection: "yes" },
                 { soundEffects: 1 },
-                // ARCHITECT: theme/notifications/language контрактом не закреплены — лишний ключ отклоняется (§16.6).
+                { explanationLocale: "xx" },
+                { explanationLocale: null },
+                { voiceEnabled: "true" },
+                // ARCHITECT: theme/notifications контрактом не закреплены — лишний ключ отклоняется (§16.6).
                 { autoCorrection: true, soundEffects: true, theme: "dark" },
-                // ARCHITECT: userId приходит только из токена — тело с ним отклоняет strictObject (§16.2).
+                // ARCHITECT: plan и id/userId приходят не от клиента: тариф назначает биллинг, владение
+                // определяется токеном (§16.2, §16.9), поэтому strictObject и схема без plan их отклоняют.
+                { plan: "pro" },
+                { id: "a1b2c3d4-0001-4000-8000-000000000001", autoCorrection: true },
                 { userId: "a1b2c3d4-0001-4000-8000-000000000001", autoCorrection: true },
-                { autoCorrection: true },
-                { soundEffects: true },
             ];
 
             for (const invalid of invalidBodies) {
@@ -435,6 +490,11 @@ describe("PATCH /api/settings", () => {
             }
 
             expect(await dbPreferences(me.id)).toEqual(before);
+            // ARCHITECT: неудачный патч не трогает и тариф: plan остаётся дефолтным.
+            expect(await dbLocaleAndPlan(me.id)).toEqual({
+                locale: DEFAULT_LOCALE,
+                plan: DEFAULT_PLAN,
+            });
         });
     }, 30_000);
 
@@ -514,7 +574,7 @@ describe("лимиты и гранты /api/settings", () => {
         });
     }, 60_000);
 
-    it("10: клиент не пишет preferences, но пишет display_name — колоночный grant не расширен", async () => {
+    it("10: клиент не пишет preferences и plan, но пишет display_name — колоночный grant не расширен", async () => {
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
             const before = await dbPreferences(me.id);
@@ -523,6 +583,7 @@ describe("лимиты и гранты /api/settings", () => {
                 .from("profiles")
                 .update({ preferences: { autoCorrection: false, soundEffects: false } })
                 .eq("id", me.id);
+            const deniedPlan = await user.from("profiles").update({ plan: "pro" }).eq("id", me.id);
             const allowed = await user
                 .from("profiles")
                 .update({ display_name: "Клиент" })
@@ -533,12 +594,106 @@ describe("лимиты и гранты /api/settings", () => {
                 .eq("id", me.id)
                 .single();
 
-            // ARCHITECT: grant update (display_name, locale, daily_minutes) есть, на preferences — нет:
-            // запись настроек остаётся серверной (§16.2, §16.5).
+            // ARCHITECT: grant update (display_name, locale, daily_minutes) есть, на preferences и plan — нет:
+            // запись настроек и тарифа остаётся серверной (§16.2, §16.5, §16.9).
             expect(denied.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
+            expect(deniedPlan.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
             expect(allowed.error).toBeNull();
             expect(renamed.data?.display_name).toBe("Клиент");
             expect(await dbPreferences(me.id)).toEqual(before);
+            expect(await dbLocaleAndPlan(me.id)).toEqual({
+                locale: DEFAULT_LOCALE,
+                plan: DEFAULT_PLAN,
+            });
+        });
+    }, 30_000);
+});
+
+describe("plan и новые настройки /api/settings", () => {
+    it("11: explanationLocale наследует язык строки, voiceEnabled по умолчанию выключен", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            // ARCHITECT: язык интерфейса меняется в профиле, а не в настройках, поэтому дефолт объяснений
+            // проверяется на строке с другим locale.
+            const changed = await createAdminClient()
+                .from("profiles")
+                .update({ locale: "es" })
+                .eq("id", me.id);
+
+            expect(changed.error).toBeNull();
+
+            const response = await fetch(`${app.baseUrl}/api/settings`, {
+                headers: { cookie: cookieHeader(me.jar) },
+            });
+            const body = (await response.json()) as SettingsBody;
+
+            expect(response.status).toBe(200);
+            expect(body).toEqual({
+                settings: {
+                    autoCorrection: true,
+                    soundEffects: true,
+                    explanationLocale: "es",
+                    voiceEnabled: false,
+                },
+                plan: DEFAULT_PLAN,
+            });
+        });
+    }, 30_000);
+
+    it("12: тело P-2 остаётся валидным и не затирает новые настройки", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const advanced = await patchJson(
+                app.baseUrl,
+                "/api/settings",
+                { explanationLocale: "en", voiceEnabled: true },
+                headers
+            );
+
+            expect(advanced.status).toBe(200);
+
+            const legacy = await patchJson(app.baseUrl, "/api/settings", LEGACY_BODY, headers);
+            const body = (await legacy.json()) as SettingsBody;
+
+            expect(legacy.status).toBe(200);
+            // ARCHITECT: патч частичный — тело без новых ключей их сохраняет, а не сбрасывает в дефолты.
+            expect(body).toEqual(
+                expectedBody({ ...LEGACY_BODY, explanationLocale: "en", voiceEnabled: true })
+            );
+            expect(await dbPreferences(me.id)).toEqual({
+                autoCorrection: false,
+                soundEffects: false,
+                explanationLocale: "en",
+                voiceEnabled: true,
+            });
+        });
+    }, 30_000);
+
+    it("13: частичный патч меняет только присланное поле и не пишет дефолт", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+
+            await patchJson(app.baseUrl, "/api/settings", LEGACY_BODY, headers);
+
+            const response = await patchJson(
+                app.baseUrl,
+                "/api/settings",
+                { voiceEnabled: true },
+                headers
+            );
+            const body = (await response.json()) as SettingsBody;
+
+            expect(response.status).toBe(200);
+            expect(body).toEqual(expectedBody({ ...LEGACY_BODY, voiceEnabled: true }));
+            // ARCHITECT: невыбранный язык в колонке не сохраняется: ответ показывает дефолт языка строки,
+            // а не записанное значение.
+            expect(await dbPreferences(me.id)).toEqual({
+                autoCorrection: false,
+                soundEffects: false,
+                voiceEnabled: true,
+            });
         });
     }, 30_000);
 });

@@ -9,6 +9,7 @@ import { Loader2 } from "lucide-react";
 
 import { ApiError } from "@/api/client";
 import { addVocabularyEntry } from "@/api/progress";
+import type { AddVocabularyInput } from "@/api/progress";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
 import { FOCUS_RING, INPUT_SURFACE } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
@@ -99,7 +100,9 @@ export function AddWordDialog({ open, onOpenChange }: AddWordDialogProps) {
     }
 
     const mutation = useMutation({
-        mutationFn: addVocabularyEntry,
+        // ARCHITECT: вызов идёт через стрелку: модуль api читается в момент отправки, поэтому мок-модули
+        // тестов, которым нужен только чтение, не обязаны объявлять функцию добавления.
+        mutationFn: (input: AddVocabularyInput) => addVocabularyEntry(input),
         onSuccess: async () => {
             await queryClient.invalidateQueries({ queryKey: ["vocabulary"] });
             onOpenChange(false);

@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { BookOpen, Search, RotateCcw } from "lucide-react";
+import { BookOpen, Search } from "lucide-react";
 import { useQueryClient } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { VocabularySkeleton } from "@/components/dashboard/skeletons/VocabularySkeleton";
@@ -13,6 +13,8 @@ import type { VocabularyWord } from "@/types/progress";
 import { VocabularyEntryCard } from "./VocabularyEntryCard";
 import type { VocabularyCardModel } from "./VocabularyEntryCard";
 import { VocabularyReview } from "./VocabularyReview";
+import { VocabularyHeader } from "./VocabularyHeader";
+import { AddWordDialog } from "./AddWordDialog";
 
 // ARCHITECT: обе ветки сводятся к одной view-model; context→example переименовывается только здесь.
 // ARCHITECT: Date.now() вынесен из тела рендера: правило чистоты не пускает прямой вызов в компонент.
@@ -44,6 +46,7 @@ export function VocabularyPage() {
     const { t: tCommon } = useTranslation("common");
     const [searchQuery, setSearchQuery] = useState("");
     const [reviewOpen, setReviewOpen] = useState(false);
+    const [addOpen, setAddOpen] = useState(false);
     const queryClient = useQueryClient();
     const result = useVocabulary();
 
@@ -78,30 +81,12 @@ export function VocabularyPage() {
     return (
         <div className="min-h-[calc(100dvh-4rem)] p-4 md:p-6">
             <div className="mx-auto max-w-4xl">
-                <motion.header
-                    initial={{ opacity: 0 }}
-                    animate={{ opacity: 1 }}
-                    transition={{ duration: 0.2 }}
-                    className="mb-5 flex items-center justify-between"
-                >
-                    <div>
-                        <h1 className="text-xl font-semibold text-[#f0f0f5]">
-                            {t("vocabulary.title")}
-                        </h1>
-                        <p className="mt-1 text-sm text-[#f0f0f5]/50">
-                            {t("vocabulary.count", { total: models.length })}
-                        </p>
-                    </div>
-                    <button
-                        type="button"
-                        onClick={() => setReviewOpen(true)}
-                        disabled={due.length === 0}
-                        className="flex items-center gap-2 rounded-xl bg-[#f0f0f5] px-4 py-2.5 text-sm font-medium text-black transition-colors hover:bg-[#f0f0f5]/90 disabled:opacity-40"
-                    >
-                        <RotateCcw className="size-4" />
-                        {t("vocabulary.review.label")}
-                    </button>
-                </motion.header>
+                <VocabularyHeader
+                    total={models.length}
+                    reviewDisabled={due.length === 0}
+                    onReview={() => setReviewOpen(true)}
+                    onAdd={() => setAddOpen(true)}
+                />
 
                 <div className="relative mb-4">
                     <Search className="absolute left-3 top-1/2 size-4 -translate-y-1/2 text-[#f0f0f5]/40" />
@@ -144,6 +129,8 @@ export function VocabularyPage() {
                         ))}
                     </div>
                 )}
+
+                <AddWordDialog open={addOpen} onOpenChange={setAddOpen} />
             </div>
         </div>
     );

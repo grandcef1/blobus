@@ -2,7 +2,7 @@
 // покрыт server/routes/vocabulary.test.ts. Негативные проверки обязательны: null-поля не рендерятся,
 // пустой словарь и пустой поиск различаются, ошибка даёт повтор запроса, режим повторения пишет исход.
 
-import { screen } from "@testing-library/react";
+import { screen, waitFor } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
@@ -221,5 +221,27 @@ describe("VocabularyPage на реальных записях", () => {
 
         expect(screen.getByRole("heading", { name: "postpone" })).toBeInTheDocument();
         expect(screen.getByRole("button", { name: "Повторить" })).toBeDisabled();
+    });
+
+    it("6.9 кнопка добавления открывает модалку, повтор и счётчик не изменились", async () => {
+        const user = userEvent.setup();
+        useVocabularyMock.mockReturnValue(realResult({ entries: ENTRIES }));
+        renderWithProviders(<VocabularyPage />);
+
+        expect(screen.getByText("1 слов в коллекции")).toBeInTheDocument();
+
+        await user.click(screen.getByRole("button", { name: "Добавить слово" }));
+
+        expect(await screen.findByRole("dialog")).toBeInTheDocument();
+        expect(screen.getByLabelText("Слово")).toBeInTheDocument();
+
+        await user.keyboard("{Escape}");
+
+        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
+
+        // ARCHITECT: режим повторения не изменился: кнопка по-прежнему открывает карточку.
+        await user.click(screen.getByRole("button", { name: "Повторить" }));
+
+        expect(screen.getByRole("button", { name: "Показать ответ" })).toBeInTheDocument();
     });
 });

@@ -140,17 +140,14 @@ describe("AddWordDialog", () => {
         await user.type(textBox("Перевод"), "оценивать");
         await user.click(screen.getByRole("button", { name: "Добавить" }));
 
-        // ARCHITECT: первым аргументом уходит DTO, вторым react-query добавляет контекст мутации.
+        // ARCHITECT: мутация вызывает api через стрелку, поэтому мок получает ровно DTO отправки.
         await waitFor(() =>
-            expect(addWordMock).toHaveBeenCalledWith(
-                {
-                    term: "estimate",
-                    translation: "оценивать",
-                    context: null,
-                    exampleTranslation: null,
-                },
-                expect.anything()
-            )
+            expect(addWordMock).toHaveBeenCalledWith({
+                term: "estimate",
+                translation: "оценивать",
+                context: null,
+                exampleTranslation: null,
+            })
         );
         await waitFor(() =>
             expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["vocabulary"] })

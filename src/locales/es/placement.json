@@ -17,7 +17,6 @@
   "listening": {
     "title": "Prueba de comprensión auditiva",
     "intro": "Escucha la grabación antes de responder. Cada fragmento se puede escuchar solo dos veces: responde después de escucharlo.",
-    "name": "Comprensión auditiva",
     "play": "Escuchar",
     "playsLeft": "Reproducciones restantes: {{remaining}}/{{max}}",
     "playsLimit": "Límite de escuchas",

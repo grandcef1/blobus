@@ -35,7 +35,7 @@
       },
       "assessment": {
         "title": "Listo en 10 minutos",
-        "description": "Una prueba adaptativa sitúa tu nivel entre A1 y C2"
+        "description": "Una prueba de 30 preguntas sitúa tu nivel entre A1 y C2"
       },
       "modes": {
         "title": "Modos de estudio",
@@ -48,7 +48,7 @@
     },
     "assessment": {
       "stepsLabel": "Pasos de inicio",
-      "note": "Una prueba adaptativa sitúa tu nivel entre A1 y C2",
+      "note": "Una prueba de 30 preguntas sitúa tu nivel entre A1 y C2",
       "durations": {
         "intro": "1 min",
         "assessment": "7 min",

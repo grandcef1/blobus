@@ -17,7 +17,6 @@
   "listening": {
     "title": "Listening check",
     "intro": "Listen to the recording before answering. Each clip can be played only twice — answer after listening.",
-    "name": "Listening",
     "play": "Play",
     "playsLeft": "Plays left: {{remaining}}/{{max}}",
     "playsLimit": "Play limit",

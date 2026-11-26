@@ -35,7 +35,7 @@
       },
       "assessment": {
         "title": "Ready in 10 minutes",
-        "description": "An adaptive test places your level between A1 and C2"
+        "description": "A 30-question test places your level between A1 and C2"
       },
       "modes": {
         "title": "Learning modes",
@@ -48,7 +48,7 @@
     },
     "assessment": {
       "stepsLabel": "Onboarding steps",
-      "note": "An adaptive test places your level between A1 and C2",
+      "note": "A 30-question test places your level between A1 and C2",
       "durations": {
         "intro": "1 min",
         "assessment": "7 min",

@@ -266,18 +266,31 @@ async function dbPreferences(id: string): Promise<unknown> {
     return data.preferences;
 }
 
-/** Язык и тариф строки: сверка ответа маршрута с источником правды сервисным клиентом (§16.5). */
-async function dbLocaleAndPlan(id: string): Promise<{ locale: string; plan: string }> {
+/** Тариф из entitlements: единственный источник плана; null — строки у пользователя ещё нет. */
+async function dbPlan(id: string): Promise<string | null> {
+    const { data, error } = await createAdminClient()
+        .from("entitlements")
+        .select("plan")
+        .eq("user_id", id)
+        .maybeSingle();
+
+    if (error !== null) throw error;
+
+    return data?.plan ?? null;
+}
+
+/** Язык интерфейса строки профиля: language живёт в profiles.locale. */
+async function dbLocale(id: string): Promise<string> {
     const { data, error } = await createAdminClient()
         .from("profiles")
-        .select("locale, plan")
+        .select("locale")
         .eq("id", id)
         .maybeSingle();
 
     if (error !== null) throw error;
     if (data === null) throw new Error("строка профиля тестового пользователя не создана");
 
-    return { locale: data.locale, plan: data.plan };
+    return data.locale;
 }
 
 beforeAll(async () => {
@@ -340,10 +353,9 @@ describe("GET /api/settings", () => {
                 "voiceEnabled",
             ]);
             expect(await dbPreferences(me.id)).toEqual({});
-            expect(await dbLocaleAndPlan(me.id)).toEqual({
-                locale: DEFAULT_LOCALE,
-                plan: DEFAULT_PLAN,
-            });
+            expect(await dbLocale(me.id)).toBe(DEFAULT_LOCALE);
+            // ARCHITECT: план читается из entitlements: профильного дубля нет, GET заводит строку с free.
+            expect(await dbPlan(me.id)).toBe(DEFAULT_PLAN);
         });
     }, 30_000);
 
@@ -490,11 +502,9 @@ describe("PATCH /api/settings", () => {
             }
 
             expect(await dbPreferences(me.id)).toEqual(before);
-            // ARCHITECT: неудачный патч не трогает и тариф: plan остаётся дефолтным.
-            expect(await dbLocaleAndPlan(me.id)).toEqual({
-                locale: DEFAULT_LOCALE,
-                plan: DEFAULT_PLAN,
-            });
+            // ARCHITECT: отклонённый патч не заводит и не трогает тариф: строку entitlements создаёт только
+            // чтение плана на GET.
+            expect(await dbPlan(me.id)).toBeNull();
         });
     }, 30_000);
 
@@ -574,7 +584,7 @@ describe("лимиты и гранты /api/settings", () => {
         });
     }, 60_000);
 
-    it("10: клиент не пишет preferences и plan, но пишет display_name — колоночный grant не расширен", async () => {
+    it("10: клиент не пишет preferences и entitlements, но пишет display_name — гранты не расширены", async () => {
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
             const before = await dbPreferences(me.id);
@@ -583,7 +593,16 @@ describe("лимиты и гранты /api/settings", () => {
                 .from("profiles")
                 .update({ preferences: { autoCorrection: false, soundEffects: false } })
                 .eq("id", me.id);
-            const deniedPlan = await user.from("profiles").update({ plan: "pro" }).eq("id", me.id);
+            // ARCHITECT: тариф живёт в entitlements, и клиенту там не выдан ни update, ни select: ни назначить
+            // план, ни прочитать его напрямую он не может (§16.2, §16.5, §16.9).
+            const deniedPlan = await user
+                .from("entitlements")
+                .update({ plan: "pro" })
+                .eq("user_id", me.id);
+            const readEntitlements = await user
+                .from("entitlements")
+                .select("plan")
+                .eq("user_id", me.id);
             const allowed = await user
                 .from("profiles")
                 .update({ display_name: "Клиент" })
@@ -594,17 +613,16 @@ describe("лимиты и гранты /api/settings", () => {
                 .eq("id", me.id)
                 .single();
 
-            // ARCHITECT: grant update (display_name, locale, daily_minutes) есть, на preferences и plan — нет:
-            // запись настроек и тарифа остаётся серверной (§16.2, §16.5, §16.9).
+            // ARCHITECT: grant update (display_name, locale, daily_minutes) есть, на preferences — нет:
+            // запись настроек остаётся серверной (§16.2, §16.5, §16.9).
             expect(denied.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
             expect(deniedPlan.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
+            expect(readEntitlements.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
             expect(allowed.error).toBeNull();
             expect(renamed.data?.display_name).toBe("Клиент");
             expect(await dbPreferences(me.id)).toEqual(before);
-            expect(await dbLocaleAndPlan(me.id)).toEqual({
-                locale: DEFAULT_LOCALE,
-                plan: DEFAULT_PLAN,
-            });
+            // ARCHITECT: отказ не создал строку тарифа: плана у пользователя по-прежнему нет.
+            expect(await dbPlan(me.id)).toBeNull();
         });
     }, 30_000);
 });
@@ -694,6 +712,28 @@ describe("plan и новые настройки /api/settings", () => {
                 soundEffects: false,
                 voiceEnabled: true,
             });
+        });
+    }, 30_000);
+
+    it("14: план читается из entitlements, а не из строки профиля", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            // ARCHITECT: тариф назначает биллинг в entitlements: сервисный клиент ставит pro, и GET обязан
+            // вернуть именно его — иначе тариф остался бы с вторым источником, как было с profiles.plan.
+            const upgraded = await createAdminClient()
+                .from("entitlements")
+                .upsert({ user_id: me.id, plan: "pro" }, { onConflict: "user_id" });
+
+            expect(upgraded.error).toBeNull();
+
+            const response = await fetch(`${app.baseUrl}/api/settings`, {
+                headers: { cookie: cookieHeader(me.jar) },
+            });
+            const body = (await response.json()) as SettingsBody;
+
+            expect(response.status).toBe(200);
+            expect(body.plan).toBe("pro");
+            expect(await dbPlan(me.id)).toBe("pro");
         });
     }, 30_000);
 });

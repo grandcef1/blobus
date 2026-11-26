@@ -20,8 +20,10 @@ const LOCALES = ["ru", "en", "es"] as const;
 
 /** Язык объяснений: тот же набор значений, что у profiles.locale. */
 type ExplanationLocale = (typeof LOCALES)[number];
-/** Тариф: клиент его только читает, план назначает сервер/биллинг (§16.9). */
-type Plan = "free" | "pro";
+/** Тариф: клиент его только читает, назначает сервер/биллинг, строка приходит из entitlements (§16.9). */
+const PlanSchema = z.enum(["free", "pro"]);
+
+type Plan = z.infer<typeof PlanSchema>;
 
 // ARCHITECT: запись частичная — merge, а не replace: все поля optional, поэтому тело прежнего клиента
 // ({soundEffects, autoCorrection}) остаётся валидным и не затирает остальные ключи. Лишние ключи, в том
@@ -50,11 +52,11 @@ const PreferencesObjectSchema = z.record(z.string(), z.json());
 
 type PreferencesObject = z.infer<typeof PreferencesObjectSchema>;
 
-// ARCHITECT: план и язык приходят из строки, а не из токена: и то, и другое — серверные данные (§16.5).
+// ARCHITECT: строка профиля читается только за настройками и языком интерфейса: план переехал в
+// entitlements, чтобы у тарифа был один владелец, а не два (§16.9).
 const SettingsRowSchema = z.strictObject({
     preferences: z.unknown(),
     locale: z.enum(LOCALES),
-    plan: z.enum(["free", "pro"]),
 });
 
 type SettingsRow = z.infer<typeof SettingsRowSchema>;
@@ -102,8 +104,8 @@ const READ_MAX = 60;
 const WRITE_WINDOW_MS = 15 * 60_000;
 const WRITE_MAX = 20;
 
-// ARCHITECT: набор читаемых колонок один на GET и PATCH: оба отдают один и тот же конверт.
-const SELECTED_COLUMNS = "preferences, locale, plan";
+// ARCHITECT: набор читаемых колонок профиля один на GET и PATCH: оба отдают один и тот же конверт.
+const SELECTED_COLUMNS = "preferences, locale";
 
 /** Конверт настроек: plan идёт рядом с settings, а не внутри него — тариф не настройка пользователя. */
 interface SettingsResponse {
@@ -111,8 +113,8 @@ interface SettingsResponse {
     readonly plan: Plan;
 }
 
-function toSettingsResponse(row: SettingsRow): SettingsResponse {
-    return { settings: toSettingsDto(row), plan: row.plan };
+function toSettingsResponse(row: SettingsRow, plan: Plan): SettingsResponse {
+    return { settings: toSettingsDto(row), plan };
 }
 
 export function createSettingsRouter(options: { readonly env: SupabaseEnv }): Router {
@@ -133,6 +135,24 @@ export function createSettingsRouter(options: { readonly env: SupabaseEnv }): Ro
     // ARCHITECT: кэш проверки токена — на экземпляр роутера: verifyAccessToken сам ограничивает срок записи
     // min от ttl кэша и exp токена.
     const tokenCache = createInMemoryTokenCache();
+
+    // ARCHITECT: единый источник плана — public.entitlements (его же читают reserve_*/get_or_create_entitlements):
+    // профильного дубля больше нет, а RPC заводит строку с тарифом free, если её ещё нет (§16.9).
+    const readPlan = async (userId: string): Promise<Plan> => {
+        const { data, error } = await createServiceClient(env).rpc("get_or_create_entitlements", {
+            p_user_id: userId,
+        });
+
+        if (error !== null) throw error;
+
+        const parsed = PlanSchema.safeParse(data.plan);
+
+        // ARCHITECT: тариф приходит из БД и недоверен как любой ввод: неожидаемое значение — аномалия данных,
+        // поэтому разбор уходит в общий обработчик (500), а не в 400 (§16.13).
+        if (!parsed.success) throw parsed.error;
+
+        return parsed.data;
+    };
 
     // ARCHITECT: GET — безопасный метод: смысла запроса чтение не меняет, поэтому CSRF не применяется (как /api/profile).
     router.get("/", readLimiter, async (req: Request, res: Response) => {
@@ -173,7 +193,7 @@ export function createSettingsRouter(options: { readonly env: SupabaseEnv }): Ro
 
         if (!row.success) throw row.error;
 
-        res.status(200).json(toSettingsResponse(row.data));
+        res.status(200).json(toSettingsResponse(row.data, await readPlan(payload.userId)));
     });
 
     // ARCHITECT: PATCH — мутация: лимитер -> validateCsrf -> обработчик, как в profile.ts.
@@ -256,7 +276,7 @@ export function createSettingsRouter(options: { readonly env: SupabaseEnv }): Ro
 
         if (!row.success) throw row.error;
 
-        res.status(200).json(toSettingsResponse(row.data));
+        res.status(200).json(toSettingsResponse(row.data, await readPlan(payload.userId)));
     });
 
     return router;

@@ -78,9 +78,14 @@
     "avatar": {
       "alt": "Profile photo",
       "change": "Change photo",
+      "dialog": {
+        "hint": "JPG or PNG, up to 8 MB",
+        "title": "Profile photo"
+      },
       "error": "Could not update the photo",
       "invalid": "Use a JPG or PNG up to 8 MB",
-      "remove": "Remove photo"
+      "remove": "Remove photo",
+      "upload": "Upload photo"
     },
     "name": {
       "cancel": "Cancel",

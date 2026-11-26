@@ -1,8 +1,10 @@
-// ARCHITECT: компонент аватара проверяется на моке api-слоя и подготовки файла: UI не должен зависеть от
-// canvas и storage. Негативы обязательны: невалидный файл, 401 без тоста, in-flight гард.
+// ARCHITECT: обойма аватара: мок api-слоя, подготовки файла и тостов, свой QueryClient со шпионом на
+// invalidateQueries (renderWithProviders создал бы клиент, за которым не видно инвалидацию). Проверяются
+// карточка (ховер-оверлей вместо двух кнопок) и модалка: негативы — 401 без тоста, невалидный файл,
+// in-flight гард, Escape без мутаций.
 
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
-import { render, screen, waitFor } from "@testing-library/react";
+import { fireEvent, render, screen, waitFor, within } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactElement, ReactNode } from "react";
@@ -61,12 +63,25 @@ function makeFile(type = "image/png", size = 1024): File {
     return new File([new Uint8Array(size)], "avatar.png", { type });
 }
 
-function fileInput(container: HTMLElement): HTMLInputElement {
-    const input = container.querySelector('input[type="file"]');
+/** Файловый input живёт в портале диалога: ищем его в document.body, а не в контейнере рендера. */
+function fileInput(): HTMLInputElement {
+    const input = document.body.querySelector('input[type="file"]');
 
     if (!(input instanceof HTMLInputElement)) throw new Error("файловый input не найден");
 
     return input;
+}
+
+/** Открытие модалки так, как это делает человек: клик по затемнённому оверлею аватара. */
+async function openDialog(user: ReturnType<typeof userEvent.setup>): Promise<HTMLElement> {
+    await user.click(screen.getByRole("button", { name: "Сменить фото" }));
+
+    return screen.findByRole("dialog");
+}
+
+/** Закрытие модалки: подтверждает, что мутация действительно довела обработчик до конца. */
+async function expectDialogClosed(): Promise<void> {
+    await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
 }
 
 beforeEach(() => {
@@ -82,120 +97,193 @@ afterEach(() => {
     toastErrorMock.mockReset();
     vi.restoreAllMocks();
 });
+
 describe("ProfileAvatar", () => {
-    it("6.1 своя картинка: img с avatarUrl и кнопки «Сменить»/«Удалить»", () => {
+    it("1: аватар виден, кнопок под ним нет, правит оверлей с aria-label", () => {
         const { container } = renderAvatar({ avatarUrl: OWN_URL });
         const image = container.querySelector("img");
+        const overlay = screen.getByRole("button", { name: "Сменить фото" });
 
         expect(image?.getAttribute("src")).toBe(OWN_URL);
         expect(image?.getAttribute("alt")).toBe("Фото профиля");
-        expect(screen.getByRole("button", { name: "Сменить фото" })).toBeInTheDocument();
-        expect(screen.getByRole("button", { name: "Удалить фото" })).toBeInTheDocument();
-    });
-
-    it("6.2 только Google: img с провайдерским src, «Удалить» нет", () => {
-        const { container } = renderAvatar({ providerAvatarUrl: PROVIDER_URL });
-
-        expect(container.querySelector("img")?.getAttribute("src")).toBe(PROVIDER_URL);
+        // ARCHITECT: подпись живёт только в aria-label — видимого текста у кнопки нет.
+        expect(overlay).toHaveTextContent("");
+        expect(screen.queryByText("Сменить фото")).not.toBeInTheDocument();
+        expect(screen.queryByText("Удалить фото")).not.toBeInTheDocument();
         expect(screen.queryByRole("button", { name: "Удалить фото" })).not.toBeInTheDocument();
     });
 
-    it("6.3 обе ссылки null: иконка вместо img, «Удалить» нет", () => {
-        const { container } = renderAvatar();
+    it("10: цепочка своя → Google → User и замена битого источника", () => {
+        const own = renderAvatar({ avatarUrl: OWN_URL });
 
-        expect(container.querySelector("img")).toBeNull();
-        expect(container.querySelector("svg")).not.toBeNull();
-        expect(screen.queryByRole("button", { name: "Удалить фото" })).not.toBeInTheDocument();
+        expect(own.container.querySelector("img")?.getAttribute("src")).toBe(OWN_URL);
+        own.unmount();
+
+        const provider = renderAvatar({ providerAvatarUrl: PROVIDER_URL });
+
+        expect(provider.container.querySelector("img")?.getAttribute("src")).toBe(PROVIDER_URL);
+        provider.unmount();
+
+        const none = renderAvatar();
+
+        expect(none.container.querySelector("img")).toBeNull();
+        expect(none.container.querySelector("svg")).not.toBeNull();
+        none.unmount();
+
+        // ARCHITECT: битый source помечается локально: сервер уже отдал ссылку, повторного запроса нет.
+        const broken = renderAvatar({ avatarUrl: OWN_URL });
+        const brokenImage = broken.container.querySelector("img");
+
+        if (brokenImage === null) throw new Error("картинка аватара не отрендерена");
+
+        fireEvent.error(brokenImage);
+
+        expect(broken.container.querySelector("img")).toBeNull();
+        expect(broken.container.querySelector("svg")).not.toBeNull();
     });
+});
 
-    it("6.4 выбор файла: подготовка, upload и инвалидация профиля", async () => {
+describe("AvatarEditDialog", () => {
+    it("2: клик по оверлею открывает диалог с заголовком и подсказкой", async () => {
         const user = userEvent.setup();
-        const { container } = renderAvatar();
+
+        renderAvatar({ avatarUrl: OWN_URL });
+
+        const dialog = await openDialog(user);
+
+        expect(within(dialog).getByText("Фото профиля")).toBeInTheDocument();
+        expect(within(dialog).getByText("JPG или PNG, до 8 МБ")).toBeInTheDocument();
+    });
+
+    it("3: «Загрузить фото» есть всегда, «Удалить фото» — только при своей картинке", async () => {
+        const user = userEvent.setup();
+        const own = renderAvatar({ avatarUrl: OWN_URL });
+
+        await openDialog(user);
+
+        expect(screen.getByRole("button", { name: "Загрузить фото" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Удалить фото" })).toBeInTheDocument();
+
+        await user.keyboard("{Escape}");
+        await expectDialogClosed();
+        own.unmount();
+
+        renderAvatar({ providerAvatarUrl: PROVIDER_URL });
+
+        await openDialog(user);
+
+        expect(screen.getByRole("button", { name: "Загрузить фото" })).toBeInTheDocument();
+        expect(screen.queryByRole("button", { name: "Удалить фото" })).not.toBeInTheDocument();
+    });
+
+    it("4: выбор файла: подготовка, upload, инвалидация и закрытие диалога", async () => {
+        const user = userEvent.setup();
         const file = makeFile();
 
+        renderAvatar();
         uploadAvatarMock.mockResolvedValue({ avatarPath: "u-1/new.png" });
 
-        await user.upload(fileInput(container), file);
+        await openDialog(user);
+        await user.upload(fileInput(), file);
 
         await waitFor(() => expect(uploadAvatarMock).toHaveBeenCalledWith(DATA_URL));
         expect(prepareMock).toHaveBeenCalledWith(file);
         expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["profile"] });
+
+        await expectDialogClosed();
     });
 
-    it("6.5 невалидный файл: тост invalid, upload не вызван", async () => {
+    it("5: «Удалить фото»: deleteAvatar, инвалидация и закрытие диалога", async () => {
         const user = userEvent.setup();
-        const { container } = renderAvatar();
 
-        prepareMock.mockRejectedValue(new Error("bad file"));
+        renderAvatar({ avatarUrl: OWN_URL });
+        deleteAvatarMock.mockResolvedValue({ avatarPath: null });
 
-        await user.upload(fileInput(container), makeFile());
+        await openDialog(user);
+        await user.click(screen.getByRole("button", { name: "Удалить фото" }));
 
-        await waitFor(() =>
-            expect(toastErrorMock).toHaveBeenCalledWith("Подойдёт JPG или PNG до 8 МБ")
-        );
+        await waitFor(() => expect(deleteAvatarMock).toHaveBeenCalledTimes(1));
+        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["profile"] });
         expect(uploadAvatarMock).not.toHaveBeenCalled();
+
+        await expectDialogClosed();
     });
-    it("6.6 ошибка upload: 500 даёт тост, 401 — без тоста", async () => {
+    it("6: ошибка upload: 500 даёт тост и открытый диалог, 401 — без тоста", async () => {
         const user = userEvent.setup();
-        const { container } = renderAvatar();
-        const input = fileInput(container);
+
+        renderAvatar();
+        await openDialog(user);
 
         uploadAvatarMock.mockRejectedValueOnce(new ApiError(500, "Internal"));
-
-        await user.upload(input, makeFile());
+        await user.upload(fileInput(), makeFile());
         await waitFor(() =>
             expect(toastErrorMock).toHaveBeenCalledWith("Не удалось обновить фото")
         );
 
+        // ARCHITECT: при ошибке модалка остаётся открытой — видно, что действие не прошло.
+        expect(screen.getByRole("dialog")).toBeInTheDocument();
+
         toastErrorMock.mockReset();
         uploadAvatarMock.mockRejectedValueOnce(new ApiError(401, "Unauthorized"));
-
-        await user.upload(input, makeFile());
+        await user.upload(fileInput(), makeFile());
         await waitFor(() => expect(uploadAvatarMock).toHaveBeenCalledTimes(2));
 
         // ARCHITECT: 401 разбирает общий useAuthExpiry через useProfile — свой тост был бы вторым.
         expect(toastErrorMock).not.toHaveBeenCalled();
     });
 
-    it("6.7 «Удалить»: deleteAvatar и инвалидация профиля", async () => {
+    it("7: сбой подготовки файла: тост invalid, upload не вызван", async () => {
         const user = userEvent.setup();
 
-        renderAvatar({ avatarUrl: OWN_URL });
-        deleteAvatarMock.mockResolvedValue({ avatarPath: null });
+        renderAvatar();
+        prepareMock.mockRejectedValue(new Error("bad file"));
+        await openDialog(user);
+        await user.upload(fileInput(), makeFile());
 
-        await user.click(screen.getByRole("button", { name: "Удалить фото" }));
-
-        await waitFor(() => expect(deleteAvatarMock).toHaveBeenCalledTimes(1));
-        expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["profile"] });
+        await waitFor(() =>
+            expect(toastErrorMock).toHaveBeenCalledWith("Подойдёт JPG или PNG до 8 МБ")
+        );
+        expect(uploadAvatarMock).not.toHaveBeenCalled();
     });
 
-    it("6.8 in-flight: второй выбор файла до завершения не запускает второй upload", async () => {
+    it("8: in-flight: второй файл до завершения не запускает второй upload", async () => {
         const user = userEvent.setup();
-        const { container } = renderAvatar();
         let resolveUpload: (value: { avatarPath: string }) => void = () => undefined;
 
+        renderAvatar();
         uploadAvatarMock.mockReturnValue(
             new Promise((resolve) => {
                 resolveUpload = resolve;
             })
         );
 
-        const input = fileInput(container);
-
-        await user.upload(input, makeFile());
+        await openDialog(user);
+        await user.upload(fileInput(), makeFile());
         await waitFor(() => expect(uploadAvatarMock).toHaveBeenCalledTimes(1));
 
-        await user.upload(input, makeFile());
+        await user.upload(fileInput(), makeFile());
 
         expect(uploadAvatarMock).toHaveBeenCalledTimes(1);
 
         resolveUpload({ avatarPath: "u-1/new.png" });
         await waitFor(() => expect(invalidateSpy).toHaveBeenCalledWith({ queryKey: ["profile"] }));
     });
+
+    it("9: Escape закрывает диалог без мутаций", async () => {
+        const user = userEvent.setup();
+
+        renderAvatar({ avatarUrl: OWN_URL });
+        await openDialog(user);
+        await user.keyboard("{Escape}");
+        await expectDialogClosed();
+
+        expect(uploadAvatarMock).not.toHaveBeenCalled();
+        expect(deleteAvatarMock).not.toHaveBeenCalled();
+    });
 });
 
 describe("prepareAvatarDataUrl (реальный модуль)", () => {
-    it("6.9 неподдерживаемый тип файла отклоняется", async () => {
+    it("11: неподдерживаемый тип файла отклоняется", async () => {
         const { prepareAvatarDataUrl } =
             await vi.importActual<typeof import("@/lib/avatarImage")>("@/lib/avatarImage");
 
@@ -204,7 +292,7 @@ describe("prepareAvatarDataUrl (реальный модуль)", () => {
         ).rejects.toThrow();
     });
 
-    it("6.10 файл больше 8 МБ отклоняется", async () => {
+    it("12: файл больше 8 МБ отклоняется", async () => {
         const { prepareAvatarDataUrl } =
             await vi.importActual<typeof import("@/lib/avatarImage")>("@/lib/avatarImage");
         const big = new File([new Uint8Array(8 * 1024 * 1024 + 1)], "big.png", {

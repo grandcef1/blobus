@@ -1,11 +1,11 @@
 {
   "intro": {
     "title": "Definamos tu nivel",
-    "subtitle": "Test adaptativo: la dificultad se ajusta a tus respuestas. Nivel según el MCER, puntuación de 0 a 100.",
+    "subtitle": "Forma fija: treinta preguntas, la misma dificultad para todos. Nivel según el MCER, puntuación de 0 a 100.",
     "points": {
-      "questions": "Veinte preguntas: diez de gramática y diez de inglés general.",
-      "duration": "Unos siete minutos a un ritmo tranquilo.",
-      "adaptive": "La dificultad se adapta a tus respuestas: el test es adaptativo."
+      "questions": "Treinta preguntas: cinco por cada nivel del MCER, de A1 a C2.",
+      "duration": "Unos diez minutos a un ritmo tranquilo.",
+      "adaptive": "La forma es la misma para todos, así que el nivel se mide con una sola escala."
     },
     "listeningToggle": "Añadir una prueba de comprensión auditiva",
     "listeningHint": "Seis tareas cortas de comprensión auditiva después de las preguntas principales. También puedes hacerla más tarde: aparecerá una tarjeta en Resumen."
@@ -13,6 +13,7 @@
   "test": {
     "question": "Pregunta {{number}} de {{total}}",
     "optionsLabel": "Opciones de respuesta",
+    "error": "No se pudo conectar con el servidor del test",
     "toListening": "Ir a comprensión auditiva",
     "toResults": "Ir a resultados"
   },

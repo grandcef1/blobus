@@ -1,11 +1,11 @@
 {
   "intro": {
     "title": "Find your level",
-    "subtitle": "Adaptive test: difficulty follows your answers. Level on the CEFR scale, score from 0 to 100.",
+    "subtitle": "Fixed form: thirty questions, the same difficulty for everyone. Level on the CEFR scale, score from 0 to 100.",
     "points": {
-      "questions": "Twenty questions: ten on grammar and ten on general English.",
-      "duration": "About seven minutes at a calm pace.",
-      "adaptive": "Difficulty adapts to your answers — the test is adaptive."
+      "questions": "Thirty questions: five for each CEFR level, from A1 to C2.",
+      "duration": "About ten minutes at a calm pace.",
+      "adaptive": "The form is the same for everyone, so the level is measured on one scale."
     },
     "listeningToggle": "Add a listening check",
     "listeningHint": "Six short listening tasks after the main questions. You can also take it later — a card will appear in Overview."
@@ -13,6 +13,7 @@
   "test": {
     "question": "Question {{number}} of {{total}}",
     "optionsLabel": "Answer options",
+    "error": "Could not reach the test server",
     "toListening": "Go to listening",
     "toResults": "Go to results"
   },

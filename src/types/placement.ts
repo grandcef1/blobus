@@ -18,7 +18,9 @@ export interface PlacementItem {
     level: EnglishLevel;
     prompt: string;
     options: PlacementOption[];
-    correctOptionId: string;
+    // ARCHITECT: верный ответ и разбор необязательны: серверная форма (fixed-30) приходит без них, поэтому
+    // наличие ключа на клиенте — признак legacy-мока, а не контракт теста (C-0d3b).
+    correctOptionId?: string;
     explanation?: string;
     /** Только для аудирования: предложение, которое читает синтезатор речи. */
     audioText?: string;

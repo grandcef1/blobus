@@ -3,7 +3,7 @@
 // и «вижу одно, получаю другое» невозможно. Новых зависимостей нет: pointer events, input range, canvas.
 
 import { useRef, useState } from "react";
-import type { PointerEvent as ReactPointerEvent } from "react";
+import type { KeyboardEvent as ReactKeyboardEvent, PointerEvent as ReactPointerEvent } from "react";
 import { useTranslation } from "react-i18next";
 import { Check, Loader2, RotateCcw, X } from "lucide-react";
 
@@ -24,6 +24,15 @@ const VIEWPORT = 256;
 const ZOOM_MIN = 1;
 const ZOOM_MAX = 3;
 const ZOOM_STEP = 0.01;
+// ARCHITECT: шаг стрелок в CSS-пикселях: 8 — точная подстройка, 24 с Shift — быстрый перенос кадра.
+const PAN_STEP = 8;
+const PAN_STEP_FAST = 24;
+const ARROW_DELTAS: Record<string, { readonly x: number; readonly y: number } | undefined> = {
+    ArrowLeft: { x: -1, y: 0 },
+    ArrowRight: { x: 1, y: 0 },
+    ArrowUp: { x: 0, y: -1 },
+    ArrowDown: { x: 0, y: 1 },
+};
 const ICON = "size-4";
 const ICON_BUTTON =
     "flex size-11 shrink-0 items-center justify-center rounded-lg text-[#f0f0f5]/40 transition-colors hover:text-[#f0f0f5]/80 disabled:opacity-50";
@@ -73,6 +82,26 @@ export function AvatarCropEditor({ image, applying, onApply, onCancel }: AvatarC
         setZoom(next);
     };
 
+    // ARCHITECT: стрелки двигают кадр так же, как перетаскивание: та же модель кропа и тот же кламп, поэтому
+    // клавиатура и мышь дают один результат. preventDefault гасит прокрутку страницы.
+    const handleKeyDown = (event: ReactKeyboardEvent<HTMLDivElement>): void => {
+        const delta = ARROW_DELTAS[event.key];
+
+        if (delta === undefined) return;
+
+        event.preventDefault();
+
+        const step = event.shiftKey ? PAN_STEP_FAST : PAN_STEP;
+
+        setOffset(
+            clampOffset(image, {
+                ...transform,
+                offsetX: offset.x + delta.x * step,
+                offsetY: offset.y + delta.y * step,
+            })
+        );
+    };
+
     const handleApply = (): void => {
         try {
             onApply(renderCroppedAvatar(image, transform));
@@ -85,7 +114,13 @@ export function AvatarCropEditor({ image, applying, onApply, onCancel }: AvatarC
     return (
         <div className="mt-5 flex flex-col gap-4">
             <div
-                className="relative mx-auto size-[256px] cursor-grab touch-none overflow-hidden rounded-full bg-[#1a1a1c] active:cursor-grabbing"
+                tabIndex={0}
+                aria-label={t("profile.avatar.crop.hint")}
+                className={cn(
+                    "relative mx-auto size-[256px] cursor-grab touch-none overflow-hidden rounded-full bg-[#1a1a1c] active:cursor-grabbing",
+                    FOCUS_RING
+                )}
+                onKeyDown={handleKeyDown}
                 onPointerDown={handlePointerDown}
                 onPointerMove={handlePointerMove}
                 onPointerUp={handlePointerUp}
@@ -101,6 +136,9 @@ export function AvatarCropEditor({ image, applying, onApply, onCancel }: AvatarC
                         width: image.width * rect.displayScale,
                         height: image.height * rect.displayScale,
                         transform: `translate(calc(-50% + ${offset.x}px), calc(-50% + ${offset.y}px))`,
+                        // ARCHITECT: transition у картинки нет: смещение меняется прямо в pointermove, а
+                        // плавность даёт сам браузер через will-change.
+                        willChange: "transform",
                     }}
                     className="absolute left-1/2 top-1/2 max-w-none select-none"
                 />

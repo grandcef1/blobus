@@ -384,6 +384,52 @@ describe("AvatarEditDialog", () => {
         expect(uploadAvatarMock).not.toHaveBeenCalled();
         expect(deleteAvatarMock).not.toHaveBeenCalled();
     });
+
+    /** Смещение кадра из inline-стиля превью: та же величина, что уходит в computeCropRect. */
+    function previewOffset(): { readonly x: number; readonly y: number } {
+        const preview = document.body.querySelector('img[alt=""]');
+        const transform = preview instanceof HTMLImageElement ? preview.style.transform : "";
+        const match =
+            /translate\(calc\(-50% \+ (-?[\d.]+)px\), calc\(-50% \+ (-?[\d.]+)px\)\)/.exec(
+                transform
+            );
+
+        if (match === null) throw new Error(`смещение кадра не найдено в стиле: ${transform}`);
+
+        return { x: Number(match[1]), y: Number(match[2]) };
+    }
+
+    it("15: стрелки двигают кадр и не выходят за границы clamp", async () => {
+        const user = userEvent.setup();
+
+        renderAvatar();
+        await openDialog(user);
+        await pickFile(user);
+
+        const viewport = screen.getByLabelText("Перетащите фото и выберите масштаб");
+
+        viewport.focus();
+
+        expect(viewport).toHaveFocus();
+
+        await user.keyboard("{ArrowRight}");
+
+        expect(previewOffset().x).toBe(8);
+        expect(previewOffset().y).toBe(0);
+
+        await user.keyboard("{ArrowDown}");
+
+        // ARCHITECT: у картинки 800×600 при zoom=1 вертикального запаса нет — кламп держит y на нуле.
+        expect(previewOffset().y).toBe(0);
+
+        for (let step = 0; step < 20; step += 1) {
+            await user.keyboard("{ArrowRight}");
+        }
+
+        // ARCHITECT: предел тот же, что считает модель кропа: (800 * 256/600 − 256) / 2; браузер сериализует
+        // значение стиля с округлением, поэтому сравнение с допуском.
+        expect(previewOffset().x).toBeCloseTo((800 * (256 / 600) - 256) / 2, 3);
+    });
 });
 
 describe("avatarImage (реальный модуль)", () => {

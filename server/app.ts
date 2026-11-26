@@ -10,6 +10,7 @@ import { createMemoryRateLimitStore, createRateLimiter } from "./rate-limit.ts";
 import type { RateLimitStore } from "./rate-limit.ts";
 import { createAuthRouter } from "./routes/auth.ts";
 import type { AuthLimiters } from "./routes/auth.ts";
+import { createPlacementRouter } from "./routes/placement.ts";
 import { createProfileRouter } from "./routes/profile.ts";
 import { createSessionsRouter } from "./routes/sessions.ts";
 import { createSettingsRouter } from "./routes/settings.ts";
@@ -125,6 +126,9 @@ export function buildApp(registerRoutes?: (app: Express) => void, env?: Supabase
             createAuthRouter({ env, limiters: createAuthLimiters(createMemoryRateLimitStore()) })
         );
         // ARCHITECT: доменные роутеры чтения монтируются рядом с auth, до шва registerRoutes и 404-fallback.
+        // ARCHITECT: тест уровня — первый доменный роутер с записью: уровень и балл считает сервер, поэтому
+        // внутри роутера свои лимитеры чтения и отправки.
+        app.use("/api/placement", createPlacementRouter({ env }));
         app.use("/api/profile", createProfileRouter({ env }));
         app.use("/api/sessions", createSessionsRouter({ env }));
         app.use("/api/settings", createSettingsRouter({ env }));

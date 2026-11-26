@@ -165,6 +165,7 @@ export type Database = {
                     id: string;
                     locale: string;
                     onboarding_completed_at: string | null;
+                    preferences: NonNullable<Json>;
                     updated_at: string;
                 };
                 ComputedFields: never;
@@ -176,6 +177,7 @@ export type Database = {
                     id: string;
                     locale?: string;
                     onboarding_completed_at?: string | null;
+                    preferences?: NonNullable<Json>;
                     updated_at?: string;
                 };
                 Update: {
@@ -186,6 +188,7 @@ export type Database = {
                     id?: string;
                     locale?: string;
                     onboarding_completed_at?: string | null;
+                    preferences?: NonNullable<Json>;
                     updated_at?: string;
                 };
                 Relationships: [];

@@ -196,18 +196,8 @@ export function createVocabularyRouter(options: { readonly env: SupabaseEnv }): 
         if (!parsed.success) throw parsed.error;
 
         // ARCHITECT: null из БД остаётся null — пустая строка соврала бы, что перевода нет именно такого.
-        const vocabulary = parsed.data.map((row) => ({
-            id: row.id,
-            term: row.term,
-            translation: row.translation,
-            context: row.context,
-            exampleTranslation: row.example_translation,
-            sourceLessonId: row.source_lesson_id,
-            stage: row.stage,
-            nextDueAt: row.next_due_at,
-            createdAt: row.created_at,
-            updatedAt: row.updated_at,
-        }));
+        // ARCHITECT: маппер тот же, что у POST/PATCH: иначе формы ответа чтения и записи разошлись бы.
+        const vocabulary = parsed.data.map(toVocabularyEntry);
 
         res.status(200).json({ vocabulary });
     });

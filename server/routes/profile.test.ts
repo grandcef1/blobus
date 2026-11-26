@@ -17,6 +17,51 @@ import {
     readLocalStack,
 } from "../test-stack.ts";
 
+// ARCHITECT: стенд для уборки сироты: ломается только update профиля, а загрузка и удаление объекта идут
+// настоящим сервисным клиентом. Флаг по умолчанию выключен, поэтому остальные тесты файла работают как раньше.
+const brokenProfileUpdate = vi.hoisted(() => ({ enabled: false }));
+const PROFILE_UPDATE_FAILED = "PROFILE_UPDATE_FAILED";
+
+vi.mock("../supabase.ts", async (importOriginal) => {
+    const actual = await importOriginal<typeof import("../supabase.ts")>();
+
+    return {
+        ...actual,
+        createServiceClient: (env: SupabaseEnv) => {
+            const client = actual.createServiceClient(env);
+            const originalFrom = client.from.bind(client);
+            type ServiceClient = ReturnType<typeof actual.createServiceClient>;
+            type TableName = Parameters<ServiceClient["from"]>[0];
+
+            // ARCHITECT: переопределяется только клиентский from: storage, auth и чтение профиля не меняются.
+            client.from = ((table: TableName) => {
+                const scoped = originalFrom(table);
+
+                if (!brokenProfileUpdate.enabled || table !== "profiles") return scoped;
+
+                return new Proxy(scoped, {
+                    get(target, property, receiver) {
+                        if (property === "update") {
+                            return () => ({
+                                eq: async () => ({
+                                    data: null,
+                                    error: new Error(PROFILE_UPDATE_FAILED),
+                                }),
+                            });
+                        }
+
+                        const value = Reflect.get(target, property, receiver);
+
+                        return typeof value === "function" ? value.bind(target) : value;
+                    },
+                });
+            }) as unknown as typeof client.from;
+
+            return client;
+        },
+    };
+});
+
 interface RunningApp {
     readonly server: Server;
     readonly baseUrl: string;
@@ -1005,6 +1050,54 @@ describe("POST /api/profile/avatar", () => {
             expect(response.status).toBe(413);
             expect(errorBody(await response.json()).error.code).toBe("PAYLOAD_TOO_LARGE");
             expect(await dbProfile(me.id)).toEqual(before);
+        });
+    }, 60_000);
+
+    it("6.10 update профиля падает: объект-сирота удалён, ответ безопасный", async () => {
+        await withApp(async (app) => {
+            const me = await freshSession(app.baseUrl);
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+
+            brokenProfileUpdate.enabled = true;
+
+            try {
+                const response = await postJson(
+                    app.baseUrl,
+                    "/api/profile/avatar",
+                    { image: pngDataUrl(256, 256, 65_536) },
+                    headers
+                );
+                const text = await response.text();
+                const body = errorBody(JSON.parse(text));
+
+                // ARCHITECT: наружу уходит только безопасный конверт: ни текста ошибки провайдера, ни стека,
+                // ни имени бакета (§16.11).
+                expect(response.status).toBe(500);
+                expect(body.error.code).toBe("INTERNAL");
+                expect(text).not.toContain(PROFILE_UPDATE_FAILED);
+                expect(text).not.toContain("stack");
+                expect(text).not.toContain("avatars");
+            } finally {
+                brokenProfileUpdate.enabled = false;
+            }
+
+            // ARCHITECT: путь в профиле не записан, а только что загруженный объект убран — сирот в бакете нет.
+            expect(await avatarPathOf(me.id)).toBeNull();
+            expect(await avatarNames(me.id)).toEqual([]);
+
+            const recovered = await postJson(
+                app.baseUrl,
+                "/api/profile/avatar",
+                { image: pngDataUrl(256, 256, 65_536) },
+                headers
+            );
+            const recoveredBody = (await recovered.json()) as { avatarPath: string };
+
+            // ARCHITECT: стенд ломает только один вызов update — обычная загрузка после него снова проходит.
+            expect(recovered.status).toBe(200);
+            expect(recoveredBody.avatarPath.startsWith(`${me.id}/`)).toBe(true);
+
+            await clearAvatars(me.id);
         });
     }, 60_000);
 });

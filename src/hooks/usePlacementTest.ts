@@ -29,7 +29,7 @@ import type { EnglishLevel } from "@/types/onboarding";
 
 interface PlacementTestController {
     phase: PlacementPhase;
-    savedResult: PlacementResult | null;
+    savedResult: PlacementResultDto | null;
     item: PlacementItem | null;
     questionNumber: number;
     total: number;
@@ -76,7 +76,7 @@ export function usePlacementTest(
         reset,
     } = usePlacementSession();
 
-    const [savedResult, setSavedResult] = useState<PlacementResult | null>(null);
+    const [savedResult, setSavedResult] = useState<PlacementResultDto | null>(null);
     // ARCHITECT: гарды в ref, а не в состоянии: два клика в одном такте не успевают увидеть setState и оба
     // ушли бы в сеть — повторный запрос блокируется сразу.
     const submittingRef = useRef(false);
@@ -93,7 +93,7 @@ export function usePlacementTest(
 
                 if (cancelled || dto === null) return;
 
-                setSavedResult(toPlacementResult(dto));
+                setSavedResult(dto);
                 setPhase("result");
             } catch {
                 // ARCHITECT: сбой чтения не мешает пройти тест: отказ станет виден на отправке ответов.
@@ -152,12 +152,11 @@ export function usePlacementTest(
 
         try {
             const dto = await submitPlacementAnswers(payload);
-            const bridged = toPlacementResult(dto);
 
-            // ARCHITECT: legacy-хранилище обновляется для читателей профиля и уровня новой сессии
-            // (useStartSession): серверный результат авторитетен, мост нужен только им.
-            saveResult(bridged);
-            setSavedResult(bridged);
+            // ARCHITECT: мост DTO→legacy-результат живёт до progress-real: его читают профиль, навыки и
+            // мок-сессия, а экран итога читает сам DTO.
+            saveResult(toPlacementResult(dto));
+            setSavedResult(dto);
 
             return dto;
         } catch {
@@ -229,7 +228,7 @@ export function usePlacementTest(
             // ARCHITECT: сессия закрывается на выходе из сводки: вернувшись на шаг позже, пользователь
             // снова увидит итог, а не незаконченный тест.
             reset();
-            onComplete(savedResult.overall);
+            onComplete(savedResult.level);
         },
     };
 }

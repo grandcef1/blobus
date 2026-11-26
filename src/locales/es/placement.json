@@ -31,12 +31,7 @@
   "result": {
     "title": "Nivel definido",
     "subtitle": "El nivel aparecerá en el resumen antes de la primera lección y en tu perfil.",
-    "score": "de 100 · nivel {{level}}",
-    "trackGrammar": "Gramática",
-    "trackGeneral": "Inglés general",
-    "listeningNotChecked": "sin comprobar",
-    "listeningHint": "La comprensión auditiva no está comprobada: puedes hacerla aquí o en Resumen; la tarjeta espera en la página de inicio.",
-    "checkListening": "Comprobar comprensión auditiva"
+    "score": "de 100 · nivel {{level}}"
   },
   "levels": {
     "a1": "Palabras sueltas y frases sencillas sobre ti y cosas cotidianas.",

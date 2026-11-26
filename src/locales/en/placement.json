@@ -31,12 +31,7 @@
   "result": {
     "title": "Level set",
     "subtitle": "The level appears in the summary before your first lesson and in your profile.",
-    "score": "out of 100 · level {{level}}",
-    "trackGrammar": "Grammar",
-    "trackGeneral": "General English",
-    "listeningNotChecked": "not checked",
-    "listeningHint": "Listening is not checked yet: you can take it here or in Overview — the card waits on the start page.",
-    "checkListening": "Check listening"
+    "score": "out of 100 · level {{level}}"
   },
   "levels": {
     "a1": "Isolated words and simple phrases about yourself and everyday things.",

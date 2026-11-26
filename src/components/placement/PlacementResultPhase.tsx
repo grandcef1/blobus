@@ -1,18 +1,17 @@
 // ARCHITECT: фаза итога теста — заголовок, сводка и переход дальше. Вынесена из шага: он стал
 // оркестратором четырёх фаз и упёрся в лимит строк на компонент.
-// ARCHITECT: аудирование открывается экраном /listening в интерфейсе мастера (без полосы прогресса):
-// у проверки есть адрес, и вернуться к ней можно из истории браузера.
+// ARCHITECT: экран показывает только серверный результат: вход в аудирование отсюда убран (C-0d3d) —
+// проверка осталась отдельным экраном /listening, куда ведёт карточка «Обзора».
 
-import { useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
-import type { PlacementResult } from "@/types/placement";
+import type { PlacementResultDto } from "@/types/placement";
 import { ONBOARDING_STEP_TITLE_KEYS } from "@/types/onboarding";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepNav } from "@/components/onboarding/StepNav";
 import { PlacementResultView } from "@/components/placement/PlacementResult";
 
 interface PlacementResultPhaseProps {
-    result: PlacementResult;
+    result: PlacementResultDto;
     step: number;
     totalSteps: number;
     onBack: () => void;
@@ -28,7 +27,6 @@ export function PlacementResultPhase({
 }: PlacementResultPhaseProps) {
     const { t } = useTranslation("placement");
     const { t: tCommon } = useTranslation("common");
-    const navigate = useNavigate();
 
     return (
         <div className="mx-auto w-full max-w-xl">
@@ -40,10 +38,7 @@ export function PlacementResultPhase({
                 totalSteps={totalSteps}
             />
 
-            <PlacementResultView
-                result={result}
-                onCheckListening={() => navigate("/listening")}
-            />
+            <PlacementResultView result={result} />
 
             <StepNav onBack={onBack} onNext={onContinue} nextLabel={t("shell.continue")} />
         </div>

@@ -219,7 +219,7 @@ describe("хук шага теста", () => {
         expect(submitted[0]).toEqual({ questionId: QUESTIONS[0].id, choice: 2 });
 
         expect(adapter.saveResult).toHaveBeenCalledWith(BRIDGE);
-        expect(result.current.savedResult).toEqual(BRIDGE);
+        expect(result.current.savedResult).toEqual(DTO);
         expect(result.current.phase).toBe("result");
     });
     it("повторные клики не дублируют отправку", async () => {
@@ -280,7 +280,7 @@ describe("хук шага теста", () => {
         await flush();
 
         expect(result.current.phase).toBe("result");
-        expect(result.current.savedResult).toEqual(BRIDGE);
+        expect(result.current.savedResult).toEqual(DTO);
 
         act(() => result.current.complete());
 

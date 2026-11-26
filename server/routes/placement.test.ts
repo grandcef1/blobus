@@ -783,4 +783,20 @@ describe("форма и один результат на пользовател�
             expect(await dbResults(me.id)).toEqual([{ level: "C1", score: 80 }]);
         });
     }, 30_000);
+
+    it("18: банк заданий только на английском — кириллицы нет ни в стеме, ни в вариантах", () => {
+        // ARCHITECT: банк — учебный контент, который показывается на любой локали: русские подсказки и варианты
+        // сломали бы en/es и профессиональный формат теста. Regex в escape-форме, чтобы и тест оставался ASCII.
+        const cyrillic = /[\u0400-\u04FF]/;
+
+        for (const question of QUESTIONS) {
+            expect(cyrillic.test(question.id)).toBe(false);
+            expect(cyrillic.test(question.prompt)).toBe(false);
+
+            for (const option of question.options) {
+                expect(cyrillic.test(option.id)).toBe(false);
+                expect(cyrillic.test(option.text)).toBe(false);
+            }
+        }
+    });
 });

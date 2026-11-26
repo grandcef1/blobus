@@ -1,20 +1,23 @@
-// ARCHITECT: серверный банк теста уровня — профессиональная ФИКСИРОВАННАЯ форма из 30 заданий: по пять на
-// каждый уровень (два grammar + три general). Форма одна на всех, поэтому уровень считается по общей шкале, а
-// пересдача не подбирает удобный набор. Верный ответ живёт только здесь и наружу не отдаётся (publicQuestions),
-// балл и уровень считает исключительно сервер — клиентские score/level не принимаются вовсе (§16.2).
-// ARCHITECT: задания оригинальные: тексты написаны для этого банка по дескрипторам CEFR (Council of Europe) с
-// подачей в стиле EF SET; материалы EF SET, Cambridge и других экзаменов не воспроизводятся. Рубрика: ровно
-// один верный вариант из четырёх, дистракторы — та же часть речи и типичные ошибки учащихся, без «all/none of
-// the above» и двусмысленности; general — лексика в контексте, прагматика и функциональный язык, не trivia.
-// Модуль чистый: без DOM, React и Supabase.
+// ARCHITECT: server-side placement question bank: a professional FIXED form of 30 items, five per CEFR level
+// (two grammar + three general). The form is the same for everyone, so the level is measured on one scale and a
+// retake cannot pick an easier set. The correct option lives only here and never leaves the server
+// (publicQuestions); the score and the level are computed by the server alone — client-supplied score/level are
+// rejected outright (16.2).
+// ARCHITECT: every item is original: the texts were written for this bank from the CEFR descriptors (Council of
+// Europe) in the EF SET presentation style; EF SET, Cambridge and other exam materials are never reproduced. The
+// bank is English-only, because the form is shown on every locale and must read as one professional test: no
+// Russian hints or options anywhere. Rubric: exactly one correct option out of four, distractors share the part
+// of speech and repeat typical learner errors, with no "all/none of the above" and no ambiguity; general covers
+// lexis in context, pragmatics and functional language rather than trivia.
+// Pure module: no DOM, React or Supabase.
 
-/** Дорожка задания: grammar — форма и конструкция, general — лексика в контексте и функциональный язык. */
+/** Item track: grammar is form and construction, general is lexis in context and functional language. */
 export type PlacementSkill = "grammar" | "general";
 
-/** Уровень по CEFR: он же ограничение колонки placement_results.level. */
+/** CEFR level: it is also the placement_results.level constraint. */
 export type PlacementLevel = "A1" | "A2" | "B1" | "B2" | "C1" | "C2";
 
-/** Вариант ответа: клиент адресует вариант по букве, как и раньше. */
+/** Answer option: the client addresses an option by letter, as before. */
 export interface PlacementOption {
     readonly id: string;
     readonly text: string;
@@ -26,23 +29,23 @@ export interface PlacementQuestion {
     readonly level: PlacementLevel;
     readonly prompt: string;
     readonly options: readonly [PlacementOption, PlacementOption, PlacementOption, PlacementOption];
-    /** Индекс верного варианта в options: это поле не покидает модуль. */
+    /** Index of the correct option in options: this field never leaves the module. */
     readonly correctIndex: 0 | 1 | 2 | 3;
 }
 
-/** Ответ пользователя: id вопроса и индекс выбранного варианта. */
+/** User answer: the item id and the index of the chosen option. */
 export interface PlacementAnswer {
     readonly questionId: string;
     readonly choice: number;
 }
 
-/** Итог теста: балл 0-100 и уровень по CEFR. */
+/** Test outcome: a 0-100 score and the CEFR level. */
 export interface PlacementScore {
     readonly score: number;
     readonly level: PlacementLevel;
 }
 
-/** Вопрос в том виде, в каком он уходит клиенту: без correctIndex. */
+/** Item as the client sees it: without correctIndex. */
 export interface PlacementQuestionDto {
     readonly id: string;
     readonly skill: PlacementSkill;
@@ -51,7 +54,7 @@ export interface PlacementQuestionDto {
     readonly options: readonly PlacementOption[];
 }
 
-/** Порядок заданий: от A1 к C2, внутри уровня сначала grammar — он же порядок показа формы. */
+/** Item order: A1 to C2, grammar first inside a level — it is also the order the form is shown in. */
 export const QUESTIONS: readonly PlacementQuestion[] = [
     {
         id: "grammar_a1_1",
@@ -83,7 +86,7 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_a1_1",
         skill: "general",
         level: "A1",
-        prompt: "Продавец спрашивает: «Can I help you?» Ты хочешь посмотреть товар, но пока не решил, что купить. Что ответить?",
+        prompt: 'A shop assistant asks: "Can I help you?" You want to look around first. What do you say?',
         options: [
             { id: "a", text: "Yes, I am fine." },
             { id: "b", text: "Nice to meet you." },
@@ -96,7 +99,7 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_a1_2",
         skill: "general",
         level: "A1",
-        prompt: "Ты ищешь в магазине воду. Какая вывеска подскажет, где её искать?",
+        prompt: "You are looking for water in a shop. Which sign shows where to find it?",
         options: [
             { id: "a", text: "Clothes" },
             { id: "b", text: "Drinks" },
@@ -109,7 +112,7 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_a1_3",
         skill: "general",
         level: "A1",
-        prompt: "Ты хочешь узнать время у прохожего. Как спросить?",
+        prompt: "You want to ask a stranger for the time. What do you say?",
         options: [
             { id: "a", text: "What is time now you?" },
             { id: "b", text: "Excuse me, what time is it?" },
@@ -148,7 +151,7 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_a2_1",
         skill: "general",
         level: "A2",
-        prompt: "Ты в кафе и хочешь попросить счёт. Что сказать официанту?",
+        prompt: "You are in a cafe and want to pay. What do you say to the waiter?",
         options: [
             { id: "a", text: "Give me money, please." },
             { id: "b", text: "Where is my bill is?" },
@@ -161,12 +164,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_a2_2",
         skill: "general",
         level: "A2",
-        prompt: "Объявление на вокзале: «The 6:40 train to York is delayed». Что это значит?",
+        prompt: 'An announcement at the station says: "The 6:40 train to York is delayed." What does it mean?',
         options: [
-            { id: "a", text: "поезд отменили" },
-            { id: "b", text: "поезд уже ушёл" },
-            { id: "c", text: "поезд отправится позже" },
-            { id: "d", text: "поезд приехал раньше" },
+            { id: "a", text: "The train is cancelled." },
+            { id: "b", text: "The train has already left." },
+            { id: "c", text: "The train will leave later." },
+            { id: "d", text: "The train arrived early." },
         ],
         correctIndex: 2,
     },
@@ -174,12 +177,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_a2_3",
         skill: "general",
         level: "A2",
-        prompt: "Коллега пишет: «Can you send me the file by Friday?» О чём он просит?",
+        prompt: 'A colleague writes: "Can you send me the file by Friday?" What is the colleague asking for?',
         options: [
-            { id: "a", text: "найти файл в пятницу" },
-            { id: "b", text: "прочитать файл после пятницы" },
-            { id: "c", text: "удалить файл после пятницы" },
-            { id: "d", text: "прислать файл до пятницы" },
+            { id: "a", text: "To open the file on Friday." },
+            { id: "b", text: "To read the file after Friday." },
+            { id: "c", text: "To delete the file after Friday." },
+            { id: "d", text: "To send the file before Friday." },
         ],
         correctIndex: 3,
     },
@@ -213,12 +216,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_b1_1",
         skill: "general",
         level: "B1",
-        prompt: "Руководитель пишет: «Could you look into the invoice issue and get back to me by Wednesday?» Что от тебя ждут?",
+        prompt: 'Your manager writes: "Could you look into the invoice issue and get back to me by Wednesday?" What is expected from you?',
         options: [
-            { id: "a", text: "оплатить счёт в среду" },
-            { id: "b", text: "напомнить о встрече в среду" },
-            { id: "c", text: "переслать письмо в бухгалтерию" },
-            { id: "d", text: "разобраться в проблеме и ответить до среды" },
+            { id: "a", text: "To pay the invoice on Wednesday." },
+            { id: "b", text: "To remind about the meeting on Wednesday." },
+            { id: "c", text: "To forward the email to accounts." },
+            { id: "d", text: "To check the problem and reply by Wednesday." },
         ],
         correctIndex: 3,
     },
@@ -226,12 +229,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_b1_2",
         skill: "general",
         level: "B1",
-        prompt: "В письме клиенту: «We apologize for the inconvenience and will refund your payment in full». Что сделает компания?",
+        prompt: 'A letter to a customer says: "We apologize for the inconvenience and will refund your payment in full." What will the company do?',
         options: [
-            { id: "a", text: "заменит товар" },
-            { id: "b", text: "вернёт деньги полностью" },
-            { id: "c", text: "продлит гарантию" },
-            { id: "d", text: "предложит скидку" },
+            { id: "a", text: "Replace the goods." },
+            { id: "b", text: "Refund the money in full." },
+            { id: "c", text: "Extend the guarantee." },
+            { id: "d", text: "Offer a discount." },
         ],
         correctIndex: 1,
     },
@@ -239,7 +242,7 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_b1_3",
         skill: "general",
         level: "B1",
-        prompt: "Ты не согласен с коллегой и хочешь сказать об этом мягко. Какой вариант уместен?",
+        prompt: "You disagree with a colleague and want to say it politely. Which option is appropriate?",
         options: [
             { id: "a", text: "No, that's wrong." },
             { id: "b", text: "I don't listen to this." },
@@ -278,12 +281,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_b2_1",
         skill: "general",
         level: "B2",
-        prompt: "В отчёте написано: «Sales figures fell short of our forecast». Что произошло?",
+        prompt: 'A report says: "Sales figures fell short of our forecast." What happened?',
         options: [
-            { id: "a", text: "продажи превысили прогноз" },
-            { id: "b", text: "продажи оказались ниже прогноза" },
-            { id: "c", text: "прогноз отменили" },
-            { id: "d", text: "продажи остались неизменными" },
+            { id: "a", text: "Sales were above the forecast." },
+            { id: "b", text: "Sales were below the forecast." },
+            { id: "c", text: "The forecast was cancelled." },
+            { id: "d", text: "Sales stayed the same." },
         ],
         correctIndex: 1,
     },
@@ -291,12 +294,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_b2_2",
         skill: "general",
         level: "B2",
-        prompt: "Клиент пишет: «I'd appreciate it if you could keep me posted on any changes». О чём он просит?",
+        prompt: 'A client writes: "I\'d appreciate it if you could keep me posted on any changes." What is the client asking for?',
         options: [
-            { id: "a", text: "отправить ему изменения письмом" },
-            { id: "b", text: "не менять условия договора" },
-            { id: "c", text: "подписать новые условия" },
-            { id: "d", text: "сообщать ему об изменениях" },
+            { id: "a", text: "A written summary of the changes." },
+            { id: "b", text: "No changes to the contract." },
+            { id: "c", text: "To sign the new terms." },
+            { id: "d", text: "Updates about any changes." },
         ],
         correctIndex: 3,
     },
@@ -304,12 +307,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_b2_3",
         skill: "general",
         level: "B2",
-        prompt: "На встрече коллега говорит: «Let's park that idea and come back to it after the launch». Что он предлагает?",
+        prompt: 'In a meeting a colleague says: "Let\'s park that idea and come back to it after the launch." What does the colleague suggest?',
         options: [
-            { id: "a", text: "сразу заняться этой идеей" },
-            { id: "b", text: "отложить идею и вернуться к ней позже" },
-            { id: "c", text: "отправить идею на согласование" },
-            { id: "d", text: "исключить идею из плана" },
+            { id: "a", text: "Dealing with the idea right now." },
+            { id: "b", text: "Putting the idea aside until later." },
+            { id: "c", text: "Sending the idea for approval." },
+            { id: "d", text: "Dropping the idea from the plan." },
         ],
         correctIndex: 1,
     },
@@ -343,12 +346,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_c1_1",
         skill: "general",
         level: "C1",
-        prompt: "«Her remarks were beside the point». Что имеет в виду говорящий?",
+        prompt: '"Her remarks were beside the point." What does the speaker mean?',
         options: [
-            { id: "a", text: "замечания были резкими" },
-            { id: "b", text: "замечания были не по теме" },
-            { id: "c", text: "замечания были уместны" },
-            { id: "d", text: "замечания записали неверно" },
+            { id: "a", text: "The remarks were rather harsh." },
+            { id: "b", text: "The remarks were off the topic." },
+            { id: "c", text: "The remarks were appropriate." },
+            { id: "d", text: "The remarks were written down wrongly." },
         ],
         correctIndex: 1,
     },
@@ -356,12 +359,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_c1_2",
         skill: "general",
         level: "C1",
-        prompt: "Письмо начинается так: «Further to our conversation on Tuesday, I am writing to confirm the terms we discussed». Какой это регистр?",
+        prompt: 'A letter begins: "Further to our conversation on Tuesday, I am writing to confirm the terms we discussed." What is the register of the letter?',
         options: [
-            { id: "a", text: "дружеский разговорный" },
-            { id: "b", text: "формальный деловой" },
-            { id: "c", text: "научный технический" },
-            { id: "d", text: "рекламный публицистический" },
+            { id: "a", text: "Friendly and conversational." },
+            { id: "b", text: "Formal and businesslike." },
+            { id: "c", text: "Scientific and technical." },
+            { id: "d", text: "Promotional and journalistic." },
         ],
         correctIndex: 1,
     },
@@ -369,12 +372,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_c1_3",
         skill: "general",
         level: "C1",
-        prompt: "«I'm not convinced the proposal is worth pursuing». Что говорит человек?",
+        prompt: '"I\'m not convinced the proposal is worth pursuing." What is the speaker saying?',
         options: [
-            { id: "a", text: "уверен, что предложение нужно принять" },
-            { id: "b", text: "предлагает доработать отчёт" },
-            { id: "c", text: "сомневается, стоит ли продолжать" },
-            { id: "d", text: "отказывается обсуждать тему" },
+            { id: "a", text: "The proposal should definitely be accepted." },
+            { id: "b", text: "The report needs more work." },
+            { id: "c", text: "It is doubtful whether to go ahead." },
+            { id: "d", text: "The topic is closed for discussion." },
         ],
         correctIndex: 2,
     },
@@ -408,12 +411,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_c2_1",
         skill: "general",
         level: "C2",
-        prompt: "Коллега говорит: «I don't want to steal your thunder, but the numbers tell a different story». Что он делает?",
+        prompt: 'A colleague says: "I don\'t want to steal your thunder, but the numbers tell a different story." What is the colleague doing?',
         options: [
-            { id: "a", text: "просит поделиться данными" },
-            { id: "b", text: "хвалит твою презентацию" },
-            { id: "c", text: "меняет тему разговора" },
-            { id: "d", text: "мягко перебивает и возражает фактами" },
+            { id: "a", text: "Asking to share the data." },
+            { id: "b", text: "Praising your presentation." },
+            { id: "c", text: "Changing the subject." },
+            { id: "d", text: "Interrupting gently to disagree with the facts." },
         ],
         correctIndex: 3,
     },
@@ -421,12 +424,12 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_c2_2",
         skill: "general",
         level: "C2",
-        prompt: "«The policy, however well intentioned, has done more harm than good». Какова позиция автора?",
+        prompt: '"The policy, however well intentioned, has done more harm than good." What is the author\'s position?',
         options: [
-            { id: "a", text: "признаёт замысел, но считает последствия вредными" },
-            { id: "b", text: "полностью поддерживает политику" },
-            { id: "c", text: "считает политику неясной" },
-            { id: "d", text: "предлагает отложить политику" },
+            { id: "a", text: "The intention is acknowledged, but the effects are judged harmful." },
+            { id: "b", text: "The policy is fully supported." },
+            { id: "c", text: "The policy is seen as unclear." },
+            { id: "d", text: "The policy should be postponed." },
         ],
         correctIndex: 0,
     },
@@ -434,21 +437,21 @@ export const QUESTIONS: readonly PlacementQuestion[] = [
         id: "general_c2_3",
         skill: "general",
         level: "C2",
-        prompt: "«The findings are suggestive rather than conclusive». Что утверждает автор?",
+        prompt: '"The findings are suggestive rather than conclusive." What does the author state?',
         options: [
-            { id: "a", text: "результаты окончательно доказаны" },
-            { id: "b", text: "результаты намекают на вывод, но не доказывают его" },
-            { id: "c", text: "результаты опровергнуты" },
-            { id: "d", text: "результаты ещё не собраны" },
+            { id: "a", text: "The results are finally proven." },
+            { id: "b", text: "The results hint at a conclusion without proving it." },
+            { id: "c", text: "The results have been refuted." },
+            { id: "d", text: "The results have not been collected yet." },
         ],
         correctIndex: 1,
     },
 ];
 
-/** Известные id заданий: по этому набору маршрут требует полный комплект ответов, не доходя до скоринга. */
+/** Known item ids: the route demands a complete set of answers against this list before any scoring. */
 export const QUESTION_IDS: ReadonlySet<string> = new Set(QUESTIONS.map((question) => question.id));
 
-/** Вопросы для клиента: копия без correctIndex и с копиями вариантов — сам банк править нельзя. */
+/** Items for the client: a copy without correctIndex and with copied options - the bank is never mutated. */
 export function publicQuestions(): readonly PlacementQuestionDto[] {
     return QUESTIONS.map((question) => ({
         id: question.id,
@@ -459,8 +462,8 @@ export function publicQuestions(): readonly PlacementQuestionDto[] {
     }));
 }
 
-// ARCHITECT: полосы шкалы 0-100: ниже 20 — A1, дальше 20/40/60/75/90 и C2 сверху. Список идёт от старшей
-// полосы: первая подошедшая и есть уровень.
+// ARCHITECT: 0-100 bands: below 20 is A1, then 20/40/60/75/90 with C2 on top. The list runs from the top band, so
+// the first match is the level.
 const LEVEL_THRESHOLDS: readonly { readonly min: number; readonly level: PlacementLevel }[] = [
     { min: 90, level: "C2" },
     { min: 75, level: "C1" },
@@ -469,13 +472,14 @@ const LEVEL_THRESHOLDS: readonly { readonly min: number; readonly level: Placeme
     { min: 20, level: "A2" },
 ];
 
-/** Уровень по баллу: чистый переход, поэтому проверяется отдельно от маршрута. */
+/** Level for a score: a pure mapping, checked separately from the route. */
 export function levelForScore(score: number): PlacementLevel {
     return LEVEL_THRESHOLDS.find((entry) => score >= entry.min)?.level ?? "A1";
 }
 
-// ARCHITECT: скоринг чистый и без БД: балл — доля верных ответов от отправленных, знаменатель задаёт сам
-// набор ответов. Неизвестный id здесь молча не засчитывается: маршрут принимает только полный комплект.
+// ARCHITECT: scoring is pure and database-free: the score is the share of correct answers among the submitted ones,
+// so the answer set itself sets the denominator. An unknown id silently scores nothing here: the route accepts a
+// complete set only.
 export function computePlacement(answers: readonly PlacementAnswer[]): PlacementScore {
     const byId = new Map(QUESTIONS.map((question) => [question.id, question]));
     let correct = 0;

@@ -55,6 +55,7 @@ export const MOCK_PROGRESS: ProgressDto = {
     recentSessions: [
         {
             id: "session_interview_1",
+            title: null,
             tutorId: "max",
             mode: "interview",
             createdAt: "2026-11-18T09:14:00.000Z",
@@ -62,6 +63,7 @@ export const MOCK_PROGRESS: ProgressDto = {
         },
         {
             id: "session_speaking_1",
+            title: null,
             tutorId: "luna",
             mode: "speaking",
             createdAt: "2026-11-16T18:02:00.000Z",

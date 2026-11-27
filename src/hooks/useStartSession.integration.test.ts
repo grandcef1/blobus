@@ -74,6 +74,7 @@ vi.mock("react-i18next", async (importOriginal) => {
 
 const CREATED: SessionSummaryDto = {
     id: "a1b2c3d4-0006-4000-8000-000000000006",
+    title: null,
     tutorId: "nova",
     mode: "grammar",
     createdAt: "2026-11-23T09:00:00.000Z",

@@ -28,11 +28,14 @@ export function getModeLabelKey(mode: string): ModeLabelKey | null {
     return isLearningMode(mode) ? MODE_LABEL_KEYS[mode] : null;
 }
 
-/** Заголовок сводки: «имя блобатара · метка режима»; неизвестный режим показывается как данные. */
+/** Заголовок сводки: своё название, иначе «имя блобатара · метка режима»; неизвестный режим показывается как данные. */
 export function getSessionTitle(
     summary: SessionSummaryDto,
     t: (key: SessionTitleKey) => string
 ): string {
+    // ARCHITECT: название задаёт пользователь: пустое или отсутствующее значит «показывать производный заголовок».
+    if (summary.title !== null && summary.title.trim() !== "") return summary.title;
+
     const name = getBlobatarById(summary.tutorId)?.name ?? t("sessions.card.tutorFallback");
     const modeKey = getModeLabelKey(summary.mode);
     const modeLabel = modeKey === null ? summary.mode : t(modeKey);

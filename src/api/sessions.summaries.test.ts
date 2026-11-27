@@ -38,6 +38,7 @@ describe("мок-режим: fetchSessionSummaries отдаёт адаптерн
             "createdAt",
             "id",
             "mode",
+            "title",
             "tutorId",
             "updatedAt",
         ]);
@@ -52,6 +53,7 @@ describe("real-режим: fetchSessionSummaries читает ресурсный
     const fixture: SessionSummaryDto[] = [
         {
             id: "a1b2c3d4-0001-4000-8000-000000000001",
+            title: "Подготовка к собеседованию",
             tutorId: "miya",
             mode: "speaking",
             createdAt: "2026-11-19T08:00:00.000Z",
@@ -59,6 +61,7 @@ describe("real-режим: fetchSessionSummaries читает ресурсный
         },
         {
             id: "a1b2c3d4-0002-4000-8000-000000000002",
+            title: null,
             tutorId: "nova",
             mode: "interview",
             createdAt: "2026-11-17T14:12:00.000Z",
@@ -94,6 +97,7 @@ describe("real-режим: fetchSessionSummaries читает ресурсный
             "createdAt",
             "id",
             "mode",
+            "title",
             "tutorId",
             "updatedAt",
         ]);
@@ -127,6 +131,7 @@ describe("real-режим: fetchSessionSummaries читает ресурсный
 describe("real-режим: createSessionSummary создаёт сессию через доменный роутер", () => {
     const created: SessionSummaryDto = {
         id: "a1b2c3d4-0003-4000-8000-000000000003",
+        title: null,
         tutorId: "miya",
         mode: "speaking",
         createdAt: "2026-11-20T10:00:00.000Z",

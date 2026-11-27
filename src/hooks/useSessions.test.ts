@@ -68,6 +68,7 @@ const MOCK_SESSION: EnhancedChatSession = {
 const SUMMARIES: SessionSummaryDto[] = [
     {
         id: "a1b2c3d4-0001-4000-8000-000000000001",
+        title: null,
         tutorId: "miya",
         mode: "speaking",
         createdAt: "2026-11-18T09:00:00.000Z",
@@ -233,6 +234,7 @@ describe("useSessions", () => {
         const second: SessionSummaryDto = {
             ...SUMMARIES[0],
             id: "a1b2c3d4-0002-4000-8000-000000000002",
+            title: null,
             tutorId: "nova",
         };
         fetchSessionSummariesMock.mockResolvedValueOnce(SUMMARIES).mockResolvedValueOnce([second]);

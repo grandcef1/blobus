@@ -8,19 +8,25 @@ import { Link } from "react-router-dom";
 import { motion } from "framer-motion";
 import { MessagesSquare } from "lucide-react";
 import { useTranslation } from "react-i18next";
+import { useQueryClient } from "@tanstack/react-query";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
 import { useSessions } from "@/hooks/useSessions";
+import { createSessionActions } from "@/hooks/useSessionActions";
 import { SessionsSkeleton } from "@/components/dashboard/skeletons/SessionsSkeleton";
 import { FOCUS_RING, PRIMARY_BUTTON } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
+import { useAuthStore } from "@/store/auth";
 import { SessionCard } from "./SessionCard";
 import { SessionSummaryCard } from "./SessionSummaryCard";
 
 export function SessionsPage() {
     const { t } = useTranslation("dashboard");
     const { t: tCommon } = useTranslation("common");
+    const { t: tChat } = useTranslation("chat");
     const { kind, sessions, isLoading, isError, refetch } = useSessions();
+    const queryClient = useQueryClient();
+    const userId = useAuthStore((state) => state.user?.id ?? null);
 
     if (isLoading) return <SessionsSkeleton />;
 
@@ -40,13 +46,27 @@ export function SessionsPage() {
     }
 
     // ARCHITECT: обе ветки несут один заголовок и описание, поэтому расходятся только элементы списка:
-    // мок-карточка показывает прогресс и уровень, реальная — производный заголовок и время.
+    // мок-карточка показывает прогресс и уровень, реальная — заголовок и время плюс меню строки.
     // ARCHITECT: расходится и действие пустого состояния: у реальной ветки оно пока отсутствует
     // (мастер /session/new в реальном режиме — отдельная задача), хотя строки списка уже открывают чат.
+    // ARCHITECT: действия строки реальной сессии пишут в PATCH/DELETE/reset: переименование, смена репетитора,
+    // сброс и удаление — те же, что в шапке чата. Удаление уже на списке, поэтому уводить никуда не нужно.
     const items =
         kind === "mock"
             ? sessions.map((session) => <SessionCard key={session.id} session={session} />)
-            : sessions.map((summary) => <SessionSummaryCard key={summary.id} summary={summary} />);
+            : sessions.map((summary) => (
+                  <SessionSummaryCard
+                      key={summary.id}
+                      summary={summary}
+                      actions={createSessionActions({
+                          sessionId: summary.id,
+                          queryClient,
+                          userId,
+                          t: tChat,
+                          tCommon,
+                      })}
+                  />
+              ));
 
     return (
         <div className="min-h-[calc(100dvh-4rem)] p-4 md:p-6">

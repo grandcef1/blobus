@@ -1,16 +1,16 @@
-// ARCHITECT: меню действий сессии: переименование, ссылка, очистка истории и удаление. Все
-// мутации идут через api/sessions и сообщают результат тостом.
-// ARCHITECT: маршрут после удаления задаёт ChatPage через onDeleted: меню не знает, где живёт
-// чат, и не должно решать это за страницу.
+// ARCHITECT: меню действий сессии: переименование, ссылка, очистка истории и удаление. Пункты вызывают действия
+// страницы через `actions`: мок-ветка пишет в мок-стор, реальная — в PATCH/DELETE/reset, и она же показывает
+// результат (тост успеха и ошибку).
+// ARCHITECT: маршрут после удаления задаёт страница через actions.remove: меню не знает, где живёт чат.
 
 import { useState } from "react";
 import { MoreVertical } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { clearSessionMessages, deleteSession } from "@/api/sessions";
 import { toast } from "@/store/toast";
 import { ConfirmActionDialog } from "./ConfirmActionDialog";
 import { RenameSessionDialog } from "./RenameSessionDialog";
 import { CHAT_HEADER_BUTTON } from "./headerButton";
+import type { SessionActions } from "./sessionActions";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -21,12 +21,11 @@ import {
 import type { EnhancedChatSession } from "@/types/session";
 
 interface SessionActionsMenuProps {
-    session: EnhancedChatSession;
-    onUpdated: (session: EnhancedChatSession) => void;
-    onDeleted: () => void;
+    readonly session: EnhancedChatSession;
+    readonly actions: SessionActions;
 }
 
-export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionActionsMenuProps) {
+export function SessionActionsMenu({ session, actions }: SessionActionsMenuProps) {
     const { t } = useTranslation("chat");
     const [isRenameOpen, setIsRenameOpen] = useState(false);
     const [isClearOpen, setIsClearOpen] = useState(false);
@@ -39,20 +38,6 @@ export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionAct
         } catch {
             toast.error(t("actions.toast.copyFailed"));
         }
-    };
-
-    const handleClear = () => {
-        const updated = clearSessionMessages(session.id);
-        if (updated) onUpdated(updated);
-        setIsClearOpen(false);
-        toast.success(t("actions.toast.historyCleared"));
-    };
-
-    const handleDelete = () => {
-        deleteSession(session.id);
-        setIsDeleteOpen(false);
-        onDeleted();
-        toast.success(t("actions.toast.sessionDeleted"));
     };
 
     return (
@@ -88,10 +73,10 @@ export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionAct
             </DropdownMenu>
 
             <RenameSessionDialog
-                session={session}
+                initialTitle={session.title}
                 open={isRenameOpen}
                 onOpenChange={setIsRenameOpen}
-                onUpdated={onUpdated}
+                onRename={actions.rename}
             />
 
             <ConfirmActionDialog
@@ -100,7 +85,10 @@ export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionAct
                 title={t("actions.clearHistory")}
                 description={t("actions.clearHistoryDescription")}
                 confirmLabel={t("actions.clearConfirm")}
-                onConfirm={handleClear}
+                onConfirm={() => {
+                    setIsClearOpen(false);
+                    void actions.reset();
+                }}
             />
 
             <ConfirmActionDialog
@@ -110,7 +98,10 @@ export function SessionActionsMenu({ session, onUpdated, onDeleted }: SessionAct
                 description={t("actions.deleteSessionDescription")}
                 confirmLabel={t("actions.deleteConfirm")}
                 destructive
-                onConfirm={handleDelete}
+                onConfirm={() => {
+                    setIsDeleteOpen(false);
+                    void actions.remove();
+                }}
             />
         </>
     );

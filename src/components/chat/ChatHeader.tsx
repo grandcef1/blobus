@@ -13,6 +13,7 @@ import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { SessionActionsMenu } from "./header/SessionActionsMenu";
 import { SessionSettingsMenu } from "./header/SessionSettingsMenu";
+import type { SessionActions } from "./header/sessionActions";
 import type { EnhancedChatSession } from "@/types/session";
 
 interface ChatHeaderProps {
@@ -21,23 +22,26 @@ interface ChatHeaderProps {
     readOnly?: boolean;
     /** Подпись под заголовком: у реальной сессии это режим — имя уже в самом заголовке. */
     subtitle?: string;
-    onUpdated?: (session: EnhancedChatSession) => void;
-    onDeleted?: () => void;
+    /** Действия сессии: их выполняет страница. Не переданы — меню в шапке не показывается. */
+    actions?: SessionActions;
+    /** false — полосы прогресса нет: у реальной сессии прогресс не считается (в сводке его нет). */
+    showProgress?: boolean;
 }
 
 export function ChatHeader({
     session,
     readOnly = false,
     subtitle,
-    onUpdated,
-    onDeleted,
+    actions,
+    showProgress = true,
 }: ChatHeaderProps) {
     const repetitor = getBlobatarById(session.repetitorId);
     const mode = MOCK_LEARNING_MODES.find((item) => item.id === session.learningMode);
 
     const { completedLessons, totalLessons } = session.progress;
     const percent = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
-    const showMenus = !readOnly && onUpdated !== undefined;
+    const showMenus = !readOnly && actions !== undefined;
+    const withProgress = !readOnly && showProgress;
 
     return (
         <motion.header
@@ -59,7 +63,7 @@ export function ChatHeader({
             </div>
 
             <div className="flex shrink-0 items-center gap-1 sm:gap-2">
-                {!readOnly && (
+                {withProgress && (
                     <div className="hidden items-center gap-2 sm:flex">
                         <span className="text-[11px] tabular-nums text-[#f0f0f5]/40">
                             {completedLessons}/{totalLessons}
@@ -68,14 +72,8 @@ export function ChatHeader({
                     </div>
                 )}
 
-                {showMenus && <SessionSettingsMenu session={session} onUpdated={onUpdated} />}
-                {showMenus && onDeleted && (
-                    <SessionActionsMenu
-                        session={session}
-                        onUpdated={onUpdated}
-                        onDeleted={onDeleted}
-                    />
-                )}
+                {showMenus && <SessionSettingsMenu session={session} actions={actions} />}
+                {showMenus && <SessionActionsMenu session={session} actions={actions} />}
             </div>
         </motion.header>
     );

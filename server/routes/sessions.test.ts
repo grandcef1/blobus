@@ -31,6 +31,7 @@ interface ErrorEnvelopeBody {
 
 interface SessionDto {
     readonly id: string;
+    readonly title: string | null;
     readonly tutorId: string;
     readonly mode: string;
     readonly createdAt: string;
@@ -136,6 +137,21 @@ function mutationHeaders(jar: Jar, baseUrl: string): Record<string, string> {
         [CSRF_HEADER]: jar[COOKIE_NAMES.csrfToken] ?? "",
         origin: baseUrl,
     };
+}
+
+/** Запрос-мутация с JSON-телом: PATCH, DELETE и POST отличаются только методом. */
+function mutateJson(
+    baseUrl: string,
+    path: string,
+    method: "PATCH" | "DELETE" | "POST",
+    body: unknown,
+    headers: Record<string, string>
+): Promise<Response> {
+    return fetch(`${baseUrl}${path}`, {
+        method,
+        headers: { "content-type": "application/json", ...headers },
+        body: body === undefined ? undefined : JSON.stringify(body),
+    });
 }
 
 /** CSRF-пара как её соберёт фронтенд: токен берётся безопасным GET и лежит в куке. */
@@ -247,7 +263,7 @@ async function insertSession(
 async function dbSessions(userId: string): Promise<SessionDto[]> {
     const { data, error } = await createAdminClient()
         .from("sessions")
-        .select("id, user_id, tutor_id, mode, created_at, updated_at")
+        .select("id, user_id, title, tutor_id, mode, created_at, updated_at")
         .eq("user_id", userId)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -257,6 +273,7 @@ async function dbSessions(userId: string): Promise<SessionDto[]> {
 
     return data.map((row) => ({
         id: row.id,
+        title: row.title,
         tutorId: row.tutor_id,
         mode: row.mode,
         createdAt: row.created_at,
@@ -270,7 +287,7 @@ async function dbSessionById(
 ): Promise<{ readonly dto: SessionDto; readonly userId: string }> {
     const { data, error } = await createAdminClient()
         .from("sessions")
-        .select("id, user_id, tutor_id, mode, created_at, updated_at")
+        .select("id, user_id, title, tutor_id, mode, created_at, updated_at")
         .eq("id", id)
         .single();
 
@@ -279,6 +296,7 @@ async function dbSessionById(
     return {
         dto: {
             id: data.id,
+            title: data.title,
             tutorId: data.tutor_id,
             mode: data.mode,
             createdAt: data.created_at,
@@ -286,6 +304,73 @@ async function dbSessionById(
         },
         userId: data.user_id,
     };
+}
+
+/** Сессия или null: после удаления источника правды уже нет. */
+async function findSession(id: string): Promise<SessionDto | null> {
+    const { data, error } = await createAdminClient()
+        .from("sessions")
+        .select("id, user_id, title, tutor_id, mode, created_at, updated_at")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (error !== null) throw error;
+
+    if (data === null) return null;
+
+    return {
+        id: data.id,
+        title: data.title,
+        tutorId: data.tutor_id,
+        mode: data.mode,
+        createdAt: data.created_at,
+        updatedAt: data.updated_at,
+    };
+}
+
+/** Урок в сессии: нужен для проверки каскада удаления и очистки истории. */
+async function insertLesson(sessionId: string): Promise<string> {
+    const { data, error } = await createAdminClient()
+        .from("lessons")
+        .insert({ session_id: sessionId, daily_minutes: 20 })
+        .select("id")
+        .single();
+
+    if (error !== null) throw error;
+
+    return data.id;
+}
+
+/** Сообщение в уроке: второй уровень каскада lessons → messages. */
+async function insertMessage(lessonId: string, content = "hello there"): Promise<void> {
+    const { error } = await createAdminClient()
+        .from("messages")
+        .insert({ lesson_id: lessonId, role: "user", content });
+
+    if (error !== null) throw error;
+}
+
+/** Уроки и сообщения сессии: ими проверяются каскад удаления и очистка. */
+async function historyCounts(
+    sessionId: string
+): Promise<{ readonly lessons: number; readonly messages: number }> {
+    const admin = createAdminClient();
+    const { data: lessonRows, error } = await admin.from("lessons").select("id").eq("session_id", sessionId);
+
+    if (error !== null) throw error;
+
+    const lessonIds = lessonRows.map((row) => row.id);
+
+    if (lessonIds.length === 0) return { lessons: 0, messages: 0 };
+
+    const { count, error: messagesError } = await admin
+        .from("messages")
+        .select("id", { count: "exact", head: true })
+        .in("lesson_id", lessonIds);
+
+    if (messagesError !== null) throw messagesError;
+
+    return { lessons: lessonIds.length, messages: count ?? 0 };
 }
 
 /** Число сессий пользователя: проверка, что отклонённый запрос не оставил строк. */
@@ -366,6 +451,7 @@ describe("GET /api/sessions", () => {
                 "createdAt",
                 "id",
                 "mode",
+                "title",
                 "tutorId",
                 "updatedAt",
             ]);
@@ -544,6 +630,7 @@ describe("POST /api/sessions", () => {
                 "createdAt",
                 "id",
                 "mode",
+                "title",
                 "tutorId",
                 "updatedAt",
             ]);
@@ -719,5 +806,339 @@ describe("POST /api/sessions", () => {
 
         expect(inserted.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
         expect(await sessionCount(userId)).toBe(0);
+    }, 30_000);
+});
+
+describe("PATCH /api/sessions/:id", () => {
+    it("3.1 переименование: 200, название в БД и в DTO, владелец и режим не меняются", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(me.id, "2026-11-18T10:00:00.000Z");
+            const response = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}`,
+                "PATCH",
+                { title: "Подготовка к собеседованию" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { session: SessionDto };
+            const stored = await dbSessionById(sessionId);
+
+            expect(response.status).toBe(200);
+            expect(body.session).toEqual(stored.dto);
+            expect(stored.dto.title).toBe("Подготовка к собеседованию");
+            expect(stored.dto.tutorId).toBe(TUTOR_ID);
+            expect(stored.dto.mode).toBe(MODE);
+            expect(stored.userId).toBe(me.id);
+            expect(Object.keys(body.session).sort()).toEqual([
+                "createdAt",
+                "id",
+                "mode",
+                "title",
+                "tutorId",
+                "updatedAt",
+            ]);
+        });
+    }, 30_000);
+
+    it("3.2 смена репетитора: меняется только tutor_id, режим остаётся прежним", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(me.id, "2026-11-18T10:00:00.000Z");
+            const response = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}`,
+                "PATCH",
+                { tutorId: "nova" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+            const body = (await response.json()) as { session: SessionDto };
+            const stored = await dbSessionById(sessionId);
+
+            expect(response.status).toBe(200);
+            expect(body.session.tutorId).toBe("nova");
+            expect(stored.dto.tutorId).toBe("nova");
+            expect(stored.dto.mode).toBe(MODE);
+            expect(stored.dto.title).toBeNull();
+        });
+    }, 30_000);
+
+    it("3.3 пробелы вокруг названия обрезаются, название из одних пробелов снимает его", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(me.id, "2026-11-18T10:00:00.000Z");
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+
+            await mutateJson(app.baseUrl, `/api/sessions/${sessionId}`, "PATCH", { title: "  План на неделю  " }, headers);
+            expect((await dbSessionById(sessionId)).dto.title).toBe("План на неделю");
+
+            const cleared = await mutateJson(app.baseUrl, `/api/sessions/${sessionId}`, "PATCH", { title: "   " }, headers);
+            const body = (await cleared.json()) as { session: SessionDto };
+
+            expect(cleared.status).toBe(200);
+            expect(body.session.title).toBeNull();
+            expect((await dbSessionById(sessionId)).dto.title).toBeNull();
+        });
+    }, 30_000);
+
+    it("3.4 граница названия: 80 символов приняты, 81 отклонён", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(me.id, "2026-11-18T10:00:00.000Z");
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const accepted = "x".repeat(80);
+            const rejected = "x".repeat(81);
+
+            const ok = await mutateJson(app.baseUrl, `/api/sessions/${sessionId}`, "PATCH", { title: accepted }, headers);
+            const over = await mutateJson(app.baseUrl, `/api/sessions/${sessionId}`, "PATCH", { title: rejected }, headers);
+
+            expect(ok.status).toBe(200);
+            expect(over.status).toBe(400);
+            expect(errorBody(await over.json()).error.code).toBe("BAD_REQUEST");
+            // CHECK длины в схеме и схема тела совпадают: слишком длинное название в БД не попало
+            expect((await dbSessionById(sessionId)).dto.title).toBe(accepted);
+        });
+    }, 30_000);
+
+    it("3.5 400: пустое тело, лишние поля, репетитор вне allowlist — строка не меняется", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const bob = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(me.id, "2026-11-18T10:00:00.000Z");
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const invalidBodies: readonly unknown[] = [
+                {},
+                { userId: bob.id },
+                { title: "ок", mode: "grammar" },
+                { tutorId: "someone-else" },
+                { title: 42 },
+                { unknown: true },
+            ];
+
+            for (const body of invalidBodies) {
+                const response = await mutateJson(app.baseUrl, `/api/sessions/${sessionId}`, "PATCH", body, headers);
+
+                expect(response.status).toBe(400);
+                expect(errorBody(await response.json()).error.code).toBe("BAD_REQUEST");
+            }
+
+            const stored = await dbSessionById(sessionId);
+
+            expect(stored.dto.title).toBeNull();
+            expect(stored.dto.tutorId).toBe(TUTOR_ID);
+            expect(stored.dto.mode).toBe(MODE);
+        });
+    }, 30_000);
+
+    it("3.6 чужая сессия: 404 и её строка не меняется", async () => {
+        await withApp(async (app) => {
+            const alice = await freshUser(app.baseUrl);
+            const bob = await freshUser(app.baseUrl);
+            const bobSessionId = await insertSession(bob.id, "2026-11-18T10:00:00.000Z");
+            const response = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${bobSessionId}`,
+                "PATCH",
+                { title: "чужое название" },
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+
+            expect(response.status).toBe(404);
+            expect((await dbSessionById(bobSessionId)).dto.title).toBeNull();
+        });
+    }, 30_000);
+
+    it("3.7 401 без куки, 403 без CSRF, несуществующий id — 404", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(me.id, "2026-11-18T10:00:00.000Z");
+            // ARCHITECT: аноним проходит CSRF-пару (иначе первый барьер — 403), но без access-куки получает 401.
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const anonymous = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}`,
+                "PATCH",
+                { title: "без куки" },
+                mutationHeaders(pair, app.baseUrl)
+            );
+            const withoutCsrf = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}`,
+                "PATCH",
+                { title: "без csrf" },
+                { cookie: cookieHeader(me.jar), origin: app.baseUrl }
+            );
+            const missing = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${randomUUID()}`,
+                "PATCH",
+                { title: "нет такой" },
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+
+            expect(anonymous.status).toBe(401);
+            expect(withoutCsrf.status).toBe(403);
+            expect(missing.status).toBe(404);
+            expect((await dbSessionById(sessionId)).dto.title).toBeNull();
+        });
+    }, 30_000);
+});
+
+describe("DELETE /api/sessions/:id", () => {
+    it("3.1 удаляет сессию с уроками и сообщениями, а чужая отвечает 404 и остаётся", async () => {
+        await withApp(async (app) => {
+            const alice = await freshUser(app.baseUrl);
+            const bob = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(alice.id, "2026-11-18T10:00:00.000Z");
+            const lessonId = await insertLesson(sessionId);
+
+            await insertMessage(lessonId);
+            expect(await historyCounts(sessionId)).toEqual({ lessons: 1, messages: 1 });
+
+            const foreign = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}`,
+                "DELETE",
+                undefined,
+                mutationHeaders(bob.jar, app.baseUrl)
+            );
+
+            expect(foreign.status).toBe(404);
+            expect(await findSession(sessionId)).not.toBeNull();
+
+            const removed = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}`,
+                "DELETE",
+                undefined,
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+
+            expect(removed.status).toBe(200);
+            expect(await findSession(sessionId)).toBeNull();
+            // каскад: уроки и сообщения уходят вместе с сессией
+            expect(await historyCounts(sessionId)).toEqual({ lessons: 0, messages: 0 });
+            expect(await sessionCount(alice.id)).toBe(0);
+        });
+    }, 30_000);
+
+    it("3.2 401 без куки, 403 без CSRF, повторное удаление — 404", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(me.id, "2026-11-18T10:00:00.000Z");
+            // ARCHITECT: аноним проходит CSRF-пару (иначе первый барьер — 403), но без access-куки получает 401.
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const anonymous = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}`,
+                "DELETE",
+                undefined,
+                mutationHeaders(pair, app.baseUrl)
+            );
+            const withoutCsrf = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}`,
+                "DELETE",
+                undefined,
+                { cookie: cookieHeader(me.jar), origin: app.baseUrl }
+            );
+
+            expect(anonymous.status).toBe(401);
+            expect(withoutCsrf.status).toBe(403);
+            expect(await findSession(sessionId)).not.toBeNull();
+
+            const first = await mutateJson(app.baseUrl, `/api/sessions/${sessionId}`, "DELETE", undefined, mutationHeaders(me.jar, app.baseUrl));
+            const second = await mutateJson(app.baseUrl, `/api/sessions/${sessionId}`, "DELETE", undefined, mutationHeaders(me.jar, app.baseUrl));
+
+            expect(first.status).toBe(200);
+            expect(second.status).toBe(404);
+        });
+    }, 30_000);
+});
+
+describe("POST /api/sessions/:id/reset", () => {
+    it("3.1 очищает уроки и сообщения, сессия, название и владелец остаются", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(me.id, "2026-11-18T10:00:00.000Z");
+            const headers = mutationHeaders(me.jar, app.baseUrl);
+            const lessonId = await insertLesson(sessionId);
+
+            await insertMessage(lessonId);
+            await mutateJson(app.baseUrl, `/api/sessions/${sessionId}`, "PATCH", { title: "Английский по утрам" }, headers);
+
+            const response = await mutateJson(app.baseUrl, `/api/sessions/${sessionId}/reset`, "POST", {}, headers);
+            const stored = await findSession(sessionId);
+
+            expect(response.status).toBe(200);
+            expect(stored?.title).toBe("Английский по утрам");
+            expect(await sessionCount(me.id)).toBe(1);
+            // ARCHITECT: вместо удалённой истории сервер пишет приветствие режима — один урок с одной репликой,
+            // как обещает интерфейс («останется приветствие выбранного режима»).
+            expect(await historyCounts(sessionId)).toEqual({ lessons: 1, messages: 1 });
+        });
+    }, 30_000);
+
+    it("3.2 чужая сессия: 404 и её история не тронута", async () => {
+        await withApp(async (app) => {
+            const alice = await freshUser(app.baseUrl);
+            const bob = await freshUser(app.baseUrl);
+            const bobSessionId = await insertSession(bob.id, "2026-11-18T10:00:00.000Z");
+            const lessonId = await insertLesson(bobSessionId);
+
+            await insertMessage(lessonId);
+
+            const response = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${bobSessionId}/reset`,
+                "POST",
+                {},
+                mutationHeaders(alice.jar, app.baseUrl)
+            );
+
+            expect(response.status).toBe(404);
+            expect(await historyCounts(bobSessionId)).toEqual({ lessons: 1, messages: 1 });
+            expect(await findSession(bobSessionId)).not.toBeNull();
+        });
+    }, 30_000);
+
+    it("3.3 401 без куки, 403 без CSRF, несуществующий id — 404", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const sessionId = await insertSession(me.id, "2026-11-18T10:00:00.000Z");
+            const lessonId = await insertLesson(sessionId);
+
+            await insertMessage(lessonId);
+
+            // ARCHITECT: аноним проходит CSRF-пару (иначе первый барьер — 403), но без access-куки получает 401.
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const anonymous = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}/reset`,
+                "POST",
+                {},
+                mutationHeaders(pair, app.baseUrl)
+            );
+            const withoutCsrf = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${sessionId}/reset`,
+                "POST",
+                {},
+                { cookie: cookieHeader(me.jar), origin: app.baseUrl }
+            );
+            const missing = await mutateJson(
+                app.baseUrl,
+                `/api/sessions/${randomUUID()}/reset`,
+                "POST",
+                {},
+                mutationHeaders(me.jar, app.baseUrl)
+            );
+
+            expect(anonymous.status).toBe(401);
+            expect(withoutCsrf.status).toBe(403);
+            expect(missing.status).toBe(404);
+            // ни один отклонённый запрос не тронул историю
+            expect(await historyCounts(sessionId)).toEqual({ lessons: 1, messages: 1 });
+        });
     }, 30_000);
 });

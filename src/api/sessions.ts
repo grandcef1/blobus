@@ -4,6 +4,7 @@
 // сообщения видны без перезагрузки, а сам файл моков остаётся константой.
 
 import { apiFetch } from "@/api/client";
+import { ApiError } from "@/api/client";
 import { MOCK_SESSIONS } from "@/api/mocks/sessions";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
 import { delayMock } from "@/api/mockDelay";
@@ -201,9 +202,11 @@ export async function fetchSessionById(sessionId: string): Promise<EnhancedChatS
     return getSessionById(sessionId) ?? null;
 }
 
-/** Сводка своей сессии: контракт GET /api/sessions (server/routes/sessions.ts), без названия и user_id. */
+/** Сводка своей сессии: контракт GET /api/sessions (server/routes/sessions.ts), без user_id. */
 export interface SessionSummaryDto {
     id: string;
+    /** Название, которое задал пользователь: null — показывается производный заголовок «репетитор · режим». */
+    title: string | null;
     tutorId: string;
     mode: string;
     createdAt: string;
@@ -211,10 +214,11 @@ export interface SessionSummaryDto {
 }
 
 // ARCHITECT: адаптерный мок списка: нейтральные записи в границах серверной схемы (mode 1..32,
-// tutor_id 1..64), без PII и без названия — такой колонки в public.sessions нет.
+// tutor_id 1..64, title <= 80), без PII. Одно название задано, у второго — null: интерфейс должен уметь оба.
 export const MOCK_SESSION_SUMMARIES: SessionSummaryDto[] = [
     {
         id: "8f1c2e5a-1c3b-4d2e-9a7f-2b6c4d8e0a11",
+        title: "Подготовка к собеседованию",
         tutorId: "miya",
         mode: "speaking",
         createdAt: "2026-11-18T09:14:00.000Z",
@@ -222,6 +226,7 @@ export const MOCK_SESSION_SUMMARIES: SessionSummaryDto[] = [
     },
     {
         id: "3a7d9b40-5e21-4c8a-b1f6-7c2e9d0a4b52",
+        title: null,
         tutorId: "nova",
         mode: "grammar",
         createdAt: "2026-11-16T18:02:00.000Z",
@@ -265,6 +270,7 @@ export async function createSessionSummary(
 
         return {
             id: session.id,
+            title: session.title,
             tutorId: session.repetitorId,
             mode: session.learningMode,
             createdAt: new Date(session.createdAt).toISOString(),
@@ -279,4 +285,100 @@ export async function createSessionSummary(
     });
 
     return session;
+}
+
+/** Правка своей сессии: ровно поля контракта PATCH /api/sessions/:id (user_id приходит из куки). */
+export interface SessionSummaryPatch {
+    readonly title?: string | null;
+    readonly tutorId?: string;
+}
+
+// ARCHITECT: мок-ветка правит фикстуру списка и мок-стор чата: без бэкенда экран сессий живёт на них, а форма
+// ответа та же, что у сервера. Сброс чистит историю мок-сессии (приветствие возвращается), удаление убирает
+// сессию из обоих мест.
+function patchMockSummary(id: string, patch: SessionSummaryPatch): SessionSummaryDto | null {
+    const index = MOCK_SESSION_SUMMARIES.findIndex((item) => item.id === id);
+
+    if (index < 0) return null;
+
+    const current = MOCK_SESSION_SUMMARIES[index];
+    const updated: SessionSummaryDto = {
+        ...current,
+        title: patch.title === undefined ? current.title : patch.title,
+        tutorId: patch.tutorId ?? current.tutorId,
+        updatedAt: new Date().toISOString(),
+    };
+
+    MOCK_SESSION_SUMMARIES[index] = updated;
+
+    return updated;
+}
+
+/** Правка сессии: null — сессии нет (404), остальные сбои уходят исключением. */
+export async function patchSessionSummary(
+    id: string,
+    patch: SessionSummaryPatch
+): Promise<SessionSummaryDto | null> {
+    if (USE_MOCKS) {
+        await delayMock();
+
+        return patchMockSummary(id, patch);
+    }
+
+    try {
+        const { session } = await apiFetch<{ session: SessionSummaryDto }>(`/sessions/${id}`, {
+            method: "PATCH",
+            body: patch,
+        });
+
+        return session;
+    } catch (error) {
+        // ARCHITECT: 404 значит «сессии нет или она чужая»: вызывающий перечитывает список, а не показывает сбой.
+        if (error instanceof ApiError && error.statusCode === 404) return null;
+
+        throw error;
+    }
+}
+
+/** Сброс истории сессии: true — очищено, false — сессии нет (404). */
+export async function resetSessionSummary(id: string): Promise<boolean> {
+    if (USE_MOCKS) {
+        await delayMock();
+
+        return clearSessionMessages(id) !== undefined;
+    }
+
+    try {
+        await apiFetch<{ status: string }>(`/sessions/${id}/reset`, { method: "POST", body: {} });
+
+        return true;
+    } catch (error) {
+        if (error instanceof ApiError && error.statusCode === 404) return false;
+
+        throw error;
+    }
+}
+
+/** Удаление сессии: true — удалена, false — сессии нет (404). */
+export async function deleteSessionSummary(id: string): Promise<boolean> {
+    if (USE_MOCKS) {
+        await delayMock();
+        const index = MOCK_SESSION_SUMMARIES.findIndex((item) => item.id === id);
+
+        if (index < 0) return false;
+
+        MOCK_SESSION_SUMMARIES.splice(index, 1);
+
+        return deleteSession(id);
+    }
+
+    try {
+        await apiFetch<{ status: string }>(`/sessions/${id}`, { method: "DELETE" });
+
+        return true;
+    } catch (error) {
+        if (error instanceof ApiError && error.statusCode === 404) return false;
+
+        throw error;
+    }
 }

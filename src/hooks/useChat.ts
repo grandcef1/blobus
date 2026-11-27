@@ -58,6 +58,8 @@ export interface RealChatResult extends ChatCommon {
     readonly plan: ChatLessonPlan | null;
     /** true, пока история сессии в пути: ленте нужен скелетон, а не пустой экран. */
     readonly isLoading: boolean;
+    /** Перечитать историю сессии: нужно после сброса, когда сервер вернул её к стартовому приветствию. */
+    readonly reload: () => void;
 }
 
 export type ChatResult = MockChatResult | RealChatResult;
@@ -423,6 +425,7 @@ function useRealChat(sessionId: string): RealChatResult {
         send,
         retry,
         stop,
+        reload: () => void reloadHistory(),
     };
 }
 

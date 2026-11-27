@@ -51,6 +51,7 @@ const PROGRESS: ProgressDto = {
     recentSessions: [
         {
             id: "8f1c2e5a-1c3b-4d2e-9a7f-2b6c4d8e0a11",
+            title: null,
             tutorId: "miya",
             mode: "speaking",
             createdAt: "2026-11-24T09:00:00.000Z",

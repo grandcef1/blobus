@@ -1,23 +1,21 @@
-// ARCHITECT: меню настроек сессии. Прогресс-бейдж в шапке скрыт ниже sm, поэтому дубль «3/10 и
-// полоса» живёт здесь: на телефоне это единственное место, где виден прогресс.
-// ARCHITECT: смена режима или репетитора не перегенерирует приветствие — меняется контекст
-// будущих сообщений, история диалога остаётся нетронутой.
-// ARCHITECT: пункта «Уровень» здесь больше нет: уровень определяет тест, и ручной выбор только
-// спорил бы с результатом. Ручной остаётся только режим, репетитор и сброс прогресса.
+// ARCHITECT: меню настроек сессии. Прогресс-бейдж в шапке скрыт ниже sm, поэтому дубль «3/10 и полоса» живёт
+// здесь: на телефоне это единственное место, где виден прогресс.
+// ARCHITECT: репетитор выбирается в диалоге, а не в подменю: то же меню строки списка подменю иметь не может, а
+// одно действие должно выглядеть одинаково в обоих местах. Смена репетитора не перегенерирует приветствие —
+// меняется контекст будущих сообщений, история диалога остаётся нетронутой.
+// ARCHITECT: пункта «Уровень» здесь нет: уровень определяет тест. Режим меняется только там, где его
+// поддерживает хранилище (мок-стор): PATCH реальной сессии принимает название и репетитора.
 
 import { useState } from "react";
 import { Settings2 } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { useNavigate } from "react-router-dom";
-import { MOCK_BLOBATARS } from "@/api/mocks/blobatars";
 import { MOCK_LEARNING_MODES } from "@/api/mocks/repetitors";
-import { resetSessionProgress, updateSession } from "@/api/sessions";
-import type { SessionPatch } from "@/api/sessions";
-import { toast } from "@/store/toast";
-import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { ProgressBar } from "@/components/shared/ProgressBar";
 import { ConfirmActionDialog } from "./ConfirmActionDialog";
+import { TutorPickerDialog } from "./TutorPickerDialog";
 import { CHAT_HEADER_BUTTON } from "./headerButton";
+import type { SessionActions } from "./sessionActions";
 import {
     DropdownMenu,
     DropdownMenuContent,
@@ -34,35 +32,21 @@ import type { EnhancedChatSession } from "@/types/session";
 import type { LearningMode } from "@/types/onboarding";
 
 interface SessionSettingsMenuProps {
-    session: EnhancedChatSession;
-    onUpdated: (session: EnhancedChatSession) => void;
+    readonly session: EnhancedChatSession;
+    readonly actions: SessionActions;
 }
 
-export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuProps) {
+export function SessionSettingsMenu({ session, actions }: SessionSettingsMenuProps) {
     const { t } = useTranslation("chat");
     const navigate = useNavigate();
     const [isResetOpen, setIsResetOpen] = useState(false);
+    const [isTutorOpen, setIsTutorOpen] = useState(false);
     const { completedLessons, totalLessons } = session.progress;
     const percent = totalLessons > 0 ? (completedLessons / totalLessons) * 100 : 0;
-
-    const applyPatch = (patch: SessionPatch, message: string) => {
-        const updated = updateSession(session.id, patch);
-        if (!updated) return;
-        onUpdated(updated);
-        toast.info(message);
-    };
-
-    const handleModeChange = (value: string) =>
-        applyPatch({ learningMode: value as LearningMode }, t("settings.toast.modeChanged"));
-    const handleTutorChange = (value: string) =>
-        applyPatch({ repetitorId: value }, t("settings.toast.tutorChanged"));
-
-    const handleReset = () => {
-        const updated = resetSessionProgress(session.id);
-        if (updated) onUpdated(updated);
-        setIsResetOpen(false);
-        toast.success(t("settings.toast.progressReset"));
-    };
+    const changeMode = actions.changeMode;
+    // ARCHITECT: сброс одних счётчиков есть только у мок-стора: у реальной сессии это же действие = очистка
+    // истории (счётчики прогресса считаются из БД, а не хранятся в сессии).
+    const resetProgress = actions.resetProgress ?? actions.reset;
 
     return (
         <>
@@ -81,47 +65,31 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
                         <ProgressBar value={percent} className="flex-1" />
                     </div>
 
-                    <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>{t("settings.mode")}</DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="w-64">
-                            <DropdownMenuRadioGroup
-                                value={session.learningMode}
-                                onValueChange={handleModeChange}
-                            >
-                                {MOCK_LEARNING_MODES.map((mode) => (
-                                    <DropdownMenuRadioItem key={mode.id} value={mode.id}>{mode.label}</DropdownMenuRadioItem>
-                                ))}
-                            </DropdownMenuRadioGroup>
-                        </DropdownMenuSubContent>
-                    </DropdownMenuSub>
+                    {changeMode !== undefined && (
+                        <DropdownMenuSub>
+                            <DropdownMenuSubTrigger>{t("settings.mode")}</DropdownMenuSubTrigger>
+                            <DropdownMenuSubContent className="w-64">
+                                <DropdownMenuRadioGroup
+                                    value={session.learningMode}
+                                    onValueChange={(value) => void changeMode(value as LearningMode)}
+                                >
+                                    {MOCK_LEARNING_MODES.map((mode) => (
+                                        <DropdownMenuRadioItem key={mode.id} value={mode.id}>
+                                            {mode.label}
+                                        </DropdownMenuRadioItem>
+                                    ))}
+                                </DropdownMenuRadioGroup>
+                            </DropdownMenuSubContent>
+                        </DropdownMenuSub>
+                    )}
 
-                    <DropdownMenuSub>
-                        <DropdownMenuSubTrigger>{t("settings.tutor")}</DropdownMenuSubTrigger>
-                        <DropdownMenuSubContent className="w-56">
-                            <DropdownMenuRadioGroup
-                                value={session.repetitorId}
-                                onValueChange={handleTutorChange}
-                            >
-                                {MOCK_BLOBATARS.map((blobatar) => (
-                                    <DropdownMenuRadioItem key={blobatar.id} value={blobatar.id}>
-                                        <BlobatarAvatar
-                                            id={blobatar.id}
-                                            animated={false}
-                                            className="size-5 bg-white/5"
-                                        />
-                                        {blobatar.name}
-                                    </DropdownMenuRadioItem>
-                                ))}
-                            </DropdownMenuRadioGroup>
-
-                            <DropdownMenuSeparator />
-                            {/* ARCHITECT: ссылка в конце подменю: из списка видно, что о каждом
-                                репетиторе есть подробности, а смена остаётся одним кликом. */}
-                            <DropdownMenuItem onSelect={() => navigate("/app/tutors")}>
-                                {t("settings.tutorsDetails")}
-                            </DropdownMenuItem>
-                        </DropdownMenuSubContent>
-                    </DropdownMenuSub>
+                    <DropdownMenuItem onSelect={() => setIsTutorOpen(true)}>
+                        {t("settings.tutor")}
+                    </DropdownMenuItem>
+                    {/* ARCHITECT: ссылка на список репетиторов: из меню видно, что о каждом есть подробности. */}
+                    <DropdownMenuItem onSelect={() => navigate("/app/tutors")}>
+                        {t("settings.tutorsDetails")}
+                    </DropdownMenuItem>
 
                     <DropdownMenuSeparator />
 
@@ -131,13 +99,23 @@ export function SessionSettingsMenu({ session, onUpdated }: SessionSettingsMenuP
                 </DropdownMenuContent>
             </DropdownMenu>
 
+            <TutorPickerDialog
+                open={isTutorOpen}
+                onOpenChange={setIsTutorOpen}
+                currentTutorId={session.repetitorId}
+                onConfirm={actions.changeTutor}
+            />
+
             <ConfirmActionDialog
                 open={isResetOpen}
                 onOpenChange={setIsResetOpen}
                 title={t("settings.resetProgress")}
                 description={t("settings.resetProgressDescription")}
                 confirmLabel={t("settings.resetConfirm")}
-                onConfirm={handleReset}
+                onConfirm={() => {
+                    setIsResetOpen(false);
+                    void resetProgress();
+                }}
             />
         </>
     );

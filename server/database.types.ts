@@ -201,6 +201,7 @@ export type Database = {
                     created_at: string;
                     id: string;
                     mode: string;
+                    title: string | null;
                     tutor_id: string;
                     updated_at: string;
                     user_id: string;
@@ -210,6 +211,7 @@ export type Database = {
                     created_at?: string;
                     id?: string;
                     mode: string;
+                    title?: string | null;
                     tutor_id: string;
                     updated_at?: string;
                     user_id: string;
@@ -218,6 +220,7 @@ export type Database = {
                     created_at?: string;
                     id?: string;
                     mode?: string;
+                    title?: string | null;
                     tutor_id?: string;
                     updated_at?: string;
                     user_id?: string;

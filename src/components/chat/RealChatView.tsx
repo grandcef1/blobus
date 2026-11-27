@@ -1,13 +1,12 @@
 // ARCHITECT: реальный чат: сессия и её репетитор читаются из GET /api/sessions (общий кэш со списком сессий),
 // а лента строится из SSE-потока useChat. Истории с сервера нет — сообщения живут в состоянии страницы, как и
 // в мок-режиме, где они лежат в памяти хранилища.
-// ARCHITECT: шапка показывает имя репетитора и режим: темы и прогресса у реальной сессии в схеме нет, и
-// подставлять их было бы выдумкой. Меню сессии скрыты (readOnly): переименование, очистка истории и смена
-// режима правят мок-хранилище, а не серверную сессию.
+// ARCHITECT: в шапке есть меню сессии: переименование и смена репетитора идут в PATCH /api/sessions/:id, сброс —
+// в POST /api/sessions/:id/reset, удаление — в DELETE. Прогресс не показывается: его нет в сводке сессии.
 
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
-import { useParams } from "react-router-dom";
+import { useNavigate, useParams } from "react-router-dom";
 import { ApiError } from "@/api/client";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { fetchSessionSummaries } from "@/api/sessions";
@@ -19,6 +18,7 @@ import { RealChatFeed } from "@/components/chat/RealChatFeed";
 import { ChatSkeleton } from "@/components/dashboard/skeletons/ChatSkeleton";
 import { useAuthExpiry } from "@/hooks/useAuthExpiry";
 import { useChat } from "@/hooks/useChat";
+import { useSessionActions } from "@/hooks/useSessionActions";
 import { getModeLabelKey } from "@/lib/sessionTitle";
 import { cn } from "@/lib/utils";
 import { useAuthStore } from "@/store/auth";
@@ -35,6 +35,7 @@ function isClientError(error: unknown): boolean {
 export function RealChatView() {
     const { sessionId = "" } = useParams<{ sessionId: string }>();
     const { t } = useTranslation("dashboard");
+    const navigate = useNavigate();
     const userId = useAuthStore((state) => state.user?.id ?? null);
     // ARCHITECT: ключ ["sessions", userId] тот же, что у списка сессий: переход из списка в чат не делает
     // второй запрос, а созданная сессия появляется в кэше после инвалидации на шаге мастера.
@@ -56,6 +57,12 @@ export function RealChatView() {
     });
 
     const chat = useChat(sessionId);
+    // ARCHITECT: действия сессии — реальные: PATCH/DELETE/reset с оптимистичным кэшем и инвалидацией. Сброс
+    // перечитывает историю (в ней уже новое приветствие), удаление уводит в список сессий.
+    const actions = useSessionActions(sessionId, {
+        onReset: chat.kind === "real" ? chat.reload : undefined,
+        onRemoved: () => navigate("/app/sessions"),
+    });
 
     // ARCHITECT: ветку выбирает страница по USE_MOCKS, поэтому сюда мок-состояние не попадает: скелетон —
     // защита от рассинхронизации флага и вида, а не ожидаемая ветка.
@@ -70,7 +77,8 @@ export function RealChatView() {
     const session: EnhancedChatSession = {
         id: summary.id,
         userId,
-        title: tutor?.name ?? t("sessions.card.tutorFallback"),
+        // ARCHITECT: своё название пользователя, иначе имя репетитора: подпись под заголовком — режим.
+        title: summary.title ?? tutor?.name ?? t("sessions.card.tutorFallback"),
         createdAt: Date.parse(summary.createdAt),
         repetitorId: summary.tutorId,
         learningMode: summary.mode,
@@ -83,7 +91,8 @@ export function RealChatView() {
         <div className={cn("relative flex flex-col bg-black", CHAT_HEIGHT)}>
             <ChatHeader
                 session={session}
-                readOnly
+                actions={actions}
+                showProgress={false}
                 subtitle={modeKey === null ? summary.mode : t(modeKey)}
             />
             <RealChatFeed

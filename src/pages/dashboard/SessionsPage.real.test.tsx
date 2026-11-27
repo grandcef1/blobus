@@ -23,6 +23,7 @@ const SUMMARY_ID = "a1b2c3d4-0001-4000-8000-000000000001";
 const SUMMARIES: SessionSummaryDto[] = [
     {
         id: SUMMARY_ID,
+        title: null,
         tutorId: "miya",
         mode: "speaking",
         createdAt: "2026-11-18T09:00:00.000Z",
@@ -128,7 +129,21 @@ describe("SessionsPage на реальных сводках", () => {
         expect(screen.queryByRole("heading", { name: "Сессии" })).not.toBeInTheDocument();
     });
 
-    it("6.5 mock: рендерится SessionCard, пустой список сохраняет действие /session/new", () => {
+    it("6.6 своё название сессии показывается вместо производного заголовка", () => {
+        useSessionsMock.mockReturnValue(
+            realResult({
+                sessions: [{ ...SUMMARIES[0], title: "Подготовка к собеседованию" }],
+            })
+        );
+        renderWithProviders(<SessionsPage />);
+
+        expect(
+            screen.getByRole("heading", { name: "Подготовка к собеседованию" })
+        ).toBeInTheDocument();
+        expect(screen.queryByRole("heading", { name: "Мия · Разговор" })).not.toBeInTheDocument();
+    });
+
+    it("6.7 mock: рендерится SessionCard, пустой список сохраняет действие /session/new", () => {
         useSessionsMock.mockReturnValue(mockResult([MOCK_SESSION]));
         renderWithProviders(<SessionsPage />);
         expect(screen.getByText(MOCK_SESSION.title)).toBeInTheDocument();

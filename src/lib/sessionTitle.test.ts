@@ -11,6 +11,7 @@ const translator = (key: string): string => key;
 function summary(overrides: Partial<SessionSummaryDto> = {}): SessionSummaryDto {
     return {
         id: overrides.id ?? "a1b2c3d4-0001-4000-8000-000000000001",
+        title: overrides.title ?? null,
         tutorId: overrides.tutorId ?? "miya",
         mode: overrides.mode ?? "speaking",
         createdAt: overrides.createdAt ?? "2026-11-18T09:00:00.000Z",
@@ -51,5 +52,18 @@ describe("getSessionTitle", () => {
         for (const [mode, key] of cases) {
             expect(getSessionTitle(summary({ mode }), translator)).toBe(`Мия · ${key}`);
         }
+    });
+
+    it("3.5 своё название сессии важнее производного заголовка", () => {
+        const title = getSessionTitle(summary({ title: "Подготовка к собеседованию" }), translator);
+
+        expect(title).toBe("Подготовка к собеседованию");
+        expect(title).not.toContain("modes.");
+    });
+
+    it("3.6 название из пробелов считается пустым: показывается производный заголовок", () => {
+        const title = getSessionTitle(summary({ title: "   " }), translator);
+
+        expect(title).toBe("Мия · modes.speaking");
     });
 });

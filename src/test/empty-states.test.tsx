@@ -31,7 +31,12 @@ const vocabulary = vi.hoisted(() => ({ items: [] as VocabularyWord[] }));
 
 vi.mock("@/api/sessions", () => ({ fetchSessions: async () => [] }));
 vi.mock("@/api/tutors", () => ({ fetchTutors: async () => [] }));
-vi.mock("@/api/progress", () => ({ fetchVocabulary: async () => vocabulary.items }));
+vi.mock("@/api/progress", () => ({
+    fetchVocabulary: async () => vocabulary.items,
+    // ARCHITECT: страница словаря читает и очередь повторения: её queryFn обязан быть функцией, даже когда
+    // запрос выключен (режим повторения закрыт).
+    fetchReviewQueue: async () => [],
+}));
 
 beforeEach(() => {
     resetStores();

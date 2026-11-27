@@ -7,8 +7,8 @@ import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
-import { fetchVocabulary, fetchVocabularyEntries } from "@/api/progress";
-import type { VocabularyEntryDto } from "@/api/progress";
+import { fetchReviewQueue, fetchVocabulary, fetchVocabularyEntries } from "@/api/progress";
+import type { ReviewQueueItemDto, VocabularyEntryDto } from "@/api/progress";
 import { useAuthExpiry } from "@/hooks/useAuthExpiry";
 import { USE_MOCKS } from "@/lib/env";
 import { useAuthStore } from "@/store/auth";
@@ -83,4 +83,49 @@ export function useVocabulary(): VocabularyResult {
     return USE_MOCKS
         ? { kind: "mock", ...state, words: data as VocabularyWord[] }
         : { kind: "real", ...state, entries: data as VocabularyEntryDto[] };
+}
+
+/** Очередь повторения: задания приходят с сервера готовыми, клиент только проверяет ответ. */
+export interface ReviewQueueResult {
+    readonly queue: readonly ReviewQueueItemDto[];
+    readonly isLoading: boolean;
+    readonly isError: boolean;
+    readonly refetch: () => Promise<void>;
+}
+
+// ARCHITECT: очередь запрашивается только когда открыт режим повторения: в покое экран словаря за неё не платит,
+// а задание всё равно устареет к следующему заходу. Ключ изолирован по пользователю, как у списка слов.
+export function useVocabularyReview(enabled: boolean): ReviewQueueResult {
+    const { t } = useTranslation();
+    const userId = useAuthStore((state) => state.user?.id ?? null);
+
+    const query = useQuery<ReviewQueueItemDto[]>({
+        queryKey: ["vocabulary", "review", USE_MOCKS ? "mock" : userId],
+        queryFn: fetchReviewQueue,
+        enabled: enabled && (USE_MOCKS || userId !== null),
+        retry: USE_MOCKS
+            ? false
+            : (failureCount, error) => !isClientError(error) && failureCount < MAX_RETRIES,
+    });
+
+    const { error, isSuccess } = query;
+    const sessionExpired = !USE_MOCKS && error instanceof ApiError && error.statusCode === 401;
+
+    // ARCHITECT: истёкшую сессию обрабатывает общий хук: один тост и один редирект на все read-хуки.
+    useAuthExpiry(error, isSuccess);
+
+    useEffect(() => {
+        if (USE_MOCKS || error === null || error === undefined || sessionExpired) return;
+
+        toast.error(t("states.error.title"));
+    }, [error, sessionExpired, t]);
+
+    return {
+        queue: query.data ?? [],
+        isLoading: query.isLoading,
+        isError: query.isError,
+        refetch: async () => {
+            await query.refetch();
+        },
+    };
 }

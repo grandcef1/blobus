@@ -3,6 +3,7 @@
 // состояние загрузки, синхронные моки остаются источником данных.
 
 import { apiFetch } from "@/api/client";
+import type { ChatQuiz } from "@/api/chat";
 import { MOCK_VOCABULARY } from "@/api/mocks/progress";
 import { delayMock } from "@/api/mockDelay";
 import type { SessionSummaryDto } from "@/api/sessions";
@@ -106,7 +107,7 @@ export interface VocabularyEntryDto {
     updatedAt: string;
 }
 
-/** Исход повторения карточки: «помню» двигает шаг вперёд, «забыл» возвращает на первый. */
+/** Исход повторения карточки: «верно» двигает шаг вперёд, «неверно» возвращает на первый. */
 export type ReviewOutcome = "remembered" | "forgotten";
 
 // ARCHITECT: мок повторяет серверный переход по шагам Лейтнера (server/routes/vocabulary.ts), потому что
@@ -158,6 +159,30 @@ export const MOCK_VOCABULARY_ENTRIES: VocabularyEntryDto[] = [
         createdAt: "2026-11-14T09:27:00.000Z",
         updatedAt: "2026-11-15T07:10:00.000Z",
     },
+    {
+        id: "9f4c2a10-3b7e-4d51-a0c8-4e2b1d6f7a33",
+        term: "reliable",
+        translation: "надёжный",
+        context: "She is a reliable teammate.",
+        exampleTranslation: "Она надёжный товарищ по команде.",
+        sourceLessonId: null,
+        stage: 2,
+        nextDueAt: "2026-11-17T09:05:00.000Z",
+        createdAt: "2026-11-15T11:40:00.000Z",
+        updatedAt: "2026-11-17T09:05:00.000Z",
+    },
+    {
+        id: "b6d1f0a4-7c92-4e38-9a15-3f8c5b2d9e44",
+        term: "improve",
+        translation: "улучшать",
+        context: "I want to improve my speaking.",
+        exampleTranslation: "Я хочу улучшить свою речь.",
+        sourceLessonId: null,
+        stage: 3,
+        nextDueAt: "2026-11-19T08:20:00.000Z",
+        createdAt: "2026-11-16T07:15:00.000Z",
+        updatedAt: "2026-11-19T08:20:00.000Z",
+    },
 ];
 
 // ARCHITECT: реальный транспорт — apiFetch (cookie-сессия + CSRF + 401→refresh), не apiClient: чтение
@@ -173,53 +198,61 @@ export async function fetchVocabularyEntries(): Promise<VocabularyEntryDto[]> {
     return vocabulary;
 }
 
-/** Тело добавления слова: ровно поля контракта POST /api/vocabulary, без user_id и source_lesson_id. */
-export interface AddVocabularyInput {
-    term: string;
-    translation?: string | null;
-    context?: string | null;
-    exampleTranslation?: string | null;
+/** Элемент очереди повторения: слово и задание к нему. Задание — та же викторина, что в чате, поэтому
+ * карточка повторения рисуется существующими компонентами (gap-fill, choice, word-order). */
+export interface ReviewQueueItemDto {
+    readonly id: string;
+    readonly stage: number;
+    readonly task: ChatQuiz;
 }
 
-// ARCHITECT: мок-ветка повторяет серверную идемпотентность: дубль по lower(term) возвращает существующую
-// запись, новое слово добавляется в мок-список. real-ветка — мутация через apiFetch (CSRF и refresh внутри
-// транспорта), конверт { entry } распаковывается здесь.
-export async function addVocabularyEntry(input: AddVocabularyInput): Promise<VocabularyEntryDto> {
-    if (USE_MOCKS) {
-        await delayMock();
-        const term = input.term.trim();
-        const existing = MOCK_VOCABULARY_ENTRIES.find(
-            (entry) => entry.term.toLowerCase() === term.toLowerCase()
-        );
+/**
+ * Мок очереди повторения: клиент не импортирует серверный генератор (server/vocabularyReview.ts), поэтому форма
+ * задания повторяется здесь — как мок-переход Лейтнера ниже. Задание то же: выбор перевода с дистракторами из
+ * других слов ученика.
+ */
+function mockReviewQueue(entries: readonly VocabularyEntryDto[]): ReviewQueueItemDto[] {
+    const queue: ReviewQueueItemDto[] = [];
 
-        if (existing !== undefined) return existing;
+    for (const entry of entries) {
+        const correct = (entry.translation ?? "").trim();
 
-        const now = new Date().toISOString();
-        const entry: VocabularyEntryDto = {
-            id: crypto.randomUUID(),
-            term,
-            translation: input.translation ?? null,
-            context: input.context ?? null,
-            exampleTranslation: input.exampleTranslation ?? null,
-            sourceLessonId: null,
-            stage: 1,
-            nextDueAt: now,
-            createdAt: now,
-            updatedAt: now,
-        };
+        if (correct === "") continue;
 
-        MOCK_VOCABULARY_ENTRIES.push(entry);
+        const distractors = entries
+            .map((other) => (other.translation ?? "").trim())
+            .filter((text) => text !== "" && text.toLowerCase() !== correct.toLowerCase())
+            .slice(0, 2);
 
-        return entry;
+        if (distractors.length === 0) continue;
+
+        const options = [correct, ...distractors].map((text, index) => ({
+            id: String.fromCharCode(97 + index),
+            text,
+        }));
+
+        queue.push({
+            id: entry.id,
+            stage: entry.stage,
+            task: { type: "choice", prompt: entry.term, options, answerId: "a" },
+        });
     }
 
-    // ARCHITECT: тело уходит объектом: apiFetch сериализует его сам, строка была бы JSON-строкой внутри JSON.
-    const { entry } = await apiFetch<{ entry: VocabularyEntryDto }>("/vocabulary", {
-        method: "POST",
-        body: input,
-    });
+    return queue;
+}
 
-    return entry;
+// ARCHITECT: очередь повторения приходит готовой с сервера: задание собирает он (детерминированно и без модели),
+// а клиент только проверяет ответ. Форма очереди — доверенный контракт нашего API, как и конверт списка.
+export async function fetchReviewQueue(): Promise<ReviewQueueItemDto[]> {
+    if (USE_MOCKS) {
+        await delayMock();
+
+        return mockReviewQueue(MOCK_VOCABULARY_ENTRIES);
+    }
+
+    const { queue } = await apiFetch<{ queue: ReviewQueueItemDto[] }>("/vocabulary/review");
+
+    return queue;
 }
 
 // ARCHITECT: запись исхода повторения: шаг и дату следующего показа считает сервер, клиент только сообщает

@@ -1,8 +1,10 @@
-// ARCHITECT: доменный роутер чтения словаря: свои строки public.vocabulary читаются пользовательским клиентом
+// ARCHITECT: доменный роутер словаря: свои строки public.vocabulary читаются пользовательским клиентом
 // под RLS select-own, а userId берётся только из проверенного access-токена, никогда из клиента (§16.2, §16.5).
 // ARCHITECT: ответ PostgREST разбирается Zod и не покидает модуль (§16.13): наружу уходит только DTO без
 // user_id; озвучки и уровня освоения в схеме нет, а пример предложения — это context, его перевод хранится
 // в example_translation.
+// ARCHITECT: публичного добавления слова здесь нет: словарь наполняет авто-слово урока (routes/chat.ts пишет
+// service-role напрямую), поэтому ручной путь удалён вместе с диалогом и его ключами (§спец. 2).
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { z } from "zod";
@@ -14,6 +16,8 @@ import { errorEnvelope } from "../http.ts";
 import { createMemoryRateLimitStore, createRateLimiter } from "../rate-limit.ts";
 import { createServiceClient, createUserClient } from "../supabase.ts";
 import type { SupabaseEnv } from "../supabase.ts";
+import { buildReviewQueue } from "../vocabularyReview.ts";
+import type { ReviewWord } from "../vocabularyReview.ts";
 
 // ARCHITECT: строгая схема читаемого набора колонок: границы совпадают с CHECK-ами схемы (term 1..120,
 // translation <=240, context <=500). strictObject отклоняет лишние ключи — набор ровно тот, что мы выбрали.
@@ -34,18 +38,6 @@ const VocabularyRowSchema = z.strictObject({
 const VocabularyListSchema = z.array(VocabularyRowSchema);
 
 type VocabularyRow = z.infer<typeof VocabularyRowSchema>;
-
-// ARCHITECT: тело создания — только слово и его необязательные поля: user_id и source_lesson_id приходят
-// не от клиента, а лишние поля отклоняет strictObject (§16.6).
-const CreateVocabularySchema = z.strictObject({
-    term: z.string().trim().min(1).max(120),
-    translation: z.string().max(240).nullable().optional(),
-    context: z.string().max(500).nullable().optional(),
-    exampleTranslation: z.string().max(500).nullable().optional(),
-});
-
-// ARCHITECT: код Postgres «нарушение уникальности»: unique (user_id, lower(term)) — повтор слова не ошибка.
-const UNIQUE_VIOLATION = "23505";
 
 // ARCHITECT: повторение по Лейтнеру: интервалы в днях 1/3/7/14/30, интервал берётся по достигнутому шагу —
 // «помню» на первом шаге откладывает слово на 3 дня. Пятый шаг последний: закреплённое слово повторяется
@@ -125,11 +117,10 @@ const READ_MAX = 60;
 // ARCHITECT: limit 50 — защита от неограниченного чтения; порядок под существующий
 // vocabulary_user_created (user_id, created_at desc, id desc).
 const READ_LIMIT = 50;
-// ARCHITECT: лимит записи 30 за 15 минут: добавление слова — ручное действие, но скрипт не должен
-// забивать словарь тысячами строк через service-role.
-const WRITE_WINDOW_MS = 15 * 60_000;
-const WRITE_MAX = 30;
-// ARCHITECT: лимит повторения отдельный от добавления: карточки нажимаются часто, поэтому окно 15 мин / 60.
+// ARCHITECT: сколько слов приходит в очередь повторения: одна сессия повторения — не весь словарь, а десять
+// слов; при следующем заходе очередь продолжится с того, что уже пора.
+const REVIEW_QUEUE_LIMIT = 10;
+// ARCHITECT: лимит повторения отдельный от чтения: карточки нажимаются часто, поэтому окно 15 мин / 60.
 const REVIEW_WINDOW_MS = 15 * 60_000;
 const REVIEW_MAX_REQUESTS = 60;
 
@@ -141,12 +132,6 @@ export function createVocabularyRouter(options: { readonly env: SupabaseEnv }): 
         windowMs: READ_WINDOW_MS,
         max: READ_MAX,
         scope: "vocabulary:read",
-    });
-    const writeLimiter = createRateLimiter({
-        store: createMemoryRateLimitStore(),
-        windowMs: WRITE_WINDOW_MS,
-        max: WRITE_MAX,
-        scope: "vocabulary:create",
     });
     const reviewLimiter = createRateLimiter({
         store: createMemoryRateLimitStore(),
@@ -202,8 +187,10 @@ export function createVocabularyRouter(options: { readonly env: SupabaseEnv }): 
         res.status(200).json({ vocabulary });
     });
 
-    // ARCHITECT: POST — мутация: лимитер -> validateCsrf -> обработчик, как в auth.ts/sessions.ts.
-    router.post("/", writeLimiter, validateCsrf, async (req: Request, res: Response) => {
+    // ARCHITECT: очередь повторения — чтение: лимитер чтения, RLS select-own, CSRF не нужен (как GET /). Задание
+    // собирает сервер детерминированно (vocabularyReview.ts), поэтому повторение не стоит ни одного запроса к
+    // модели, а верный ответ считает клиент, как в викторине чата (§16.8).
+    router.get("/review", readLimiter, async (req: Request, res: Response) => {
         const accessToken = getCookie(req, COOKIE_NAMES.accessToken);
 
         if (accessToken === undefined) {
@@ -221,58 +208,34 @@ export function createVocabularyRouter(options: { readonly env: SupabaseEnv }): 
             return;
         }
 
-        const parsed = CreateVocabularySchema.safeParse(req.body);
-
-        if (!parsed.success) {
-            res.status(400).json(errorEnvelope("BAD_REQUEST", res));
-            return;
-        }
-
-        // ARCHITECT: запись делает service-role (у authenticated только SELECT): владение задаётся
-        // проверенным userId, source_lesson_id пока null — слова из уроков придут в фазе C.
-        const client = createServiceClient(env);
-        const columns =
-            "id, user_id, term, translation, context, example_translation, source_lesson_id, stage, next_due_at, created_at, updated_at";
-        const inserted = await client
+        // ARCHITECT: читаются только свои слова с наступившим сроком показа, от самого просроченного: набор
+        // колонок тот же, что у списка, — форма строки одна на все чтения (§5.4).
+        const { data, error } = await createUserClient(env, accessToken)
             .from("vocabulary")
-            .insert({
-                user_id: payload.userId,
-                term: parsed.data.term,
-                translation: parsed.data.translation ?? null,
-                context: parsed.data.context ?? null,
-                example_translation: parsed.data.exampleTranslation ?? null,
-            })
-            .select(columns)
-            .single();
+            .select(
+                "id, user_id, term, translation, context, example_translation, source_lesson_id, stage, next_due_at, created_at, updated_at"
+            )
+            .eq("user_id", payload.userId)
+            .lte("next_due_at", new Date().toISOString())
+            .order("next_due_at", { ascending: true })
+            .order("id", { ascending: true })
+            .limit(REVIEW_QUEUE_LIMIT);
 
-        if (inserted.error !== null) {
-            // ARCHITECT: unique (user_id, lower(term)) — повтор слова не ошибка: отдаём существующую запись
-            // 200 (§16.7). Метасимволы LIKE экранируются, иначе term с % или _ нашёл бы чужую строку.
-            if (inserted.error.code !== UNIQUE_VIOLATION) throw inserted.error;
+        if (error !== null) throw error;
 
-            const escaped = parsed.data.term.replace(/[\\%_]/g, "\\$&");
-            const existing = await client
-                .from("vocabulary")
-                .select(columns)
-                .eq("user_id", payload.userId)
-                .ilike("term", escaped)
-                .single();
+        const parsed = VocabularyListSchema.safeParse(data);
 
-            if (existing.error !== null) throw existing.error;
+        if (!parsed.success) throw parsed.error;
 
-            const row = VocabularyRowSchema.safeParse(existing.data);
+        const words: ReviewWord[] = parsed.data.map((row) => ({
+            id: row.id,
+            term: row.term,
+            translation: row.translation,
+            context: row.context,
+            stage: row.stage,
+        }));
 
-            if (!row.success) throw row.error;
-
-            res.status(200).json({ entry: toVocabularyEntry(row.data) });
-            return;
-        }
-
-        const row = VocabularyRowSchema.safeParse(inserted.data);
-
-        if (!row.success) throw row.error;
-
-        res.status(201).json({ entry: toVocabularyEntry(row.data) });
+        res.status(200).json({ queue: buildReviewQueue(words, REVIEW_QUEUE_LIMIT) });
     });
 
     // ARCHITECT: PATCH — исход повторения карточки: лимитер -> validateCsrf -> обработчик. Чтение и запись

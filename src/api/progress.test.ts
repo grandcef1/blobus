@@ -6,7 +6,7 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import {
     MOCK_VOCABULARY_ENTRIES,
-    addVocabularyEntry,
+    fetchReviewQueue,
     fetchVocabulary,
     fetchVocabularyEntries,
     markWordReviewed,
@@ -31,7 +31,8 @@ describe("мок-режим: fetchVocabularyEntries отдаёт адаптер�
 
     it("6.6 прежние мок-экспорты прогресса и словаря не изменились", async () => {
         await expect(fetchVocabulary()).resolves.toEqual(MOCK_VOCABULARY);
-        expect(MOCK_VOCABULARY_ENTRIES).toHaveLength(2);
+        // ARCHITECT: четыре слова: два исходных плюс пара с переводами — без них очередь повторения пуста.
+        expect(MOCK_VOCABULARY_ENTRIES).toHaveLength(4);
     });
 });
 
@@ -130,71 +131,39 @@ describe("real-режим: fetchVocabularyEntries читает ресурсны�
         await expect(progress.fetchVocabularyEntries()).rejects.toThrow();
     });
 });
-describe("мок-режим: addVocabularyEntry пишет в мок-список", () => {
-    it("5.1 добавляет слово в MOCK_VOCABULARY_ENTRIES и не ходит в apiFetch", async () => {
-        const before = MOCK_VOCABULARY_ENTRIES.length;
-        const entry = await addVocabularyEntry({ term: "Serendipity", translation: "озарение" });
+
+describe("мок-режим: fetchReviewQueue собирает задания из мок-словаря", () => {
+    it("7.1 отдаёт задание выбора перевода: верный вариант один, дистракторы его не повторяют", async () => {
+        const queue = await fetchReviewQueue();
+        const first = queue[0];
 
         expect(apiFetchMock).not.toHaveBeenCalled();
-        expect(entry.term).toBe("Serendipity");
-        expect(entry.translation).toBe("озарение");
-        expect(entry.context).toBeNull();
-        expect(entry.exampleTranslation).toBeNull();
-        expect(entry.sourceLessonId).toBeNull();
-        expect(Object.keys(entry).sort()).toEqual([
-            "context",
-            "createdAt",
-            "exampleTranslation",
-            "id",
-            "nextDueAt",
-            "sourceLessonId",
-            "stage",
-            "term",
-            "translation",
-            "updatedAt",
-        ]);
-        expect(MOCK_VOCABULARY_ENTRIES).toHaveLength(before + 1);
-        expect(MOCK_VOCABULARY_ENTRIES.some((item) => item.id === entry.id)).toBe(true);
+        expect(queue.length).toBeGreaterThan(0);
+
+        if (first === undefined || first.task.type !== "choice") throw new Error("ожидалось задание выбора");
+
+        const task = first.task;
+        const correct = task.options.find((option) => option.id === task.answerId);
+        const others = task.options.filter((option) => option.id !== task.answerId);
+
+        expect(correct).toBeDefined();
+        expect(others.length).toBeGreaterThan(0);
+
+        // ARCHITECT: дистрактор, совпавший с верным переводом, сделал бы задание угадыванием (§спец. 5).
+        for (const option of others) expect(option.text).not.toBe(correct?.text);
     });
 
-    it("5.6 кладёт перевод примера в мок-запись", async () => {
-        // ARCHITECT: термин уникален для этого теста: дубль по lower(term) вернул бы запись 5.1 без перевода.
-        const entry = await addVocabularyEntry({
-            term: "Tenacity",
-            context: "Her tenacity impressed the team.",
-            exampleTranslation: "Её упорство впечатлило команду.",
-        });
-
-        expect(apiFetchMock).not.toHaveBeenCalled();
-        expect(entry.exampleTranslation).toBe("Её упорство впечатлило команду.");
-        expect(
-            MOCK_VOCABULARY_ENTRIES.find((item) => item.id === entry.id)?.exampleTranslation
-        ).toBe("Её упорство впечатлило команду.");
-    });
-
-    it("5.2 дубль по lower(term): та же запись, длина списка не растёт", async () => {
-        const created = await addVocabularyEntry({ term: "Serendipity" });
-        const before = MOCK_VOCABULARY_ENTRIES.length;
-        const duplicate = await addVocabularyEntry({ term: "  serendipity " });
-
-        expect(duplicate.id).toBe(created.id);
-        expect(MOCK_VOCABULARY_ENTRIES).toHaveLength(before);
+    it("7.2 очередь детерминирована: два вызова дают одну и ту же форму", async () => {
+        expect(await fetchReviewQueue()).toEqual(await fetchReviewQueue());
     });
 });
 
-describe("real-режим: addVocabularyEntry создаёт слово через доменный роутер", () => {
-    const created: VocabularyEntryDto = {
-        id: "a1b2c3d4-0005-4000-8000-000000000005",
-        term: "serendipity",
-        translation: "озарение",
-        context: "A happy accident.",
-        exampleTranslation: "Счастливая случайность.",
-        sourceLessonId: null,
-        stage: 1,
-        nextDueAt: "2026-11-22T10:00:00.000Z",
-        createdAt: "2026-11-22T10:00:00.000Z",
-        updatedAt: "2026-11-22T10:00:00.000Z",
-    };
+describe("real-режим: fetchReviewQueue читает готовые задания с сервера", () => {
+    const ITEM = {
+        id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a11",
+        stage: 2,
+        task: { type: "gap-fill", prompt: "We need to ___ on this project.", answer: "collaborate" },
+    } as const;
 
     beforeEach(() => {
         vi.stubEnv("VITE_USE_MOCKS", "false");
@@ -208,55 +177,20 @@ describe("real-режим: addVocabularyEntry создаёт слово чере
         vi.restoreAllMocks();
     });
 
-    /** Модуль подгружается заново под реальный VITE_USE_MOCKS=false. */
-    function loadRealProgress(): Promise<typeof import("@/api/progress")> {
-        return import("@/api/progress");
-    }
+    it("7.3 распаковывает конверт { queue }: задание собирает сервер, а не клиент", async () => {
+        apiFetchMock.mockResolvedValue({ queue: [ITEM] });
+        const progress = await import("@/api/progress");
 
-    it("5.3 POST /vocabulary с телом и распаковка .entry", async () => {
-        apiFetchMock.mockResolvedValue({ entry: created });
-        const progress = await loadRealProgress();
-        const input = {
-            term: "serendipity",
-            translation: "озарение",
-            context: "A happy accident.",
-            exampleTranslation: "Счастливая случайность.",
-        };
-
-        const result = await progress.addVocabularyEntry(input);
-
-        expect(result).toEqual(created);
-        expect(result.exampleTranslation).toBe("Счастливая случайность.");
-        // ARCHITECT: тело уходит объектом — apiFetch сериализует сам; строка была бы JSON внутри JSON.
-        expect(apiFetchMock).toHaveBeenCalledWith("/vocabulary", {
-            method: "POST",
-            body: input,
-        });
+        expect(await progress.fetchReviewQueue()).toEqual([ITEM]);
+        expect(apiFetchMock).toHaveBeenCalledWith("/vocabulary/review");
     });
 
-    it("5.4 пробрасывает 400, не глотая его", async () => {
+    it("7.4 пробрасывает 401, не глотая его", async () => {
         const { ApiError } = await import("@/api/client");
-        apiFetchMock.mockRejectedValue(new ApiError(400, "Request could not be processed"));
-        const progress = await loadRealProgress();
+        apiFetchMock.mockRejectedValue(new ApiError(401, "Unauthorized"));
+        const progress = await import("@/api/progress");
 
-        await expect(progress.addVocabularyEntry({ term: "serendipity" })).rejects.toMatchObject({
-            statusCode: 400,
-        });
-    });
-
-    it("5.5 пробрасывает 401 и 403, не глотая их", async () => {
-        const { ApiError } = await import("@/api/client");
-        apiFetchMock
-            .mockRejectedValueOnce(new ApiError(401, "Unauthorized"))
-            .mockRejectedValueOnce(new ApiError(403, "Request forbidden"));
-        const progress = await loadRealProgress();
-
-        await expect(progress.addVocabularyEntry({ term: "serendipity" })).rejects.toMatchObject({
-            statusCode: 401,
-        });
-        await expect(progress.addVocabularyEntry({ term: "serendipity" })).rejects.toMatchObject({
-            statusCode: 403,
-        });
+        await expect(progress.fetchReviewQueue()).rejects.toMatchObject({ statusCode: 401 });
     });
 });
 

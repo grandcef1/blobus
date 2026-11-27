@@ -17,9 +17,11 @@ import { QuizFeedback } from "./QuizFeedback";
 interface QuizChoiceProps {
     readonly options: readonly ChatQuizOption[];
     readonly answerId: string;
+    /** Исход первой проверки: повторение словаря по нему двигает шаг Лейтнера. */
+    readonly onOutcome?: (correct: boolean) => void;
 }
 
-export function QuizChoice({ options, answerId }: QuizChoiceProps) {
+export function QuizChoice({ options, answerId, onOutcome }: QuizChoiceProps) {
     const { t } = useTranslation("chat");
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const isAnswered = selectedId !== null;
@@ -27,8 +29,11 @@ export function QuizChoice({ options, answerId }: QuizChoiceProps) {
     const isCelebrating = useCelebration(isCorrect);
 
     const select = (optionId: string): void => {
+        if (isAnswered) return;
+
         setSelectedId(optionId);
         playSound(optionId === answerId ? "correct" : "wrong");
+        onOutcome?.(optionId === answerId);
     };
 
     const stateFor = (option: ChatQuizOption): QuizOptionState => {

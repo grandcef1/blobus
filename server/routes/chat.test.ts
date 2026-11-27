@@ -965,4 +965,85 @@ describe("POST /api/chat", () => {
             });
         }, 30_000);
     });
+
+    describe("авто-слово урока", () => {
+        /** Слово урока из события done: null — карточка слова клиенту не ушла. */
+        async function sendAndReadWord(
+            app: RunningApp,
+            jar: Jar,
+            sessionId: string
+        ): Promise<unknown> {
+            const events = parseSse(await (await sendMessage(app, jar, sessionId)).text());
+
+            return (events.find((entry) => entry.event === "done")?.data as { readonly vocabWord: unknown })
+                .vocabWord;
+        }
+
+        it("23: слово приходит раз в три хода, а не каждый и не почти никогда", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                const counts: number[] = [];
+                // ARCHITECT: каждый ход модель предлагает новое слово: одинаковое слово не добавилось бы дважды,
+                // и по числу строк нельзя было бы отличить правило частоты от защиты от повторов.
+                const words = ["cinema", "deadline", "improve", "reliable"];
+                let turn = 0;
+
+                openRouterReply = () =>
+                    sseResponse([
+                        rawReply(ANSWER_TEXT, {
+                            ...VALID_CARDS,
+                            vocabWord: {
+                                term: words[turn++ % words.length],
+                                translation: "перевод",
+                                context: "In context.",
+                            },
+                        }),
+                    ]);
+
+                for (let sent = 0; sent < 4; sent += 1) {
+                    await (await sendMessage(app, me.jar, me.sessionId)).text();
+
+                    counts.push((await dbVocabulary(me.id)).length);
+                }
+
+                // ARCHITECT: первый, четвёртый и седьмой ход приносят слово — один ход из трёх (§спец. 1).
+                expect(counts).toEqual([1, 1, 1, 2]);
+            });
+        }, 60_000);
+
+        it("24: повтор изученного слова не создаёт вторую строку и не показывает карточку", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                const first = await sendAndReadWord(app, me.jar, me.sessionId);
+
+                expect(first).not.toBeNull();
+                expect(await dbVocabulary(me.id)).toEqual(["cinema"]);
+
+                // Три хода до следующей попытки слова: на четвёртом модель предлагает то же «cinema».
+                for (let turn = 0; turn < 3; turn += 1)
+                    await (await sendMessage(app, me.jar, me.sessionId)).text();
+
+                // ARCHITECT: слово уже в словаре — это не ошибка, но и не повод рисовать карточку заново.
+                expect(await sendAndReadWord(app, me.jar, me.sessionId)).toBeNull();
+                expect(await dbVocabulary(me.id)).toEqual(["cinema"]);
+            });
+        }, 90_000);
+
+        it("25: служебное слово не попадает в словарь и не показывается карточкой", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+
+                openRouterReply = () =>
+                    sseResponse([
+                        rawReply(ANSWER_TEXT, {
+                            ...VALID_CARDS,
+                            vocabWord: { term: "the", translation: "артикль", context: "the" },
+                        }),
+                    ]);
+
+                expect(await sendAndReadWord(app, me.jar, me.sessionId)).toBeNull();
+                expect(await dbVocabulary(me.id)).toEqual([]);
+            });
+        }, 30_000);
+    });
 });

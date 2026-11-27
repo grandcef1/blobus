@@ -154,24 +154,13 @@
   },
   "vocabulary": {
     "title": "Словарь",
-    "add": {
-      "cancel": "Отмена",
-      "error": "Не удалось добавить слово",
-      "example": "Пример",
-      "exampleTranslation": "Перевод примера",
-      "submit": "Добавить",
-      "term": "Слово",
-      "title": "Добавить слово",
-      "translation": "Перевод"
-    },
     "count": "{{total}} слов в коллекции",
     "review": {
       "done": "На сегодня всё",
       "due": "К повтору: {{count}}",
-      "forget": "Не помню",
       "label": "Повторить",
-      "remember": "Помню",
-      "showAnswer": "Показать ответ"
+      "next": "Далее",
+      "answer": "Ответ: {{answer}}"
     },
     "searchPlaceholder": "Поиск слова или перевода"
   },

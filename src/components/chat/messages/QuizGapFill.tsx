@@ -13,6 +13,8 @@ import { normalizeAnswer } from "./quizCheck";
 
 interface QuizGapFillProps {
     readonly answer: string;
+    /** Исход первой проверки: повторение словаря по нему двигает шаг Лейтнера. */
+    readonly onOutcome?: (correct: boolean) => void;
 }
 
 type GapFillResult = "correct" | "wrong" | null;
@@ -22,7 +24,7 @@ const FIELD =
 const CHECK_BUTTON =
     "flex min-h-11 shrink-0 items-center rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs text-[#f0f0f5]/70 transition-colors hover:border-white/25 hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] disabled:opacity-40";
 
-export function QuizGapFill({ answer }: QuizGapFillProps) {
+export function QuizGapFill({ answer, onOutcome }: QuizGapFillProps) {
     const { t } = useTranslation("chat");
     const fieldId = useId();
     const [value, setValue] = useState("");
@@ -33,6 +35,10 @@ export function QuizGapFill({ answer }: QuizGapFillProps) {
         if (value.trim() === "" || result === "correct") return;
 
         const outcome = normalizeAnswer(value) === normalizeAnswer(answer) ? "correct" : "wrong";
+
+        // ARCHITECT: исход сообщается только по первой проверке: повторный ввод после промаха — это уже попытка
+        // выучить ответ, а не чистый результат повторения.
+        if (result === null) onOutcome?.(outcome === "correct");
 
         setResult(outcome);
         playSound(outcome);

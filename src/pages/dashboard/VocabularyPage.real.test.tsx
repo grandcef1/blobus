@@ -2,22 +2,26 @@
 // покрыт server/routes/vocabulary.test.ts. Негативные проверки обязательны: null-поля не рендерятся,
 // пустой словарь и пустой поиск различаются, ошибка даёт повтор запроса, режим повторения пишет исход.
 
-import { screen, waitFor } from "@testing-library/react";
+import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { VocabularyPage } from "@/pages/dashboard/VocabularyPage";
 import { renderWithProviders } from "@/test/utils";
-import type { VocabularyEntryDto } from "@/api/progress";
-import type { VocabularyResult } from "@/hooks/useVocabulary";
+import type { ReviewQueueItemDto, VocabularyEntryDto } from "@/api/progress";
+import type { ReviewQueueResult, VocabularyResult } from "@/hooks/useVocabulary";
 import type { VocabularyWord } from "@/types/progress";
 
-const { useVocabularyMock, markWordReviewedMock } = vi.hoisted(() => ({
+const { useVocabularyMock, useVocabularyReviewMock, markWordReviewedMock } = vi.hoisted(() => ({
     useVocabularyMock: vi.fn(),
+    useVocabularyReviewMock: vi.fn(),
     markWordReviewedMock: vi.fn(),
 }));
 
-vi.mock("@/hooks/useVocabulary", () => ({ useVocabulary: useVocabularyMock }));
+vi.mock("@/hooks/useVocabulary", () => ({
+    useVocabulary: useVocabularyMock,
+    useVocabularyReview: useVocabularyReviewMock,
+}));
 vi.mock("@/api/progress", () => ({ markWordReviewed: markWordReviewedMock }));
 
 const refetchMock = vi.fn(async () => undefined);
@@ -106,10 +110,32 @@ function mockResult(words: VocabularyWord[]): VocabularyResult {
     };
 }
 
+// ARCHITECT: очередь повторения приходит готовой с сервера: задание собирает он, клиент проверяет ответ.
+const QUEUE: ReviewQueueItemDto[] = [
+    {
+        id: ENTRIES[0].id,
+        stage: 1,
+        task: {
+            type: "choice",
+            prompt: "collaborate",
+            options: [
+                { id: "a", text: "сотрудничать" },
+                { id: "b", text: "откладывать" },
+            ],
+            answerId: "a",
+        },
+    },
+];
+
+function reviewResult(queue: ReviewQueueItemDto[] = QUEUE): ReviewQueueResult {
+    return { queue, isLoading: false, isError: false, refetch: refetchMock };
+}
+
 beforeEach(() => {
     refetchMock.mockClear();
     markWordReviewedMock.mockReset();
     markWordReviewedMock.mockResolvedValue(ENTRIES[0]);
+    useVocabularyReviewMock.mockReturnValue(reviewResult());
 });
 
 afterEach(() => {
@@ -190,29 +216,38 @@ describe("VocabularyPage на реальных записях", () => {
         expect(screen.getByRole("button", { name: "Повторить" })).toBeEnabled();
     });
 
-    it("6.7 повторение: ответ, «Помню» пишет исход, очередь заканчивается", async () => {
+    it("6.7 повторение — викторина: верный ответ пишет исход, очередь заканчивается", async () => {
         const user = userEvent.setup();
         useVocabularyMock.mockReturnValue(realResult({ entries: ENTRIES }));
         renderWithProviders(<VocabularyPage />);
 
         await user.click(screen.getByRole("button", { name: "Повторить" }));
 
+        // ARCHITECT: прогресс сессии — счётчик оставшихся слов, а задание пришло с сервера готовым.
         expect(screen.getByText("К повтору: 1")).toBeInTheDocument();
-        expect(screen.queryByText("сотрудничать")).not.toBeInTheDocument();
+        expect(screen.getByText("collaborate")).toBeInTheDocument();
 
-        await user.click(screen.getByRole("button", { name: "Показать ответ" }));
-
-        expect(screen.getByText("сотрудничать")).toBeInTheDocument();
-        expect(screen.getByText("Нам нужно сотрудничать над этим проектом.")).toBeInTheDocument();
-
-        await user.click(screen.getByRole("button", { name: "Помню" }));
+        await user.click(screen.getByRole("button", { name: /сотрудничать/ }));
 
         expect(markWordReviewedMock).toHaveBeenCalledWith(ENTRIES[0].id, "remembered");
-        expect(await screen.findByText("На сегодня всё")).toBeInTheDocument();
+        // ARCHITECT: верный вариант показывается после попытки: на промахе это и есть урок.
+        expect(await screen.findByText("Ответ: сотрудничать")).toBeInTheDocument();
 
-        await user.click(screen.getByRole("button", { name: "Закрыть" }));
+        await user.click(screen.getByRole("button", { name: "Далее" }));
 
-        expect(screen.getByRole("heading", { name: "collaborate" })).toBeInTheDocument();
+        expect(screen.getByText("На сегодня всё")).toBeInTheDocument();
+    });
+
+    it("6.10 неверный ответ пишет forgotten и всё равно показывает верный вариант", async () => {
+        const user = userEvent.setup();
+        useVocabularyMock.mockReturnValue(realResult({ entries: ENTRIES }));
+        renderWithProviders(<VocabularyPage />);
+
+        await user.click(screen.getByRole("button", { name: "Повторить" }));
+        await user.click(screen.getByRole("button", { name: /откладывать/ }));
+
+        expect(markWordReviewedMock).toHaveBeenCalledWith(ENTRIES[0].id, "forgotten");
+        expect(await screen.findByText("Ответ: сотрудничать")).toBeInTheDocument();
     });
 
     it("6.8 повторение недоступно, когда ни одно слово не подошло по сроку", () => {
@@ -223,25 +258,14 @@ describe("VocabularyPage на реальных записях", () => {
         expect(screen.getByRole("button", { name: "Повторить" })).toBeDisabled();
     });
 
-    it("6.9 кнопка добавления открывает модалку, повтор и счётчик не изменились", async () => {
-        const user = userEvent.setup();
+    it("6.9 ручного добавления нет: словарь наполняется авто-словом урока", () => {
         useVocabularyMock.mockReturnValue(realResult({ entries: ENTRIES }));
         renderWithProviders(<VocabularyPage />);
 
+        // ARCHITECT: кнопка и диалог удалены вместе с публичным POST: слово приходит из урока, а не из формы.
+        expect(screen.queryByRole("button", { name: "Добавить слово" })).not.toBeInTheDocument();
+        expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
         expect(screen.getByText("1 слов в коллекции")).toBeInTheDocument();
-
-        await user.click(screen.getByRole("button", { name: "Добавить слово" }));
-
-        expect(await screen.findByRole("dialog")).toBeInTheDocument();
-        expect(screen.getByLabelText("Слово")).toBeInTheDocument();
-
-        await user.keyboard("{Escape}");
-
-        await waitFor(() => expect(screen.queryByRole("dialog")).not.toBeInTheDocument());
-
-        // ARCHITECT: режим повторения не изменился: кнопка по-прежнему открывает карточку.
-        await user.click(screen.getByRole("button", { name: "Повторить" }));
-
-        expect(screen.getByRole("button", { name: "Показать ответ" })).toBeInTheDocument();
+        expect(screen.getByRole("button", { name: "Повторить" })).toBeEnabled();
     });
 });

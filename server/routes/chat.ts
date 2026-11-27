@@ -285,8 +285,55 @@ async function resolveLesson(
     };
 }
 
-/** Авто-слово урока: повтор слова не ошибка — unique (user_id, lower(term)) гасит вставку. */
-async function addVocabWord(client: ServiceClient, userId: string, word: VocabWord): Promise<void> {
+// ARCHITECT: служебные слова в словарь не попадают: словарь — про значимую лексику, а не про артикли, предлоги и
+// местоимения. Список явный и короткий — это фильтр качества авто-слова, а не полный стоп-лист английского.
+const AUTO_WORD_STOP_LIST = new Set([
+    "a", "an", "the", "and", "or", "but", "if", "of", "to", "in", "on", "at", "by", "for", "with", "from",
+    "is", "are", "was", "were", "be", "been", "being", "am", "do", "does", "did", "have", "has", "had",
+    "will", "would", "can", "could", "should", "shall", "may", "might", "must", "not", "no", "yes", "i",
+    "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them", "my", "your", "his", "its",
+    "our", "their", "this", "that", "these", "those", "there", "here", "so", "very", "just", "too", "also",
+    "as", "than", "then", "when", "what", "which", "who", "whom", "how", "why", "where", "all", "any",
+    "some", "one", "two", "more", "most", "much", "many", "get", "got", "go", "going", "went",
+]);
+
+/** Раз в столько ходов репетитор отдаёт слово урока: примерно одно слово на два-три хода, а не каждое. */
+const AUTO_WORDS_EVERY_TURNS = 3;
+
+/** Ход приносит слово в словарь на первом, четвёртом, седьмом ходу — то есть не каждый и не почти никогда. */
+function shouldOfferAutoWord(step: number): boolean {
+    return step % AUTO_WORDS_EVERY_TURNS === 0;
+}
+
+/** Кандидат в словарь: не служебное слово и не короче трёх букв — «it» и «of» словарём не считаются. */
+function isAutoWordCandidate(term: string): boolean {
+    const value = term.trim().toLowerCase();
+
+    return value.length >= 3 && !AUTO_WORD_STOP_LIST.has(value);
+}
+
+/**
+ * Авто-слово урока. Качество и существование проверяются до вставки: служебное слово и повтор не занимают даже
+ * попытки записи, а unique (user_id, lower(term)) остаётся последней защитой от гонки (§16.6). true — слово
+ * действительно лежит в словаре: только тогда карточка слова уходит клиенту.
+ */
+async function addVocabWord(client: ServiceClient, userId: string, word: VocabWord): Promise<boolean> {
+    if (!isAutoWordCandidate(word.term)) return false;
+
+    // ARCHITECT: метасимволы LIKE экранируются, иначе term с % или _ нашёл бы чужую строку.
+    const escaped = word.term.trim().replace(/[\\%_]/g, "\\$&");
+    const existing = await client
+        .from("vocabulary")
+        .select("id")
+        .eq("user_id", userId)
+        .ilike("term", escaped)
+        .maybeSingle();
+
+    if (existing.error !== null) throw existing.error;
+
+    // ARCHITECT: слово уже в словаре — это не ошибка и не повод показать карточку заново: урок его не «добавляет».
+    if (existing.data !== null) return false;
+
     const inserted = await client.from("vocabulary").insert({
         user_id: userId,
         term: word.term,
@@ -294,7 +341,7 @@ async function addVocabWord(client: ServiceClient, userId: string, word: VocabWo
         context: word.context,
     });
 
-    if (inserted.error === null || inserted.error.code === UNIQUE_VIOLATION) return;
+    if (inserted.error === null || inserted.error.code === UNIQUE_VIOLATION) return true;
 
     throw inserted.error;
 }
@@ -673,8 +720,13 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
 
             if (saved.error !== null) throw saved.error;
 
-            if (cards !== null && cards.vocabWord !== null)
-                await addVocabWord(service, payload.userId, cards.vocabWord);
+            // ARCHITECT: слово урока попадает в словарь не каждый ход: сервер сам решает, пора ли (шаг плана —
+            // счётчик ходов), а слово проходит фильтр качества. Карточка уходит клиенту только когда запись
+            // действительно появилась, иначе карточка обещала бы сохранение, которого не было.
+            const addedVocabWord =
+                cards !== null && cards.vocabWord !== null && shouldOfferAutoWord(lesson.plan.step)
+                    ? await addVocabWord(service, payload.userId, cards.vocabWord)
+                    : false;
 
             const done: ChatDonePayload = {
                 reply: reply.text,
@@ -683,7 +735,7 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                 // ARCHITECT: ответ без карточек отдаётся пустыми блоками: клиент рисует текст, а не ошибку.
                 corrections: cards === null ? [] : cards.corrections,
                 quiz: cards === null ? null : cards.quiz,
-                vocabWord: cards === null ? null : cards.vocabWord,
+                vocabWord: addedVocabWord && cards !== null ? cards.vocabWord : null,
                 plan: toLessonPlanDto(nextPlan),
                 voiceId: tutor.voiceId,
                 usage: { ...usage, messagesRemaining: reserve.data.messages_remaining },

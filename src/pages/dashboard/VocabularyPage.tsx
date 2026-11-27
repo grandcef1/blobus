@@ -6,15 +6,15 @@ import { useTranslation } from "react-i18next";
 import { VocabularySkeleton } from "@/components/dashboard/skeletons/VocabularySkeleton";
 import { EmptyState } from "@/components/shared/EmptyState";
 import { ErrorState } from "@/components/shared/ErrorState";
-import { useVocabulary } from "@/hooks/useVocabulary";
+import { useVocabulary, useVocabularyReview } from "@/hooks/useVocabulary";
 import { markWordReviewed } from "@/api/progress";
-import type { VocabularyEntryDto } from "@/api/progress";
+import type { ReviewOutcome, VocabularyEntryDto } from "@/api/progress";
 import type { VocabularyWord } from "@/types/progress";
+import { toast } from "@/store/toast";
 import { VocabularyEntryCard } from "./VocabularyEntryCard";
 import type { VocabularyCardModel } from "./VocabularyEntryCard";
 import { VocabularyReview } from "./VocabularyReview";
 import { VocabularyHeader } from "./VocabularyHeader";
-import { AddWordDialog } from "./AddWordDialog";
 
 // ARCHITECT: обе ветки сводятся к одной view-model; context→example переименовывается только здесь.
 // ARCHITECT: Date.now() вынесен из тела рендера: правило чистоты не пускает прямой вызов в компонент.
@@ -46,9 +46,10 @@ export function VocabularyPage() {
     const { t: tCommon } = useTranslation("common");
     const [searchQuery, setSearchQuery] = useState("");
     const [reviewOpen, setReviewOpen] = useState(false);
-    const [addOpen, setAddOpen] = useState(false);
     const queryClient = useQueryClient();
     const result = useVocabulary();
+    // ARCHITECT: очередь повторения читается только в открытом режиме: в покое экран словаря за неё не платит.
+    const review = useVocabularyReview(reviewOpen);
 
     if (result.isLoading) return <VocabularySkeleton />;
 
@@ -73,9 +74,15 @@ export function VocabularyPage() {
     const matches = (field: string | null): boolean => (field ?? "").toLowerCase().includes(query);
     const filtered = models.filter((model) => matches(model.term) || matches(model.translation));
     const due = models.filter((model) => Date.parse(model.nextDueAt) <= nowMs());
-    const handleReviewed = async (id: string, reviewed: "remembered" | "forgotten") => {
-        await markWordReviewed(id, reviewed);
-        await queryClient.invalidateQueries({ queryKey: ["vocabulary"] });
+    // ARCHITECT: запись исхода — единственное место, где страница знает про сеть повторения: сама карточка
+    // сообщает исход, а сбой (сеть, 5xx) гасится тостом здесь, чтобы повторение не падало молча.
+    const handleReviewed = async (id: string, outcome: ReviewOutcome): Promise<void> => {
+        try {
+            await markWordReviewed(id, outcome);
+            await queryClient.invalidateQueries({ queryKey: ["vocabulary"] });
+        } catch {
+            toast.error(tCommon("states.error.title"));
+        }
     };
 
     return (
@@ -85,7 +92,6 @@ export function VocabularyPage() {
                     total={models.length}
                     reviewDisabled={due.length === 0}
                     onReview={() => setReviewOpen(true)}
-                    onAdd={() => setAddOpen(true)}
                 />
 
                 <div className="relative mb-4">
@@ -100,7 +106,8 @@ export function VocabularyPage() {
                 </div>
                 {reviewOpen ? (
                     <VocabularyReview
-                        due={due}
+                        queue={review.queue}
+                        isLoading={review.isLoading}
                         onReviewed={handleReviewed}
                         onExit={() => setReviewOpen(false)}
                     />
@@ -129,8 +136,6 @@ export function VocabularyPage() {
                         ))}
                     </div>
                 )}
-
-                <AddWordDialog open={addOpen} onOpenChange={setAddOpen} />
             </div>
         </div>
     );

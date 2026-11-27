@@ -575,6 +575,103 @@ describe("GET /api/vocabulary: негативные проверки", () => {
     }, 30_000);
 });
 
+describe("GET /api/vocabulary/review", () => {
+    /** Тело очереди: слово и сгенерированное к нему задание. */
+    interface ReviewQueueBody {
+        readonly queue: readonly {
+            readonly id: string;
+            readonly stage: number;
+            readonly task: {
+                readonly type: string;
+                readonly prompt: string;
+                readonly answer?: string;
+                readonly answerId?: string;
+                readonly options?: readonly { readonly id: string; readonly text: string }[];
+            };
+        }[];
+    }
+
+    it("3.10 отдаёт детерминированную очередь: задания по своим словам, дистракторы из них же", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+
+            await insertVocabulary(me.id, {
+                term: "collaborate",
+                translation: "сотрудничать",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+            await insertVocabulary(me.id, {
+                term: "deadline",
+                translation: "срок",
+                createdAt: "2026-11-18T10:01:00.000Z",
+            });
+            await insertVocabulary(me.id, {
+                term: "improve",
+                translation: "улучшать",
+                createdAt: "2026-11-18T10:02:00.000Z",
+            });
+
+            const response = await fetch(`${app.baseUrl}/api/vocabulary/review`, {
+                headers: { cookie: cookieHeader(me.jar) },
+            });
+            const body = (await response.json()) as ReviewQueueBody;
+            const again = (await (
+                await fetch(`${app.baseUrl}/api/vocabulary/review`, {
+                    headers: { cookie: cookieHeader(me.jar) },
+                })
+            ).json()) as ReviewQueueBody;
+
+            expect(response.status).toBe(200);
+            expect(body.queue).toHaveLength(3);
+            // ARCHITECT: генерация детерминирована: тот же словарь даёт ту же очередь, повтор запроса её не меняет.
+            expect(again).toEqual(body);
+
+            const item = body.queue[0];
+
+            if (item === undefined || item.task.type !== "choice") throw new Error("ожидалось задание выбора");
+
+            const task = item.task;
+            const correct = task.options?.find((option) => option.id === task.answerId);
+
+            expect(task.prompt).toBe("collaborate");
+            expect(correct?.text).toBe("сотрудничать");
+            // ARCHITECT: дистракторы берутся из других слов ученика и не повторяют верный ответ (§спец. 5).
+            for (const option of (task.options ?? []).filter((o) => o.id !== task.answerId))
+                expect(option.text).not.toBe("сотрудничать");
+        });
+    }, 60_000);
+
+    it("3.11 отвечает 401 без куки и не показывает чужие слова", async () => {
+        await withApp(async (app) => {
+            const me = await freshUser(app.baseUrl);
+            const other = await freshUser(app.baseUrl);
+
+            await insertVocabulary(other.id, {
+                term: "serendipity",
+                translation: "озарение",
+                createdAt: "2026-11-18T10:00:00.000Z",
+            });
+            await insertVocabulary(other.id, {
+                term: "tenacity",
+                translation: "упорство",
+                createdAt: "2026-11-18T10:01:00.000Z",
+            });
+
+            const anonymous = await fetch(`${app.baseUrl}/api/vocabulary/review`);
+            const mine = await fetch(`${app.baseUrl}/api/vocabulary/review`, {
+                headers: { cookie: cookieHeader(me.jar) },
+            });
+            const body = (await mine.json()) as ReviewQueueBody;
+
+            expect(anonymous.status).toBe(401);
+            expect(errorBody(await anonymous.json()).error.code).toBe("UNAUTHORIZED");
+            // ARCHITECT: очередь строится только по словам владельца токена: чужие термины в задания не попадают (§16.5).
+            expect(mine.status).toBe(200);
+            expect(body.queue).toEqual([]);
+        });
+    }, 60_000);
+});
+
 describe("RLS таблицы vocabulary", () => {
     it("3.8 своя выборка видна, чужая пуста, аноним получает 42501", async () => {
         const mineEmail = `${EMAIL_PREFIX}-rls-mine-${randomUUID()}@example.test`;
@@ -635,266 +732,6 @@ async function dbEntryById(
         userId: data.user_id,
     };
 }
-
-/** Число слов пользователя: проверка, что отклонённый запрос не оставил строк. */
-async function entryCount(userId: string): Promise<number> {
-    const { count, error } = await createAdminClient()
-        .from("vocabulary")
-        .select("id", { count: "exact", head: true })
-        .eq("user_id", userId);
-
-    if (error !== null) throw error;
-
-    return count ?? 0;
-}
-
-describe("POST /api/vocabulary", () => {
-    it("3.1 создаёт слово: 201, DTO совпадает с БД, владелец из токена, sourceLessonId null", async () => {
-        await withApp(async (app) => {
-            const me = await freshUser(app.baseUrl);
-            const response = await postJson(
-                app.baseUrl,
-                "/api/vocabulary",
-                {
-                    term: "Serendipity",
-                    translation: "озарение",
-                    context: "A happy accident.",
-                    exampleTranslation: "Счастливая случайность.",
-                },
-                mutationHeaders(me.jar, app.baseUrl)
-            );
-            const body = (await response.json()) as { entry: VocabularyDto };
-            const stored = await dbEntryById(body.entry.id);
-
-            expect(response.status).toBe(201);
-            expect(body.entry).toEqual(stored.dto);
-            expect(stored.userId).toBe(me.id);
-            expect(body.entry.translation).toBe("озарение");
-            expect(body.entry.context).toBe("A happy accident.");
-            expect(body.entry.exampleTranslation).toBe("Счастливая случайность.");
-            expect(body.entry.sourceLessonId).toBeNull();
-            expect(Object.keys(body.entry).sort()).toEqual([
-                "context",
-                "createdAt",
-                "exampleTranslation",
-                "id",
-                "nextDueAt",
-                "sourceLessonId",
-                "stage",
-                "term",
-                "translation",
-                "updatedAt",
-            ]);
-            expect(body.entry.stage).toBe(1);
-        });
-    }, 30_000);
-
-    it("3.2 дубль идемпотентен: другое написание даёт ту же запись 200, строк в БД одна", async () => {
-        await withApp(async (app) => {
-            const me = await freshUser(app.baseUrl);
-            const headers = mutationHeaders(me.jar, app.baseUrl);
-            const first = await postJson(
-                app.baseUrl,
-                "/api/vocabulary",
-                { term: "Serendipity" },
-                headers
-            );
-            const firstBody = (await first.json()) as { entry: VocabularyDto };
-            const second = await postJson(
-                app.baseUrl,
-                "/api/vocabulary",
-                { term: "serendipity" },
-                headers
-            );
-            const secondBody = (await second.json()) as { entry: VocabularyDto };
-
-            expect(first.status).toBe(201);
-            expect(second.status).toBe(200);
-            expect(secondBody.entry.id).toBe(firstBody.entry.id);
-            expect(await entryCount(me.id)).toBe(1);
-        });
-    }, 30_000);
-
-    it("3.9 без exampleTranslation: перевод примера остаётся null", async () => {
-        await withApp(async (app) => {
-            const me = await freshUser(app.baseUrl);
-            const response = await postJson(
-                app.baseUrl,
-                "/api/vocabulary",
-                { term: "Resilience" },
-                mutationHeaders(me.jar, app.baseUrl)
-            );
-            const body = (await response.json()) as { entry: VocabularyDto };
-            const stored = await dbEntryById(body.entry.id);
-
-            expect(response.status).toBe(201);
-            expect(body.entry.exampleTranslation).toBeNull();
-            expect(stored.dto.exampleTranslation).toBeNull();
-        });
-    }, 30_000);
-
-    it("3.3 отклоняет 400: пустой term, длинные поля и лишние ключи", async () => {
-        await withApp(async (app) => {
-            const me = await freshUser(app.baseUrl);
-            const headers = mutationHeaders(me.jar, app.baseUrl);
-            const invalidBodies: readonly unknown[] = [
-                { term: "   " },
-                { term: "x".repeat(121) },
-                { term: "ok", translation: "t".repeat(241) },
-                { term: "ok", context: "c".repeat(501) },
-                { term: "ok", exampleTranslation: "e".repeat(501) },
-                // ARCHITECT: user_id и source_lesson_id приходят не от клиента — strictObject их отклоняет.
-                { term: "ok", userId: "a1b2c3d4-0001-4000-8000-000000000001" },
-                { term: "ok", sourceLessonId: "a1b2c3d4-0002-4000-8000-000000000002" },
-            ];
-
-            for (const body of invalidBodies) {
-                const response = await postJson(app.baseUrl, "/api/vocabulary", body, headers);
-
-                expect(response.status).toBe(400);
-                expect(errorBody(await response.json()).error.code).toBe("BAD_REQUEST");
-            }
-
-            expect(await entryCount(me.id)).toBe(0);
-        });
-    }, 30_000);
-
-    it("3.4 отвечает 401 без куки и на поддельный токен, не светя его", async () => {
-        await withApp(async (app) => {
-            const pair = await fetchCsrfPair(app.baseUrl);
-            const sentinel = "forged-add-word-sentinel";
-            const errorSpy = vi.spyOn(console, "error").mockImplementation(() => undefined);
-            const body = { term: "collaborate" };
-
-            try {
-                const anonymous = await postJson(
-                    app.baseUrl,
-                    "/api/vocabulary",
-                    body,
-                    mutationHeaders(pair, app.baseUrl)
-                );
-                const anonymousBody = errorBody(await anonymous.json());
-                const forgedJar = { ...pair, [COOKIE_NAMES.accessToken]: sentinel };
-                const forged = await postJson(
-                    app.baseUrl,
-                    "/api/vocabulary",
-                    body,
-                    mutationHeaders(forgedJar, app.baseUrl)
-                );
-                const forgedText = await forged.text();
-                const forgedBody = errorBody(JSON.parse(forgedText));
-
-                expect(anonymous.status).toBe(401);
-                expect(forged.status).toBe(401);
-                expect(forgedBody.error.code).toBe(anonymousBody.error.code);
-                expect(forgedBody.error.message).toBe(anonymousBody.error.message);
-                expect(forgedText).not.toContain(sentinel);
-                expect(JSON.stringify([...forged.headers.entries()])).not.toContain(sentinel);
-                expect(errorSpy.mock.calls.flat().map(String).join("\n")).not.toContain(sentinel);
-            } finally {
-                errorSpy.mockRestore();
-            }
-        });
-    }, 30_000);
-
-    it("3.5 отвечает 403 без CSRF-пары и не создаёт строку", async () => {
-        await withApp(async (app) => {
-            const me = await freshUser(app.baseUrl);
-            const response = await postJson(
-                app.baseUrl,
-                "/api/vocabulary",
-                { term: "collaborate" },
-                { cookie: cookieHeader(me.jar), origin: app.baseUrl }
-            );
-            const text = await response.text();
-
-            expect(response.status).toBe(403);
-            expect(errorBody(JSON.parse(text)).error.code).toBe("FORBIDDEN");
-            expect(await entryCount(me.id)).toBe(0);
-        });
-    }, 30_000);
-    it("3.6 чужой userId в теле отсекается, слово принадлежит владельцу токена", async () => {
-        await withApp(async (app) => {
-            const alice = await freshUser(app.baseUrl);
-            const bob = await freshUser(app.baseUrl);
-            const tampered = await postJson(
-                app.baseUrl,
-                "/api/vocabulary",
-                { term: "collaborate", userId: bob.id },
-                mutationHeaders(alice.jar, app.baseUrl)
-            );
-
-            expect(tampered.status).toBe(400);
-
-            const created = await postJson(
-                app.baseUrl,
-                "/api/vocabulary",
-                { term: "collaborate" },
-                mutationHeaders(alice.jar, app.baseUrl)
-            );
-            const body = (await created.json()) as { entry: VocabularyDto };
-
-            expect(created.status).toBe(201);
-            expect((await dbEntryById(body.entry.id)).userId).toBe(alice.id);
-
-            const bobView = await fetch(`${app.baseUrl}/api/vocabulary`, {
-                headers: { cookie: cookieHeader(bob.jar) },
-            });
-            const bobBody = (await bobView.json()) as VocabularyListBody;
-
-            expect(bobBody.vocabulary).toHaveLength(0);
-            expect(await entryCount(bob.id)).toBe(0);
-        });
-    }, 30_000);
-
-    it("3.7 ограничивает добавление тридцатью запросами за 15 минут", async () => {
-        await withApp(async (app) => {
-            const me = await freshUser(app.baseUrl);
-            const headers = mutationHeaders(me.jar, app.baseUrl);
-            const attempted: number[] = [];
-
-            for (let attempt = 0; attempt < 30; attempt += 1) {
-                const response = await postJson(
-                    app.baseUrl,
-                    "/api/vocabulary",
-                    { term: `batch-word-${attempt}` },
-                    headers
-                );
-
-                attempted.push(response.status);
-            }
-
-            const limited = await postJson(
-                app.baseUrl,
-                "/api/vocabulary",
-                { term: "batch-word-30" },
-                headers
-            );
-            const limitedText = await limited.text();
-
-            expect(attempted).toEqual(Array.from({ length: 30 }, () => 201));
-            expect(limited.status).toBe(429);
-            expect(errorBody(JSON.parse(limitedText)).error.code).toBe("RATE_LIMITED");
-            expect(limited.headers.get("retry-after")).toBeTruthy();
-            expect(await entryCount(me.id)).toBe(30);
-        });
-    }, 60_000);
-
-    it("3.8 гранты: authenticated не может insert, запись делает только service-role", async () => {
-        const email = `${EMAIL_PREFIX}-grants-${randomUUID()}@example.test`;
-        const userId = await createConfirmedUser(email);
-        const tokens = await sessionPairFor(email);
-        const user = createUserClient(tokens.accessToken);
-
-        const inserted = await user
-            .from("vocabulary")
-            .insert({ user_id: userId, term: "collaborate" })
-            .select("id");
-
-        expect(inserted.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
-        expect(await entryCount(userId)).toBe(0);
-    }, 30_000);
-});
 
 /** Допуск на время выполнения запроса: интервал следующего показа сверяется окном ±2 минуты. */
 const DUE_TOLERANCE_MS = 2 * 60 * 1000;

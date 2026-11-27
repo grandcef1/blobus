@@ -1,9 +1,10 @@
-// ARCHITECT: шапка словаря вынесена из страницы: заголовок, счётчик и две кнопки — отдельный блок, поэтому
-// тело страницы не растёт вместе с ним (§5.2). Порядок кнопок как в диалогах: вторичная слева, основная справа.
+// ARCHITECT: шапка словаря вынесена из страницы: заголовок, счётчик и кнопка повторения — отдельный блок, поэтому
+// тело страницы не растёт вместе с ним (§5.2). Ручного добавления слова здесь больше нет: словарь наполняет
+// авто-слово урока, поэтому кнопка и диалог удалены вместе с серверным POST (§спец. 2).
 
 import { motion } from "framer-motion";
 import { useTranslation } from "react-i18next";
-import { Plus, RotateCcw } from "lucide-react";
+import { RotateCcw } from "lucide-react";
 
 import { FOCUS_RING } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
@@ -12,7 +13,6 @@ interface VocabularyHeaderProps {
     readonly total: number;
     readonly reviewDisabled: boolean;
     readonly onReview: () => void;
-    readonly onAdd: () => void;
 }
 
 const ACTION_BUTTON =
@@ -21,15 +21,9 @@ const REVIEW_BUTTON = cn(
     ACTION_BUTTON,
     "bg-[#f0f0f5] font-medium text-black hover:bg-[#f0f0f5]/90"
 );
-const ADD_BUTTON = cn(ACTION_BUTTON, "border border-white/15 text-[#f0f0f5] hover:bg-white/5");
 const ICON = "size-4";
 
-export function VocabularyHeader({
-    total,
-    reviewDisabled,
-    onReview,
-    onAdd,
-}: VocabularyHeaderProps) {
+export function VocabularyHeader({ total, reviewDisabled, onReview }: VocabularyHeaderProps) {
     const { t } = useTranslation("dashboard");
 
     return (
@@ -45,11 +39,6 @@ export function VocabularyHeader({
             </div>
 
             <div className="flex items-center gap-2">
-                <button type="button" onClick={onAdd} className={cn(ADD_BUTTON, FOCUS_RING)}>
-                    <Plus className={ICON} strokeWidth={1.5} aria-hidden="true" />
-                    {t("vocabulary.add.title")}
-                </button>
-
                 <button
                     type="button"
                     onClick={onReview}

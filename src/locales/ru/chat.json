@@ -72,12 +72,17 @@
   },
   "input": {
     "placeholder": "Напиши сообщение на английском...",
-    "attachFile": "Прикрепить файл",
     "inputLabel": "Поле ввода сообщения",
     "startRecording": "Начать запись",
-    "stopRecording": "Остановить запись",
     "send": "Отправить сообщение",
     "hint": "Enter — отправить, Shift+Enter — новая строка",
+    "record": {
+      "listening": "Слушаю…",
+      "cancel": "Отменить запись",
+      "send": "Отправить запись",
+      "duration": "Длительность записи",
+      "escapeHint": "Esc — отменить запись"
+    },
     "quickPrompts": {
       "rule": "Объясни это правило",
       "examples": "Дай больше примеров",

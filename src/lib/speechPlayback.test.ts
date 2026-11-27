@@ -10,6 +10,8 @@ interface FakeVoice {
 
 /** Что ушло в синтезатор: текст, выбранный голос и его язык. */
 const spoken: { text: string; voice: string | null; lang: string }[] = [];
+/** Сами реплики: тест завершает сегмент вызовом onend, как это делает браузер. */
+let uttered: UtteranceStub[] = [];
 let voices: FakeVoice[] = [];
 let cancelled = 0;
 
@@ -29,6 +31,7 @@ class UtteranceStub {
 const synthesis = {
     getVoices: (): readonly FakeVoice[] => voices,
     speak: (utterance: UtteranceStub): void => {
+        uttered.push(utterance);
         spoken.push({
             text: utterance.text,
             voice: utterance.voice === null ? null : utterance.voice.name,
@@ -42,6 +45,7 @@ const synthesis = {
 
 beforeEach(() => {
     spoken.length = 0;
+    uttered = [];
     voices = [];
     cancelled = 0;
     vi.resetModules();
@@ -137,5 +141,75 @@ describe("playBrowserSpeech", () => {
         expect(seen).toEqual(["m1", null]);
 
         unsubscribe();
+    });
+});
+
+describe("splitIntoSpeechSegments", () => {
+    it("3.1 письменность режет текст на сегменты, знаки и цифры прилипают к соседним буквам", async () => {
+        const { splitIntoSpeechSegments } = await import("@/lib/speechPlayback");
+
+        expect(splitIntoSpeechSegments("Hello, мир!")).toEqual([
+            { script: "latin", text: "Hello, " },
+            { script: "cyrillic", text: "мир!" },
+        ]);
+        expect(splitIntoSpeechSegments("42 apples")).toEqual([
+            { script: "latin", text: "42 apples" },
+        ]);
+        expect(splitIntoSpeechSegments("«42»")).toEqual([{ script: "other", text: "«42»" }]);
+        expect(splitIntoSpeechSegments("")).toEqual([]);
+    });
+});
+
+describe("очередь сегментов", () => {
+    it("3.2 смешанная реплика читается сегментами в порядке текста и своим языком", async () => {
+        voices = [
+            { lang: "en-US", name: "generic" },
+            { lang: "ru-RU", name: "generic" },
+        ];
+        const { getPlayingId, playBrowserSpeech } = await import("@/lib/speechPlayback");
+
+        expect(playBrowserSpeech("m1", "Nice work, молодец!", "en-US-female")).toBe(true);
+        expect(spoken).toEqual([{ text: "Nice work, ", voice: "generic", lang: "en-US" }]);
+
+        // ARCHITECT: следующий сегмент стартует по onend предыдущего — очередь последовательная.
+        uttered[0]?.onend?.();
+
+        expect(spoken[1]).toEqual({ text: "молодец!", voice: "generic", lang: "ru-RU" });
+
+        uttered[1]?.onend?.();
+
+        expect(getPlayingId()).toBeNull();
+    });
+
+    it("3.3 без русского голоса кириллица пропускается молча, латиница читается", async () => {
+        voices = [{ lang: "en-US", name: "generic" }];
+        const { getPlayingId, playBrowserSpeech } = await import("@/lib/speechPlayback");
+
+        expect(playBrowserSpeech("m1", "Nice work. Молодец!", "en-US-female")).toBe(true);
+        expect(spoken).toEqual([{ text: "Nice work. ", voice: "generic", lang: "en-US" }]);
+
+        uttered[0]?.onend?.();
+
+        // русского сегмента в очереди нет: очередь кончилась, текста не потеряли
+        expect(getPlayingId()).toBeNull();
+        expect(spoken).toHaveLength(1);
+    });
+
+    it("3.4 остановка очищает очередь: хвост отменённой реплики не звучит", async () => {
+        voices = [
+            { lang: "en-US", name: "generic" },
+            { lang: "ru-RU", name: "generic" },
+        ];
+        const { getPlayingId, playBrowserSpeech, stopPlayback } = await import("@/lib/speechPlayback");
+
+        expect(playBrowserSpeech("m1", "Молодец! Nice work", "en-US-female")).toBe(true);
+        expect(spoken).toEqual([{ text: "Молодец! ", voice: "generic", lang: "ru-RU" }]);
+
+        stopPlayback();
+        uttered[0]?.onend?.();
+
+        expect(spoken).toHaveLength(1);
+        expect(getPlayingId()).toBeNull();
+        expect(cancelled).toBeGreaterThan(0);
     });
 });

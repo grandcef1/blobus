@@ -72,12 +72,17 @@
   },
   "input": {
     "placeholder": "Escribe un mensaje en inglés...",
-    "attachFile": "Adjuntar un archivo",
     "inputLabel": "Campo de entrada del mensaje",
     "startRecording": "Empezar a grabar",
-    "stopRecording": "Detener la grabación",
     "send": "Enviar mensaje",
     "hint": "Enter — enviar, Shift+Enter — nueva línea",
+    "record": {
+      "listening": "Escuchando…",
+      "cancel": "Cancelar la grabación",
+      "send": "Enviar la grabación",
+      "duration": "Duración de la grabación",
+      "escapeHint": "Esc — cancelar la grabación"
+    },
     "quickPrompts": {
       "rule": "Explícame esta regla",
       "examples": "Dame más ejemplos",

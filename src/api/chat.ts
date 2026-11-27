@@ -68,12 +68,31 @@ export interface ChatUsage {
 /** Контракт события done целиком: текст ответа, карточки, профиль голоса и usage. */
 export interface ChatReply {
     readonly reply: string;
+    /** Вторая часть хода: следующая активность или вопрос; null — ход из одной части. */
+    readonly followUp: string | null;
     readonly corrections: readonly ChatCorrection[];
     readonly quiz: ChatQuiz | null;
     readonly vocabWord: ChatVocabWord | null;
+    /** План урока: null — сервер его не прислал (старая запись) или форма не разобралась. */
+    readonly plan: ChatLessonPlan | null;
     /** Профиль голоса репетитора: null — сервер его не прислал, озвучки не будет. */
     readonly voiceId: string | null;
     readonly usage: ChatUsage;
+}
+
+/**
+ * План урока для карточки цели: цель, правило и счётчики. Целевых слов в контракте нет — их не отдаёт и
+ * сервер, поэтому утечь в текст до конца урока им неоткуда (§16.6).
+ */
+export interface ChatLessonPlan {
+    readonly goal: string;
+    readonly rule: string;
+    /** Пройдено этапов, 0..total. */
+    readonly step: number;
+    readonly total: number;
+    readonly wordsDone: number;
+    readonly wordsTotal: number;
+    readonly completed: boolean;
 }
 
 /** Тело запроса: ровно два поля контракта POST /api/chat — userId, уровень и квота не отправляются (§16.2). */
@@ -263,6 +282,27 @@ function readCorrections(value: unknown): ChatCorrection[] | null {
     return corrections;
 }
 
+// ARCHITECT: план — данные сервера, но и их форма проверяется по полям: чужая форма теряет карточку цели, а
+// не ломает ленту целиком (§16.8).
+function readPlan(value: unknown): ChatLessonPlan | null {
+    const record = asRecord(value);
+    if (record === null) return null;
+
+    const goal = readString(record.goal, 300);
+    const rule = readString(record.rule, 300);
+    const step = readCount(record.step);
+    const total = readCount(record.total);
+    const wordsDone = readCount(record.wordsDone);
+    const wordsTotal = readCount(record.wordsTotal);
+
+    if (goal === null || rule === null) return null;
+    if (step === null || total === null || wordsDone === null || wordsTotal === null) return null;
+    // ARCHITECT: этап за пределами плана и пустой план — испорченные данные: прогресс нельзя показать честно.
+    if (total === 0 || step > total || wordsDone > wordsTotal) return null;
+
+    return { goal, rule, step, total, wordsDone, wordsTotal, completed: record.completed === true };
+}
+
 /** Разбор события done: чужая форма — null, то есть битый ответ, а не карточки для рендера. */
 function readReply(value: unknown): ChatReply | null {
     const record = asRecord(value);
@@ -273,6 +313,12 @@ function readReply(value: unknown): ChatReply | null {
     const corrections = readCorrections(record.corrections);
     const quiz = record.quiz === null ? null : readQuiz(record.quiz);
     const vocabWord = record.vocabWord === null ? null : readVocabWord(record.vocabWord);
+    // ARCHITECT: вторая часть — best-effort, как карточки: чужая форма значит «второй части нет», а не битый
+    // ответ, поэтому текст репетитора остаётся читаемым.
+    const followUp =
+        typeof record.followUp === "string" && record.followUp.length <= 600 && record.followUp !== ""
+            ? record.followUp
+            : null;
     // ARCHITECT: профиль голоса необязателен: ответ старого сервера приходит без него — тогда кнопки озвучки
     // нет, а текст реплики остаётся читаемым.
     const voiceId = readOptionalString(record.voiceId, 32);
@@ -284,9 +330,11 @@ function readReply(value: unknown): ChatReply | null {
 
     return {
         reply,
+        followUp,
         corrections,
         quiz,
         vocabWord,
+        plan: record.plan === undefined ? null : readPlan(record.plan),
         voiceId: voiceId === "" ? null : voiceId,
         usage,
     };
@@ -361,12 +409,19 @@ function readHistoryMessage(value: unknown): ChatHistoryMessage | null {
     };
 }
 
+/** История сессии: сообщения и план текущего урока (карточка цели над лентой). */
+export interface ChatHistory {
+    readonly messages: readonly ChatHistoryMessage[];
+    readonly plan: ChatLessonPlan | null;
+}
+
 // ARCHITECT: история читается cookie-сессией через apiFetch (CSRF GET-у не нужен, 401 обновляется транспортом).
 // Чужая и несуществующая сессия отвечают 404: для ленты это «диалог не найден», и хук показывает полосу ошибки.
-export async function fetchChatHistory(sessionId: string): Promise<ChatHistoryMessage[]> {
-    const { messages } = await apiFetch<{ readonly messages: readonly unknown[] }>(
-        `/chat/history?sessionId=${encodeURIComponent(sessionId)}`
-    );
+export async function fetchChatHistory(sessionId: string): Promise<ChatHistory> {
+    const { messages, plan } = await apiFetch<{
+        readonly messages: readonly unknown[];
+        readonly plan?: unknown;
+    }>(`/chat/history?sessionId=${encodeURIComponent(sessionId)}`);
 
     if (!Array.isArray(messages)) throw new ApiError(500, STREAM_FAILED);
 
@@ -378,7 +433,8 @@ export async function fetchChatHistory(sessionId: string): Promise<ChatHistoryMe
         history.push(read);
     }
 
-    return history;
+    // ARCHITECT: план необязателен: сервер без плана (старая версия) просто не рисует карточку цели.
+    return { messages: history, plan: plan === undefined ? null : readPlan(plan) };
 }
 
 /**

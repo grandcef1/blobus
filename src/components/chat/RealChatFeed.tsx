@@ -11,14 +11,18 @@ import { useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
 import type { ChatErrorKind, ChatFeedMessage } from "@/hooks/useChat";
+import type { ChatLessonPlan } from "@/api/chat";
 import { stopPlayback } from "@/lib/speechPlayback";
 import type { EnhancedChatSession } from "@/types/session";
+import { LessonGoalCard } from "./LessonGoalCard";
 import { RealChatItem } from "./RealChatItem";
 import { TypingIndicator } from "./TypingIndicator";
 
 interface RealChatFeedProps {
     readonly messages: readonly ChatFeedMessage[];
     readonly session: EnhancedChatSession;
+    /** План урока: карточка цели над лентой; null — плана нет (старая сессия или сервер без него). */
+    readonly plan: ChatLessonPlan | null;
     /** История сессии в пути: лента показывает скелетон, а не пустой экран. */
     readonly isLoading: boolean;
     readonly isStreaming: boolean;
@@ -65,6 +69,7 @@ function FeedSkeleton() {
 export function RealChatFeed({
     messages,
     session,
+    plan,
     isLoading,
     isStreaming,
     error,
@@ -101,6 +106,7 @@ export function RealChatFeed({
             aria-busy={isStreaming}
         >
             <div className="mx-auto flex max-w-3xl flex-col gap-5">
+                {plan !== null && <LessonGoalCard plan={plan} />}
                 {isLoading && messages.length === 0 && <FeedSkeleton />}
                 {messages.map((message, index) => {
                     // ARCHITECT: пустого пузыря нет: ожидание первого текста рисует индикатор ниже.

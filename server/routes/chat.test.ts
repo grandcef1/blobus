@@ -35,6 +35,8 @@ const PASSWORD = `Chat-${randomUUID()}-1`;
 const PLACEMENT_LEVEL = "B1";
 const PLACEMENT_SCORE = 47;
 const MESSAGE = "Yesterday I go to the cinema with my friend.";
+/** Вторая часть хода: следующая активность или вопрос — её модель отдаёт полем followUp. */
+const FOLLOW_UP = "Now make it a question: where did you go yesterday?";
 
 let env: ChatEnv | undefined;
 /** Тела заказов, ушедших в шлюз: по ним проверяются модель, промпт и инъекция. */
@@ -191,6 +193,11 @@ function sendMessage(
     );
 }
 
+/** Ссылка чтения истории: единственный параметр, который читает роутер. */
+function chatHistoryPath(sessionId: string): string {
+    return `/api/chat/history?sessionId=${sessionId}`;
+}
+
 /** Сообщения сессии из БД: проверяется, что пара записана или не записана вовсе. */
 async function dbMessages(sessionId: string): Promise<
     readonly {
@@ -261,6 +268,29 @@ async function dbVocabulary(userId: string): Promise<readonly string[]> {
     if (error !== null) throw error;
 
     return (data ?? []).map((row) => row.term);
+}
+
+/** Целевые слова урока из jsonb сервисным ключом: наружу они не отдаются, поэтому сверка идёт по БД (§16.6). */
+async function dbPlanWords(sessionId: string): Promise<readonly string[]> {
+    const { data, error } = await createAdminClient()
+        .from("lessons")
+        .select("plan")
+        .eq("session_id", sessionId);
+
+    if (error !== null) throw error;
+
+    const words: string[] = [];
+
+    for (const row of data ?? []) {
+        const plan = row.plan as { readonly targetWords?: unknown } | null;
+        const target = plan?.targetWords;
+
+        if (!Array.isArray(target)) continue;
+
+        for (const word of target) if (typeof word === "string") words.push(word);
+    }
+
+    return words;
 }
 
 /** Дневной лимит сообщений: 0 — исчерпанная квота, для проверки отказа. */
@@ -806,5 +836,133 @@ describe("POST /api/chat", () => {
                 expect(status).toBe(429);
             });
         }, 60_000);
+    });
+
+    describe("план урока и ход из двух частей", () => {
+        it("19: разбор и следующая активность сохраняются отдельными сообщениями и приходят в done", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                openRouterReply = () =>
+                    sseResponse([rawReply(ANSWER_TEXT, { ...VALID_CARDS, followUp: FOLLOW_UP })]);
+
+                const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
+                const payload = events.find((entry) => entry.event === "done")?.data as {
+                    readonly reply: string;
+                    readonly followUp: string | null;
+                    readonly plan: {
+                        readonly rule: string;
+                        readonly step: number;
+                        readonly total: number;
+                        readonly wordsTotal: number;
+                    };
+                };
+
+                expect(payload.reply).toBe(ANSWER_TEXT);
+                expect(payload.followUp).toBe(FOLLOW_UP);
+                // ARCHITECT: план урока уходит вместе с ответом: карточка цели и прогресс без отдельного запроса.
+                expect(payload.plan.total).toBe(6);
+                expect(payload.plan.wordsTotal).toBe(5);
+                expect(payload.plan.step).toBe(1);
+                expect(payload.plan.rule).toContain("Present Simple");
+                // ARCHITECT: целевых слов в DTO нет по конструкции: наружу уходят только счётчики (§16.6).
+                expect(Object.keys(payload.plan)).not.toContain("targetWords");
+
+                // ARCHITECT: приветствие + реплика ученика + разбор + вторая часть: обе части хода — свои строки,
+                // поэтому после перезагрузки ленты они стоят в том же порядке.
+                const rows = await dbMessages(me.sessionId);
+
+                expect(rows).toHaveLength(4);
+                expect(rows.map((row) => row.content)).toContain(FOLLOW_UP);
+
+                const response = await getJson(app.baseUrl, chatHistoryPath(me.sessionId), me.jar);
+                const body = (await response.json()) as {
+                    readonly messages: readonly { readonly content: string }[];
+                    readonly plan: { readonly step: number } | null;
+                };
+
+                expect(body.messages.map((message) => message.content)).toEqual([
+                    expect.stringContaining("Мия"),
+                    MESSAGE,
+                    ANSWER_TEXT,
+                    FOLLOW_UP,
+                ]);
+                expect(body.plan?.step).toBe(1);
+            });
+        }, 30_000);
+
+        it("20: промпт несёт план, английскую основу и запрет на многословные разборы", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+
+                await (await sendMessage(app, me.jar, me.sessionId)).text();
+
+                const sent = sentBodies[0]?.messages as
+                    | readonly { readonly role: string; readonly content: string }[]
+                    | undefined;
+                const system = sent?.[0]?.content ?? "";
+
+                expect(system).toContain("Цель урока:");
+                expect(system).toContain("Правило урока:");
+                expect(system).toContain("Текущая активность:");
+                // ARCHITECT: основа ответа — английский, объяснения ограничены одним-двумя предложениями.
+                expect(system).toContain("одного-двух предложений");
+                expect(system).toContain("многословные разборы запрещены");
+                // ARCHITECT: структура хода описана модели: разбор текстом, продолжение — полем followUp.
+                expect(system).toContain("две части");
+                expect(system).toContain("followUp");
+                // ARCHITECT: на первом ходу слово урока не раскрывается: подсказки в начале урока нет.
+                expect(system).not.toContain("назови слово урока");
+            });
+        }, 30_000);
+
+        it("21: план двигается по ходам, а активности не повторяются подряд", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                const steps: number[] = [];
+                const activities: string[] = [];
+
+                for (let turn = 0; turn < 3; turn += 1) {
+                    const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
+                    const payload = events.find((entry) => entry.event === "done")?.data as {
+                        readonly plan: { readonly step: number };
+                    };
+                    const sent = sentBodies[turn]?.messages as
+                        | readonly { readonly content: string }[]
+                        | undefined;
+                    const line = (sent?.[0]?.content ?? "")
+                        .split("\n")
+                        .find((row) => row.startsWith("Текущая активность:"));
+
+                    steps.push(payload.plan.step);
+                    activities.push(line ?? "");
+                }
+
+                expect(steps).toEqual([1, 2, 3]);
+                expect(activities.every((line) => line !== "")).toBe(true);
+                expect(new Set(activities).size).toBe(3);
+            });
+        }, 60_000);
+
+        it("22: целевые слова урока не уходят клиенту ни в ответе, ни в истории", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                const done = parseSse(
+                    await (await sendMessage(app, me.jar, me.sessionId)).text()
+                ).find((entry) => entry.event === "done")?.data;
+                const historyText = await (
+                    await getJson(app.baseUrl, chatHistoryPath(me.sessionId), me.jar)
+                ).text();
+                const words = await dbPlanWords(me.sessionId);
+
+                expect(words).toHaveLength(5);
+
+                // ARCHITECT: скрытые слова урока не покидают сервер: в DTO уходят только счётчики, поэтому
+                // проверяется всё тело ответов, а не отдельное поле (§16.6).
+                for (const word of words) {
+                    expect(JSON.stringify(done)).not.toContain(word);
+                    expect(historyText).not.toContain(word);
+                }
+            });
+        }, 30_000);
     });
 });

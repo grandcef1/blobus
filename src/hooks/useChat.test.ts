@@ -62,8 +62,22 @@ vi.mock("react-i18next", async (importOriginal) => {
 
 const SESSION_ID = "5b1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a11";
 
+/** План урока из ответа сервера: карточка цели. Целевых слов в контракте нет по конструкции. */
+const PLAN = {
+    goal: "speak more freely in everyday conversation in two or three connected sentences.",
+    rule: "Present Simple for habits and routines",
+    step: 1,
+    total: 6,
+    wordsDone: 1,
+    wordsTotal: 5,
+    completed: false,
+} as const;
+
 const REPLY: ChatReply = {
     reply: "Good start. Let's fix one thing.",
+    // ARCHITECT: по умолчанию ход из одной части: вторая появляется только когда её прислал сервер.
+    followUp: null,
+    plan: null,
     corrections: [
         {
             fragment: "I agree with you.",
@@ -122,7 +136,8 @@ function mockOf(chat: ChatResult): Extract<ChatResult, { kind: "mock" }> {
 
 beforeEach(() => {
     fetchSessionByIdMock.mockResolvedValue(null);
-    fetchChatHistoryMock.mockResolvedValue([]);
+    // ARCHITECT: история приходит конвертом: сообщения и план урока.
+    fetchChatHistoryMock.mockResolvedValue({ messages: [], plan: null });
 });
 
 afterEach(() => {
@@ -335,24 +350,27 @@ describe("useChat", () => {
 
     it("1.7 real: сохранённая история загружается вместе с карточками ответа", async () => {
         vi.stubEnv("VITE_USE_MOCKS", "false");
-        fetchChatHistoryMock.mockResolvedValue([
-            {
-                id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a01",
-                role: "user",
-                content: "Yesterday I go to the cinema.",
-                cards: null,
-            },
-            {
-                id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a02",
-                role: "assistant",
-                content: REPLY.reply,
-                cards: {
-                    corrections: REPLY.corrections,
-                    quiz: REPLY.quiz,
-                    vocabWord: REPLY.vocabWord,
+        fetchChatHistoryMock.mockResolvedValue({
+            messages: [
+                {
+                    id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a01",
+                    role: "user",
+                    content: "Yesterday I go to the cinema.",
+                    cards: null,
                 },
-            },
-        ]);
+                {
+                    id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a02",
+                    role: "assistant",
+                    content: REPLY.reply,
+                    cards: {
+                        corrections: REPLY.corrections,
+                        quiz: REPLY.quiz,
+                        vocabWord: REPLY.vocabWord,
+                    },
+                },
+            ],
+            plan: PLAN,
+        });
         const { useChat } = await loadHook();
         const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
 
@@ -365,6 +383,9 @@ describe("useChat", () => {
         expect(chat.messages[0]?.cards).toBeNull();
         expect(chat.messages[1]?.cards?.quiz).toEqual(REPLY.quiz);
         expect(chat.error).toBeNull();
+        // ARCHITECT: план приходит вместе с историей: карточка цели видна сразу после перезагрузки ленты.
+        expect(chat.plan?.rule).toBe(PLAN.rule);
+        expect(chat.plan?.total).toBe(PLAN.total);
     });
 
     it("1.8 real: сбой истории даёт полосу ошибки, кнопка повтора перезагружает её", async () => {
@@ -379,14 +400,17 @@ describe("useChat", () => {
         // ARCHITECT: сбой загрузки истории — это не ошибка отправки: тостом его не сопровождаем, лечит кнопка.
         expect(toastErrorMock).not.toHaveBeenCalled();
 
-        fetchChatHistoryMock.mockResolvedValue([
-            {
-                id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a03",
-                role: "user",
-                content: "Hello",
-                cards: null,
-            },
-        ]);
+        fetchChatHistoryMock.mockResolvedValue({
+            messages: [
+                {
+                    id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a03",
+                    role: "user",
+                    content: "Hello",
+                    cards: null,
+                },
+            ],
+            plan: null,
+        });
 
         act(() => {
             realOf(result.current).retry();
@@ -473,5 +497,56 @@ describe("useChat", () => {
         expect(
             realOf(result.current).messages.filter((message) => message.role === "user")
         ).toHaveLength(1);
+    });
+
+    it("1.11 real: ход из двух частей — разбор и следующая активность отдельными сообщениями через паузу", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        streamChatReplyMock.mockResolvedValue({
+            ...REPLY,
+            followUp: "Now make it a question.",
+            plan: PLAN,
+        });
+
+        const { useChat } = await loadHook();
+
+        // ARCHITECT: пауза между частями измеряется таймером, поэтому время здесь под контролем: иначе
+        // «сначала разбор, потом активность» проверялось бы гонкой, а не порядком.
+        vi.useFakeTimers();
+
+        try {
+            const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(0);
+            });
+
+            act(() => {
+                realOf(result.current).send("Yesterday I go to the cinema.");
+            });
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(0);
+            });
+
+            // ARCHITECT: первая часть уже в ленте, второй ещё нет — пауза не истекла.
+            expect(realOf(result.current).messages).toHaveLength(2);
+            expect(realOf(result.current).messages[1]?.content).toBe(REPLY.reply);
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(700);
+            });
+
+            const chat = realOf(result.current);
+
+            expect(chat.messages).toHaveLength(3);
+            expect(chat.messages[2]?.role).toBe("assistant");
+            expect(chat.messages[2]?.content).toBe("Now make it a question.");
+            expect(chat.messages[2]?.voiceId).toBe("en-US-female");
+            // ARCHITECT: план из ответа обновляет карточку цели без перезагрузки ленты.
+            expect(chat.plan?.rule).toBe(PLAN.rule);
+            expect(chat.plan?.step).toBe(PLAN.step);
+        } finally {
+            vi.useRealTimers();
+        }
     });
 });

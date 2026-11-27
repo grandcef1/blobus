@@ -89,6 +89,7 @@ export function RealChatView() {
             <RealChatFeed
                 messages={chat.messages}
                 session={session}
+                plan={chat.plan}
                 isStreaming={chat.isStreaming}
                 error={chat.error}
                 messagesRemaining={chat.messagesRemaining}

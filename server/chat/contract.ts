@@ -4,6 +4,8 @@
 // никогда не исполняется и не трактуется как команды — инструментов у модели в фазе C нет.
 import { z } from "zod";
 
+import type { LessonPlanDto } from "./lessonPlan.ts";
+
 /** Маркер, с которого в ответе модели начинается JSON карточек: всё после него — данные, а не текст. */
 export const CARDS_MARKER = "<<<CARDS>>>";
 
@@ -80,6 +82,10 @@ export const ChatCardsSchema = z.strictObject({
     corrections: z.array(CorrectionSchema).max(4).default([]),
     quiz: QuizSchema.nullable().default(null),
     vocabWord: VocabWordSchema.nullable().default(null),
+    // ARCHITECT: вторая часть хода — следующая активность или вопрос: модель отдаёт её тем же JSON, а сервер
+    // сохраняет отдельным сообщением (routes/chat.ts) и отдаёт клиенту полем followUp. Отсутствие ключа —
+    // ход из одной части, а не битый ответ: как и прочие карточки, вторая часть best-effort (§16.8).
+    followUp: z.string().trim().max(600).nullable().default(null),
 });
 
 export type ChatCards = z.infer<typeof ChatCardsSchema>;
@@ -95,9 +101,13 @@ export interface ChatUsage {
 /** Контракт события done: текст ответа, карточки, профиль голоса и usage — ровно то, что клиент кладёт в сообщение. */
 export interface ChatDonePayload {
     readonly reply: string;
+    /** Вторая часть хода: следующая активность или вопрос; null — ход из одной части. */
+    readonly followUp: string | null;
     readonly corrections: readonly Correction[];
     readonly quiz: Quiz | null;
     readonly vocabWord: VocabWord | null;
+    /** План урока без целевых слов: карточка цели и счётчики прогресса. */
+    readonly plan: LessonPlanDto;
     // ARCHITECT: голос репетитора уходит вместе с ответом: модель его не выбирает, значение берётся из
     // каталога по tutor_id сессии (server/tutorCatalog.ts).
     readonly voiceId: string;
@@ -180,6 +190,8 @@ export function resolveCards(cardsJson: string | null, message: string): CardsOu
 
     const corrections = keepVerbatimCorrections(cards.corrections, message);
     const quiz = corrections.some((correction) => correction.kind === "error") ? cards.quiz : null;
+    // ARCHITECT: пустая вторая часть равна её отсутствию: клиент не рисует пустой пузырь.
+    const followUp = cards.followUp === null || cards.followUp === "" ? null : cards.followUp;
 
-    return { kind: "cards", cards: { corrections, quiz, vocabWord: cards.vocabWord } };
+    return { kind: "cards", cards: { corrections, quiz, vocabWord: cards.vocabWord, followUp } };
 }

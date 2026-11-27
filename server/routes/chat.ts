@@ -12,6 +12,16 @@ import type { AiClient } from "../ai/openrouter.ts";
 import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
 import { ChatRequestSchema, resolveCards, stripCardsMarker } from "../chat/contract.ts";
 import type { ChatDonePayload, VocabWord } from "../chat/contract.ts";
+import {
+    activityAt,
+    advancePlan,
+    buildLessonPlan,
+    modeOf,
+    perkFor,
+    readLessonPlan,
+    toLessonPlanDto,
+} from "../chat/lessonPlan.ts";
+import type { LessonLevel, LessonPlan, PlanLocale } from "../chat/lessonPlan.ts";
 import { HISTORY_LIMIT, buildSystemPrompt, selectHistory } from "../chat/prompt.ts";
 import type { ChatHistoryMessage, ExplanationLocale } from "../chat/prompt.ts";
 import { COOKIE_NAMES, getCookie } from "../cookies.ts";
@@ -52,7 +62,9 @@ const PreferencesSchema = z.object({
     explanationLocale: z.enum(["ru", "en", "es"]).optional(),
 });
 
-const LessonRowSchema = z.strictObject({ id: z.uuid() });
+// ARCHITECT: строка урока читается вместе с планом: plan — это данные урока, над которыми работает сервер,
+// и форму им задаёт наш же код (chat/lessonPlan.ts), поэтому поле проверяется отдельно от id.
+const LessonRowSchema = z.strictObject({ id: z.uuid(), plan: z.unknown() });
 
 const MessageRowSchema = z.strictObject({
     role: z.enum(["user", "assistant"]),
@@ -124,20 +136,40 @@ async function releaseMessage(client: ServiceClient, userId: string): Promise<vo
     if (released.error !== null) throw released.error;
 }
 
+/** Строка истории в порядке диалога: роль, время и (у сообщений из БД) payload. */
+interface OrderableHistoryRow {
+    readonly created_at: string;
+    readonly role: string;
+    readonly payload?: unknown;
+}
+
+/** Вторая часть хода помечена в payload флагом followUp: у разбора этого флага нет. */
+function isFollowUpRow(payload: unknown): boolean {
+    return (
+        typeof payload === "object" &&
+        payload !== null &&
+        (payload as { readonly followUp?: unknown }).followUp === true
+    );
+}
+
+function rankOfHistoryRow(row: OrderableHistoryRow): number {
+    if (row.role === "user") return 0;
+
+    return isFollowUpRow(row.payload) ? 2 : 1;
+}
+
 /**
- * Порядок реплик по возрастанию времени. Внутри одной метки времени первой идёт реплика ученика: пара пишется
- * одной вставкой, поэтому created_at у неё одинаковый, а id случайный — без этого правила диалог в ленте и в
- * промпте мог бы начаться с ответа репетитора.
+ * Порядок реплик по возрастанию времени. Внутри одной метки времени сначала идёт реплика ученика, затем разбор
+ * репетитора и последней — вторая часть хода: пара и продолжение пишутся одной вставкой, поэтому created_at у
+ * них общий, а id случаен. Без этого правила лента после перезагрузки показала бы следующую активность раньше
+ * разбора (порядок в потоке и в истории разошёлся бы).
  */
-function orderHistoryAsc<T extends { readonly created_at: string; readonly role: string }>(
-    rows: readonly T[]
-): T[] {
+function orderHistoryAsc<T extends OrderableHistoryRow>(rows: readonly T[]): T[] {
     return [...rows].sort((left, right) => {
         if (left.created_at !== right.created_at)
             return left.created_at < right.created_at ? -1 : 1;
-        if (left.role === right.role) return 0;
 
-        return left.role === "user" ? -1 : 1;
+        return rankOfHistoryRow(left) - rankOfHistoryRow(right);
     });
 }
 
@@ -180,16 +212,39 @@ async function readHistory(
     return orderHistoryAsc(parsed.data).map((row) => ({ role: row.role, content: row.content }));
 }
 
-/** Урок сессии: последний или новый — сообщения хранятся в уроке, а не в сессии. */
-async function resolveLessonId(
+/** Запись плана в урок: jsonb — единственное место, где живёт состояние урока. */
+async function persistPlan(
     client: ServiceClient,
-    sessionId: string,
-    dailyMinutes: number
-): Promise<string> {
+    lessonId: string,
+    plan: LessonPlan
+): Promise<LessonPlan> {
+    const updated = await client.from("lessons").update({ plan }).eq("id", lessonId);
+
+    if (updated.error !== null) throw updated.error;
+
+    return plan;
+}
+
+/**
+ * Урок сессии вместе с планом: последний урок или новый. План пересобирается, если строка пришла без него
+ * (старая запись или сбой вставки приветствия) — карточка цели и прогресс не должны пропадать из-за строки,
+ * которую писал не наш код (§16.13).
+ */
+async function resolveLesson(
+    client: ServiceClient,
+    input: {
+        readonly sessionId: string;
+        readonly dailyMinutes: number;
+        readonly level: LessonLevel;
+        readonly mode: string;
+        readonly locale: PlanLocale;
+    }
+): Promise<{ readonly id: string; readonly plan: LessonPlan }> {
+    const planInput = { level: input.level, mode: modeOf(input.mode), locale: input.locale };
     const existing = await client
         .from("lessons")
-        .select("id")
-        .eq("session_id", sessionId)
+        .select("id, plan")
+        .eq("session_id", input.sessionId)
         .order("started_at", { ascending: false })
         .order("id", { ascending: false })
         .limit(1)
@@ -199,12 +254,23 @@ async function resolveLessonId(
 
     const row = LessonRowSchema.safeParse(existing.data);
 
-    if (row.success) return row.data.id;
+    if (row.success) {
+        const plan = readLessonPlan(row.data.plan);
+
+        return {
+            id: row.data.id,
+            plan: plan ?? (await persistPlan(client, row.data.id, buildLessonPlan(planInput))),
+        };
+    }
 
     const created = await client
         .from("lessons")
-        .insert({ session_id: sessionId, daily_minutes: dailyMinutes })
-        .select("id")
+        .insert({
+            session_id: input.sessionId,
+            daily_minutes: input.dailyMinutes,
+            plan: buildLessonPlan(planInput),
+        })
+        .select("id, plan")
         .single();
 
     if (created.error !== null) throw created.error;
@@ -213,7 +279,10 @@ async function resolveLessonId(
 
     if (!inserted.success) throw inserted.error;
 
-    return inserted.data.id;
+    return {
+        id: inserted.data.id,
+        plan: readLessonPlan(inserted.data.plan) ?? buildLessonPlan(planInput),
+    };
 }
 
 /** Авто-слово урока: повтор слова не ошибка — unique (user_id, lower(term)) гасит вставку. */
@@ -300,19 +369,23 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
             return;
         }
 
-        // ARCHITECT: уроки своей сессии читаются сервисным ключом после проверки владения сессией: их id —
-        // фильтр для чтения сообщений, и по нему же ограничен набор под RLS.
+        // ARCHITECT: уроки своей сессии читаются сервисным ключом после проверки владения сессией: их id — 
+        // фильтр для сообщений, а первый по убыванию — текущий урок, чей план показывает карточка цели.
         const lessons = await service
             .from("lessons")
-            .select("id")
-            .eq("session_id", query.data.sessionId);
+            .select("id, plan, started_at")
+            .eq("session_id", query.data.sessionId)
+            .order("started_at", { ascending: false })
+            .order("id", { ascending: false });
 
         if (lessons.error !== null) throw lessons.error;
 
         const lessonIds = (lessons.data ?? []).map((row) => row.id);
+        // ARCHITECT: наружу уходит DTO плана: целевых слов в нём нет по конструкции (§16.6).
+        const plan = readLessonPlan(lessons.data?.[0]?.plan);
 
         if (lessonIds.length === 0) {
-            res.status(200).json({ messages: [] });
+            res.status(200).json({ messages: [], plan: null });
             return;
         }
 
@@ -340,6 +413,9 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                 payload: row.payload,
                 createdAt: row.created_at,
             })),
+            // ARCHITECT: план урока отдаётся рядом с сообщениями: карточка цели восстанавливается после
+            // перезагрузки ленты без отдельного запроса, а прогресс считает сервер.
+            plan: plan === null ? null : toLessonPlanDto(plan),
         });
     });
 
@@ -450,11 +526,15 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
         // ARCHITECT: история читается под RLS пользовательским клиентом, а не service-ролью: лишних прав
         // на чтение у роутера нет.
         const history = await readHistory(env, accessToken, sessionRow.data.id);
-        const lessonId = await resolveLessonId(
-            service,
-            sessionRow.data.id,
-            profileRow.data.daily_minutes
-        );
+        // ARCHITECT: урок приходит вместе с планом: цель, правило и активность этапа задаёт сервер, а не
+        // модель, поэтому один и тот же урок идёт по одному плану от первого хода до резюме.
+        const lesson = await resolveLesson(service, {
+            sessionId: sessionRow.data.id,
+            dailyMinutes: profileRow.data.daily_minutes,
+            level: placementRow.data.level,
+            mode: sessionRow.data.mode,
+            locale: explanationLocale,
+        });
         // ARCHITECT: маркер вырезается из текста ученика: своим сообщением нельзя подделать блок карточек.
         const message = stripCardsMarker(parsed.data.message);
 
@@ -472,6 +552,10 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
             autoCorrection: preferences.data.autoCorrection,
             history,
             message,
+            plan: lesson.plan,
+            activity: activityAt(lesson.plan),
+            // ARCHITECT: фишку выбирает сервер по состоянию плана, а не модель: за ход их не больше одной.
+            perk: perkFor(lesson.plan),
         });
         const promptHistory = selectHistory(history);
 
@@ -549,18 +633,42 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                 if (recorded.error !== null) throw recorded.error;
             }
 
+            // ARCHITECT: план двигается по факту хода: шаг, употреблённые слова и серию считает сервер по
+            // реплике ученика и уже отфильтрованным правкам — прогресс урока не подделать ответом (§16.8).
+            const hasError =
+                cards !== null && cards.corrections.some((correction) => correction.kind === "error");
+            const nextPlan = await persistPlan(
+                service,
+                lesson.id,
+                advancePlan(lesson.plan, { studentMessage: message, hasError })
+            );
+            const followUp = cards === null ? null : cards.followUp;
+
             const saved = await service.from("messages").insert([
                 // ARCHITECT: payload у сообщения ученика задан явно: в пакетной вставке PostgREST колонка
                 // одна на все строки, поэтому дефолт не подставился бы и NOT NULL отклонил бы строку.
-                { lesson_id: lessonId, role: "user", content: message, payload: {} },
+                { lesson_id: lesson.id, role: "user", content: message, payload: {} },
                 {
-                    lesson_id: lessonId,
+                    lesson_id: lesson.id,
                     role: "assistant",
                     content: reply.text.slice(0, MESSAGE_MAX_CHARS),
                     // ARCHITECT: профиль голоса сохраняется вместе с карточками: после перезагрузки ленты
                     // кнопка озвучки восстанавливается по тому же значению каталога.
                     payload: { cards, usage, voiceId: tutor.voiceId },
                 },
+                // ARCHITECT: вторая часть хода — отдельное сообщение: после перезагрузки ленты она стоит там
+                // же, где её увидели в потоке, а не склеена с разбором. Отличить её от ответа с карточками
+                // можно по payload: поля usage у неё нет, поэтому расход и квота считаются один раз.
+                ...(followUp === null
+                    ? []
+                    : [
+                          {
+                              lesson_id: lesson.id,
+                              role: "assistant",
+                              content: followUp.slice(0, MESSAGE_MAX_CHARS),
+                              payload: { voiceId: tutor.voiceId, followUp: true },
+                          },
+                      ]),
             ]);
 
             if (saved.error !== null) throw saved.error;
@@ -570,10 +678,13 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
 
             const done: ChatDonePayload = {
                 reply: reply.text,
+                // ARCHITECT: вторая часть необязательна: без неё ход остаётся одним сообщением (§16.8).
+                followUp,
                 // ARCHITECT: ответ без карточек отдаётся пустыми блоками: клиент рисует текст, а не ошибку.
                 corrections: cards === null ? [] : cards.corrections,
                 quiz: cards === null ? null : cards.quiz,
                 vocabWord: cards === null ? null : cards.vocabWord,
+                plan: toLessonPlanDto(nextPlan),
                 voiceId: tutor.voiceId,
                 usage: { ...usage, messagesRemaining: reserve.data.messages_remaining },
             };

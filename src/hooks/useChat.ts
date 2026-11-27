@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
 import { fetchChatHistory, sendMessage, streamChatReply } from "@/api/chat";
-import type { ChatCards, ChatHistoryMessage } from "@/api/chat";
+import type { ChatCards, ChatHistory, ChatLessonPlan } from "@/api/chat";
 import { fetchSessionById } from "@/api/sessions";
 import { useAuthExpiry } from "@/hooks/useAuthExpiry";
 import { useMockQuery } from "@/hooks/useMockQuery";
@@ -54,6 +54,8 @@ export interface MockChatResult extends ChatCommon {
 export interface RealChatResult extends ChatCommon {
     readonly kind: "real";
     readonly messages: readonly ChatFeedMessage[];
+    /** План урока: цель, правило и счётчики — карточка цели над лентой; null — плана ещё нет. */
+    readonly plan: ChatLessonPlan | null;
     /** true, пока история сессии в пути: ленте нужен скелетон, а не пустой экран. */
     readonly isLoading: boolean;
 }
@@ -62,6 +64,28 @@ export type ChatResult = MockChatResult | RealChatResult;
 
 const NOOP = (): void => undefined;
 const EMPTY_SESSION = null;
+
+// ARCHITECT: пауза между двумя частями хода: разбор и следующая активность не должны появляться одним кадром —
+// человек читает их по очереди. Ожидание прерывается тем же сигналом, что и поток (§16.7).
+const FOLLOW_UP_PAUSE_MS = 700;
+
+function pause(ms: number, signal: AbortSignal): Promise<void> {
+    return new Promise((resolve) => {
+        if (signal.aborted) {
+            resolve();
+            return;
+        }
+
+        const finish = (): void => {
+            window.clearTimeout(timer);
+            signal.removeEventListener("abort", finish);
+            resolve();
+        };
+        const timer = window.setTimeout(finish, ms);
+
+        signal.addEventListener("abort", finish, { once: true });
+    });
+}
 
 function useMockChat(sessionId: string): MockChatResult {
     // ARCHITECT: в real-режиме мок-хранилище не читается вовсе: запрос сразу отдаёт null, а лента живёт в
@@ -102,6 +126,8 @@ function useMockChat(sessionId: string): MockChatResult {
 interface LiveChatState {
     readonly sessionId: string;
     readonly messages: readonly ChatFeedMessage[];
+    /** План урока приходит из истории и из каждого ответа: карточка цели живёт вне сообщений. */
+    readonly plan: ChatLessonPlan | null;
     readonly isStreaming: boolean;
     readonly error: ChatErrorKind | null;
     readonly messagesRemaining: number | null;
@@ -117,6 +143,7 @@ function withSession(previous: LiveChatState, sessionId: string): LiveChatState 
         : {
               sessionId,
               messages: [],
+              plan: null,
               isStreaming: false,
               error: null,
               messagesRemaining: null,
@@ -128,6 +155,7 @@ function idleState(sessionId: string): LiveChatState {
     return {
         sessionId,
         messages: [],
+        plan: null,
         isStreaming: false,
         error: null,
         messagesRemaining: null,
@@ -148,10 +176,10 @@ function useRealChat(sessionId: string): RealChatResult {
     useAuthExpiry(expired, expired === null);
 
     const applyHistory = useCallback(
-        (history: readonly ChatHistoryMessage[]): void => {
+        (history: ChatHistory): void => {
             setState((previous) => ({
                 ...withSession(previous, sessionId),
-                messages: history.map((message) => ({
+                messages: history.messages.map((message) => ({
                     id: message.id,
                     role: message.role,
                     content: message.content,
@@ -159,6 +187,7 @@ function useRealChat(sessionId: string): RealChatResult {
                     voiceId: message.voiceId,
                     live: false,
                 })),
+                plan: history.plan,
                 historyLoaded: true,
                 // ARCHITECT: удачная загрузка снимает прошлую ошибку: кнопка повтора возвращает ленту, а не баннер.
                 error: null,
@@ -283,9 +312,35 @@ function useRealChat(sessionId: string): RealChatResult {
                               }
                             : message
                     ),
+                    plan: reply.plan ?? previous.plan,
                     messagesRemaining: reply.usage.messagesRemaining,
                     error: null,
                 }));
+
+                // ARCHITECT: вторая часть хода — отдельное сообщение: сначала читают разбор, потом появляется
+                // следующая активность. Обрыв во время паузы её не показывает, но сервер её уже сохранил, и
+                // после перезагрузки ленты она придёт из истории.
+                const followUpText = reply.followUp;
+
+                if (followUpText !== null) {
+                    await pause(FOLLOW_UP_PAUSE_MS, controller.signal);
+
+                    if (!controller.signal.aborted)
+                        setState((previous) => ({
+                            ...previous,
+                            messages: [
+                                ...previous.messages,
+                                {
+                                    id: crypto.randomUUID(),
+                                    role: "assistant",
+                                    content: followUpText,
+                                    cards: null,
+                                    voiceId: reply.voiceId,
+                                    live: true,
+                                },
+                            ],
+                        }));
+                }
             } catch (failure) {
                 // ARCHITECT: неудачу не сохраняем: незавершённая реплика ассистента уходит из ленты целиком, а
                 // реплика ученика остаётся — повтор отправит тот же текст и допишет новый ответ.
@@ -363,6 +418,7 @@ function useRealChat(sessionId: string): RealChatResult {
         isStreaming: live.isStreaming,
         error: live.error,
         messagesRemaining: live.messagesRemaining,
+        plan: live.plan,
         messages: live.messages,
         send,
         retry,

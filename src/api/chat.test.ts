@@ -246,17 +246,19 @@ describe("streamChatReply", () => {
         });
 
         const { fetchChatHistory } = await import("@/api/chat");
-        const history = await fetchChatHistory(SESSION_ID);
+        const { messages, plan } = await fetchChatHistory(SESSION_ID);
 
         expect(apiFetchMock).toHaveBeenCalledWith(`/chat/history?sessionId=${SESSION_ID}`);
-        expect(history.map((message) => message.role)).toEqual(["user", "assistant"]);
-        expect(history[0]?.cards).toBeNull();
+        expect(messages.map((message) => message.role)).toEqual(["user", "assistant"]);
+        expect(messages[0]?.cards).toBeNull();
         // ARCHITECT: реплика ученика озвучки не имеет, а профиль голоса ответа читается из payload.
-        expect(history[0]?.voiceId).toBeNull();
-        expect(history[1]?.voiceId).toBe("en-GB-male");
-        expect(history[1]?.cards?.corrections).toHaveLength(1);
-        expect(history[1]?.cards?.vocabWord?.term).toBe("deadline");
-        expect(history[1]?.cards?.quiz).toBeNull();
+        expect(messages[0]?.voiceId).toBeNull();
+        expect(messages[1]?.voiceId).toBe("en-GB-male");
+        expect(messages[1]?.cards?.corrections).toHaveLength(1);
+        expect(messages[1]?.cards?.vocabWord?.term).toBe("deadline");
+        expect(messages[1]?.cards?.quiz).toBeNull();
+        // ARCHITECT: конверт без плана — не ошибка: карточка цели просто не рисуется.
+        expect(plan).toBeNull();
     });
 
     it("2.7 чужая роль отбрасывается, битые карточки не мешают тексту реплики", async () => {
@@ -284,17 +286,17 @@ describe("streamChatReply", () => {
         });
 
         const { fetchChatHistory } = await import("@/api/chat");
-        const history = await fetchChatHistory(SESSION_ID);
+        const { messages } = await fetchChatHistory(SESSION_ID);
 
         // ARCHITECT: строка с чужой ролью не показывается вовсе, а испорченные карточки не прячут ответ.
-        expect(history.map((message) => message.id)).toEqual([
+        expect(messages.map((message) => message.id)).toEqual([
             "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a02",
             "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a03",
         ]);
-        expect(history[0]?.content).toBe("Hello");
-        expect(history[0]?.cards).toBeNull();
+        expect(messages[0]?.content).toBe("Hello");
+        expect(messages[0]?.cards).toBeNull();
         // ARCHITECT: запись без профиля голоса — не ошибка: реплика читается текстом, кнопки просто нет.
-        expect(history[0]?.voiceId).toBeNull();
+        expect(messages[0]?.voiceId).toBeNull();
     });
 
     it("2.8 конверт без списка сообщений — ошибка чтения истории", async () => {
@@ -323,5 +325,66 @@ describe("streamChatReply", () => {
         // не должны пропадать из-за опечатки модели.
         expect(reply.corrections[0]?.kind).toBe("polish");
         expect(reply.corrections[1]?.kind).toBe("error");
+    });
+
+    it("2.10 читает вторую часть хода и план урока, битая форма их теряет без потери ответа", async () => {
+        const { reply } = await readReply([
+            frame("done", {
+                reply: "Text.",
+                followUp: "Now make it a question.",
+                corrections: [],
+                quiz: null,
+                vocabWord: null,
+                plan: {
+                    goal: "speak more freely in everyday conversation in two or three connected sentences.",
+                    rule: "Present Simple for habits and routines",
+                    step: 0,
+                    total: 6,
+                    wordsDone: 1,
+                    wordsTotal: 5,
+                    completed: false,
+                },
+                usage: USAGE,
+            }),
+        ]);
+
+        expect(reply.followUp).toBe("Now make it a question.");
+        expect(reply.plan?.rule).toBe("Present Simple for habits and routines");
+        expect(reply.plan?.total).toBe(6);
+        expect(reply.plan?.wordsTotal).toBe(5);
+        // ARCHITECT: целевых слов в контракте нет: сервер их не отдаёт, поэтому в DTO их и быть не может.
+        expect(Object.keys(reply.plan ?? {})).not.toContain("targetWords");
+
+        const broken = await readReply([
+            frame("done", {
+                reply: "Text.",
+                followUp: 42,
+                corrections: [],
+                quiz: null,
+                vocabWord: null,
+                // ARCHITECT: этап за пределами плана — испорченные данные: карточка цели не рисуется, а текст
+                // репетитора остаётся.
+                plan: { goal: "x", rule: "y", step: 9, total: 6, wordsDone: 0, wordsTotal: 5 },
+                usage: USAGE,
+            }),
+        ]);
+
+        expect(broken.reply.reply).toBe("Text.");
+        expect(broken.reply.followUp).toBeNull();
+        expect(broken.reply.plan).toBeNull();
+
+        // ARCHITECT: ответ старого сервера без обеих частей тоже валиден: ход из одного сообщения.
+        const legacy = await readReply([
+            frame("done", {
+                reply: "Text.",
+                corrections: [],
+                quiz: null,
+                vocabWord: null,
+                usage: USAGE,
+            }),
+        ]);
+
+        expect(legacy.reply.followUp).toBeNull();
+        expect(legacy.reply.plan).toBeNull();
     });
 });

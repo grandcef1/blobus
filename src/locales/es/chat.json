@@ -1,4 +1,10 @@
 {
+  "plan": {
+    "title": "Objetivo de la lección",
+    "rule": "Regla: {{rule}}",
+    "step": "Paso {{current}} de {{total}}",
+    "words": "Palabras: {{done}} de {{total}}"
+  },
   "actions": {
     "moreLabel": "Más acciones",
     "rename": "Renombrar",

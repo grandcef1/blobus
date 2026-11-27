@@ -1,4 +1,10 @@
 {
+  "plan": {
+    "title": "Lesson goal",
+    "rule": "Rule: {{rule}}",
+    "step": "Step {{current}} of {{total}}",
+    "words": "Lesson words: {{done}} of {{total}}"
+  },
   "actions": {
     "moreLabel": "More actions",
     "rename": "Rename",

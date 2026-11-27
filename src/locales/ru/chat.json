@@ -1,4 +1,10 @@
 {
+  "plan": {
+    "title": "Цель урока",
+    "rule": "Правило: {{rule}}",
+    "step": "Этап {{current}} из {{total}}",
+    "words": "Слова урока: {{done}} из {{total}}"
+  },
   "actions": {
     "moreLabel": "Дополнительные действия",
     "rename": "Переименовать",

@@ -7,11 +7,10 @@ import { ArrowRight, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { TextField } from "@/components/onboarding/TextField";
 import { PasswordField } from "@/components/auth/PasswordField";
-import { GoogleAuthButton } from "@/components/onboarding/GoogleAuthButton";
+import { AuthProviderButtons } from "@/components/auth/AuthProviderButtons";
 import { AuthModeTabs, type AuthMode } from "@/components/onboarding/AuthModeTabs";
 import { useTranslation } from "react-i18next";
 import { useAuthStore } from "@/store/auth";
-import { GOOGLE_READY, USE_REAL_AUTH } from "@/api/auth";
 import type { AuthUser } from "@/api/auth";
 import { ApiError } from "@/api/client";
 import { toast } from "@/store/toast";
@@ -125,6 +124,10 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
         <div>
             {showTabs && onModeChange && <AuthModeTabs mode={mode} onChange={handleModeChange} />}
 
+            {/* ARCHITECT: провайдеры идут первыми — путь в один клик виден до полей, «или» отделяет
+                их от формы email/пароль. */}
+            <AuthProviderButtons onGoogle={handleGoogle} />
+
             <form onSubmit={handleSubmit} noValidate className="flex flex-col gap-6">
                 {mode === "register" && (
                     <TextField
@@ -180,21 +183,6 @@ export function AuthForm({ mode, onModeChange, onAuthenticated, showTabs = true 
                         <ArrowRight className="size-4" aria-hidden="true" />
                     )}
                 </Button>
-
-                {/* ARCHITECT: кнопка показывается, только когда вход действительно возможен: в моке или в
-                    реальном режиме с настроенными публичными ключами Supabase. Заглушка с фиктивным профилем
-                    и «или» над пустым местом одинаково обманывают — новых строк словаря для этого не нужно. */}
-                {(!USE_REAL_AUTH || GOOGLE_READY) && (
-                    <>
-                        <div className="flex items-center gap-3 pt-1">
-                            <div className="h-px flex-1 bg-white/10" />
-                            <span className="text-xs text-[#f0f0f5]/40">{t("actions.or")}</span>
-                            <div className="h-px flex-1 bg-white/10" />
-                        </div>
-
-                        <GoogleAuthButton onAuthenticated={handleGoogle} />
-                    </>
-                )}
             </form>
         </div>
     );

@@ -8,7 +8,7 @@
 // нет, поэтому там берётся текущий уровень профиля.
 
 import { useState } from "react";
-import { useNavigate } from "react-router-dom";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { useTranslation } from "react-i18next";
 import { motion, AnimatePresence } from "framer-motion";
 import type { EnglishLevel, OnboardingData, OnboardingStep } from "@/types/onboarding";
@@ -16,6 +16,7 @@ import { useStartSession } from "@/hooks/useStartSession";
 import { useAuthStore } from "@/store/auth";
 import { toast } from "@/store/toast";
 import i18n from "@/lib/i18n";
+import { resolveOnboardingStep } from "@/lib/onboarding";
 import { cn } from "@/lib/utils";
 import { Seo } from "@/components/shared/Seo";
 import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
@@ -36,8 +37,18 @@ export function Onboarding({ flow = "full" }: OnboardingProps) {
     const { t } = useTranslation("common");
     const navigate = useNavigate();
     const { startSession } = useStartSession();
+    const [searchParams] = useSearchParams();
     const stepOrder = STEP_ORDERS[flow];
-    const [currentStep, setCurrentStep] = useState<OnboardingStep>(stepOrder[0]);
+    // ARCHITECT: глубокий переход (?step=assessment) открывает мастер сразу на тесте уровня — так после
+    // регистрации не показывается приветствие. Значение вне текущего флоу игнорируется: мастер начнётся
+    // с первого шага, а не с чужого экрана.
+    const [currentStep, setCurrentStep] = useState<OnboardingStep>(() =>
+        resolveOnboardingStep(
+            stepOrder,
+            searchParams.get("step"),
+            flow === "session" ? "blobatar-selection" : "intro"
+        )
+    );
     const [onboardingData, setOnboardingData] = useState<OnboardingData>({
         blobatarId: null,
         learningMode: null,

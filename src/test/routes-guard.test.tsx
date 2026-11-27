@@ -7,6 +7,7 @@ import { beforeEach, describe, expect, it } from "vitest";
 import { Route, Routes, useLocation } from "react-router-dom";
 import { ProtectedRoute } from "@/components/auth/ProtectedRoute";
 import { APP_HOME_PATH } from "@/components/layout/navigation";
+import { useAuthStore } from "@/store/auth";
 import { renderWithProviders, resetStores } from "@/test/utils";
 
 /** Заглушка входа: показывает, куда её отправил роутер и что принесла state.from. */
@@ -43,5 +44,16 @@ describe("гейты маршрутов", () => {
         renderWithProviders(<AppRoutes />, { route: "/app/vocabulary" });
 
         expect(screen.getByText("login:/app/vocabulary")).toBeInTheDocument();
+    });
+
+    it("пока сессия проверяется, показывается лоадер, а не форма входа", () => {
+        useAuthStore.setState({ resolving: true });
+
+        const { container } = renderWithProviders(<AppRoutes />, { route: "/app/vocabulary" });
+
+        // ARCHITECT: отправлять на /login во время проверки нельзя — форма мигнула бы тому, кто авторизован.
+        expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+        expect(screen.queryByText(/^login:/)).not.toBeInTheDocument();
+        expect(screen.queryByText("vocabulary-page")).not.toBeInTheDocument();
     });
 });

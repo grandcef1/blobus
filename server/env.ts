@@ -19,6 +19,18 @@ export const ServerEnvSchema = z.object({
     // ARCHITECT: ключ OpenRouter только серверный и обязательный: без него чат не работает, поэтому
     // отсутствие ключа останавливает старт (fail-fast), а не проявляется 500 на первом сообщении (§16.3).
     OPENROUTER_API_KEY: z.string().min(1),
+    // ARCHITECT: включённые OAuth-провайдеры — конфигурация, а не секрет: публичный GET /api/auth/providers
+    // отдаёт ровно эти имена, а клиент по ним рисует кнопки входа. Дефолт google сохраняет текущий вход,
+    // пустое значение (AUTH_OAUTH_PROVIDERS=) осознанно выключает провайдерные кнопки целиком.
+    AUTH_OAUTH_PROVIDERS: z
+        .string()
+        .default("google")
+        .transform((value) =>
+            value
+                .split(",")
+                .map((provider) => provider.trim())
+                .filter((provider) => provider !== "")
+        ),
 });
 
 export type ServerEnv = z.infer<typeof ServerEnvSchema>;

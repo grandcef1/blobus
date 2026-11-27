@@ -3,6 +3,8 @@
 // фон, карточка и заголовок берутся у мастера, чтобы экран не выглядел чужеродным.
 // ARCHITECT: после входа маршрут один — стартовая страница приложения («Обзор»), а не последняя
 // сессия: вход с лендинга не должен открывать чат, продолжение занятия выбирается из «Обзора».
+// ARCHITECT: редирект вычисляется до рендера формы, а фаза resolving отдаёт лоадер: страница входа не
+// показывается ни кадра тому, кто уже авторизован, поэтому перехода «форма → дашборд» не видно.
 
 import { Link, Navigate, useLocation, useNavigate } from "react-router-dom";
 import { useTranslation } from "react-i18next";
@@ -10,32 +12,41 @@ import { OnboardingShell } from "@/components/onboarding/OnboardingShell";
 import { StepHeader } from "@/components/onboarding/StepHeader";
 import { StepCard } from "@/components/onboarding/StepCard";
 import { AuthForm } from "@/components/auth/AuthForm";
+import { AuthResolvingScreen } from "@/components/auth/AuthResolvingScreen";
 import { APP_HOME_PATH } from "@/components/layout/navigation";
-import { useAuthStore } from "@/store/auth";
+import { selectAuthStatus, useAuthStore } from "@/store/auth";
 import { Seo } from "@/components/shared/Seo";
 import { resolveReturnTo } from "@/lib/return-to";
 import { FOCUS_RING } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
+import type { AuthUser } from "@/api/auth";
 
 const ONBOARDING_PATH = "/onboarding";
+// ARCHITECT: новый аккаунт (флаг онбординга серверный) открывает мастера сразу на тесте уровня:
+// приветствие он прошёл при регистрации, показывать его второй раз незачем.
+const ONBOARDING_ASSESSMENT_PATH = `${ONBOARDING_PATH}?step=assessment`;
+
+// ARCHITECT: место после входа: неполный онбординг важнее возврата, а возврат разрешён только внутрь
+// приложения (whitelist /app/ живёт в resolveReturnTo) — здесь только порядок решений.
+function postAuthPath(user: AuthUser, state: unknown): string {
+    if (user.onboardingCompleted === false) return ONBOARDING_ASSESSMENT_PATH;
+
+    return resolveReturnTo(state) ?? APP_HOME_PATH;
+}
 
 export function Login() {
     const navigate = useNavigate();
     const location = useLocation();
     const { t } = useTranslation("auth");
+    const status = useAuthStore(selectAuthStatus);
     const user = useAuthStore((state) => state.user);
 
-    // ARCHITECT: флаг серверный (ТЗ-1); редирект только по явному false, отсутствие поля (legacy) не
-    // редиректит; гейт живёт только здесь — решение владельца, /app не гейтится.
-    // ARCHITECT: полоса прогресса мастера на одиночном экране смысла не несёт — 0 оставляет
-    // только фон и шторку оболочки.
-    if (user)
-        return (
-            <Navigate
-                to={user.onboardingCompleted === false ? ONBOARDING_PATH : APP_HOME_PATH}
-                replace
-            />
-        );
+    // ARCHITECT: пока сессия проверяется, ни формы, ни редиректа: решает фаза, а не пустой user.
+    if (status === "resolving") return <AuthResolvingScreen />;
+
+    // ARCHITECT: гейт онбординга живёт только здесь — решение владельца, /app не гейтится;
+    // редирект только по явному false, отсутствие поля (legacy) не редиректит.
+    if (user !== null) return <Navigate to={postAuthPath(user, location.state)} replace />;
 
     return (
         <OnboardingShell progress={0}>
@@ -52,17 +63,10 @@ export function Login() {
                     <AuthForm
                         mode="login"
                         showTabs={false}
-                        // ARCHITECT: возврат в исходную точку только если она внутри приложения:
-                        // ProtectedRoute положил её в state.from, а guard отсеивает чужое.
-                        // ARCHITECT: неполный онбординг важнее возврата: вход нового аккаунта должен
-                        // пройти мастер, а не открыть приложение.
+                        // ARCHITECT: тот же расчёт маршрута, что у редиректа выше: расхождение ветвей
+                        // дало бы разное место после входа и после перезагрузки страницы.
                         onAuthenticated={(user) =>
-                            navigate(
-                                user.onboardingCompleted === false
-                                    ? ONBOARDING_PATH
-                                    : (resolveReturnTo(location.state) ?? APP_HOME_PATH),
-                                { replace: true }
-                            )
+                            navigate(postAuthPath(user, location.state), { replace: true })
                         }
                     />
                 </StepCard>

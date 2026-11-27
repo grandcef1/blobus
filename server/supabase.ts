@@ -12,6 +12,10 @@ export interface SupabaseEnv {
     readonly SUPABASE_URL: string;
     readonly SUPABASE_PUBLISHABLE_KEY: string;
     readonly SUPABASE_SECRET_KEY: string;
+    // ARCHITECT: имена включённых OAuth-провайдеров (ServerEnv разбирает список из строки). Поле
+    // необязательное: окружение, собранное тестом без него, честно отвечает «провайдеров нет», а не
+    // показывает кнопку, которую сервер не подтвердил (§16.2).
+    readonly AUTH_OAUTH_PROVIDERS?: readonly string[];
 }
 
 export type SupabaseServerClient = SupabaseClient<Database>;

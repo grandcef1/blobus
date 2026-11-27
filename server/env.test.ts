@@ -91,6 +91,17 @@ describe("loadEnv", () => {
         expect(message).toContain("OPENROUTER_API_KEY");
     });
 
+    it("разбирает список включённых провайдеров и по умолчанию оставляет google", () => {
+        expect(loadEnv(VALID_SOURCE).AUTH_OAUTH_PROVIDERS).toEqual(["google"]);
+        expect(
+            loadEnv({ ...VALID_SOURCE, AUTH_OAUTH_PROVIDERS: "google, apple ," }).AUTH_OAUTH_PROVIDERS
+        ).toEqual(["google", "apple"]);
+        // ARCHITECT: пустое значение — осознанное выключение провайдерных кнопок, а не «не задано».
+        expect(loadEnv({ ...VALID_SOURCE, AUTH_OAUTH_PROVIDERS: "" }).AUTH_OAUTH_PROVIDERS).toEqual(
+            []
+        );
+    });
+
     it("отбрасывает неизвестные ключи: VITE_* и посторонние секреты не входят в server-env", () => {
         const env = loadEnv({
             ...VALID_SOURCE,
@@ -105,6 +116,7 @@ describe("loadEnv", () => {
             "SUPABASE_PUBLISHABLE_KEY",
             "SUPABASE_SECRET_KEY",
             "OPENROUTER_API_KEY",
+            "AUTH_OAUTH_PROVIDERS",
         ]);
         expect(Object.keys(ServerEnvSchema.shape)).toEqual([
             "NODE_ENV",
@@ -113,6 +125,7 @@ describe("loadEnv", () => {
             "SUPABASE_PUBLISHABLE_KEY",
             "SUPABASE_SECRET_KEY",
             "OPENROUTER_API_KEY",
+            "AUTH_OAUTH_PROVIDERS",
         ]);
         // ARCHITECT: серверный ключ входит в env только под своим именем: VITE_-вариант остаётся
         // фронтенд-переменной и серверной не становится.

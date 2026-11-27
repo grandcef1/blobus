@@ -192,6 +192,15 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
         res.json({ csrfToken: typeof token === "string" ? token : "" });
     });
 
+    // ARCHITECT: публичный список включённых OAuth-провайдеров: клиент рисует кнопки входа по ответу
+    // сервера и не решает сам, что разрешено (§16.2). В теле только имена — ни ключей, ни адресов (§16.3).
+    // ARCHITECT: ответ кэшируется: список меняется вместе с конфигурацией деплоя, а читается на каждом
+    // открытии формы входа; тело зависит только от конфигурации, поэтому public-кэш безопасен (§16.7).
+    router.get("/providers", (_req: Request, res: Response) => {
+        res.setHeader("Cache-Control", "public, max-age=300");
+        res.json({ providers: [...(env.AUTH_OAUTH_PROVIDERS ?? [])] });
+    });
+
     router.post("/signup", limiters.signup, validateCsrf, async (req: Request, res: Response) => {
         const parsed = SignupSchema.safeParse(req.body);
 

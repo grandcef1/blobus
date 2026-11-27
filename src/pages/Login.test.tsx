@@ -2,7 +2,8 @@
 // а не в приложение. Тест держит обе точки — серверный флаг в сторе и колбэк формы.
 
 import { fireEvent, render, screen } from "@testing-library/react";
-import { MemoryRouter, Route, Routes } from "react-router-dom";
+import type { RenderResult } from "@testing-library/react";
+import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { ReactNode } from "react";
 import type { AuthUser } from "@/api/auth";
@@ -62,19 +63,31 @@ const LEGACY_USER: AuthUser = {
     emailVerified: true,
 };
 
+/** Пробник мастера: показывает адрес, с которым роутер его открыл (глубокий переход на шаг теста). */
+function OnboardingProbe() {
+    const { search } = useLocation();
+
+    return (
+        <>
+            <p>маркер-мастер</p>
+            <p>адрес{search}</p>
+        </>
+    );
+}
+
 function RouteMarkers() {
     return (
         <Routes>
             <Route path="/login" element={<Login />} />
-            <Route path="/onboarding" element={<p>маркер-мастер</p>} />
+            <Route path="/onboarding" element={<OnboardingProbe />} />
             <Route path="/app/overview" element={<p>маркер-обзор</p>} />
             <Route path="/app/sessions" element={<p>маркер-сессии</p>} />
         </Routes>
     );
 }
 
-function renderAtLogin(state?: unknown): void {
-    render(
+function renderAtLogin(state?: unknown): RenderResult {
+    return render(
         <MemoryRouter initialEntries={[{ pathname: "/login", state }]}>
             <RouteMarkers />
         </MemoryRouter>
@@ -140,5 +153,37 @@ describe("Login: гейт онбординга", () => {
         fireEvent.click(screen.getByRole("button", { name: "форма-вход-полный" }));
 
         expect(screen.getByText("маркер-сессии")).toBeInTheDocument();
+    });
+
+    it("новый аккаунт открывает мастер сразу на шаге теста", () => {
+        renderAtLogin();
+
+        fireEvent.click(screen.getByRole("button", { name: "форма-вход-неполный" }));
+
+        // ARCHITECT: приветствие уже пройдено при регистрации — второй раз его не показываем.
+        expect(screen.getByText("адрес?step=assessment")).toBeInTheDocument();
+    });
+
+    it("пока сессия проверяется, форма входа не рендерится", () => {
+        useAuthStore.setState({ resolving: true });
+
+        const { container } = renderAtLogin();
+
+        expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+        expect(
+            screen.queryByRole("button", { name: "форма-вход-неполный" })
+        ).not.toBeInTheDocument();
+        expect(screen.queryByText("маркер-мастер")).not.toBeInTheDocument();
+        expect(screen.queryByText("маркер-обзор")).not.toBeInTheDocument();
+    });
+
+    it("пользователь, поднятый до конца проверки, формы не видит", () => {
+        useAuthStore.setState({ user: COMPLETE_USER, resolving: true });
+
+        const { container } = renderAtLogin();
+
+        // ARCHITECT: пока проверка не закрыта, решает фаза: ни формы, ни редиректа — иначе форма мигнула бы.
+        expect(container.querySelector('[aria-busy="true"]')).not.toBeNull();
+        expect(screen.queryByRole("button", { name: "форма-вход-полный" })).not.toBeInTheDocument();
     });
 });

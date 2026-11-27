@@ -17,6 +17,7 @@ import { AuthForm } from "@/components/auth/AuthForm";
 import type { AuthMode } from "@/components/onboarding/AuthModeTabs";
 import { ONBOARDING_STEP_TITLE_KEYS } from "@/types/onboarding";
 import { GHOST_BUTTON } from "@/lib/surfaces";
+import type { AuthUser } from "@/api/auth";
 
 interface AuthStepProps {
     onNext: () => void;
@@ -31,14 +32,16 @@ export function AuthStep({ onNext, onBack, step, totalSteps }: AuthStepProps) {
     const navigate = useNavigate();
     const [mode, setMode] = useState<AuthMode>("register");
 
-    // ARCHITECT: пользователя в auth-store кладёт сама форма, поэтому здесь решается только
-    // маршрут: вход уходит на стартовую страницу приложения, регистрация продолжает мастер.
-    const handleAuthenticated = () => {
-        if (mode === "login") {
-            navigate(APP_HOME_PATH, { replace: true });
+    // ARCHITECT: пользователя в auth-store кладёт сама форма, поэтому здесь решается только маршрут.
+    // ARCHITECT: решение по флагу онбординга, а не по табу: неполный аккаунт (в том числе после Google)
+    // обязан дойти до теста уровня, а завершённый уходит в приложение сразу.
+    const handleAuthenticated = (user: AuthUser) => {
+        if (user.onboardingCompleted === false) {
+            onNext();
             return;
         }
-        onNext();
+
+        navigate(APP_HOME_PATH, { replace: true });
     };
 
     return (

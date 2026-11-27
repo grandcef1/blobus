@@ -1,9 +1,10 @@
 // ARCHITECT: экшен завершения онбординга трогает и сеть, и состояние: тест держит оба контракта — флаг
 // ставится только после ответа сервера, а гость остаётся гостем (пустой патч, как markEmailVerified).
+// ARCHITECT: фаза аутентификации проверяется отдельно: от неё зависит, показывать ли форму входа.
 
 import { beforeEach, describe, expect, it, vi } from "vitest";
 import type { AuthUser } from "@/api/auth";
-import { useAuthStore } from "@/store/auth";
+import { selectAuthStatus, useAuthStore } from "@/store/auth";
 
 const { completeOnboardingMock } = vi.hoisted(() => ({ completeOnboardingMock: vi.fn() }));
 
@@ -64,5 +65,33 @@ describe("completeOnboarding", () => {
         await useAuthStore.getState().completeOnboarding();
 
         expect(useAuthStore.getState().user?.onboardingCompleted).toBe(true);
+    });
+});
+
+describe("selectAuthStatus", () => {
+    it("в фазе проверки возвращает resolving, даже когда пользователь уже поднят", () => {
+        useAuthStore.setState({ user: { ...INCOMPLETE }, resolving: true });
+
+        expect(selectAuthStatus(useAuthStore.getState())).toBe("resolving");
+    });
+
+    it("после проверки без пользователя — anonymous", () => {
+        useAuthStore.setState({ user: null, resolving: false });
+
+        expect(selectAuthStatus(useAuthStore.getState())).toBe("anonymous");
+    });
+
+    it("после проверки с пользователем — authenticated", () => {
+        useAuthStore.setState({ user: { ...INCOMPLETE }, resolving: false });
+
+        expect(selectAuthStatus(useAuthStore.getState())).toBe("authenticated");
+    });
+
+    it("вход снимает фазу проверки: статус не остаётся resolving", async () => {
+        useAuthStore.setState({ resolving: true });
+
+        await useAuthStore.getState().signIn("student@example.test", "Strong-Pass-1");
+
+        expect(selectAuthStatus(useAuthStore.getState())).toBe("authenticated");
     });
 });

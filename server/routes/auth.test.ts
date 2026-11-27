@@ -66,8 +66,8 @@ function ctxUser(): { readonly id: string; readonly email: string } {
 }
 
 /** Поднимает приложение на случайном порту и возвращает адрес для запросов. */
-async function startApp(): Promise<RunningApp> {
-    const server = buildApp(undefined, ctxEnv()).listen(0);
+async function startApp(envOverrides: Partial<SupabaseEnv> = {}): Promise<RunningApp> {
+    const server = buildApp(undefined, { ...ctxEnv(), ...envOverrides }).listen(0);
     await new Promise<void>((resolve) => {
         server.once("listening", () => resolve());
     });
@@ -91,6 +91,20 @@ async function stopApp(server: Server): Promise<void> {
 /** Приложение живёт один тест: лимиты в памяти экземпляра не перетекают в соседние проверки. */
 async function withAuthApp(run: (app: RunningApp) => Promise<void>): Promise<void> {
     const running = await startApp();
+
+    try {
+        await run(running);
+    } finally {
+        await stopApp(running.server);
+    }
+}
+
+/** Приложение с подменённой частью окружения: конфигурация провайдеров проверяется своим запуском. */
+async function withConfiguredApp(
+    envOverrides: Partial<SupabaseEnv>,
+    run: (app: RunningApp) => Promise<void>
+): Promise<void> {
+    const running = await startApp(envOverrides);
 
     try {
         await run(running);
@@ -1203,5 +1217,45 @@ describe("RLS колонки onboarding_completed_at", () => {
         expect(foreign.error).toBeNull();
         expect(foreign.data).toHaveLength(0);
         expect(anonymous.error?.code).toBe(INSUFFICIENT_PRIVILEGE);
+    }, 30_000);
+});
+
+describe("GET /api/auth/providers", () => {
+    it("отдаёт включённые провайдеры из конфигурации и разрешает кэш", async () => {
+        await withConfiguredApp({ AUTH_OAUTH_PROVIDERS: ["google", "apple"] }, async (app) => {
+            const response = await fetch(`${app.baseUrl}/api/auth/providers`);
+            const body = (await response.json()) as { providers: string[] };
+
+            expect(response.status).toBe(200);
+            expect(body.providers).toEqual(["google", "apple"]);
+            // ARCHITECT: список читается при каждом открытии формы входа, а меняется вместе с конфигурацией
+            // деплоя — ответ кэшируется на клиенте и на CDN.
+            expect(response.headers.get("cache-control")).toContain("max-age=");
+        });
+    }, 30_000);
+
+    it("без настроенных провайдеров отдаёт пустой список, а не все подряд", async () => {
+        await withConfiguredApp({ AUTH_OAUTH_PROVIDERS: [] }, async (app) => {
+            const response = await fetch(`${app.baseUrl}/api/auth/providers`);
+            const body = (await response.json()) as { providers: string[] };
+
+            // ARCHITECT: fail-closed: не подтверждённый конфигурацией провайдер не показывается (§16.2).
+            expect(response.status).toBe(200);
+            expect(body.providers).toEqual([]);
+        });
+    }, 30_000);
+
+    it("не раскрывает ключи, адрес Supabase и не ставит кук", async () => {
+        await withConfiguredApp({ AUTH_OAUTH_PROVIDERS: ["google"] }, async (app) => {
+            const response = await fetch(`${app.baseUrl}/api/auth/providers`);
+            const text = await response.text();
+            const body = JSON.parse(text) as Record<string, unknown>;
+
+            expect(Object.keys(body)).toEqual(["providers"]);
+            expect(text).not.toContain(ctxEnv().SUPABASE_SECRET_KEY);
+            expect(text).not.toContain(ctxEnv().SUPABASE_URL);
+            // ARCHITECT: публичное чтение конфигурации не выдаёт сессию и не трогает её куки (§16.11).
+            expect(response.headers.getSetCookie()).toEqual([]);
+        });
     }, 30_000);
 });

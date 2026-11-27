@@ -94,7 +94,7 @@ export function RealChatView() {
     };
 
     return (
-        <div className={cn("relative flex min-h-0 flex-col overflow-hidden bg-black", CHAT_HEIGHT)}>
+        <div className={cn("relative flex min-h-0 flex-col overflow-clip bg-black", CHAT_HEIGHT)}>
             <ChatHeader
                 session={session}
                 actions={actions}

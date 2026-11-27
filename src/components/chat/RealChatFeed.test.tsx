@@ -10,9 +10,17 @@ import type { ChatLessonPlan } from "@/api/chat";
 import { renderWithProviders } from "@/test/utils";
 import type { EnhancedChatSession } from "@/types/session";
 
-// ARCHITECT: jsdom не умеет прокрутку: без подмены эффект автоскролла ленты падает на первом рендере.
+// ARCHITECT: jsdom не умеет прокрутку: подменяются оба способа. Тест держит главное — лента прокручивается
+// сама, а scrollIntoView не вызывается вовсе: он тянет за собой внешние блоки, и шапка с полем ввода уходят
+// за край окна (§спец. 1).
+let scrollToSpy: ReturnType<typeof vi.fn>;
+let scrollIntoViewSpy: ReturnType<typeof vi.fn>;
+
 beforeEach(() => {
-    Element.prototype.scrollIntoView = vi.fn();
+    scrollToSpy = vi.fn();
+    scrollIntoViewSpy = vi.fn();
+    Element.prototype.scrollTo = scrollToSpy as unknown as Element["scrollTo"];
+    Element.prototype.scrollIntoView = scrollIntoViewSpy as unknown as Element["scrollIntoView"];
 });
 
 const SESSION: EnhancedChatSession = {
@@ -150,5 +158,18 @@ describe("RealChatFeed", () => {
         // шапка и поле ввода уезжали бы вверх.
         expect(scrollers[0]?.className).toContain("min-h-0");
         expect(scrollers[0]?.className).toContain("flex-1");
+    });
+
+    it("6.6 лента прокручивается своим контейнером, а не внешними блоками", () => {
+        const { container } = renderWithProviders(
+            <RealChatFeed {...BASE} messages={[message("assistant", "Привет", true)]} />
+        );
+        const scroller = container.querySelector(".overflow-y-auto");
+
+        expect(scrollToSpy).toHaveBeenCalledTimes(1);
+        expect(scrollToSpy.mock.instances[0]).toBe(scroller);
+        expect(scrollToSpy.mock.calls[0]?.[0]).toMatchObject({ behavior: "smooth" });
+        // ARCHITECT: scrollIntoView увёл бы за край окна шапку и поле ввода — в ленте его нет.
+        expect(scrollIntoViewSpy).not.toHaveBeenCalled();
     });
 });

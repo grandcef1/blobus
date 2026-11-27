@@ -80,7 +80,7 @@ export function ChatSessionView() {
     };
 
     return (
-        <div className={cn("relative flex flex-col bg-black", CHAT_HEIGHT)}>
+        <div className={cn("relative flex min-h-0 flex-col overflow-clip bg-black", CHAT_HEIGHT)}>
             {/* ARCHITECT: правки из меню шапки возвращаются хук-у: он владеет сессией, поэтому шапка и лента
                 всегда показывают одно и то же. */}
             <ChatHeader session={session} actions={actions} />

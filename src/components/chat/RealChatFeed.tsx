@@ -91,7 +91,9 @@ export function RealChatFeed({
 }: RealChatFeedProps) {
     const { t } = useTranslation("chat");
     const shouldReduceMotion = useReducedMotion();
-    const bottomRef = useRef<HTMLDivElement>(null);
+    // ARCHITECT: автоскролл ставится самому контейнеру ленты: scrollIntoView тянет за собой и внешние блоки
+    // (шапку и поле ввода уводило за край окна), а прокручивать страницу чат не должен (§спец. 1).
+    const scrollRef = useRef<HTMLDivElement>(null);
     // ARCHITECT: три точки показываются только до первого текста: с первым символом встаёт пузырь, и ожидание
     // заменяется печатью ответа (§3.8). Второй случай — пауза перед второй частью хода.
     const lastMessage = messages[messages.length - 1];
@@ -109,7 +111,14 @@ export function RealChatFeed({
 
     // ARCHITECT: автоскролл ленты — это движение; при reduced motion прокрутка мгновенная (как в мок-ленте).
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: shouldReduceMotion ? "auto" : "smooth" });
+        const container = scrollRef.current;
+
+        if (container === null) return;
+
+        container.scrollTo({
+            top: container.scrollHeight,
+            behavior: shouldReduceMotion ? "auto" : "smooth",
+        });
     }, [messages.length, isStreaming, shouldReduceMotion]);
 
     // ARCHITECT: новый поток снимает озвучку: прошлый ответ не должен читаться поверх нового.
@@ -121,6 +130,7 @@ export function RealChatFeed({
     // страница остаётся высотой в окно, а шапка и поле ввода стоят на месте (§спец. 1).
     return (
         <div
+            ref={scrollRef}
             className="min-h-0 flex-1 overflow-y-auto px-3 py-6 md:px-6"
             aria-live="polite"
             aria-busy={isStreaming}
@@ -171,8 +181,6 @@ export function RealChatFeed({
                         {t("feed.remaining", { count: messagesRemaining })}
                     </p>
                 )}
-
-                <div ref={bottomRef} />
             </div>
         </div>
     );

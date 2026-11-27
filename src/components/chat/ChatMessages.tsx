@@ -14,15 +14,24 @@ interface ChatMessagesProps {
 
 export function ChatMessages({ messages, session }: ChatMessagesProps) {
     const shouldReduceMotion = useReducedMotion();
-    const bottomRef = useRef<HTMLDivElement>(null);
+    // ARCHITECT: автоскролл ставится самому контейнеру ленты: scrollIntoView тянет за собой и внешние блоки —
+    // шапка и поле ввода уезжали за край окна, а прокручивать страницу чат не должен (§спец. 1).
+    const scrollRef = useRef<HTMLDivElement>(null);
 
     // ARCHITECT: автоскролл ленты — это движение; при reduced motion прокрутка мгновенная.
     useEffect(() => {
-        bottomRef.current?.scrollIntoView({ behavior: shouldReduceMotion ? "auto" : "smooth" });
+        const container = scrollRef.current;
+
+        if (container === null) return;
+
+        container.scrollTo({
+            top: container.scrollHeight,
+            behavior: shouldReduceMotion ? "auto" : "smooth",
+        });
     }, [messages.length, shouldReduceMotion]);
 
     return (
-        <div className="flex-1 overflow-y-auto px-3 py-6 md:px-6">
+        <div ref={scrollRef} className="min-h-0 flex-1 overflow-y-auto px-3 py-6 md:px-6">
             <div className="mx-auto flex max-w-3xl flex-col gap-5">
                 {messages.map((message, index) => (
                     <MessageRenderer
@@ -32,7 +41,6 @@ export function ChatMessages({ messages, session }: ChatMessagesProps) {
                         isLast={index === messages.length - 1}
                     />
                 ))}
-                <div ref={bottomRef} />
             </div>
         </div>
     );

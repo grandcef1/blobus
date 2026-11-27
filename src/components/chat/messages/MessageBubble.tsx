@@ -9,8 +9,10 @@ import type { EnhancedChatSession, EnhancedMessage } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
 import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { VoiceButton } from "@/components/chat/VoiceButton";
+import { useTypedText } from "@/hooks/useTypedText";
 import { highlightFragments } from "@/lib/highlightFragments";
 import { cn } from "@/lib/utils";
+import { useTranslation } from "react-i18next";
 
 /** Озвучка реплики: undefined — кнопки нет (мок-лента, выключенная настройка, незавершённый ответ). */
 interface MessageVoice {
@@ -19,14 +21,20 @@ interface MessageVoice {
     readonly voiceId: string | null;
     readonly enabled: boolean;
     readonly proPlan: boolean;
+    /** Озвучка стартует сама: реплика только что пришла из потока, поэтому кнопка работает повтором. */
+    readonly autoPlay?: boolean;
 }
 
 interface MessageBubbleProps {
     message: EnhancedMessage;
     session: EnhancedChatSession;
-    /** Дословные фрагменты правок этого сообщения: подчёркивается только их место в реплике. */
+    /** Дословные фрагменты ошибок этого сообщения: подчёркивается только их место в реплике. */
     highlights?: readonly string[];
+    /** Исправленные варианты мелких правок (kind = polish): зелёная строка без карточки правила. */
+    polish?: readonly string[];
     voice?: MessageVoice;
+    /** Печатать текст посимвольно: так выглядит ответ, пришедший в этой сессии. */
+    animate?: boolean;
 }
 
 const BODY_TEXT = "text-[15px] leading-[1.6] text-[#f0f0f5]/90 md:text-base";
@@ -34,14 +42,27 @@ const AUTHOR_NAME = "mb-1 text-xs font-medium text-[#f0f0f5]/60";
 // ARCHITECT: правка помечается подчёркиванием, а не цветом: цвет в ленте оставлен значимым состояниям
 // карточек, а разбор ошибки виден целиком в карточке под этой репликой.
 const MARKED_TEXT = "underline decoration-dotted decoration-[#f0f0f5]/30 underline-offset-4";
+// ARCHITECT: зелёный — состояние «исправлено»: тем же цветом помечен успех в тостах, красного в ленте нет.
+const POLISH_TEXT = "text-xs leading-[1.6] text-emerald-300/80";
+const POLISH_LABEL = "text-emerald-300/50";
 
-export function MessageBubble({ message, session, highlights = [], voice }: MessageBubbleProps) {
+export function MessageBubble({
+    message,
+    session,
+    highlights = [],
+    polish = [],
+    voice,
+    animate = false,
+}: MessageBubbleProps) {
+    const { t } = useTranslation("common");
     const isUser = message.role === "user";
     const repetitor = getBlobatarById(session.repetitorId);
+    // ARCHITECT: печатается только ответ репетитора: реплики ученика и история показываются целиком.
+    const visible = useTypedText(message.content, !isUser && animate);
 
     if (isUser) {
         return (
-            <div className="flex justify-end">
+            <div className="flex flex-col items-end gap-1.5">
                 <div
                     className={cn(
                         "max-w-[min(80%,70ch)] rounded-2xl rounded-tr-md bg-[#141416] px-4 py-3",
@@ -56,6 +77,17 @@ export function MessageBubble({ message, session, highlights = [], voice }: Mess
                         ))}
                     </p>
                 </div>
+
+                {polish.length > 0 && (
+                    <ul className="flex max-w-[min(80%,70ch)] flex-col items-end gap-1">
+                        {polish.map((fixed, index) => (
+                            <li key={index} className={POLISH_TEXT}>
+                                <span className={POLISH_LABEL}>{t("correction.polish")}: </span>
+                                {fixed}
+                            </li>
+                        ))}
+                    </ul>
+                )}
             </div>
         );
     }
@@ -71,7 +103,7 @@ export function MessageBubble({ message, session, highlights = [], voice }: Mess
                         BODY_TEXT
                     )}
                 >
-                    <p className="whitespace-pre-wrap">{message.content}</p>
+                    <p className="whitespace-pre-wrap">{visible}</p>
 
                     {voice !== undefined && <VoiceButton {...voice} />}
                 </div>

@@ -5,14 +5,54 @@
 
 const SPEECH_RATE = 0.95;
 
-// ARCHITECT: язык берётся из профиля каталога: тембр браузеру не задать (голос выбирает система), поэтому
-// подбор идёт по языку — этого хватает, чтобы акцент репетитора не смешивался между репликами.
-export const BROWSER_LANGUAGE_BY_VOICE: Record<string, string> = {
-    "en-US-female": "en-US",
-    "en-US-male": "en-US",
-    "en-GB-female": "en-GB",
-    "en-GB-male": "en-GB",
+/** Профиль голоса на клиенте: язык и пол — то же, что объявляет каталог (server/tutorCatalog.ts). */
+interface BrowserVoiceProfile {
+    readonly language: string;
+    readonly gender: VoiceGender;
+}
+
+/** Пол голоса: строка совпадает с полем gender каталога. */
+type VoiceGender = "female" | "male";
+
+// ARCHITECT: язык и пол берутся из профиля voiceId ("<язык>-<пол>"): строка пришла с сервера, а каталог
+// объявляет те же два измерения отдельными полями.
+export const BROWSER_VOICE_PROFILES: Record<string, BrowserVoiceProfile> = {
+    "en-US-female": { language: "en-US", gender: "female" },
+    "en-US-male": { language: "en-US", gender: "male" },
+    "en-GB-female": { language: "en-GB", gender: "female" },
+    "en-GB-male": { language: "en-GB", gender: "male" },
 };
+
+// ARCHITECT: пол браузерного голоса угадывается по имени: у Chrome и Windows в нём есть готовые слова
+// (Female/Male, Zira/David), у Apple — имена людей. Это подсказка для подбора, а не гарантия тембра: если
+// голоса нужного пола нет, берётся любой голос того же языка.
+const FEMALE_HINTS = [
+    "female",
+    "zira",
+    "samantha",
+    "victoria",
+    "karen",
+    "moira",
+    "tessa",
+    "fiona",
+    "milena",
+    "monica",
+    "paulina",
+];
+
+const MALE_HINTS = [
+    "male",
+    "david",
+    "mark",
+    "daniel",
+    "alex",
+    "fred",
+    "george",
+    "james",
+    "tom",
+    "jorge",
+    "diego",
+];
 
 interface Playback {
     readonly id: string;
@@ -66,31 +106,39 @@ export function stopPlayback(): void {
     if (current !== null) emit();
 }
 
-// ARCHITECT: точное совпадение языка важнее запасного английского: акцент репетитора сохраняется, но совсем
-// без голоса реплику не оставляем — иначе кнопка молчала бы на системе с одним en-голосом.
+// ARCHITECT: порядок подбора: точный язык, затем голос нужного пола, затем любой голос того же языка. Точное
+// совпадение акцента важнее тембра, но реплику без голоса не оставляем, поэтому fallback есть всегда.
 function pickVoice(
     voices: readonly SpeechSynthesisVoice[],
-    language: string
+    profile: BrowserVoiceProfile
 ): SpeechSynthesisVoice | null {
-    const exact = voices.find((voice) => voice.lang === language);
+    const exact = voices.filter((voice) => voice.lang === profile.language);
+    const code = profile.language.split("-")[0] ?? profile.language;
+    const candidates =
+        exact.length > 0 ? exact : voices.filter((voice) => voice.lang.startsWith(code));
 
-    if (exact !== undefined) return exact;
+    if (candidates.length === 0) return null;
 
-    const code = language.split("-")[0] ?? language;
+    const hints = profile.gender === "female" ? FEMALE_HINTS : MALE_HINTS;
+    const byGender = candidates.find((voice) => {
+        const name = voice.name.toLowerCase();
 
-    return voices.find((voice) => voice.lang.startsWith(code)) ?? null;
+        return hints.some((hint) => name.includes(hint));
+    });
+
+    return byGender ?? candidates[0] ?? null;
 }
 
 /** Читает текст голосом профиля. false — подходящего голоса нет: озвучки не будет, ошибки тоже. */
 export function playBrowserSpeech(id: string, text: string, voiceId: string): boolean {
     if (typeof window === "undefined" || !("speechSynthesis" in window)) return false;
 
-    const language = BROWSER_LANGUAGE_BY_VOICE[voiceId];
+    const profile = BROWSER_VOICE_PROFILES[voiceId];
 
-    if (language === undefined) return false;
+    if (profile === undefined) return false;
 
     const synthesis = window.speechSynthesis;
-    const voice = pickVoice(synthesis.getVoices(), language);
+    const voice = pickVoice(synthesis.getVoices(), profile);
 
     if (voice === null) return false;
 

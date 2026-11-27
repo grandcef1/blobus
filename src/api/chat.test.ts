@@ -304,4 +304,24 @@ describe("streamChatReply", () => {
 
         await expect(fetchChatHistory(SESSION_ID)).rejects.toThrow("CHAT_STREAM_FAILED");
     });
+
+    it("2.9 вид правки: polish проходит, неизвестное значение считается ошибкой", async () => {
+        const { reply } = await readReply([
+            frame("done", {
+                reply: "Text.",
+                corrections: [
+                    { fragment: "Im", rule: "I'm", examples: [], kind: "polish" },
+                    { fragment: "go", rule: "went", examples: [], kind: "нечто" },
+                ],
+                quiz: null,
+                vocabWord: null,
+                usage: USAGE,
+            }),
+        ]);
+
+        // ARCHITECT: неизвестный вид правки читается как значимая ошибка: подчёркивание и карточка правила
+        // не должны пропадать из-за опечатки модели.
+        expect(reply.corrections[0]?.kind).toBe("polish");
+        expect(reply.corrections[1]?.kind).toBe("error");
+    });
 });

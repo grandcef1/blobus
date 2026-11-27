@@ -53,7 +53,8 @@
   },
   "voice": {
     "play": "Escuchar la respuesta",
-    "stop": "Detener la reproducción"
+    "stop": "Detener la reproducción",
+    "replay": "Reproducir otra vez"
   },
   "card": {
     "check": "Comprobar",

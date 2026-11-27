@@ -18,11 +18,13 @@ export function sendMessage(sessionId: string, content: string): EnhancedChatSes
     return appendMessage(sessionId, { role: "user", content: text });
 }
 
-/** Правка карточки: исправленная фраза, название правила и примеры к нему (server/chat/contract.ts). */
+/** Правка карточки: дословный фрагмент реплики ученика, правило и примеры к нему. */
 export interface ChatCorrection {
     readonly fragment: string;
     readonly rule: string;
     readonly examples: readonly string[];
+    /** Вид правки: error — настоящая ошибка (разбор правила), polish — апостроф, регистр, пунктуация. */
+    readonly kind: "error" | "polish";
 }
 
 /** Вариант квиза: верный ответ входит в карточку — проверку делает клиент, у модели нет инструментов. */
@@ -165,7 +167,11 @@ function readCorrection(value: unknown): ChatCorrection | null {
 
     if (fragment === null || rule === null || examples === null) return null;
 
-    return { fragment, rule, examples };
+    // ARCHITECT: вид правки — недоверенная строка: неизвестное значение считается значимой ошибкой, поэтому
+    // подчёркивание и карточка правила не пропадают из-за опечатки модели.
+    const kind = record.kind === "polish" ? "polish" : "error";
+
+    return { fragment, rule, examples, kind };
 }
 
 function readQuizOptions(value: unknown): ChatQuizOption[] | null {

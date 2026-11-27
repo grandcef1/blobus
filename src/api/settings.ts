@@ -18,7 +18,8 @@ export const DEFAULT_SETTINGS: SettingsState = {
         soundEffects: true,
         autoCorrection: true,
         explanationLocale: DEFAULT_LANGUAGE,
-        voiceEnabled: false,
+        // ARCHITECT: озвучка ответов включена по умолчанию: это часть занятия, а не опция для избранных.
+        voiceEnabled: true,
     },
     plan: "free",
 };

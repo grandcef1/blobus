@@ -69,6 +69,7 @@ const REPLY: ChatReply = {
             fragment: "I agree with you.",
             rule: "agree не требует вспомогательного am",
             examples: ["I agree with you."],
+            kind: "error",
         },
     ],
     quiz: {

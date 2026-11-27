@@ -25,6 +25,8 @@ export interface ChatFeedMessage {
     readonly cards: ChatCards | null;
     /** Профиль голоса из ответа модели: null — озвучки нет (старая запись или реплика ученика). */
     readonly voiceId: string | null;
+    /** Реплика пришла в этой сессии из потока, а не из истории: её печатают и озвучивают по-живому. */
+    readonly live: boolean;
 }
 
 /** Причина, по которой ответ не пришёл: исчерпан дневной лимит или сорвался поток. */
@@ -155,6 +157,7 @@ function useRealChat(sessionId: string): RealChatResult {
                     content: message.content,
                     cards: message.cards,
                     voiceId: message.voiceId,
+                    live: false,
                 })),
                 historyLoaded: true,
                 // ARCHITECT: удачная загрузка снимает прошлую ошибку: кнопка повтора возвращает ленту, а не баннер.
@@ -223,6 +226,7 @@ function useRealChat(sessionId: string): RealChatResult {
                 content: "",
                 cards: null,
                 voiceId: null,
+                live: true,
             };
 
             setState((previous) => {
@@ -233,6 +237,7 @@ function useRealChat(sessionId: string): RealChatResult {
                     content,
                     cards: null,
                     voiceId: null,
+                    live: true,
                 };
 
                 return {

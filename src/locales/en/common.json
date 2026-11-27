@@ -219,6 +219,7 @@
   },
   "correction": {
     "title": "Correction",
+    "polish": "more precisely",
     "severity": {
       "minor": "minor fix",
       "moderate": "moderate fix",

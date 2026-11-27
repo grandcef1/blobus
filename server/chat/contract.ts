@@ -32,7 +32,11 @@ export const CorrectionSchema = z.strictObject({
     // подчёркивает ровно этот участок реплики, поэтому «исправленный вариант» уходит в rule и examples.
     fragment: z.string().trim().min(1).max(240),
     rule: z.string().trim().min(1).max(240),
-    examples: z.array(z.string().trim().min(1).max(240)).max(3),
+    examples: z.array(z.string().trim().min(1).max(240)).max(3).default([]),
+    // ARCHITECT: вид правки решает её вес: error — настоящая ошибка (разбор правила и подчёркивание),
+    // polish — апостроф, регистр и пунктуация (клиент показывает только исправленный вариант). Дефолт
+    // строгий: непомеченная правка считается значимой, а не мелкой.
+    kind: z.enum(["error", "polish"]).default("error"),
 });
 
 export type Correction = z.infer<typeof CorrectionSchema>;
@@ -69,11 +73,13 @@ export const QuizSchema = z.discriminatedUnion("type", [
 
 export type Quiz = z.infer<typeof QuizSchema>;
 
-/** JSON карточек: правки и квиз необязательны, но ключи обязаны присутствовать (null вместо пропуска). */
+// ARCHITECT: карточки опциональны целиком: модель вправе не прислать ни одного блока, поэтому отсутствующий
+// ключ — это пустой блок, а не битый ответ (§16.8). Лишние ключи по-прежнему отклоняются.
+/** JSON карточек: все три блока необязательны, отсутствие ключа равно пустому значению. */
 export const ChatCardsSchema = z.strictObject({
-    corrections: z.array(CorrectionSchema).max(4),
-    quiz: QuizSchema.nullable(),
-    vocabWord: VocabWordSchema.nullable(),
+    corrections: z.array(CorrectionSchema).max(4).default([]),
+    quiz: QuizSchema.nullable().default(null),
+    vocabWord: VocabWordSchema.nullable().default(null),
 });
 
 export type ChatCards = z.infer<typeof ChatCardsSchema>;
@@ -111,7 +117,7 @@ export function keepVerbatimCorrections(
 
 /**
  * Делит ответ модели на текст и JSON карточек: маркер один, всё после первого — данные.
- * cardsJson = null, если маркера нет: ответ без карточек считается битым (см. роутер).
+ * cardsJson = null, если маркера нет: ответ без карточек — обычный ответ, а не битый (см. resolveCards).
  */
 export function splitCards(raw: string): {
     readonly text: string;
@@ -138,7 +144,7 @@ export function stripCardsMarker(text: string): string {
         .trim();
 }
 
-/** Разбор карточек: битый JSON или чужая форма — null, то есть битый ответ модели. */
+/** Разбор карточек: битый JSON или чужая форма — null, то есть карточек нет. */
 export function parseCards(cardsJson: string | null): ChatCards | null {
     if (cardsJson === null) return null;
 
@@ -153,4 +159,27 @@ export function parseCards(cardsJson: string | null): ChatCards | null {
     const result = ChatCardsSchema.safeParse(parsed);
 
     return result.success ? result.data : null;
+}
+
+/** Итог разбора карточек: карточки есть либо ответ идёт без них — с причиной для строки лога. */
+export type CardsOutcome =
+    | { readonly kind: "cards"; readonly cards: ChatCards }
+    | { readonly kind: "dropped"; readonly reason: "missing" | "malformed" };
+
+/**
+ * Карточки — best-effort: ни отсутствие маркера, ни битый JSON не делают ответ битым, поэтому наружу уходит
+ * либо набор карточек, либо причина отказа — без текста реплики и без самого JSON (§16.8, §16.11). Правки
+ * сверяются с сообщением ученика, а квиз остаётся только при настоящей ошибке: на одних полировках он не нужен.
+ */
+export function resolveCards(cardsJson: string | null, message: string): CardsOutcome {
+    if (cardsJson === null) return { kind: "dropped", reason: "missing" };
+
+    const cards = parseCards(cardsJson);
+
+    if (cards === null) return { kind: "dropped", reason: "malformed" };
+
+    const corrections = keepVerbatimCorrections(cards.corrections, message);
+    const quiz = corrections.some((correction) => correction.kind === "error") ? cards.quiz : null;
+
+    return { kind: "cards", cards: { corrections, quiz, vocabWord: cards.vocabWord } };
 }

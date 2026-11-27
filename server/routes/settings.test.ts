@@ -66,7 +66,8 @@ function expectedBody(preferences: {
             autoCorrection: preferences.autoCorrection,
             soundEffects: preferences.soundEffects,
             explanationLocale: preferences.explanationLocale ?? DEFAULT_LOCALE,
-            voiceEnabled: preferences.voiceEnabled ?? false,
+            // ARCHITECT: озвучка включена по умолчанию — дефолт задаёт схема чтения (server/routes/settings.ts).
+            voiceEnabled: preferences.voiceEnabled ?? true,
         },
         plan: DEFAULT_PLAN,
     };
@@ -336,13 +337,13 @@ describe("GET /api/settings", () => {
 
             expect(response.status).toBe(200);
             // ARCHITECT: колонка хранит {} — дефолты подставляет схема чтения, поэтому конверт всегда полный:
-            // язык строки задаёт explanationLocale, голос по умолчанию выключен, тариф — free.
+            // язык строки задаёт explanationLocale, голос по умолчанию включён, тариф — free.
             expect(body).toEqual({
                 settings: {
                     autoCorrection: true,
                     soundEffects: true,
                     explanationLocale: DEFAULT_LOCALE,
-                    voiceEnabled: false,
+                    voiceEnabled: true,
                 },
                 plan: DEFAULT_PLAN,
             });
@@ -628,7 +629,7 @@ describe("лимиты и гранты /api/settings", () => {
 });
 
 describe("plan и новые настройки /api/settings", () => {
-    it("11: explanationLocale наследует язык строки, voiceEnabled по умолчанию выключен", async () => {
+    it("11: explanationLocale наследует язык строки, voiceEnabled по умолчанию включён", async () => {
         await withApp(async (app) => {
             const me = await freshSession(app.baseUrl);
             // ARCHITECT: язык интерфейса меняется в профиле, а не в настройках, поэтому дефолт объяснений
@@ -651,7 +652,7 @@ describe("plan и новые настройки /api/settings", () => {
                     autoCorrection: true,
                     soundEffects: true,
                     explanationLocale: "es",
-                    voiceEnabled: false,
+                    voiceEnabled: true,
                 },
                 plan: DEFAULT_PLAN,
             });

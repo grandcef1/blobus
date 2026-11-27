@@ -10,12 +10,7 @@ import { z } from "zod";
 import { createOpenRouterClient } from "../ai/openrouter.ts";
 import type { AiClient } from "../ai/openrouter.ts";
 import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
-import {
-    ChatRequestSchema,
-    keepVerbatimCorrections,
-    parseCards,
-    stripCardsMarker,
-} from "../chat/contract.ts";
+import { ChatRequestSchema, resolveCards, stripCardsMarker } from "../chat/contract.ts";
 import type { ChatDonePayload, VocabWord } from "../chat/contract.ts";
 import { HISTORY_LIMIT, buildSystemPrompt, selectHistory } from "../chat/prompt.ts";
 import type { ChatHistoryMessage, ExplanationLocale } from "../chat/prompt.ts";
@@ -520,22 +515,21 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                 { systemPrompt, history: promptHistory, message, signal: abort.signal },
                 (text) => writeSse(res, "delta", { text })
             );
-            const parsedCards = parseCards(reply.cardsJson);
+            const outcome = resolveCards(reply.cardsJson, message);
 
-            // ARCHITECT: битый JSON карточек — битый ответ: не сохраняем, возвращаем квоту и сообщаем об
-            // ошибке событием, а не HTTP-статусом (заголовки уже отправлены).
-            if (parsedCards === null) {
-                await releaseMessage(service, payload.userId);
-                writeSse(res, "error", { code: "INTERNAL" });
-                return;
-            }
+            // ARCHITECT: карточки — best-effort: ни отсутствие маркера, ни битый JSON не делают ответ битым,
+            // текст репетитора сохраняется и уходит клиенту. Причина отбрасывания пишется одной строкой лога
+            // без самого JSON и без текста сообщения (§16.7, §16.8, §16.11).
+            if (outcome.kind === "dropped")
+                console.log(
+                    JSON.stringify({
+                        level: "info",
+                        msg: "chat.cards_dropped",
+                        reason: outcome.reason,
+                    })
+                );
 
-            // ARCHITECT: правки фильтруются после схемы: fragment обязан быть подстрокой сообщения ученика,
-            // иначе подчёркивать в реплике нечего. Отброшенная правка не роняет ответ (§16.8).
-            const cards = {
-                ...parsedCards,
-                corrections: keepVerbatimCorrections(parsedCards.corrections, message),
-            };
+            const cards = outcome.kind === "cards" ? outcome.cards : null;
 
             const usage = {
                 promptTokens: reply.usage.promptTokens,
@@ -571,14 +565,15 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
 
             if (saved.error !== null) throw saved.error;
 
-            if (cards.vocabWord !== null)
+            if (cards !== null && cards.vocabWord !== null)
                 await addVocabWord(service, payload.userId, cards.vocabWord);
 
             const done: ChatDonePayload = {
                 reply: reply.text,
-                corrections: cards.corrections,
-                quiz: cards.quiz,
-                vocabWord: cards.vocabWord,
+                // ARCHITECT: ответ без карточек отдаётся пустыми блоками: клиент рисует текст, а не ошибку.
+                corrections: cards === null ? [] : cards.corrections,
+                quiz: cards === null ? null : cards.quiz,
+                vocabWord: cards === null ? null : cards.vocabWord,
                 voiceId: tutor.voiceId,
                 usage: { ...usage, messagesRemaining: reserve.data.messages_remaining },
             };

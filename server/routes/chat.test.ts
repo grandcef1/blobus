@@ -218,6 +218,22 @@ async function dbMessages(sessionId: string): Promise<
     return messages.data ?? [];
 }
 
+/**
+ * Payload ответов модели: приветствие тоже лежит в messages репликой ассистента, поэтому ответ отличается
+ * наличием usage — выборка не зависит от порядка строк, который запрос не задаёт.
+ */
+function answerPayloads(
+    messages: readonly { readonly role: string; readonly payload: unknown }[]
+): readonly Record<string, unknown>[] {
+    return messages
+        .filter((row) => row.role === "assistant")
+        .map((row) => row.payload)
+        .filter(
+            (payload): payload is Record<string, unknown> =>
+                typeof payload === "object" && payload !== null && "usage" in payload
+        );
+}
+
 /** Расход пользователя за последний день: по нему видно, вернулся ли резерв. */
 async function dbUsage(
     userId: string
@@ -426,7 +442,7 @@ describe("POST /api/chat", () => {
             expect(response.status).toBe(429);
             expect(errorBody(await response.json()).error.code).toBe("RATE_LIMITED");
             expect(sentBodies).toHaveLength(sentBefore);
-            expect(await dbMessages(me.sessionId)).toHaveLength(2);
+            expect(await dbMessages(me.sessionId)).toHaveLength(3);
         });
     }, 30_000);
     it("8: happy path — delta и done, карточки валидны, пара сообщений, авто-слово и расход записаны", async () => {
@@ -457,8 +473,14 @@ describe("POST /api/chat", () => {
 
             const messages = await dbMessages(me.sessionId);
 
-            expect(messages.map((row) => row.role).sort()).toEqual(["assistant", "user"]);
-            expect(messages.find((row) => row.role === "assistant")?.payload).toMatchObject({
+            // ARCHITECT: первая реплика ассистента — приветствие, записанное при создании сессии: пара
+            // сообщений идёт после неё, поэтому ответ ищется как последний ассистентский.
+            expect(messages.map((row) => row.role).sort()).toEqual([
+                "assistant",
+                "assistant",
+                "user",
+            ]);
+            expect(answerPayloads(messages)[0]).toMatchObject({
                 usage: { model: MODEL_ALLOWLIST[0] },
             });
             expect(await dbVocabulary(me.id)).toEqual(["cinema"]);
@@ -466,16 +488,45 @@ describe("POST /api/chat", () => {
         });
     }, 30_000);
 
-    it("9: битый JSON карточек — не сохранено, резерв возвращён", async () => {
+    it("9: битый JSON карточек — ответ сохраняется без карточек", async () => {
         await withApp(async (app) => {
             const me = await userWithSession(app.baseUrl);
             openRouterReply = () => sseResponse([rawReply(ANSWER_TEXT, { corrections: "oops" })]);
             const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
+            const payload = events.find((entry) => entry.event === "done")?.data as {
+                readonly reply: string;
+                readonly corrections: readonly unknown[];
+                readonly quiz: unknown;
+                readonly vocabWord: unknown;
+            };
 
-            expect(events.find((entry) => entry.event === "error")).toBeDefined();
-            expect(events.find((entry) => entry.event === "done")).toBeUndefined();
-            expect(await dbMessages(me.sessionId)).toHaveLength(0);
-            expect((await dbUsage(me.id)).messages_used).toBe(0);
+            // ARCHITECT: карточки — best-effort: битый JSON не делает ответ битым. Текст репетитора уходит
+            // клиенту и сохраняется, квота не возвращается — модель уже отработала.
+            expect(events.find((entry) => entry.event === "error")).toBeUndefined();
+            expect(payload.reply).toBe(ANSWER_TEXT);
+            expect(payload.corrections).toEqual([]);
+            expect(payload.quiz).toBeNull();
+            expect(payload.vocabWord).toBeNull();
+
+            const messages = await dbMessages(me.sessionId);
+
+            expect(messages).toHaveLength(3);
+            expect(answerPayloads(messages)[0]).toMatchObject({ cards: null });
+            expect((await dbUsage(me.id)).messages_used).toBe(1);
+        });
+    }, 30_000);
+
+    it("9.1: ответ без маркера карточек — тоже обычный ответ", async () => {
+        await withApp(async (app) => {
+            const me = await userWithSession(app.baseUrl);
+            openRouterReply = () => sseResponse([ANSWER_TEXT]);
+            const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
+
+            expect(events.find((entry) => entry.event === "error")).toBeUndefined();
+            expect(deltaText(events)).toBe(ANSWER_TEXT);
+            expect(
+                (await dbMessages(me.sessionId)).filter((row) => row.role === "assistant")
+            ).toHaveLength(2);
         });
     }, 30_000);
 
@@ -486,7 +537,8 @@ describe("POST /api/chat", () => {
             const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
 
             expect(events.find((entry) => entry.event === "error")).toBeDefined();
-            expect(await dbMessages(me.sessionId)).toHaveLength(0);
+            // ARCHITECT: в сессии остаётся только приветствие: незавершённая пара не сохраняется.
+            expect(await dbMessages(me.sessionId)).toHaveLength(1);
             expect((await dbUsage(me.id)).messages_used).toBe(0);
         });
     }, 30_000);
@@ -500,7 +552,8 @@ describe("POST /api/chat", () => {
 
             expect(await dbVocabulary(me.id)).toEqual(["cinema"]);
             expect((await dbUsage(me.id)).messages_used).toBe(2);
-            expect(await dbMessages(me.sessionId)).toHaveLength(4);
+            // ARCHITECT: приветствие + две пары сообщений.
+            expect(await dbMessages(me.sessionId)).toHaveLength(5);
         });
     }, 30_000);
 
@@ -557,9 +610,7 @@ describe("POST /api/chat", () => {
             expect(payload.voiceId).toBe("en-US-female");
 
             const messages = await dbMessages(me.sessionId);
-            const saved = messages.find((row) => row.role === "assistant")?.payload as {
-                readonly voiceId: string;
-            };
+            const saved = answerPayloads(messages)[0] as { readonly voiceId: string };
 
             // ARCHITECT: профиль голоса лежит и в сохранённой реплике: после перезагрузки ленты кнопка
             // озвучки восстанавливается по тому же значению.
@@ -597,11 +648,53 @@ describe("POST /api/chat", () => {
             expect(payload.corrections[0]?.fragment).toBe(VALID_CARDS.corrections[0].fragment);
 
             const messages = await dbMessages(me.sessionId);
-            const cards = messages.find((row) => row.role === "assistant")?.payload as {
-                readonly cards: { readonly corrections: readonly unknown[] };
+            const saved = answerPayloads(messages)[0]?.cards as {
+                readonly corrections: readonly unknown[];
             };
 
-            expect(cards.cards.corrections).toHaveLength(1);
+            expect(saved.corrections).toHaveLength(1);
+        });
+    }, 30_000);
+
+    it("13.3: мелкая правка оставляет ответ без квиза, значимая ошибка квиз сохраняет", async () => {
+        await withApp(async (app) => {
+            const me = await userWithSession(app.baseUrl);
+
+            // ARCHITECT: полировка (апостроф) не превращается в урок: квиз к ней не полагается.
+            openRouterReply = () =>
+                sseResponse([
+                    rawReply(ANSWER_TEXT, {
+                        corrections: [
+                            { fragment: MESSAGE, rule: "I'm going", kind: "polish", examples: [] },
+                        ],
+                        quiz: VALID_CARDS.quiz,
+                        vocabWord: null,
+                    }),
+                ]);
+
+            const polishEvents = parseSse(
+                await (await sendMessage(app, me.jar, me.sessionId)).text()
+            );
+            const polishPayload = polishEvents.find((entry) => entry.event === "done")?.data as {
+                readonly corrections: readonly { readonly kind: string }[];
+                readonly quiz: unknown;
+            };
+
+            expect(polishPayload.corrections).toHaveLength(1);
+            expect(polishPayload.corrections[0]?.kind).toBe("polish");
+            expect(polishPayload.quiz).toBeNull();
+
+            // ARCHITECT: настоящая ошибка квиз сохраняет: он закрепляет правило.
+            openRouterReply = () => sseResponse([rawReply(ANSWER_TEXT)]);
+
+            const errorEvents = parseSse(
+                await (await sendMessage(app, me.jar, me.sessionId)).text()
+            );
+            const errorPayload = errorEvents.find((entry) => entry.event === "done")?.data as {
+                readonly quiz: unknown;
+            };
+
+            expect(errorPayload.quiz).toEqual(VALID_CARDS.quiz);
         });
     }, 30_000);
 
@@ -655,7 +748,7 @@ describe("POST /api/chat", () => {
             });
         }, 30_000);
 
-        it("17: отдаёт пару сообщений по возрастанию времени, с карточками и usage ответа", async () => {
+        it("17: история начинается приветствием, дальше пара сообщений с карточками и usage ответа", async () => {
             await withApp(async (app) => {
                 const me = await userWithSession(app.baseUrl);
                 const sent = await sendMessage(app, me.jar, me.sessionId);
@@ -675,17 +768,25 @@ describe("POST /api/chat", () => {
                 };
 
                 expect(response.status).toBe(200);
-                expect(body.messages.map((message) => message.role)).toEqual(["user", "assistant"]);
-                expect(body.messages[0]?.content).toBe(MESSAGE);
-                expect(body.messages[0]?.payload).toEqual({});
-                expect(body.messages[1]?.content).toBe(ANSWER_TEXT);
+                expect(body.messages.map((message) => message.role)).toEqual([
+                    "assistant",
+                    "user",
+                    "assistant",
+                ]);
+                // ARCHITECT: первое сообщение сессии — приветствие репетитора с профилем голоса: его пишет
+                // сервер при создании сессии, поэтому чат открывается не пустым.
+                expect(body.messages[0]?.content).toContain("Мия");
+                expect(body.messages[0]?.payload).toMatchObject({ voiceId: "en-US-female" });
+                expect(body.messages[1]?.content).toBe(MESSAGE);
+                expect(body.messages[1]?.payload).toEqual({});
+                expect(body.messages[2]?.content).toBe(ANSWER_TEXT);
                 // ARCHITECT: карточки и usage — те же данные, что ушли событием done: история отдаёт их как payload.
-                expect(body.messages[1]?.payload.cards).toMatchObject({ quiz: { type: "choice" } });
-                expect(body.messages[1]?.payload.usage).toMatchObject({
+                expect(body.messages[2]?.payload.cards).toMatchObject({ quiz: { type: "choice" } });
+                expect(body.messages[2]?.payload.usage).toMatchObject({
                     model: MODEL_ALLOWLIST[0],
                 });
-                expect(Date.parse(body.messages[0]?.createdAt ?? "")).toBeLessThanOrEqual(
-                    Date.parse(body.messages[1]?.createdAt ?? "")
+                expect(Date.parse(body.messages[1]?.createdAt ?? "")).toBeLessThanOrEqual(
+                    Date.parse(body.messages[2]?.createdAt ?? "")
                 );
             });
         }, 30_000);

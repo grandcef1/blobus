@@ -11,7 +11,13 @@ import { errorEnvelope } from "../http.ts";
 import { createMemoryRateLimitStore, createRateLimiter } from "../rate-limit.ts";
 import type { SupabaseEnv } from "../supabase.ts";
 import { TUTORS } from "../tutorCatalog.ts";
-import type { Tutor, TutorPersonaTraits, TutorTraits } from "../tutorCatalog.ts";
+import type {
+    Tutor,
+    TutorPersonaTraits,
+    TutorTraits,
+    VoiceGender,
+    VoiceId,
+} from "../tutorCatalog.ts";
 
 /** Контракт репетитора наружу: ровно те поля, которые читает клиент, и ничего служебного. */
 export interface TutorDto {
@@ -19,7 +25,9 @@ export interface TutorDto {
     readonly name: string;
     // ARCHITECT: профиль голоса уходит вместе с карточкой: клиент выбирает голос озвучки по нему, а не по
     // порядку карточек или догадке (§16.2).
-    readonly voiceId: string;
+    readonly voiceId: VoiceId;
+    /** Пол профиля отдельным полем: по нему клиент подбирает браузерный голос. */
+    readonly gender: VoiceGender;
     readonly traits: TutorTraits;
     readonly persona: {
         readonly traits: TutorPersonaTraits;
@@ -28,7 +36,7 @@ export interface TutorDto {
     };
 }
 
-// ARCHITECT: явный маппер вместо отдачи объекта каталога: наружу уходит новый объект из пяти полей,
+// ARCHITECT: явный маппер вместо отдачи объекта каталога: наружу уходит новый объект из шести полей,
 // поэтому служебное поле каталога не утечёт в ответ, а правка ответа не тронет источник (массив tone
 // копируется — это единственное изменяемое значение).
 function toTutorDto(tutor: Tutor): TutorDto {
@@ -36,6 +44,7 @@ function toTutorDto(tutor: Tutor): TutorDto {
         id: tutor.id,
         name: tutor.name,
         voiceId: tutor.voiceId,
+        gender: tutor.gender,
         traits: { ...tutor.traits, tone: [...tutor.traits.tone] },
         persona: { ...tutor.persona },
     };

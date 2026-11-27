@@ -9,17 +9,18 @@
 import { useEffect, useRef } from "react";
 import { useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { Skeleton } from "@/components/ui/skeleton";
 import type { ChatErrorKind, ChatFeedMessage } from "@/hooks/useChat";
 import { stopPlayback } from "@/lib/speechPlayback";
-import type { EnhancedChatSession, EnhancedMessage } from "@/types/session";
-import { CorrectionsRow } from "./messages/CorrectionsRow";
-import { MessageBubble } from "./messages/MessageBubble";
-import { QuizRow } from "./messages/QuizRow";
-import { VocabRow } from "./messages/VocabRow";
+import type { EnhancedChatSession } from "@/types/session";
+import { RealChatItem } from "./RealChatItem";
+import { TypingIndicator } from "./TypingIndicator";
 
 interface RealChatFeedProps {
     readonly messages: readonly ChatFeedMessage[];
     readonly session: EnhancedChatSession;
+    /** История сессии в пути: лента показывает скелетон, а не пустой экран. */
+    readonly isLoading: boolean;
     readonly isStreaming: boolean;
     readonly error: ChatErrorKind | null;
     readonly messagesRemaining: number | null;
@@ -36,20 +37,35 @@ const RETRY_BUTTON =
 
 // ARCHITECT: карточки рисуются отдельными блоками, поэтому у сообщения всегда тип "text": legacy-ветки
 // MessageRenderer сработали бы на неполных метаданных.
-function toBubbleMessage(message: ChatFeedMessage, sessionId: string): EnhancedMessage {
-    return {
-        id: message.id,
-        sessionId,
-        role: message.role,
-        content: message.content,
-        timestamp: Date.now(),
-        type: "text",
-    };
+// ARCHITECT: скелетон повторяет раскладку ленты: слева и справа, разной ширины, поэтому после загрузки
+// сообщения не переставляются.
+const SKELETON_ROWS = [
+    { id: 0, side: "left", width: "w-64" },
+    { id: 1, side: "right", width: "w-44" },
+    { id: 2, side: "left", width: "w-72" },
+] as const;
+
+/** Ожидание истории: полосы ленты вместо пустого чёрного экрана. */
+function FeedSkeleton() {
+    return (
+        <div className="flex flex-col gap-5" aria-busy="true">
+            {SKELETON_ROWS.map((row) => (
+                <div
+                    key={row.id}
+                    className={row.side === "right" ? "flex justify-end" : "flex items-start gap-3"}
+                >
+                    {row.side === "left" && <Skeleton className="size-8 shrink-0 rounded-2xl" />}
+                    <Skeleton className={`h-16 ${row.width} rounded-2xl`} />
+                </div>
+            ))}
+        </div>
+    );
 }
 
 export function RealChatFeed({
     messages,
     session,
+    isLoading,
     isStreaming,
     error,
     messagesRemaining,
@@ -61,6 +77,12 @@ export function RealChatFeed({
     const { t } = useTranslation("chat");
     const shouldReduceMotion = useReducedMotion();
     const bottomRef = useRef<HTMLDivElement>(null);
+    // ARCHITECT: три точки показываются только до первого текста: с первым символом встаёт пузырь, и ожидание
+    // заменяется печатью ответа (§3.8).
+    const lastMessage = messages[messages.length - 1];
+    const isAwaitingFirstText =
+        lastMessage === undefined ||
+        (lastMessage.role === "assistant" && lastMessage.content === "");
 
     // ARCHITECT: автоскролл ленты — это движение; при reduced motion прокрутка мгновенная (как в мок-ленте).
     useEffect(() => {
@@ -79,53 +101,33 @@ export function RealChatFeed({
             aria-busy={isStreaming}
         >
             <div className="mx-auto flex max-w-3xl flex-col gap-5">
+                {isLoading && messages.length === 0 && <FeedSkeleton />}
                 {messages.map((message, index) => {
+                    // ARCHITECT: пустого пузыря нет: ожидание первого текста рисует индикатор ниже.
+                    if (message.role === "assistant" && message.content === "") return null;
+
                     const next = messages[index + 1];
-                    // ARCHITECT: подчёркивание реплики ученика выводится из карточек следующего ответа:
-                    // разбор относится к этой фразе, отдельной связи между сообщениями нет.
-                    const highlights =
-                        message.role === "user"
-                            ? (next?.cards?.corrections ?? []).map(
-                                  (correction) => correction.fragment
-                              )
-                            : [];
-                    // ARCHITECT: у незавершённого ответа кнопки озвучки нет: текст ещё не полный.
-                    const voice =
-                        message.role === "assistant" &&
-                        message.voiceId !== null &&
-                        !(isStreaming && index === messages.length - 1)
-                            ? {
-                                  messageId: message.id,
-                                  text: message.content,
-                                  voiceId: message.voiceId,
-                                  enabled: voiceEnabled,
-                                  proPlan,
-                              }
-                            : undefined;
+                    const isLast = index === messages.length - 1;
 
                     return (
-                        <div key={message.id} className="flex flex-col gap-3">
-                            <MessageBubble
-                                message={toBubbleMessage(message, session.id)}
-                                session={session}
-                                highlights={highlights}
-                                voice={voice}
-                            />
-
-                            {message.cards !== null && (
-                                <div className="flex flex-col gap-3 pl-11">
-                                    <CorrectionsRow corrections={message.cards.corrections} />
-                                    <QuizRow quiz={message.cards.quiz} />
-                                    <VocabRow word={message.cards.vocabWord} />
-                                </div>
-                            )}
-                        </div>
+                        <RealChatItem
+                            key={message.id}
+                            message={message}
+                            next={next}
+                            session={session}
+                            voiceEnabled={voiceEnabled}
+                            proPlan={proPlan}
+                            // ARCHITECT: печать и автозапуск голоса — только у реплики этой сессии: история
+                            // показывается целиком и молча.
+                            animate={isLast && message.live}
+                            streaming={isStreaming && isLast}
+                        />
                     );
                 })}
 
                 {isStreaming && (
                     <div className="flex items-center gap-3 pl-11">
-                        <p className="text-xs text-[#f0f0f5]/40">{t("feed.typing")}</p>
+                        {isAwaitingFirstText && <TypingIndicator />}
                         <button type="button" onClick={onStop} className={RETRY_BUTTON}>
                             {t("feed.stop")}
                         </button>

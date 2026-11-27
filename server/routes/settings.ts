@@ -43,7 +43,9 @@ const PreferencesReadSchema = z.object({
     soundEffects: z.boolean().default(true),
     autoCorrection: z.boolean().default(true),
     explanationLocale: z.enum(LOCALES).optional(),
-    voiceEnabled: z.boolean().default(false),
+    // ARCHITECT: озвучка ответов репетитора включена по умолчанию: пользователь выключает её сам, а не ищет
+    // переключатель, чтобы услышать голос (дефолт задан здесь и в клиентском DEFAULT_SETTINGS).
+    voiceEnabled: z.boolean().default(true),
 });
 
 // ARCHITECT: слияние идёт по сырому объекту jsonb без подстановки дефолтов: иначе PATCH записывал бы в

@@ -73,6 +73,28 @@ describe("playBrowserSpeech", () => {
         expect(spoken[1]).toEqual({ text: "Keep going", voice: "british", lang: "en-GB" });
     });
 
+    it("2.1а пол профиля решает выбор внутри языка", async () => {
+        voices = [
+            { lang: "en-US", name: "Microsoft David Desktop" },
+            { lang: "en-US", name: "Microsoft Zira Desktop" },
+        ];
+        const { playBrowserSpeech } = await import("@/lib/speechPlayback");
+
+        expect(playBrowserSpeech("m1", "Nice work", "en-US-female")).toBe(true);
+        expect(spoken[0]?.voice).toBe("Microsoft Zira Desktop");
+
+        expect(playBrowserSpeech("m2", "Nice work", "en-US-male")).toBe(true);
+        expect(spoken[1]?.voice).toBe("Microsoft David Desktop");
+    });
+
+    it("2.1б без голоса нужного пола берётся любой того же языка", async () => {
+        voices = [{ lang: "en-US", name: "Generic Voice" }];
+        const { playBrowserSpeech } = await import("@/lib/speechPlayback");
+
+        expect(playBrowserSpeech("m1", "Nice work", "en-US-female")).toBe(true);
+        expect(spoken[0]?.voice).toBe("Generic Voice");
+    });
+
     it("2.2 без английского голоса деградирует в текст без ошибки", async () => {
         voices = [{ lang: "ru-RU", name: "russian" }];
         const { playBrowserSpeech } = await import("@/lib/speechPlayback");

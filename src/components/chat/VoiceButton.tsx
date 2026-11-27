@@ -4,7 +4,7 @@
 // ARCHITECT: состояние воспроизведения живёт в lib/speechPlayback, поэтому одновременно звучит одна реплика,
 // а кнопка соседнего сообщения не показывает «играет».
 
-import { useEffect, useState, useSyncExternalStore } from "react";
+import { useCallback, useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { Play, Square } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { fetchTtsAudio } from "@/api/tts";
@@ -27,6 +27,8 @@ interface VoiceButtonProps {
     readonly enabled: boolean;
     /** Тариф из entitlements: только pro ходит в платный синтез. */
     readonly proPlan: boolean;
+    /** Автозапуск: озвучка стартует вместе с печатью готового ответа, а кнопка дальше работает повтором. */
+    readonly autoPlay?: boolean;
 }
 
 // ARCHITECT: touch-цель не меньше 44px (size-11) и видимое фокус-кольцо: кнопка живёт внутри пузыря, где
@@ -34,23 +36,25 @@ interface VoiceButtonProps {
 const BUTTON =
     "flex size-11 items-center justify-center rounded-lg text-[#f0f0f5]/50 transition-colors hover:bg-white/5 hover:text-[#f0f0f5]/90 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] disabled:opacity-40";
 
-export function VoiceButton({ messageId, text, voiceId, enabled, proPlan }: VoiceButtonProps) {
+export function VoiceButton({
+    messageId,
+    text,
+    voiceId,
+    enabled,
+    proPlan,
+    autoPlay = false,
+}: VoiceButtonProps) {
     const { t } = useTranslation("chat");
     const playingId = useSyncExternalStore(subscribePlayback, getPlayingId);
     const [isPending, setIsPending] = useState(false);
+    // ARCHITECT: автозапуск отмечается в ref: повторный рендер не должен перезапускать уже прозвучавшую реплику.
+    const autoPlayedRef = useRef(false);
     const isPlaying = playingId === messageId;
+    const isPlayable = enabled && voiceId !== null;
 
-    // ARCHITECT: размонтирование снимает звук: реплика не должна читаться поверх следующего экрана.
-    useEffect(
-        () => () => {
-            if (getPlayingId() === messageId) stopPlayback();
-        },
-        [messageId]
-    );
+    const start = useCallback(async (): Promise<void> => {
+        if (voiceId === null) return;
 
-    if (!enabled || voiceId === null) return null;
-
-    const start = async (): Promise<void> => {
         if (!proPlan) {
             playBrowserSpeech(messageId, text, voiceId);
 
@@ -66,7 +70,26 @@ export function VoiceButton({ messageId, text, voiceId, enabled, proPlan }: Voic
         } finally {
             setIsPending(false);
         }
-    };
+    }, [messageId, proPlan, text, voiceId]);
+
+    // ARCHITECT: размонтирование снимает звук: реплика не должна читаться поверх следующего экрана.
+    useEffect(
+        () => () => {
+            if (getPlayingId() === messageId) stopPlayback();
+        },
+        [messageId]
+    );
+
+    // ARCHITECT: автозапуск срабатывает один раз и только для готового ответа: печать текста ещё идёт, поэтому
+    // голос звучит вместе с ней, а не после.
+    useEffect(() => {
+        if (!autoPlay || autoPlayedRef.current || !isPlayable || text === "") return;
+
+        autoPlayedRef.current = true;
+        void start();
+    }, [autoPlay, isPlayable, start, text]);
+
+    if (!isPlayable) return null;
 
     const handleClick = (): void => {
         if (isPlaying) {
@@ -84,7 +107,7 @@ export function VoiceButton({ messageId, text, voiceId, enabled, proPlan }: Voic
             onClick={handleClick}
             disabled={isPending}
             aria-pressed={isPlaying}
-            aria-label={isPlaying ? t("voice.stop") : t("voice.play")}
+            aria-label={isPlaying ? t("voice.stop") : t(autoPlay ? "voice.replay" : "voice.play")}
             className={cn(BUTTON, isPlaying && "text-[#f0f0f5]/90")}
         >
             {isPlaying ? (

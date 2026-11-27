@@ -92,6 +92,7 @@ export function RealChatView() {
                 isStreaming={chat.isStreaming}
                 error={chat.error}
                 messagesRemaining={chat.messagesRemaining}
+                isLoading={chat.isLoading}
                 voiceEnabled={settings?.preferences.voiceEnabled ?? false}
                 proPlan={settings?.plan === "pro"}
                 onRetry={chat.retry}

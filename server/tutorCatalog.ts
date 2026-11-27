@@ -11,10 +11,41 @@ export type TutorId =
 // ARCHITECT: профиль голоса — наш стабильный идентификатор (язык и тембр), а не имя голоса провайдера:
 // каталог остаётся источником персонажа, а конкретный голос TTS-провайдера задаёт server/ai/tts.ts.
 // Модель голос не назначает: карта детерминированная (§16.2).
+export const VOICE_LOCALES = ["en-US", "en-GB"] as const;
+
+/** Акцент голоса репетитора. */
+export type VoiceLocale = (typeof VOICE_LOCALES)[number];
+
+export const VOICE_GENDERS = ["female", "male"] as const;
+
+/** Пол голоса репетитора: по нему выбирается и голос провайдера, и голос браузера. */
+export type VoiceGender = (typeof VOICE_GENDERS)[number];
+
 export const VOICE_IDS = ["en-US-female", "en-US-male", "en-GB-female", "en-GB-male"] as const;
 
 /** Профиль голоса репетитора: одно из значений VOICE_IDS. */
 export type VoiceId = (typeof VOICE_IDS)[number];
+
+/** Профиль голоса в разобранном виде: язык и пол. */
+export interface VoiceProfile {
+    readonly locale: VoiceLocale;
+    readonly gender: VoiceGender;
+}
+
+// ARCHITECT: профиль голоса в каталоге объявлен и парой (voiceLocale + gender), и строкой voiceId: строка
+// уходит по проводу, а пара читается кодом без разбора строки. Инвариант voiceId === voiceLocale + "-" + gender
+// проверяется тестом каталога, поэтому разойтись они не могут.
+const VOICE_PROFILES: Record<string, VoiceProfile> = {
+    "en-US-female": { locale: "en-US", gender: "female" },
+    "en-US-male": { locale: "en-US", gender: "male" },
+    "en-GB-female": { locale: "en-GB", gender: "female" },
+    "en-GB-male": { locale: "en-GB", gender: "male" },
+};
+
+/** Профиль голоса по строке каталога: null — профиль вне allowlist. */
+export function voiceProfileOf(voiceId: string): VoiceProfile | null {
+    return VOICE_PROFILES[voiceId] ?? null;
+}
 
 /** Геометрия и палитра блобатара: форма, цвет и пропорции, а не текст. */
 export interface TutorTraits {
@@ -46,6 +77,9 @@ export interface Tutor {
     readonly name: string;
     /** Профиль голоса: задан данными, а не моделью, поэтому озвучка воспроизводима. */
     readonly voiceId: VoiceId;
+    /** Акцент профиля: строкой-профилем и отдельным полем, чтобы код читал пару без разбора строки. */
+    readonly voiceLocale: VoiceLocale;
+    readonly gender: VoiceGender;
     readonly traits: TutorTraits;
     readonly persona: TutorPersona;
 }
@@ -56,6 +90,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "miya",
         name: "Мия",
         voiceId: "en-US-female",
+        voiceLocale: "en-US",
+        gender: "female",
         traits: {
             shape: 0.8,
             hue: 0.92,
@@ -78,6 +114,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "oscar",
         name: "Оскар",
         voiceId: "en-US-male",
+        voiceLocale: "en-US",
+        gender: "male",
         traits: {
             shape: 0.2,
             hue: 0.55,
@@ -100,6 +138,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "luna",
         name: "Луна",
         voiceId: "en-GB-female",
+        voiceLocale: "en-GB",
+        gender: "female",
         traits: {
             shape: 0.65,
             hue: 0.72,
@@ -121,6 +161,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "max",
         name: "Макс",
         voiceId: "en-GB-male",
+        voiceLocale: "en-GB",
+        gender: "male",
         traits: {
             shape: 0.15,
             hue: 0.08,
@@ -143,6 +185,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "alex",
         name: "Алекс",
         voiceId: "en-US-male",
+        voiceLocale: "en-US",
+        gender: "male",
         traits: {
             shape: 0.45,
             hue: 0.33,
@@ -165,6 +209,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "zoe",
         name: "Зои",
         voiceId: "en-GB-female",
+        voiceLocale: "en-GB",
+        gender: "female",
         traits: {
             shape: 0.9,
             hue: 0.15,
@@ -186,6 +232,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "nova",
         name: "Нова",
         voiceId: "en-US-female",
+        voiceLocale: "en-US",
+        gender: "female",
         traits: {
             shape: 0.55,
             hue: 0.45,
@@ -207,6 +255,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "kai",
         name: "Кай",
         voiceId: "en-GB-male",
+        voiceLocale: "en-GB",
+        gender: "male",
         traits: {
             shape: 0.35,
             hue: 0.62,
@@ -229,6 +279,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "lira",
         name: "Лира",
         voiceId: "en-US-female",
+        voiceLocale: "en-US",
+        gender: "female",
         traits: {
             shape: 0.75,
             hue: 0.82,
@@ -251,6 +303,8 @@ export const TUTORS: readonly Tutor[] = [
         id: "orion",
         name: "Орион",
         voiceId: "en-US-male",
+        voiceLocale: "en-US",
+        gender: "male",
         traits: {
             shape: 0.25,
             hue: 0.18,

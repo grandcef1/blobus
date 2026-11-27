@@ -219,6 +219,7 @@
   },
   "correction": {
     "title": "Исправление",
+    "polish": "точнее",
     "severity": {
       "minor": "мелкая правка",
       "moderate": "средняя правка",

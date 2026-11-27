@@ -4,7 +4,7 @@
 import { randomUUID } from "node:crypto";
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it, vi } from "vitest";
 
-import { TTS_MODEL, TTS_VOICE_BY_ID } from "../ai/tts.ts";
+import { TTS_MODEL, TTS_VOICE_BY_PERSON } from "../ai/tts.ts";
 import { COOKIE_NAMES, configureCookies } from "../cookies.ts";
 import { createAdminClient, readLocalStack } from "../test-stack.ts";
 import {
@@ -242,7 +242,8 @@ describe("POST /api/tts", () => {
             expect(sentBodies[0]).toMatchObject({
                 model: TTS_MODEL,
                 input: TEXT,
-                voice: TTS_VOICE_BY_ID[VOICE_ID],
+                // ARCHITECT: голос провайдера выбирается по полу и акценту профиля (en-US, female).
+                voice: TTS_VOICE_BY_PERSON.female["en-US"],
                 response_format: "mp3",
             });
         });

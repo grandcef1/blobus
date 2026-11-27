@@ -4,6 +4,7 @@
 
 import { screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
+import { useState } from "react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 import { VoiceButton } from "@/components/chat/VoiceButton";
@@ -45,6 +46,31 @@ function renderButton(overrides: Partial<Parameters<typeof VoiceButton>[0]> = {}
             proPlan={false}
             {...overrides}
         />
+    );
+}
+
+// ARCHITECT: обвязка автозапуска: озвучка должна стартовать с первым текстом и не перезапускаться, когда
+// текст растёт вместе с печатью.
+function AutoplayHarness() {
+    const [text, setText] = useState("");
+
+    return (
+        <>
+            <button type="button" onClick={() => setText(TEXT)}>
+                fill
+            </button>
+            <button type="button" onClick={() => setText(`${TEXT} more`)}>
+                append
+            </button>
+            <VoiceButton
+                messageId="m1"
+                text={text}
+                voiceId="en-US-female"
+                enabled
+                proPlan={false}
+                autoPlay
+            />
+        </>
     );
 }
 
@@ -120,5 +146,30 @@ describe("VoiceButton", () => {
 
         expect(stopPlaybackMock).toHaveBeenCalledTimes(1);
         expect(playBrowserSpeechMock).not.toHaveBeenCalled();
+    });
+
+    it("3.7 автозапуск: озвучка стартует сама, кнопка становится повтором", () => {
+        renderButton({ autoPlay: true });
+
+        expect(playBrowserSpeechMock).toHaveBeenCalledWith("m1", TEXT, "en-US-female");
+        expect(screen.getByRole("button", { name: "Повторить озвучку" })).toBeInTheDocument();
+    });
+
+    it("3.8 автозапуск ждёт текст и срабатывает один раз", async () => {
+        const user = userEvent.setup();
+
+        renderWithProviders(<AutoplayHarness />);
+
+        expect(playBrowserSpeechMock).not.toHaveBeenCalled();
+
+        await user.click(screen.getByRole("button", { name: "fill" }));
+
+        expect(playBrowserSpeechMock).toHaveBeenCalledTimes(1);
+
+        // ARCHITECT: текст растёт вместе с печатью: повторный запуск озвучки недопустим, иначе реплика
+        // перечитывалась бы с начала на каждом новом слове.
+        await user.click(screen.getByRole("button", { name: "append" }));
+
+        expect(playBrowserSpeechMock).toHaveBeenCalledTimes(1);
     });
 });

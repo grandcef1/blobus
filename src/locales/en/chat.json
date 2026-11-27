@@ -53,7 +53,8 @@
   },
   "voice": {
     "play": "Play the reply",
-    "stop": "Stop playback"
+    "stop": "Stop playback",
+    "replay": "Play again"
   },
   "card": {
     "check": "Check",

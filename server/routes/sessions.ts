@@ -7,13 +7,14 @@ import type { Request, Response } from "express";
 import { z } from "zod";
 
 import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
+import { writeSessionGreeting } from "../chat/greeting.ts";
 import { COOKIE_NAMES, getCookie } from "../cookies.ts";
 import { validateCsrf } from "../csrf.ts";
 import { errorEnvelope } from "../http.ts";
 import { createMemoryRateLimitStore, createRateLimiter } from "../rate-limit.ts";
 import { createServiceClient, createUserClient } from "../supabase.ts";
 import type { SupabaseEnv } from "../supabase.ts";
-import { TUTORS } from "../tutorCatalog.ts";
+import { TUTORS, getTutorById } from "../tutorCatalog.ts";
 
 // ARCHITECT: строгая схема читаемого набора колонок: границы совпадают с CHECK-ами схемы (mode 1..32,
 // tutor_id 1..64). strictObject отклоняет лишние ключи — набор колонок ровно тот, что мы выбрали.
@@ -173,6 +174,22 @@ export function createSessionsRouter(options: { readonly env: SupabaseEnv }): Ro
         const row = SessionRowSchema.safeParse(data);
 
         if (!row.success) throw row.error;
+
+        // ARCHITECT: приветствие репетитора попадает в историю вместе с созданием сессии, поэтому первый экран
+        // чата не пустой. Вставка best-effort: сессия уже создана, и сбой приветствия не должен её отменять —
+        // ошибка гасится строкой лога без текста сообщения и PII (§16.11).
+        const tutor = getTutorById(row.data.tutor_id);
+
+        if (tutor !== undefined) {
+            await writeSessionGreeting(createServiceClient(env), {
+                userId: payload.userId,
+                sessionId: row.data.id,
+                tutor,
+                mode: row.data.mode,
+            }).catch(() =>
+                console.log(JSON.stringify({ level: "warn", msg: "chat.greeting_failed" }))
+            );
+        }
 
         // ARCHITECT: ответ создания — тот же DTO, что в GET: user_id и служебные поля наружу не уходят.
         res.status(201).json({

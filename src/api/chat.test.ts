@@ -105,6 +105,34 @@ describe("streamChatReply", () => {
         });
     });
 
+    it("2.1.1 передаёт выбор викторины в теле запроса", async () => {
+        apiStreamMock.mockResolvedValue(
+            streamResponse([
+                frame("done", {
+                    reply: "Hi",
+                    corrections: [],
+                    quiz: null,
+                    vocabWord: null,
+                    usage: USAGE,
+                }),
+            ])
+        );
+
+        const { streamChatReply } = await import("@/api/chat");
+
+        await streamChatReply(
+            { sessionId: SESSION_ID, message: "Hi", quizAnswer: "b" },
+            { signal: new AbortController().signal, onDelta: () => undefined }
+        );
+
+        // ARCHITECT: выбор викторины уходит полем тела: верность сверяет сервер по своей карточке (§16.2).
+        expect(apiStreamMock).toHaveBeenCalledWith("/chat", {
+            method: "POST",
+            body: { sessionId: SESSION_ID, message: "Hi", quizAnswer: "b" },
+            signal: expect.anything(),
+        });
+    });
+
     it("2.2 держит кадр, разрезанный на два чанка", async () => {
         const done =
             'event: done\ndata: {"reply":"Hello","corrections":[],"quiz":null,"vocabWord":null,"usage":' +

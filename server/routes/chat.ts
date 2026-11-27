@@ -10,18 +10,36 @@ import { z } from "zod";
 import { createOpenRouterClient } from "../ai/openrouter.ts";
 import type { AiClient } from "../ai/openrouter.ts";
 import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
-import { ChatRequestSchema, resolveCards, stripCardsMarker } from "../chat/contract.ts";
-import type { ChatDonePayload, VocabWord } from "../chat/contract.ts";
+import {
+    ChatCardsSchema,
+    ChatRequestSchema,
+    resolveCards,
+    stripCardsMarker,
+} from "../chat/contract.ts";
+import type { ChatCards, ChatDonePayload, Quiz, VocabWord } from "../chat/contract.ts";
 import {
     activityAt,
     advancePlan,
     buildLessonPlan,
     modeOf,
     perkFor,
-    readLessonPlan,
     toLessonPlanDto,
 } from "../chat/lessonPlan.ts";
 import type { LessonLevel, LessonPlan, PlanLocale } from "../chat/lessonPlan.ts";
+import {
+    applyTurn,
+    buildLessonState,
+    fallbackQuiz,
+    fallbackWordCard,
+    producedWordIn,
+    quizWordIn,
+    readLessonDocument,
+    toWordViews,
+    turnDirectives,
+    turnsLeftFor,
+    verifyQuizAnswer,
+} from "../chat/lessonState.ts";
+import type { LessonState } from "../chat/lessonState.ts";
 import { HISTORY_LIMIT, buildSystemPrompt, selectHistory } from "../chat/prompt.ts";
 import type { ChatHistoryMessage, ExplanationLocale } from "../chat/prompt.ts";
 import { COOKIE_NAMES, getCookie } from "../cookies.ts";
@@ -70,6 +88,9 @@ const MessageRowSchema = z.strictObject({
     role: z.enum(["user", "assistant"]),
     content: z.string().min(1).max(4000),
     created_at: z.string().min(1),
+    // ARCHITECT: payload читается ради викторины прошлого хода: по ней проверяется ответ ученика, поэтому
+    // верный ответ не дублируется в состоянии урока (§16.2).
+    payload: z.unknown(),
 });
 
 /** Конверт reserve_message: остатки считает БД, клиент их не присылает. */
@@ -173,12 +194,38 @@ function orderHistoryAsc<T extends OrderableHistoryRow>(rows: readonly T[]): T[]
     });
 }
 
+/** Викторина из payload ответа: null — в этом ходу проверки не было. */
+function storedQuiz(payload: unknown): Quiz | null {
+    if (typeof payload !== "object" || payload === null) return null;
+
+    const cards = ChatCardsSchema.safeParse((payload as { readonly cards?: unknown }).cards);
+
+    return cards.success ? cards.data.quiz : null;
+}
+
+interface ChatHistory {
+    readonly messages: ChatHistoryMessage[];
+    /** Викторина последнего ответа: с ней сверяется ответ, который клиент прислал со следующим ходом. */
+    readonly lastQuiz: Quiz | null;
+}
+
+/** Предыдущая реплика ученика: она нужна, чтобы «верно по правилу» считалось только в другом предложении. */
+function previousMessageOf(messages: readonly ChatHistoryMessage[]): string | null {
+    for (let index = messages.length - 1; index >= 0; index -= 1) {
+        const row = messages[index];
+
+        if (row.role === "user") return row.content;
+    }
+
+    return null;
+}
+
 /** История сессии читается пользовательским клиентом под RLS select-own (§16.5). */
 async function readHistory(
     env: SupabaseEnv,
     accessToken: string,
     sessionId: string
-): Promise<ChatHistoryMessage[]> {
+): Promise<ChatHistory> {
     const client = createUserClient(env, accessToken);
     const lessons = await client
         .from("lessons")
@@ -192,11 +239,11 @@ async function readHistory(
 
     const lessonIds = (lessons.data ?? []).map((row) => row.id);
 
-    if (lessonIds.length === 0) return [];
+    if (lessonIds.length === 0) return { messages: [], lastQuiz: null };
 
     const messages = await client
         .from("messages")
-        .select("role, content, created_at")
+        .select("role, content, created_at, payload")
         .in("lesson_id", lessonIds)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -209,26 +256,96 @@ async function readHistory(
     if (!parsed.success) throw parsed.error;
 
     // ARCHITECT: из БД приходят новые сверху, в промпт уходят по возрастанию времени — порядок диалога.
-    return orderHistoryAsc(parsed.data).map((row) => ({ role: row.role, content: row.content }));
+    const ordered = orderHistoryAsc(parsed.data);
+    let lastQuiz: Quiz | null = null;
+
+    for (const row of ordered) {
+        if (row.role !== "assistant") continue;
+
+        const quiz = storedQuiz(row.payload);
+
+        if (quiz !== null) lastQuiz = quiz;
+    }
+
+    return {
+        messages: ordered.map((row) => ({ role: row.role, content: row.content })),
+        lastQuiz,
+    };
 }
 
-/** Запись плана в урок: jsonb — единственное место, где живёт состояние урока. */
-async function persistPlan(
+/** Запись урока в jsonb: план карточки цели и состояние движка — единственное место, где живёт урок. */
+async function persistLesson(
     client: ServiceClient,
     lessonId: string,
-    plan: LessonPlan
-): Promise<LessonPlan> {
-    const updated = await client.from("lessons").update({ plan }).eq("id", lessonId);
+    plan: LessonPlan,
+    state: LessonState
+): Promise<LessonState> {
+    const updated = await client
+        .from("lessons")
+        .update({ plan: { plan, state } })
+        .eq("id", lessonId);
 
     if (updated.error !== null) throw updated.error;
 
-    return plan;
+    return state;
+}
+
+/** Расход токенов за текущий месяц: месячного лимита в БД нет, бюджет задаёт движок (lessonState.ts). */
+async function readMonthTokens(client: ServiceClient, userId: string): Promise<number> {
+    const monthStart = new Date();
+    monthStart.setUTCDate(1);
+
+    const rows = await client
+        .from("usage_counters")
+        .select("tokens_used")
+        .eq("user_id", userId)
+        .gte("date", monthStart.toISOString().slice(0, 10));
+
+    if (rows.error !== null) throw rows.error;
+
+    return (rows.data ?? []).reduce((total, row) => total + row.tokens_used, 0);
+}
+
+/** Сколько последних уроков исключается из выбора сцены: сцена не повторяется неделю занятий. */
+const RECENT_SEED_LESSONS = 5;
+
+/** Сцены последних уроков пользователя: их не выбираем заново; чтение идёт под RLS владельца (§16.5). */
+async function recentSeeds(
+    env: SupabaseEnv,
+    accessToken: string,
+    userId: string
+): Promise<string[]> {
+    const rows = await createUserClient(env, accessToken)
+        .from("lessons")
+        .select("plan, sessions!inner(user_id)")
+        .eq("sessions.user_id", userId)
+        .order("started_at", { ascending: false })
+        .limit(RECENT_SEED_LESSONS);
+
+    if (rows.error !== null) throw rows.error;
+
+    const seeds: string[] = [];
+
+    for (const row of rows.data ?? []) {
+        const state = readLessonDocument(row.plan)?.state;
+
+        if (state !== null && state !== undefined) seeds.push(state.seed);
+    }
+
+    return seeds;
+}
+
+/** Урок сессии: строка в БД, план карточки цели и состояние движка (null — состояние ещё не собиралось). */
+interface ResolvedLesson {
+    readonly id: string;
+    readonly plan: LessonPlan;
+    readonly state: LessonState | null;
 }
 
 /**
- * Урок сессии вместе с планом: последний урок или новый. План пересобирается, если строка пришла без него
- * (старая запись или сбой вставки приветствия) — карточка цели и прогресс не должны пропадать из-за строки,
- * которую писал не наш код (§16.13).
+ * Урок сессии вместе с планом и состоянием движка: последний урок или новый. План и состояние пересобираются,
+ * если строка пришла без них (старая запись или сбой вставки приветствия) — карточка цели и ход урока не
+ * должны пропадать из-за строки, которую писал не наш код (§16.13).
  */
 async function resolveLesson(
     client: ServiceClient,
@@ -239,7 +356,7 @@ async function resolveLesson(
         readonly mode: string;
         readonly locale: PlanLocale;
     }
-): Promise<{ readonly id: string; readonly plan: LessonPlan }> {
+): Promise<ResolvedLesson> {
     const planInput = { level: input.level, mode: modeOf(input.mode), locale: input.locale };
     const existing = await client
         .from("lessons")
@@ -255,12 +372,20 @@ async function resolveLesson(
     const row = LessonRowSchema.safeParse(existing.data);
 
     if (row.success) {
-        const plan = readLessonPlan(row.data.plan);
+        const document = readLessonDocument(row.data.plan);
 
-        return {
-            id: row.data.id,
-            plan: plan ?? (await persistPlan(client, row.data.id, buildLessonPlan(planInput))),
-        };
+        if (document !== null)
+            return { id: row.data.id, plan: document.plan, state: document.state };
+
+        const rebuilt = buildLessonPlan(planInput);
+        const written = await client
+            .from("lessons")
+            .update({ plan: rebuilt })
+            .eq("id", row.data.id);
+
+        if (written.error !== null) throw written.error;
+
+        return { id: row.data.id, plan: rebuilt, state: null };
     }
 
     const created = await client
@@ -279,31 +404,118 @@ async function resolveLesson(
 
     if (!inserted.success) throw inserted.error;
 
+    const document = readLessonDocument(inserted.data.plan);
+
     return {
         id: inserted.data.id,
-        plan: readLessonPlan(inserted.data.plan) ?? buildLessonPlan(planInput),
+        plan: document?.plan ?? buildLessonPlan(planInput),
+        state: document?.state ?? null,
     };
 }
 
 // ARCHITECT: служебные слова в словарь не попадают: словарь — про значимую лексику, а не про артикли, предлоги и
 // местоимения. Список явный и короткий — это фильтр качества авто-слова, а не полный стоп-лист английского.
 const AUTO_WORD_STOP_LIST = new Set([
-    "a", "an", "the", "and", "or", "but", "if", "of", "to", "in", "on", "at", "by", "for", "with", "from",
-    "is", "are", "was", "were", "be", "been", "being", "am", "do", "does", "did", "have", "has", "had",
-    "will", "would", "can", "could", "should", "shall", "may", "might", "must", "not", "no", "yes", "i",
-    "you", "he", "she", "it", "we", "they", "me", "him", "her", "us", "them", "my", "your", "his", "its",
-    "our", "their", "this", "that", "these", "those", "there", "here", "so", "very", "just", "too", "also",
-    "as", "than", "then", "when", "what", "which", "who", "whom", "how", "why", "where", "all", "any",
-    "some", "one", "two", "more", "most", "much", "many", "get", "got", "go", "going", "went",
+    "a",
+    "an",
+    "the",
+    "and",
+    "or",
+    "but",
+    "if",
+    "of",
+    "to",
+    "in",
+    "on",
+    "at",
+    "by",
+    "for",
+    "with",
+    "from",
+    "is",
+    "are",
+    "was",
+    "were",
+    "be",
+    "been",
+    "being",
+    "am",
+    "do",
+    "does",
+    "did",
+    "have",
+    "has",
+    "had",
+    "will",
+    "would",
+    "can",
+    "could",
+    "should",
+    "shall",
+    "may",
+    "might",
+    "must",
+    "not",
+    "no",
+    "yes",
+    "i",
+    "you",
+    "he",
+    "she",
+    "it",
+    "we",
+    "they",
+    "me",
+    "him",
+    "her",
+    "us",
+    "them",
+    "my",
+    "your",
+    "his",
+    "its",
+    "our",
+    "their",
+    "this",
+    "that",
+    "these",
+    "those",
+    "there",
+    "here",
+    "so",
+    "very",
+    "just",
+    "too",
+    "also",
+    "as",
+    "than",
+    "then",
+    "when",
+    "what",
+    "which",
+    "who",
+    "whom",
+    "how",
+    "why",
+    "where",
+    "all",
+    "any",
+    "some",
+    "one",
+    "two",
+    "more",
+    "most",
+    "much",
+    "many",
+    "get",
+    "got",
+    "go",
+    "going",
+    "went",
 ]);
 
-/** Раз в столько ходов репетитор отдаёт слово урока: примерно одно слово на два-три хода, а не каждое. */
-const AUTO_WORDS_EVERY_TURNS = 3;
-
-/** Ход приносит слово в словарь на первом, четвёртом, седьмом ходу — то есть не каждый и не почти никогда. */
-function shouldOfferAutoWord(step: number): boolean {
-    return step % AUTO_WORDS_EVERY_TURNS === 0;
-}
+// ARCHITECT: расписание слов ведёт движок урока (next_word_due), поэтому частота карточек больше не считается
+// шагом плана: ход сам знает, пора ли вводить слово (server/chat/lessonState.ts).
 
 /** Кандидат в словарь: не служебное слово и не короче трёх букв — «it» и «of» словарём не считаются. */
 function isAutoWordCandidate(term: string): boolean {
@@ -317,7 +529,11 @@ function isAutoWordCandidate(term: string): boolean {
  * попытки записи, а unique (user_id, lower(term)) остаётся последней защитой от гонки (§16.6). true — слово
  * действительно лежит в словаре: только тогда карточка слова уходит клиенту.
  */
-async function addVocabWord(client: ServiceClient, userId: string, word: VocabWord): Promise<boolean> {
+async function addVocabWord(
+    client: ServiceClient,
+    userId: string,
+    word: VocabWord
+): Promise<boolean> {
     if (!isAutoWordCandidate(word.term)) return false;
 
     // ARCHITECT: метасимволы LIKE экранируются, иначе term с % или _ нашёл бы чужую строку.
@@ -416,7 +632,7 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
             return;
         }
 
-        // ARCHITECT: уроки своей сессии читаются сервисным ключом после проверки владения сессией: их id — 
+        // ARCHITECT: уроки своей сессии читаются сервисным ключом после проверки владения сессией: их id —
         // фильтр для сообщений, а первый по убыванию — текущий урок, чей план показывает карточка цели.
         const lessons = await service
             .from("lessons")
@@ -428,8 +644,9 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
         if (lessons.error !== null) throw lessons.error;
 
         const lessonIds = (lessons.data ?? []).map((row) => row.id);
-        // ARCHITECT: наружу уходит DTO плана: целевых слов в нём нет по конструкции (§16.6).
-        const plan = readLessonPlan(lessons.data?.[0]?.plan);
+        // ARCHITECT: наружу уходит DTO плана: целевых слов в нём нет по конструкции (§16.6). Из документа
+        // берётся только план — состояние хода клиенту не нужно.
+        const plan = readLessonDocument(lessons.data?.[0]?.plan)?.plan ?? null;
 
         if (lessonIds.length === 0) {
             res.status(200).json({ messages: [], plan: null });
@@ -571,43 +788,22 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
         const explanationLocale: ExplanationLocale =
             preferences.data.explanationLocale ?? profileRow.data.locale;
         // ARCHITECT: история читается под RLS пользовательским клиентом, а не service-ролью: лишних прав
-        // на чтение у роутера нет.
+        // на чтение у роутера нет. Вместе с репликами приходит викторина последнего ответа: по ней сервер
+        // проверяет ответ, который клиент прислал со следующим ходом (§16.2).
         const history = await readHistory(env, accessToken, sessionRow.data.id);
-        // ARCHITECT: урок приходит вместе с планом: цель, правило и активность этапа задаёт сервер, а не
-        // модель, поэтому один и тот же урок идёт по одному плану от первого хода до резюме.
-        const lesson = await resolveLesson(service, {
-            sessionId: sessionRow.data.id,
-            dailyMinutes: profileRow.data.daily_minutes,
-            level: placementRow.data.level,
-            mode: sessionRow.data.mode,
-            locale: explanationLocale,
-        });
         // ARCHITECT: маркер вырезается из текста ученика: своим сообщением нельзя подделать блок карточек.
         const message = stripCardsMarker(parsed.data.message);
 
         if (message === "") {
-            // ARCHITECT: сообщение из одного маркера после вырезания пустое: сохранять нечего (§16.6).
+            // ARCHITECT: сообщение из одного маркера после вырезания пустое: сохранять нечего, и квоту оно не
+            // расходует — проверка стоит до резерва (§16.6).
             res.status(400).json(errorEnvelope("BAD_REQUEST", res));
             return;
         }
 
-        const systemPrompt = buildSystemPrompt({
-            tutor,
-            mode: sessionRow.data.mode,
-            level: placementRow.data.level,
-            explanationLocale,
-            autoCorrection: preferences.data.autoCorrection,
-            history,
-            message,
-            plan: lesson.plan,
-            activity: activityAt(lesson.plan),
-            // ARCHITECT: фишку выбирает сервер по состоянию плана, а не модель: за ход их не больше одной.
-            perk: perkFor(lesson.plan),
-        });
-        const promptHistory = selectHistory(history);
-
         // ARCHITECT: резерв до заказа модели: иначе параллельные сообщения обошли бы дневной лимит, а отказ
-        // провайдера съедал бы квоту — её возвращает release_message.
+        // провайдера съедал бы квоту — её возвращает release_message. Остаток сообщений дня задаёт темпы урока,
+        // поэтому резерв идёт до сборки промпта.
         const reserved = await service.rpc("reserve_message", { p_user_id: payload.userId });
 
         if (reserved.error !== null) {
@@ -624,6 +820,52 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
         const reserve = ReserveSchema.safeParse(reserved.data);
 
         if (!reserve.success) throw reserve.error;
+        // ARCHITECT: урок приходит вместе с планом и состоянием движка: цель, правило, этап, темпы и слова
+        // задаёт сервер, а не модель, поэтому урок идёт по одному плану от первого хода до итога.
+        const lesson = await resolveLesson(service, {
+            sessionId: sessionRow.data.id,
+            dailyMinutes: profileRow.data.daily_minutes,
+            level: placementRow.data.level,
+            mode: sessionRow.data.mode,
+            locale: explanationLocale,
+        });
+        const seeds = await recentSeeds(env, accessToken, payload.userId);
+        const tokensMonth = await readMonthTokens(service, payload.userId);
+        // ARCHITECT: незавершённый урок продолжается с сохранённого этапа: состояние берётся из jsonb, поэтому
+        // повторного приветствия и второго первого хода не бывает (§спец. 3).
+        const state =
+            lesson.state ??
+            buildLessonState({
+                level: placementRow.data.level,
+                mode: modeOf(sessionRow.data.mode),
+                locale: explanationLocale,
+                plan: lesson.plan,
+                turnsLeft: Math.max(0, reserve.data.messages_remaining - 1),
+                excludeSeeds: seeds,
+                lessonIndex: seeds.length,
+            });
+        const turnsLeft = turnsLeftFor({
+            messagesRemaining: reserve.data.messages_remaining,
+            tokensMonth,
+            recent: state.recent_contexts,
+        });
+        const directives = turnDirectives(state, turnsLeft);
+        const systemPrompt = buildSystemPrompt({
+            tutor,
+            mode: sessionRow.data.mode,
+            level: placementRow.data.level,
+            explanationLocale,
+            autoCorrection: preferences.data.autoCorrection,
+            history: history.messages,
+            message,
+            plan: lesson.plan,
+            activity: activityAt(lesson.plan),
+            // ARCHITECT: фишку выбирает сервер по состоянию плана, а не модель: за ход их не больше одной.
+            perk: perkFor(lesson.plan),
+            lesson: directives,
+        });
+        const promptHistory = selectHistory(history.messages);
+
         // ARCHITECT: заголовки SSE выставляются до первого кадра: статус ошибки после начала потока уже не
         // отправить, поэтому все отказы проверены выше, а ошибки потока идут событием error.
         res.status(200);
@@ -646,7 +888,7 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                 { systemPrompt, history: promptHistory, message, signal: abort.signal },
                 (text) => writeSse(res, "delta", { text })
             );
-            const outcome = resolveCards(reply.cardsJson, message);
+            const outcome = resolveCards(reply.cardsJson, message, directives.quizRequired);
 
             // ARCHITECT: карточки — best-effort: ни отсутствие маркера, ни битый JSON не делают ответ битым,
             // текст репетитора сохраняется и уходит клиенту. Причина отбрасывания пишется одной строкой лога
@@ -680,16 +922,78 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                 if (recorded.error !== null) throw recorded.error;
             }
 
-            // ARCHITECT: план двигается по факту хода: шаг, употреблённые слова и серию считает сервер по
-            // реплике ученика и уже отфильтрованным правкам — прогресс урока не подделать ответом (§16.8).
-            const hasError =
-                cards !== null && cards.corrections.some((correction) => correction.kind === "error");
-            const nextPlan = await persistPlan(
+            // ARCHITECT: ответ викторины сверяет сервер с верным ответом сохранённой карточки: клиенту
+            // верность не доверяем, метрики правила и статусы слов двигает только это сравнение (§16.2).
+            const quizCorrect =
+                parsed.data.quizAnswer === undefined
+                    ? null
+                    : verifyQuizAnswer(history.lastQuiz, parsed.data.quizAnswer);
+            const errorCorrection =
+                cards === null
+                    ? null
+                    : (cards.corrections.find((correction) => correction.kind === "error") ?? null);
+            const hasError = errorCorrection !== null;
+            // ARCHITECT: на ходу с ошибкой по правилу слово не вводится: исключение — FINAL, где переносить
+            // слово уже некуда (§спец. 5).
+            const wordGate = !hasError || directives.pacing === "FINAL";
+            const lessonWord = directives.nextWord;
+            // ARCHITECT: карточку слова модель может не отдать — тогда её собирает сервер из своих данных, и ход
+            // не теряет слово урока (§спец. 7). Карточка модели на нерасписанном ходу отбрасывается: расписание
+            // слов ведёт сервер, иначе словарь наполнялся бы каждый ход.
+            const wordAllowed = wordGate && lessonWord !== null;
+            const shownWord: VocabWord | null =
+                !wordAllowed || lessonWord === null
+                    ? null
+                    : (cards?.vocabWord ?? fallbackWordCard(lessonWord));
+            // ARCHITECT: обязательную викторину так же собирает сервер, если модель её не отдала: проверка
+            // должна состояться, а верный ответ остаётся на сервере.
+            const quizWord =
+                lessonWord ??
+                state.words.find((word) => word.status !== "hidden") ??
+                state.words[0];
+            const shownQuiz: Quiz | null =
+                cards?.quiz ??
+                (directives.quizRequired
+                    ? fallbackQuiz(state, quizWord, directives.quizType)
+                    : null);
+            // ARCHITECT: слово попадает в словарь в тот же момент, что и карточка: иначе карточка обещала бы
+            // сохранение, которого не было. Частота карточек — расписание движка, а не шаг плана.
+            const addedVocabWord =
+                shownWord !== null ? await addVocabWord(service, payload.userId, shownWord) : false;
+            const payloadCards: ChatCards = {
+                corrections: cards === null ? [] : cards.corrections,
+                quiz: shownQuiz,
+                vocabWord: addedVocabWord ? shownWord : null,
+                followUp: cards === null ? null : cards.followUp,
+            };
+
+            // ARCHITECT: состояние урока двигает сервер: метрики правила, статусы слов, этап и расписание
+            // следующего слова считаются по фактам хода, поэтому их не подделать ответом (§16.8).
+            const nextPlan = advancePlan(lesson.plan, { studentMessage: message, hasError });
+            const nextState = await persistLesson(
                 service,
                 lesson.id,
-                advancePlan(lesson.plan, { studentMessage: message, hasError })
+                nextPlan,
+                applyTurn(state, {
+                    message,
+                    previousMessage: previousMessageOf(history.messages),
+                    hasError,
+                    errorType: errorCorrection === null ? null : errorCorrection.errorType,
+                    quizCorrect,
+                    introducedWord: wordAllowed ? (lessonWord?.word ?? null) : null,
+                    recognizedWord:
+                        quizCorrect === true ? quizWordIn(state.words, history.lastQuiz) : null,
+                    producedWord: producedWordIn(state.words, message),
+                    pattern: errorCorrection === null ? null : errorCorrection.rule,
+                    tokens,
+                    turnsLeft: turnsLeftFor({
+                        messagesRemaining: Math.max(0, reserve.data.messages_remaining - 1),
+                        tokensMonth: tokensMonth + tokens,
+                        recent: [...state.recent_contexts, { text: message, tokens }],
+                    }),
+                })
             );
-            const followUp = cards === null ? null : cards.followUp;
+            const followUp = payloadCards.followUp;
 
             const saved = await service.from("messages").insert([
                 // ARCHITECT: payload у сообщения ученика задан явно: в пакетной вставке PostgREST колонка
@@ -700,8 +1004,9 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                     role: "assistant",
                     content: reply.text.slice(0, MESSAGE_MAX_CHARS),
                     // ARCHITECT: профиль голоса сохраняется вместе с карточками: после перезагрузки ленты
-                    // кнопка озвучки восстанавливается по тому же значению каталога.
-                    payload: { cards, usage, voiceId: tutor.voiceId },
+                    // кнопка озвучки восстанавливается по тому же значению каталога. Карточки — уже итоговые:
+                    // в них входят собранные сервером слово и викторина.
+                    payload: { cards: payloadCards, usage, voiceId: tutor.voiceId },
                 },
                 // ARCHITECT: вторая часть хода — отдельное сообщение: после перезагрузки ленты она стоит там
                 // же, где её увидели в потоке, а не склеена с разбором. Отличить её от ответа с карточками
@@ -720,23 +1025,18 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
 
             if (saved.error !== null) throw saved.error;
 
-            // ARCHITECT: слово урока попадает в словарь не каждый ход: сервер сам решает, пора ли (шаг плана —
-            // счётчик ходов), а слово проходит фильтр качества. Карточка уходит клиенту только когда запись
-            // действительно появилась, иначе карточка обещала бы сохранение, которого не было.
-            const addedVocabWord =
-                cards !== null && cards.vocabWord !== null && shouldOfferAutoWord(lesson.plan.step)
-                    ? await addVocabWord(service, payload.userId, cards.vocabWord)
-                    : false;
-
             const done: ChatDonePayload = {
                 reply: reply.text,
                 // ARCHITECT: вторая часть необязательна: без неё ход остаётся одним сообщением (§16.8).
                 followUp,
                 // ARCHITECT: ответ без карточек отдаётся пустыми блоками: клиент рисует текст, а не ошибку.
-                corrections: cards === null ? [] : cards.corrections,
-                quiz: cards === null ? null : cards.quiz,
-                vocabWord: addedVocabWord && cards !== null ? cards.vocabWord : null,
+                corrections: payloadCards.corrections,
+                quiz: payloadCards.quiz,
+                vocabWord: payloadCards.vocabWord,
                 plan: toLessonPlanDto(nextPlan),
+                // ARCHITECT: блок слов итогового хода: слово, значение и статус. До WRAP целевые слова наружу
+                // не уходят — в этом и единственный момент, когда список раскрывается (§16.6).
+                words: directives.wrap ? toWordViews(nextState) : [],
                 voiceId: tutor.voiceId,
                 usage: { ...usage, messagesRemaining: reserve.data.messages_remaining },
             };
@@ -745,10 +1045,13 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
         } catch {
             // ARCHITECT: отказ, обрыв и битый ответ возвращают резерв, а прерванная пара сообщений не
             // сохраняется: клиент повторит отправку и получит новый ответ (§16.9). Причина сбоя наружу не
-            // уходит — только код.
+            // уходит — только код: в потоке он идёт событием, а до начала потока — конвертом ошибки.
             await releaseMessage(service, payload.userId).catch(() => undefined);
 
-            if (!abort.signal.aborted) writeSse(res, "error", { code: "INTERNAL" });
+            if (!abort.signal.aborted) {
+                if (res.headersSent) writeSse(res, "error", { code: "INTERNAL" });
+                else res.status(500).json(errorEnvelope("INTERNAL", res));
+            }
         } finally {
             finished = true;
             res.end();

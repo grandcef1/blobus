@@ -4,16 +4,21 @@
 // никогда не исполняется и не трактуется как команды — инструментов у модели в фазе C нет.
 import { z } from "zod";
 
+import type { LessonWordView } from "./lessonState.ts";
 import type { LessonPlanDto } from "./lessonPlan.ts";
 
 /** Маркер, с которого в ответе модели начинается JSON карточек: всё после него — данные, а не текст. */
 export const CARDS_MARKER = "<<<CARDS>>>";
 
-// ARCHITECT: тело — ровно два поля: userId/level/plan/tutorId/mode/quota клиент не присылает, их выводят
-// из проверенного токена, своей сессии, placement_results и entitlements (§16.2). Лишние поля → 400.
+// ARCHITECT: тело — два поля контракта плюс необязательный ответ викторины: userId/level/plan/tutorId/mode/quota
+// клиент не присылает, их выводят из проверенного токена, своей сессии, placement_results и entitlements (§16.2).
+// Лишние поля → 400.
 export const ChatRequestSchema = z.strictObject({
     sessionId: z.uuid(),
     message: z.string().trim().min(1).max(2000),
+    // ARCHITECT: выбранный вариант викторины приходит со следующим ходом и проверяется сервером по сохранённому
+    // верному ответу: клиент не решает, верно ли он ответил, и не двигает метрики урока (§16.2).
+    quizAnswer: z.string().trim().min(1).max(300).optional(),
 });
 
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
@@ -39,6 +44,9 @@ export const CorrectionSchema = z.strictObject({
     // polish — апостроф, регистр и пунктуация (клиент показывает только исправленный вариант). Дефолт
     // строгий: непомеченная правка считается значимой, а не мелкой.
     kind: z.enum(["error", "polish"]).default("error"),
+    // ARCHITECT: вид ошибки выбирает тип викторины: время — выбор, форма — пропуск, порядок — сборка.
+    // Непомеченная ошибка считается ошибкой формы — самый частый случай, а не отказ движка.
+    errorType: z.enum(["tense", "form", "order"]).default("form"),
 });
 
 export type Correction = z.infer<typeof CorrectionSchema>;
@@ -108,6 +116,9 @@ export interface ChatDonePayload {
     readonly vocabWord: VocabWord | null;
     /** План урока без целевых слов: карточка цели и счётчики прогресса. */
     readonly plan: LessonPlanDto;
+    // ARCHITECT: блок слов итогового хода: слово, значение и статус. Целевые слова перестают быть скрытыми
+    // только здесь — раньше списка нет ни в DTO, ни в тексте (§16.6).
+    readonly words: readonly LessonWordView[];
     // ARCHITECT: голос репетитора уходит вместе с ответом: модель его не выбирает, значение берётся из
     // каталога по tutor_id сессии (server/tutorCatalog.ts).
     readonly voiceId: string;
@@ -179,9 +190,13 @@ export type CardsOutcome =
 /**
  * Карточки — best-effort: ни отсутствие маркера, ни битый JSON не делают ответ битым, поэтому наружу уходит
  * либо набор карточек, либо причина отказа — без текста реплики и без самого JSON (§16.8, §16.11). Правки
- * сверяются с сообщением ученика, а квиз остаётся только при настоящей ошибке: на одних полировках он не нужен.
+ * сверяются с сообщением ученика, а квиз остаётся при настоящей ошибке или когда ход обязан нести проверку.
  */
-export function resolveCards(cardsJson: string | null, message: string): CardsOutcome {
+export function resolveCards(
+    cardsJson: string | null,
+    message: string,
+    quizRequired: boolean
+): CardsOutcome {
     if (cardsJson === null) return { kind: "dropped", reason: "missing" };
 
     const cards = parseCards(cardsJson);
@@ -189,7 +204,10 @@ export function resolveCards(cardsJson: string | null, message: string): CardsOu
     if (cards === null) return { kind: "dropped", reason: "malformed" };
 
     const corrections = keepVerbatimCorrections(cards.corrections, message);
-    const quiz = corrections.some((correction) => correction.kind === "error") ? cards.quiz : null;
+    // ARCHITECT: движок требует викторину не реже двух ходов из трёх — тогда она нужна и без значимой ошибки;
+    // иначе проверку закрепляет только настоящая ошибка, как было до движка.
+    const keepQuiz = quizRequired || corrections.some((correction) => correction.kind === "error");
+    const quiz = keepQuiz ? cards.quiz : null;
     // ARCHITECT: пустая вторая часть равна её отсутствию: клиент не рисует пустой пузырь.
     const followUp = cards.followUp === null || cards.followUp === "" ? null : cards.followUp;
 

@@ -196,6 +196,43 @@ describe("useChat", () => {
         expect(toastErrorMock).not.toHaveBeenCalled();
     });
 
+    it("1.1.1 real: выбор викторины уходит со следующим сообщением и сохраняется при повторе", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        const { useChat, ApiError } = await loadHook();
+
+        streamChatReplyMock.mockRejectedValueOnce(new ApiError(500, "CHAT_STREAM_FAILED"));
+        streamChatReplyMock.mockResolvedValueOnce(REPLY);
+
+        const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+        await waitFor(() => expect(realOf(result.current).isLoading).toBe(false));
+
+        act(() => {
+            realOf(result.current).send("I went home yesterday.", "b");
+        });
+
+        await waitFor(() => expect(realOf(result.current).error).toBe("stream"));
+
+        act(() => {
+            realOf(result.current).retry();
+        });
+
+        await waitFor(() => expect(realOf(result.current).messages).toHaveLength(2));
+
+        // ARCHITECT: выбор викторины — часть хода: повтор после обрыва отправляет его же, иначе сервер посчитал
+        // бы метрики урока по другому ответу.
+        expect(streamChatReplyMock).toHaveBeenNthCalledWith(
+            1,
+            { sessionId: SESSION_ID, message: "I went home yesterday.", quizAnswer: "b" },
+            expect.anything()
+        );
+        expect(streamChatReplyMock).toHaveBeenNthCalledWith(
+            2,
+            { sessionId: SESSION_ID, message: "I went home yesterday.", quizAnswer: "b" },
+            expect.anything()
+        );
+    });
+
     it("1.2 обрыв: частичный ответ удаляется, повтор не дублирует реплику", async () => {
         vi.stubEnv("VITE_USE_MOCKS", "false");
         const { useChat, ApiError } = await loadHook();

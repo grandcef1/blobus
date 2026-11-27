@@ -83,6 +83,14 @@ const VALID_CARDS = {
 
 const ANSWER_TEXT = "Nice work! Your story sounds natural, keep going.";
 
+// ARCHITECT: ответ модели без значимой ошибки: движок вводит слово урока только на таком ходу, поэтому
+// проверки расписания слов идут на нём (спец. 5).
+const CLEAN_CARDS = {
+    corrections: [],
+    quiz: null,
+    vocabWord: null,
+} as const;
+
 /** Сырой ответ модели: текст, маркер и JSON карточек — как его отдаёт шлюз. */
 function rawReply(text: string, cards: unknown = VALID_CARDS): string {
     return `${text}\n${CARDS_MARKER}${JSON.stringify(cards)}`;
@@ -282,8 +290,10 @@ async function dbPlanWords(sessionId: string): Promise<readonly string[]> {
     const words: string[] = [];
 
     for (const row of data ?? []) {
-        const plan = row.plan as { readonly targetWords?: unknown } | null;
-        const target = plan?.targetWords;
+        // ARCHITECT: в jsonb лежит документ урока { plan, state }: план — та же форма, что и до движка,
+        // поэтому слова читаются из вложенного поля.
+        const document = row.plan as { readonly plan?: { readonly targetWords?: unknown } } | null;
+        const target = document?.plan?.targetWords;
 
         if (!Array.isArray(target)) continue;
 
@@ -291,6 +301,25 @@ async function dbPlanWords(sessionId: string): Promise<readonly string[]> {
     }
 
     return words;
+}
+
+/** Состояние движка из jsonb: по нему видно этап, расписание слов и метрики правила. */
+async function dbLessonState(sessionId: string): Promise<Record<string, unknown> | null> {
+    const { data, error } = await createAdminClient()
+        .from("lessons")
+        .select("plan")
+        .eq("session_id", sessionId)
+        .order("started_at", { ascending: false })
+        .limit(1)
+        .maybeSingle();
+
+    if (error !== null) throw error;
+
+    const document = data?.plan as { readonly state?: unknown } | null;
+
+    return typeof document?.state === "object" && document.state !== null
+        ? (document.state as Record<string, unknown>)
+        : null;
 }
 
 /** Дневной лимит сообщений: 0 — исчерпанная квота, для проверки отказа. */
@@ -497,7 +526,9 @@ describe("POST /api/chat", () => {
             expect(payload.reply).toBe(ANSWER_TEXT);
             expect(payload.corrections).toHaveLength(1);
             expect(payload.quiz).toEqual(VALID_CARDS.quiz);
-            expect(payload.vocabWord).toEqual(VALID_CARDS.vocabWord);
+            // ARCHITECT: на ходу со значимой ошибкой слово урока не вводится (спец. 5): карточка слова
+            // отброшена, хотя модель её прислала, а разбор и викторина остались.
+            expect(payload.vocabWord).toBeNull();
             expect(payload.usage.model).toBe(MODEL_ALLOWLIST[0]);
             expect(payload.usage.messagesRemaining).toBe(19);
 
@@ -513,8 +544,38 @@ describe("POST /api/chat", () => {
             expect(answerPayloads(messages)[0]).toMatchObject({
                 usage: { model: MODEL_ALLOWLIST[0] },
             });
-            expect(await dbVocabulary(me.id)).toEqual(["cinema"]);
+            expect(await dbVocabulary(me.id)).toEqual([]);
             expect((await dbUsage(me.id)).tokens_used).toBe(200);
+        });
+    }, 30_000);
+
+    it("8.1: слово урока вводится на чистом ходу и сразу попадает в словарь", async () => {
+        await withApp(async (app) => {
+            const me = await userWithSession(app.baseUrl);
+
+            openRouterReply = () =>
+                sseResponse([
+                    rawReply(ANSWER_TEXT, {
+                        ...CLEAN_CARDS,
+                        vocabWord: {
+                            term: "cinema",
+                            translation: "кино",
+                            context: "I went to the cinema.",
+                        },
+                    }),
+                ]);
+
+            const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
+            const payload = events.find((entry) => entry.event === "done")?.data as {
+                readonly quiz: unknown;
+                readonly vocabWord: unknown;
+            };
+
+            expect(payload.vocabWord).toEqual(VALID_CARDS.vocabWord);
+            // Викторина без ошибки и без требования викторины не показывается: проверка не обязательна.
+            expect(payload.quiz).toBeNull();
+            // ARCHITECT: карточка и запись в словаре — одно событие: слово попадает в словарь в тот же момент.
+            expect(await dbVocabulary(me.id)).toEqual(["cinema"]);
         });
     }, 30_000);
 
@@ -531,18 +592,20 @@ describe("POST /api/chat", () => {
             };
 
             // ARCHITECT: карточки — best-effort: битый JSON не делает ответ битым. Текст репетитора уходит
-            // клиенту и сохраняется, квота не возвращается — модель уже отработала.
+            // клиенту и сохраняется, квота не возвращается — модель уже отработала. Разбор теряется, но слово
+            // урока ход не теряет: его собирает сервер (первое слово плана B1) и сразу кладёт в словарь.
             expect(events.find((entry) => entry.event === "error")).toBeUndefined();
             expect(payload.reply).toBe(ANSWER_TEXT);
             expect(payload.corrections).toEqual([]);
             expect(payload.quiz).toBeNull();
-            expect(payload.vocabWord).toBeNull();
+            expect(payload.vocabWord).toMatchObject({ term: "deadline" });
 
             const messages = await dbMessages(me.sessionId);
 
             expect(messages).toHaveLength(3);
-            expect(answerPayloads(messages)[0]).toMatchObject({ cards: null });
+            expect(answerPayloads(messages)[0]).toMatchObject({ cards: { corrections: [] } });
             expect((await dbUsage(me.id)).messages_used).toBe(1);
+            expect(await dbVocabulary(me.id)).toEqual(["deadline"]);
         });
     }, 30_000);
 
@@ -576,6 +639,11 @@ describe("POST /api/chat", () => {
     it("11: авто-слово идемпотентно при повторе, квота списывается за оба сообщения", async () => {
         await withApp(async (app) => {
             const me = await userWithSession(app.baseUrl);
+            // Слово урока вводится на чистом ходу: модельный ответ без значимой ошибки.
+            openRouterReply = () =>
+                sseResponse([
+                    rawReply(ANSWER_TEXT, { ...CLEAN_CARDS, vocabWord: VALID_CARDS.vocabWord }),
+                ]);
 
             await (await sendMessage(app, me.jar, me.sessionId)).text();
             await (await sendMessage(app, me.jar, me.sessionId)).text();
@@ -845,7 +913,9 @@ describe("POST /api/chat", () => {
                 openRouterReply = () =>
                     sseResponse([rawReply(ANSWER_TEXT, { ...VALID_CARDS, followUp: FOLLOW_UP })]);
 
-                const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
+                const events = parseSse(
+                    await (await sendMessage(app, me.jar, me.sessionId)).text()
+                );
                 const payload = events.find((entry) => entry.event === "done")?.data as {
                     readonly reply: string;
                     readonly followUp: string | null;
@@ -897,8 +967,7 @@ describe("POST /api/chat", () => {
                 await (await sendMessage(app, me.jar, me.sessionId)).text();
 
                 const sent = sentBodies[0]?.messages as
-                    | readonly { readonly role: string; readonly content: string }[]
-                    | undefined;
+                    readonly { readonly role: string; readonly content: string }[] | undefined;
                 const system = sent?.[0]?.content ?? "";
 
                 expect(system).toContain("Цель урока:");
@@ -922,13 +991,14 @@ describe("POST /api/chat", () => {
                 const activities: string[] = [];
 
                 for (let turn = 0; turn < 3; turn += 1) {
-                    const events = parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text());
+                    const events = parseSse(
+                        await (await sendMessage(app, me.jar, me.sessionId)).text()
+                    );
                     const payload = events.find((entry) => entry.event === "done")?.data as {
                         readonly plan: { readonly step: number };
                     };
                     const sent = sentBodies[turn]?.messages as
-                        | readonly { readonly content: string }[]
-                        | undefined;
+                        readonly { readonly content: string }[] | undefined;
                     const line = (sent?.[0]?.content ?? "")
                         .split("\n")
                         .find((row) => row.startsWith("Текущая активность:"));
@@ -975,23 +1045,26 @@ describe("POST /api/chat", () => {
         ): Promise<unknown> {
             const events = parseSse(await (await sendMessage(app, jar, sessionId)).text());
 
-            return (events.find((entry) => entry.event === "done")?.data as { readonly vocabWord: unknown })
-                .vocabWord;
+            return (
+                events.find((entry) => entry.event === "done")?.data as {
+                    readonly vocabWord: unknown;
+                }
+            ).vocabWord;
         }
 
-        it("23: слово приходит раз в три хода, а не каждый и не почти никогда", async () => {
+        it("23: слово приходит по расписанию движка: ходы 1 и 3, а не каждый", async () => {
             await withApp(async (app) => {
                 const me = await userWithSession(app.baseUrl);
                 const counts: number[] = [];
                 // ARCHITECT: каждый ход модель предлагает новое слово: одинаковое слово не добавилось бы дважды,
-                // и по числу строк нельзя было бы отличить правило частоты от защиты от повторов.
+                // и по числу строк нельзя было бы отличить расписание от защиты от повторов.
                 const words = ["cinema", "deadline", "improve", "reliable"];
                 let turn = 0;
 
                 openRouterReply = () =>
                     sseResponse([
                         rawReply(ANSWER_TEXT, {
-                            ...VALID_CARDS,
+                            ...CLEAN_CARDS,
                             vocabWord: {
                                 term: words[turn++ % words.length],
                                 translation: "перевод",
@@ -1006,20 +1079,27 @@ describe("POST /api/chat", () => {
                     counts.push((await dbVocabulary(me.id)).length);
                 }
 
-                // ARCHITECT: первый, четвёртый и седьмой ход приносят слово — один ход из трёх (§спец. 1).
-                expect(counts).toEqual([1, 1, 1, 2]);
+                // ARCHITECT: слово k вводится не позже хода 2k: карточка выходит на первом и третьем ходу,
+                // поэтому словарь растёт не на каждом ходу (спец. 5).
+                expect(counts).toEqual([1, 1, 2, 2]);
             });
         }, 60_000);
 
         it("24: повтор изученного слова не создаёт вторую строку и не показывает карточку", async () => {
             await withApp(async (app) => {
                 const me = await userWithSession(app.baseUrl);
+                // Слово урока приходит на чистом ходу, поэтому карточка действительно показывается.
+                openRouterReply = () =>
+                    sseResponse([
+                        rawReply(ANSWER_TEXT, { ...CLEAN_CARDS, vocabWord: VALID_CARDS.vocabWord }),
+                    ]);
+
                 const first = await sendAndReadWord(app, me.jar, me.sessionId);
 
                 expect(first).not.toBeNull();
                 expect(await dbVocabulary(me.id)).toEqual(["cinema"]);
 
-                // Три хода до следующей попытки слова: на четвёртом модель предлагает то же «cinema».
+                // Три хода до следующей попытки слова: на четвёртом ходу модель предлагает то же «cinema».
                 for (let turn = 0; turn < 3; turn += 1)
                     await (await sendMessage(app, me.jar, me.sessionId)).text();
 
@@ -1036,13 +1116,135 @@ describe("POST /api/chat", () => {
                 openRouterReply = () =>
                     sseResponse([
                         rawReply(ANSWER_TEXT, {
-                            ...VALID_CARDS,
+                            ...CLEAN_CARDS,
                             vocabWord: { term: "the", translation: "артикль", context: "the" },
                         }),
                     ]);
 
                 expect(await sendAndReadWord(app, me.jar, me.sessionId)).toBeNull();
                 expect(await dbVocabulary(me.id)).toEqual([]);
+            });
+        }, 30_000);
+    });
+
+    describe("движок урока", () => {
+        /** Событие done последнего хода: по нему видно карточки, план и блок слов. */
+        function donePayload(events: readonly SseEvent[]): Record<string, unknown> {
+            return (events.find((entry) => entry.event === "done")?.data ?? {}) as Record<
+                string,
+                unknown
+            >;
+        }
+
+        it("26: ответ викторины проверяет сервер, а не клиент", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+
+                // Первый ход: модель отдаёт выбор с верным ответом b, сервер сохраняет его в карточке.
+                await (await sendMessage(app, me.jar, me.sessionId)).text();
+                // Второй ход: клиент присылает неверный вариант — верным ход не считается.
+                await (
+                    await sendMessage(app, me.jar, me.sessionId, MESSAGE, { quizAnswer: "a" })
+                ).text();
+
+                const wrong = await dbLessonState(me.sessionId);
+                const wrongRule = wrong?.rule as { readonly correct_total: number } | undefined;
+
+                expect(wrongRule?.correct_total).toBe(0);
+
+                // Третий ход: верный вариант и другое предложение — метрика правила растёт.
+                await (
+                    await sendMessage(
+                        app,
+                        me.jar,
+                        me.sessionId,
+                        "Yesterday I went to the cinema alone.",
+                        {
+                            quizAnswer: "b",
+                        }
+                    )
+                ).text();
+
+                const right = await dbLessonState(me.sessionId);
+                const rightRule = right?.rule as { readonly correct_total: number } | undefined;
+
+                expect(rightRule?.correct_total).toBe(1);
+            });
+        }, 60_000);
+
+        it("27: обязательную викторину сервер собирает сам, если модель её не отдала", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                // Модель отдаёт только разбор: в практике сервер обязан собрать проверку сам.
+                openRouterReply = () =>
+                    sseResponse([
+                        rawReply(ANSWER_TEXT, {
+                            corrections: VALID_CARDS.corrections,
+                            quiz: null,
+                            vocabWord: null,
+                        }),
+                    ]);
+
+                let quiz: unknown = null;
+
+                for (let turn = 0; turn < 4; turn += 1)
+                    quiz = donePayload(
+                        parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text())
+                    ).quiz;
+
+                expect(quiz).not.toBeNull();
+                expect(["choice", "gap-fill", "word-order"]).toContain(
+                    (quiz as { readonly type: string }).type
+                );
+            });
+        }, 60_000);
+
+        it("28: незавершённый урок продолжается с сохранённого этапа без нового приветствия", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+
+                await (await sendMessage(app, me.jar, me.sessionId)).text();
+                await (await sendMessage(app, me.jar, me.sessionId)).text();
+
+                const system =
+                    (
+                        sentBodies[1]?.messages as
+                            readonly { readonly content: string }[] | undefined
+                    )?.[0]?.content ?? "";
+
+                // ARCHITECT: движок продолжает урок с сохранённого этапа: ход идёт вторым, а не первым.
+                expect(system).toContain("LESSON_STATE: stage=S2");
+                expect(system).toContain("turn=2/18");
+
+                const rows = await dbMessages(me.sessionId);
+
+                expect(rows.filter((row) => row.content.includes("Мия"))).toHaveLength(1);
+            });
+        }, 60_000);
+
+        it("29: итоговый ход отдаёт блок слов урока со статусами", async () => {
+            await withApp(async (app) => {
+                const me = await userWithSession(app.baseUrl);
+                // Лимит дня 1: остатка сообщений нет, поэтому ход сразу становится итоговым.
+                await setMessageLimit(me.id, 1);
+
+                const payload = donePayload(
+                    parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text())
+                );
+                const words = payload.words as readonly {
+                    readonly word: string;
+                    readonly meaning: string;
+                    readonly status: string;
+                }[];
+
+                // ARCHITECT: список слов раскрывается только в итоге: до него наружу уходят лишь счётчики (§16.6).
+                expect(words).toHaveLength(5);
+                expect(words[0]).toEqual({ word: "deadline", meaning: "срок", status: "hidden" });
+
+                const state = await dbLessonState(me.sessionId);
+
+                expect(state?.stage).toBe("S6");
+                expect(state?.pacing_mode).toBe("LAST");
             });
         }, 30_000);
     });

@@ -95,10 +95,13 @@ export interface ChatLessonPlan {
     readonly completed: boolean;
 }
 
-/** Тело запроса: ровно два поля контракта POST /api/chat — userId, уровень и квота не отправляются (§16.2). */
+/** Тело запроса: два поля контракта POST /api/chat — userId, уровень и квота не отправляются (§16.2). */
 export interface ChatRequestInput {
     readonly sessionId: string;
     readonly message: string;
+    // ARCHITECT: выбранный вариант викторины уходит вместе со следующим сообщением, а верность сверяет сервер
+    // по сохранённому ответу: клиент присылает выбор ученика, а не решение о том, верно ли он ответил (§16.2).
+    readonly quizAnswer?: string;
 }
 
 export interface ChatStreamHandlers {
@@ -316,7 +319,9 @@ function readReply(value: unknown): ChatReply | null {
     // ARCHITECT: вторая часть — best-effort, как карточки: чужая форма значит «второй части нет», а не битый
     // ответ, поэтому текст репетитора остаётся читаемым.
     const followUp =
-        typeof record.followUp === "string" && record.followUp.length <= 600 && record.followUp !== ""
+        typeof record.followUp === "string" &&
+        record.followUp.length <= 600 &&
+        record.followUp !== ""
             ? record.followUp
             : null;
     // ARCHITECT: профиль голоса необязателен: ответ старого сервера приходит без него — тогда кнопки озвучки

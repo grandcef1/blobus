@@ -36,7 +36,9 @@ interface ChatCommon {
     readonly isStreaming: boolean;
     readonly error: ChatErrorKind | null;
     readonly messagesRemaining: number | null;
-    readonly send: (text: string) => void;
+    // ARCHITECT: выбранный вариант викторины передаётся со следующим сообщением: сервер сверяет его с
+    // сохранённым верным ответом, а клиент остаётся только транспортом (§16.2).
+    readonly send: (text: string, quizAnswer?: string) => void;
     /** Повтор последнего сообщения: доступен после обрыва, ошибки потока и лимита. */
     readonly retry: () => void;
     /** Остановка генерации: прерванный ответ не сохраняется, тот же текст остаётся доступен для повтора. */
@@ -171,8 +173,11 @@ function useRealChat(sessionId: string): RealChatResult {
     const [expired, setExpired] = useState<unknown>(null);
     const abortRef = useRef<AbortController | null>(null);
     // ARCHITECT: последний отправленный текст живёт в ref: после обрыва повтор отправляет именно его, а не
-    // то, что пользователь успел набрать в поле заново.
-    const pendingRef = useRef<string | null>(null);
+    // то, что пользователь успел набрать в поле заново. Вместе с текстом хранится выбор викторины: сервер
+    // должен получить тот же ответ, иначе метрики урока посчитаются по другому ходу.
+    const pendingRef = useRef<{ readonly content: string; readonly quizAnswer?: string } | null>(
+        null
+    );
 
     // ARCHITECT: 401 терминальный (apiStream уже пробовал refresh) уходит в общий хук: тост и редирект — его.
     useAuthExpiry(expired, expired === null);
@@ -245,10 +250,10 @@ function useRealChat(sessionId: string): RealChatResult {
     }, [applyHistory, applyHistoryFailure, sessionId]);
 
     const run = useCallback(
-        async (content: string, appendUser: boolean): Promise<void> => {
+        async (content: string, appendUser: boolean, quizAnswer?: string): Promise<void> => {
             const controller = new AbortController();
             abortRef.current = controller;
-            pendingRef.current = content;
+            pendingRef.current = quizAnswer === undefined ? { content } : { content, quizAnswer };
 
             const assistantId = crypto.randomUUID();
             const placeholder: ChatFeedMessage = {
@@ -283,7 +288,9 @@ function useRealChat(sessionId: string): RealChatResult {
 
             try {
                 const reply = await streamChatReply(
-                    { sessionId, message: content },
+                    quizAnswer === undefined
+                        ? { sessionId, message: content }
+                        : { sessionId, message: content, quizAnswer },
                     {
                         signal: controller.signal,
                         onDelta: (text) =>
@@ -374,28 +381,28 @@ function useRealChat(sessionId: string): RealChatResult {
     );
 
     const send = useCallback(
-        (text: string) => {
+        (text: string, quizAnswer?: string) => {
             const content = text.trim();
             if (USE_MOCKS || content === "" || abortRef.current !== null) return;
 
-            void run(content, true);
+            void run(content, true, quizAnswer);
         },
         [run]
     );
 
-    // ARCHITECT: повтор возвращает диалог к жизни: есть неотправленное сообщение — отправляем его, иначе
-    // перезагружаем историю: сбой загрузки ленты лечится тем же кнопочным повтором.
+    // ARCHITECT: повтор возвращает диалог к жизни: есть неотправленное сообщение — отправляем его вместе с
+    // выбором викторины, иначе перезагружаем историю: сбой загрузки ленты лечится тем же кнопочным повтором.
     const retry = useCallback(() => {
         if (USE_MOCKS || abortRef.current !== null) return;
 
-        const content = pendingRef.current;
+        const pending = pendingRef.current;
 
-        if (content === null) {
+        if (pending === null) {
             void reloadHistory();
             return;
         }
 
-        void run(content, false);
+        void run(pending.content, false, pending.quizAnswer);
     }, [reloadHistory, run]);
 
     // ARCHITECT: остановка по кнопке — тот же обрыв, что и уход со страницы: сервер возвращает резерв квоты,

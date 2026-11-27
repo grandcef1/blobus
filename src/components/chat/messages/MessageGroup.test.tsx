@@ -36,6 +36,8 @@ function message(role: "user" | "assistant", content: string, at: number): ChatF
         voiceId: null,
         createdAt: at,
         words: [],
+        serverId: `${role}-${at}`,
+        quizState: null,
         live: false,
     };
 }

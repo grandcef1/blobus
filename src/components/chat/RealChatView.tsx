@@ -4,7 +4,6 @@
 // ARCHITECT: в шапке есть меню сессии: переименование и смена репетитора идут в PATCH /api/sessions/:id, сброс —
 // в POST /api/sessions/:id/reset, удаление — в DELETE. Прогресс не показывается: его нет в сводке сессии.
 
-import { useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -62,23 +61,8 @@ export function RealChatView() {
     // ARCHITECT: уровень нужен карточке исправления: на A1-A2 под примерами показывается перевод. Он берётся из
     // той же сводки прогресса, что и на других экранах — отдельного запроса чат не делает.
     const { progress } = useProgress();
-    // ARCHITECT: выбранный ответ викторины живёт до следующего сообщения: ученик отвечает и пишет фразу, а
-    // сервер сверяет ответ со своей карточкой (§16.2). После отправки ответ сбрасывается.
-    const quizAnswerRef = useRef<string | null>(null);
-    const onQuizAnswered = useCallback((answer: string) => {
-        quizAnswerRef.current = answer;
-    }, []);
-    const send = useCallback(
-        (text: string) => {
-            const answer = quizAnswerRef.current;
-
-            quizAnswerRef.current = null;
-
-            if (answer === null) chat.send(text);
-            else chat.send(text, answer);
-        },
-        [chat]
-    );
+    // ARCHITECT: ответ на задание идёт отдельным вызовом, а вторая часть хода встаёт в ленту сама: странице
+    // нечего хранить между репликами, поэтому выбранный ответ здесь не живёт (§спец. 3).
     // ARCHITECT: действия сессии — реальные: PATCH/DELETE/reset с оптимистичным кэшем и инвалидацией. Сброс
     // перечитывает историю (в ней уже новое приветствие), удаление уводит в список сессий.
     const actions = useSessionActions(sessionId, {
@@ -110,7 +94,7 @@ export function RealChatView() {
     };
 
     return (
-        <div className={cn("relative flex flex-col bg-black", CHAT_HEIGHT)}>
+        <div className={cn("relative flex min-h-0 flex-col overflow-hidden bg-black", CHAT_HEIGHT)}>
             <ChatHeader
                 session={session}
                 actions={actions}
@@ -131,9 +115,9 @@ export function RealChatView() {
                 level={progress?.level ?? null}
                 onRetry={chat.retry}
                 onStop={chat.stop}
-                onQuizAnswered={onQuizAnswered}
+                onQuizAnswered={chat.answerQuiz}
             />
-            <ChatInput disabled={chat.isStreaming} onSend={send} />
+            <ChatInput disabled={chat.isStreaming} onSend={chat.send} />
         </div>
     );
 }

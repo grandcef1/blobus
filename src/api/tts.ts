@@ -1,7 +1,10 @@
 // ARCHITECT: транспорт платной озвучки: запрос идёт через apiFetch (cookie-сессия, CSRF, 401→refresh, конверт
 // ошибок), поэтому модуль не дёргает fetch сам (§16.13). Сервер отвечает mp3 в base64 — здесь собирается data
 // URL, с которым работает Audio, отдельный блоб не нужен.
+// ARCHITECT: текст чистится до запроса: провайдер читает «underscore» и markdown-символы так же, как браузерный
+// синтезатор, поэтому пропуски и разметка убираются на обеих ветках озвучки (§спец. 6).
 import { ApiError, apiFetch } from "@/api/client";
+import { cleanForSpeech } from "@/lib/speechPlayback";
 
 const AUDIO_MIME_PREFIX = "audio/";
 const TTS_FAILED = "TTS_FAILED";
@@ -16,7 +19,7 @@ interface TtsEnvelope {
 export async function fetchTtsAudio(text: string, voiceId: string): Promise<string> {
     const envelope = await apiFetch<TtsEnvelope>("/tts", {
         method: "POST",
-        body: { text, voiceId },
+        body: { text: cleanForSpeech(text), voiceId },
     });
 
     const audio = typeof envelope.audio === "string" ? envelope.audio : "";

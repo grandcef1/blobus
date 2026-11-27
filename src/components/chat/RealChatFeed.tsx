@@ -39,8 +39,8 @@ interface RealChatFeedProps {
     readonly level: EnglishLevel | null;
     readonly onRetry: () => void;
     readonly onStop: () => void;
-    /** Выбранный ответ викторины: уходит со следующим сообщением на проверку сервером. */
-    readonly onQuizAnswered: (answer: string) => void;
+    /** Ответ на задание: id сообщения с карточкой и выбор ученика — их сверяет сервер. */
+    readonly onQuizAnswered: (serverId: string, answer: string) => void;
 }
 
 const RETRY_BUTTON =
@@ -117,11 +117,11 @@ export function RealChatFeed({
         if (isStreaming) stopPlayback();
     }, [isStreaming]);
 
-    // ARCHITECT: разделитель даты решается заранее: сборкой групп занимается grouping.ts, а отрисовка ничего
-    // не меняет — мутация переменной во время рендера запрещена правилом react-hooks/immutability.
+    // ARCHITECT: прокрутка живёт только внутри ленты: min-h-0 не даёт флекс-строке вырасти по контенту, и
+    // страница остаётся высотой в окно, а шапка и поле ввода стоят на месте (§спец. 1).
     return (
         <div
-            className="flex-1 overflow-y-auto px-3 py-6 md:px-6"
+            className="min-h-0 flex-1 overflow-y-auto px-3 py-6 md:px-6"
             aria-live="polite"
             aria-busy={isStreaming}
         >

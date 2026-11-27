@@ -23,6 +23,26 @@ export const ChatRequestSchema = z.strictObject({
 
 export type ChatRequest = z.infer<typeof ChatRequestSchema>;
 
+// ARCHITECT: ответ викторины приходит отдельным запросом: тело — id сообщения с карточкой и выбранный вариант,
+// лишние поля отклоняются. Квоту этот вызов не расходует, но лимитер и CSRF у него те же (§16.6, §16.7).
+export const QuizAnswerRequestSchema = z.strictObject({
+    messageId: z.uuid(),
+    answer: z.string().trim().min(1).max(300),
+});
+
+export type QuizAnswerRequest = z.infer<typeof QuizAnswerRequestSchema>;
+
+/** Ответ на викторину: верность, упрощённый повтор, отпущенное задание и раскрытый верный ответ. */
+export interface QuizAnswerPayload {
+    readonly correct: boolean;
+    /** Упрощённый повтор: выбор из двух вариантов, пока попытки не исчерпаны. */
+    readonly quiz: Quiz | null;
+    /** Отложенная вторая часть хода: уходит после верного ответа или раскрытия ответа. */
+    readonly released: string | null;
+    /** Верный ответ: раскрывается после исчерпания попыток. */
+    readonly reveal: string | null;
+}
+
 // ARCHITECT: границы полей совпадают с CHECK-ами схемы (term 1..120, translation <=240, context <=500):
 // карточка слова сразу становится строкой vocabulary, поэтому длину ограничивает та же схема.
 export const VocabWordSchema = z.strictObject({
@@ -98,6 +118,14 @@ export const ChatCardsSchema = z.strictObject({
 
 export type ChatCards = z.infer<typeof ChatCardsSchema>;
 
+// ARCHITECT: вид задачи глазами клиента: вид задачи, тип викторины и id сообщения — по нему уходит ответ.
+/** Задача хода для клиента: пустая задача означает, что задание уже закрыто. */
+export interface PendingTaskView {
+    readonly kind: "quiz" | "open";
+    readonly quizType: "choice" | "gap-fill" | "word-order" | "sentence" | null;
+    readonly messageId: string;
+}
+
 /** Использование модели в событии done: токены провайдера, модель и остаток дневной квоты сообщений. */
 export interface ChatUsage {
     readonly promptTokens: number;
@@ -116,6 +144,13 @@ export interface ChatDonePayload {
     readonly vocabWord: VocabWord | null;
     /** План урока без целевых слов: карточка цели и счётчики прогресса. */
     readonly plan: LessonPlanDto;
+    // ARCHITECT: id сохранённого ответа: по нему клиент отправляет ответ викторины на отдельный endpoint,
+    // не расходуя сообщение (§спец. 3).
+    readonly messageId: string;
+    /** Активная задача: null — задание закрыто, следующее придёт очередным ходом. */
+    readonly pending: PendingTaskView | null;
+    /** Верный ответ, раскрытый после исчерпания попыток викторины; иначе null. */
+    readonly reveal: string | null;
     // ARCHITECT: блок слов итогового хода: слово, значение и статус. Целевые слова перестают быть скрытыми
     // только здесь — раньше списка нет ни в DTO, ни в тексте (§16.6).
     readonly words: readonly LessonWordView[];

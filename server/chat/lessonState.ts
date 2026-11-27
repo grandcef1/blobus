@@ -37,6 +37,38 @@ export type LessonWordStatus = (typeof LESSON_WORD_STATUSES)[number];
 export const LESSON_ERROR_TYPES = ["tense", "form", "order"] as const;
 export type LessonErrorType = (typeof LESSON_ERROR_TYPES)[number];
 
+/** Вид активной задачи: викторина с проверкой или открытый вопрос своими словами. */
+export const TASK_KINDS = ["quiz", "open"] as const;
+export type TaskKind = (typeof TASK_KINDS)[number];
+
+/** Фаза хода: ждём ответ на открытую задачу или ответ на викторину. */
+export const TURN_PHASES = ["awaiting_user", "awaiting_quiz"] as const;
+export type TurnPhase = (typeof TURN_PHASES)[number];
+
+/** Активная задача хода: одна за раз, её id — сообщение с карточкой викторины или с вопросом. */
+export type PendingTask = {
+    readonly kind: TaskKind;
+    readonly messageId: string;
+    readonly prompt: string;
+    readonly attempts: number;
+    /** Тип викторины: у открытой задачи его нет. */
+    readonly quizType: ActivityType | null;
+};
+
+// ARCHITECT: тип алиасом, а не интерфейсом: неявную индексную подпись получают только объектные типы, поэтому
+// задача кладётся в jsonb без приведения типов (§5.3).
+/** Задача из jsonb: битая форма — null, состояние читается как «задачи нет». */
+export const PendingTaskSchema = z.strictObject({
+    kind: z.enum(TASK_KINDS),
+    messageId: z.uuid(),
+    prompt: z.string().max(300),
+    attempts: z.number().int().min(0).max(9),
+    quizType: z.enum(ACTIVITY_TYPES).nullable(),
+});
+
+/** Выбор обязателен не реже каждого третьего задания (§спец. 8). */
+export const CHOICE_EVERY_TASKS = 3;
+
 /** Слов урока ровно пять: меньше — не урок, больше — не осилить за занятие. */
 export const LESSON_WORD_COUNT = 5;
 /** Правило освоено по четырём верным применениям и двум последним верным подряд. */
@@ -115,14 +147,20 @@ export type LessonState = {
     readonly weak_patterns: string[];
     /** Сколько верных проверок пройдено в S5: после двух ход уходит в итог. */
     readonly checks_done: number;
+    /** Активная задача: пока она не закрыта, новое задание не выдаётся (§спец. 1). */
+    readonly pendingTask: PendingTask | null;
+    /** Фаза хода: чего ждёт сервер — ответа ученика или ответа на викторину. */
+    readonly phase: TurnPhase;
+    /** Сколько заданий прошло без выбора: выбор обязателен не реже каждого третьего (§спец. 8). */
+    readonly tasks_since_choice: number;
 };
 
 /** То, что видит клиент в блоке слов итогового хода: слово, значение и статус. */
-export interface LessonWordView {
+export type LessonWordView = {
     readonly word: string;
     readonly meaning: string;
     readonly status: LessonWordStatus;
-}
+};
 
 // ARCHITECT: строка jsonb пишется нашим кодом, но читается как недоверенная: битая форма — null, и состояние
 // собирается заново (§16.13). Границы совпадают с проверками схемы урока в БД.
@@ -166,6 +204,11 @@ const LessonStateSchema = z.strictObject({
     twist: z.string().min(1).max(200).nullable(),
     weak_patterns: z.array(z.string().min(1).max(120)).max(WEAK_PATTERN_LIMIT),
     checks_done: z.number().int().min(0).max(9),
+    // ARCHITECT: поля машины хода появились позже остальных и потому с дефолтами: состояние, записанное до неё,
+    // читается как «задачи нет» и не теряет прогресс урока.
+    pendingTask: PendingTaskSchema.nullable().default(null),
+    phase: z.enum(TURN_PHASES).default("awaiting_user"),
+    tasks_since_choice: z.number().int().min(0).max(99).default(0),
 });
 
 /** Состояние из jsonb: null — строка пуста, бита или записана другой версией движка. */
@@ -250,7 +293,40 @@ export function buildLessonState(input: LessonStateInput): LessonState {
         twist: null,
         weak_patterns: [],
         checks_done: 0,
+        pendingTask: null,
+        phase: "awaiting_user",
+        tasks_since_choice: 0,
     };
+}
+
+/** Тип следующей викторины: выбор возвращается не реже каждого третьего задания (§спец. 8). */
+export function nextQuizType(state: LessonState, errorType: LessonErrorType | null): ActivityType {
+    if (state.tasks_since_choice >= CHOICE_EVERY_TASKS - 1) return "choice";
+
+    const rotated = nextActivityType(
+        errorType,
+        state.rule.correct_streak,
+        state.last_activity_types
+    );
+
+    // ARCHITECT: «своё предложение» проверкой не является, поэтому викторина берёт тип из ротации.
+    return rotated === "sentence" ? rotationAfter(state.last_activity_types) : rotated;
+}
+
+/** Активная задача хода: вместе с ней переключается фаза, а счётчик выбора обнуляется на choice. */
+export function withPendingTask(state: LessonState, task: PendingTask): LessonState {
+    return {
+        ...state,
+        pendingTask: task,
+        phase: task.kind === "quiz" ? "awaiting_quiz" : "awaiting_user",
+        tasks_since_choice:
+            task.quizType === "choice" ? 0 : Math.min(state.tasks_since_choice + 1, 99),
+    };
+}
+
+/** Задача закрыта: следующее задание выдаст очередной ход, а не она сама. */
+export function closeTask(state: LessonState): LessonState {
+    return { ...state, pendingTask: null, phase: "awaiting_user" };
 }
 
 /**
@@ -429,11 +505,9 @@ export function turnDirectives(state: LessonState, turnsLeft: number): LessonDir
         nextWord: wordDue ? nextWord : null,
         quizRequired,
         activityType: state.next_activity_type,
-        // ARCHITECT: «своё предложение» проверкой не является: обязательная викторина берёт тип из ротации.
-        quizType:
-            state.next_activity_type === "sentence"
-                ? rotationAfter(state.last_activity_types)
-                : state.next_activity_type,
+        // ARCHITECT: «своё предложение» проверкой не является: обязательная викторина берёт тип из ротации, где
+        // выбор возвращается не реже каждого третьего задания (§спец. 8).
+        quizType: nextQuizType(state, state.rule.open_error?.type ?? null),
         frame: frameFor(position, turnIndex),
         seedSetting: scene.setting,
         seedAllows: scene.allows,

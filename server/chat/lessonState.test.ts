@@ -491,6 +491,7 @@ describe("промпт", () => {
             activity: "quick-choice",
             perk: null,
             lesson,
+            turn: { phase: "awaiting_user", task: null, cyrillic: false, start: false },
         });
     }
 

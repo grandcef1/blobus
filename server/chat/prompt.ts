@@ -7,12 +7,23 @@ import { CARDS_MARKER } from "./contract.ts";
 import { ACTIVITY_LINES, revealWord } from "./lessonPlan.ts";
 import type { LessonActivityId, LessonPerk, LessonPlan } from "./lessonPlan.ts";
 import { MAX_LESSON_TURNS } from "./lessonState.ts";
-import type { LessonDirectives } from "./lessonState.ts";
+import type { LessonDirectives, PendingTask, TurnPhase } from "./lessonState.ts";
 import { styleCardOf } from "../tutorCatalog.ts";
 import type { Tutor } from "../tutorCatalog.ts";
 
 /** Язык объяснений: тот же набор значений, что у profiles.locale и explanationLocale. */
 export type ExplanationLocale = "ru" | "en" | "es";
+
+/** Состояние хода глазами промпта: что ждёт сервер, что уже выдано и на каком языке ответил ученик. */
+export interface PromptTurn {
+    readonly phase: TurnPhase;
+    /** Активная задача: одна за раз; null — задание закрыто. */
+    readonly task: PendingTask | null;
+    /** Ученик написал в основном кириллицей: разбор ошибок не делаем, отвечаем коротко и напоминаем задачу. */
+    readonly cyrillic: boolean;
+    /** Первый ход урока: приветствие в характере и первый вопрос с выбором из двух вариантов. */
+    readonly start: boolean;
+}
 
 export interface ChatHistoryMessage {
     readonly role: "user" | "assistant";
@@ -35,6 +46,8 @@ export interface PromptInput {
     readonly perk: LessonPerk | null;
     /** Директивы хода от движка урока: этап, темп, слова, викторина и лимиты длины. */
     readonly lesson: LessonDirectives;
+    /** Состояние хода: активная задача, язык ответа ученика и признак первого хода. */
+    readonly turn: PromptTurn;
 }
 
 // ARCHITECT: бюджет промпта ~6000 токенов: оценка по символам (1 токен ≈ 4 символа), внешний токенизатор
@@ -90,6 +103,40 @@ const ACTIVITY_TASK_LINES: Record<string, string> = {
     sentence: "попроси своё предложение с этим словом",
 };
 
+/**
+ * Правила хода по состоянию задачи: одна задача за раз, задание живёт в карточке или в явном вопросе, а не в
+ * прозе; русский текст не разбираем. Первый ход начинается с приветствия и первого вопроса (§спец. 2, 5, 6, 7).
+ */
+function turnLines(turn: PromptTurn): string[] {
+    const lines: string[] = [];
+
+    if (turn.start)
+        lines.push(
+            "Это первый ход урока: одной строкой поздоровайся в своём характере и назови цель урока, а отдельным полем followUp задай первый вопрос — конкретный выбор из двух вариантов, подходящий режиму занятия."
+        );
+
+    if (turn.cyrillic)
+        lines.push(
+            "Ученик написал не по-английски: ошибки не разбирай, карточек правки не создавай. Ответь на языке объяснений одним-двумя предложениями и напомни текущую задачу" +
+                (turn.task === null ? "." : `: ${turn.task.prompt}.`)
+        );
+
+    if (turn.task === null)
+        lines.push(
+            "Активной задачи нет: выдай ровно одно задание — карточкой quiz или явным вопросом в followUp."
+        );
+    else
+        lines.push(
+            `Активная задача (${turn.task.kind}): ${turn.task.prompt} Пока она не закрыта, новое задание не выдавай: followUp оставь пустым.`
+        );
+
+    lines.push(
+        "Никогда не повторяй в тексте задание, которое уже выдано карточкой, и не пиши заданий с пропусками в прозе (Complete: ... ___): пропуск живёт только в карточке quiz типа gap-fill."
+    );
+
+    return lines;
+}
+
 /** Блок состояния урока: то, что движок посчитал до хода; модель следует ему, а не решает сама. */
 function lessonStateBlock(lesson: LessonDirectives): string[] {
     const allows =
@@ -115,7 +162,7 @@ function lessonStateBlock(lesson: LessonDirectives): string[] {
         lines.push(`Слабые паттерны возвращаются в проверку: ${lesson.weakPatterns.join("; ")}.`);
     if (lesson.quizRequired)
         lines.push(
-            `Ход обязан нести викторину типа ${lesson.quizType}: верный ответ входит в карточку, потому что проверяет сервер.`
+            `Ход обязан нести викторину типа ${lesson.quizType}: верный ответ входит в карточку, потому что проверяет сервер. Если карточки не будет, сервер соберёт её сам с этим типом.`
         );
     else if (lesson.activityType === "sentence")
         lines.push(
@@ -176,6 +223,7 @@ export function buildSystemPrompt(input: PromptInput): string {
         // так, чтобы он употребил их сам (§16.8). В промпте они и остаются — наружу уходят только счётчики.
         `Целевые слова урока (ученик их не видит: не перечисляй списком, не переводи и не подсказывай; спрашивай «добавить в словарь?» нельзя): ${input.plan.targetWords.join(", ")}.`,
         ...lessonStateBlock(input.lesson),
+        ...turnLines(input.turn),
         ...(input.perk === null ? [] : [perkLine(input.perk, input.plan)]),
         `Объяснения и правила давай на языке: ${LOCALE_LINES[input.explanationLocale]}, но не длиннее одного-двух предложений и только когда без них не понять. Сама речь — на английском, многословные разборы запрещены.`,
         input.autoCorrection

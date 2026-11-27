@@ -222,6 +222,7 @@
     "polish": "más precisamente",
     "original": "Como estaba",
     "improved": "Como es correcto",
+    "rule": "Regla",
     "severity": {
       "minor": "corrección leve",
       "moderate": "corrección moderada",

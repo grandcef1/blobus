@@ -206,6 +206,47 @@ function chatHistoryPath(sessionId: string): string {
     return `/api/chat/history?sessionId=${sessionId}`;
 }
 
+/** Событие done последнего хода: текст, карточка, задача и id ответа — то, чем живёт клиент. */
+interface DonePayload {
+    readonly reply: string;
+    readonly followUp: string | null;
+    readonly messageId: string;
+    readonly corrections: readonly unknown[];
+    readonly quiz: {
+        readonly type: string;
+        readonly answer?: string;
+        readonly answerId?: string;
+        readonly prompt?: string;
+    } | null;
+    readonly pending: {
+        readonly kind: string;
+        readonly quizType: string | null;
+        readonly messageId: string;
+    } | null;
+    readonly reveal: string | null;
+    readonly words: readonly { readonly word: string; readonly status: string }[];
+}
+
+/** Событие done из текста ответа: тест читает ровно то, что прислал сервер. */
+function doneOf(text: string): DonePayload {
+    return (parseSse(text).find((entry) => entry.event === "done")?.data ?? {}) as DonePayload;
+}
+
+/** Ответ на викторину уходит отдельным вызовом: квоту сообщения он не расходует (§спец. 3). */
+function answerQuiz(
+    app: RunningApp,
+    jar: Jar,
+    messageId: string,
+    answer: string
+): Promise<Response> {
+    return postJson(
+        app.baseUrl,
+        "/api/chat/quiz-answer",
+        { messageId, answer },
+        mutationHeaders(jar, app.baseUrl)
+    );
+}
+
 /** Сообщения сессии из БД: проверяется, что пара записана или не записана вовсе. */
 async function dbMessages(sessionId: string): Promise<
     readonly {
@@ -501,7 +542,8 @@ describe("POST /api/chat", () => {
             expect(response.status).toBe(429);
             expect(errorBody(await response.json()).error.code).toBe("RATE_LIMITED");
             expect(sentBodies).toHaveLength(sentBefore);
-            expect(await dbMessages(me.sessionId)).toHaveLength(3);
+            // ARCHITECT: canned-приветствие заменяется модельным, поэтому в сессии только пара хода (§спец. 7).
+            expect(await dbMessages(me.sessionId)).toHaveLength(2);
         });
     }, 30_000);
     it("8: happy path — delta и done, карточки валидны, пара сообщений, авто-слово и расход записаны", async () => {
@@ -534,13 +576,9 @@ describe("POST /api/chat", () => {
 
             const messages = await dbMessages(me.sessionId);
 
-            // ARCHITECT: первая реплика ассистента — приветствие, записанное при создании сессии: пара
-            // сообщений идёт после неё, поэтому ответ ищется как последний ассистентский.
-            expect(messages.map((row) => row.role).sort()).toEqual([
-                "assistant",
-                "assistant",
-                "user",
-            ]);
+            // ARCHITECT: первая реплика ассистента — модельное приветствие: canned-приветствие C-6 удалено на
+            // первом ходу, поэтому в сессии остаётся пара хода (§спец. 7).
+            expect(messages.map((row) => row.role).sort()).toEqual(["assistant", "user"]);
             expect(answerPayloads(messages)[0]).toMatchObject({
                 usage: { model: MODEL_ALLOWLIST[0] },
             });
@@ -602,7 +640,7 @@ describe("POST /api/chat", () => {
 
             const messages = await dbMessages(me.sessionId);
 
-            expect(messages).toHaveLength(3);
+            expect(messages).toHaveLength(2);
             expect(answerPayloads(messages)[0]).toMatchObject({ cards: { corrections: [] } });
             expect((await dbUsage(me.id)).messages_used).toBe(1);
             expect(await dbVocabulary(me.id)).toEqual(["deadline"]);
@@ -619,7 +657,7 @@ describe("POST /api/chat", () => {
             expect(deltaText(events)).toBe(ANSWER_TEXT);
             expect(
                 (await dbMessages(me.sessionId)).filter((row) => row.role === "assistant")
-            ).toHaveLength(2);
+            ).toHaveLength(1);
         });
     }, 30_000);
 
@@ -650,8 +688,8 @@ describe("POST /api/chat", () => {
 
             expect(await dbVocabulary(me.id)).toEqual(["cinema"]);
             expect((await dbUsage(me.id)).messages_used).toBe(2);
-            // ARCHITECT: приветствие + две пары сообщений.
-            expect(await dbMessages(me.sessionId)).toHaveLength(5);
+            // ARCHITECT: две пары хода без canned-приветствия: его заменило модельное (§спец. 7).
+            expect(await dbMessages(me.sessionId)).toHaveLength(4);
         });
     }, 30_000);
 
@@ -866,26 +904,18 @@ describe("POST /api/chat", () => {
                 };
 
                 expect(response.status).toBe(200);
-                expect(body.messages.map((message) => message.role)).toEqual([
-                    "assistant",
-                    "user",
-                    "assistant",
-                ]);
-                // ARCHITECT: первое сообщение сессии — приветствие репетитора с профилем голоса: его пишет
-                // сервер при создании сессии, поэтому чат открывается не пустым.
-                expect(body.messages[0]?.content).toContain("Мия");
-                expect(body.messages[0]?.payload).toMatchObject({ voiceId: "en-US-female" });
-                expect(body.messages[1]?.content).toBe(MESSAGE);
-                expect(body.messages[1]?.payload).toEqual({});
-                expect(body.messages[2]?.content).toBe(ANSWER_TEXT);
+                expect(body.messages.map((message) => message.role)).toEqual(["user", "assistant"]);
+                // ARCHITECT: canned-приветствие C-6 заменено модельным: первое сообщение сессии — ответ
+                // репетитора на первую реплику ученика, и профиль голоса лежит в его payload (§спец. 7).
+                expect(body.messages[0]?.content).toBe(MESSAGE);
+                expect(body.messages[0]?.payload).toEqual({});
+                expect(body.messages[1]?.content).toBe(ANSWER_TEXT);
+                expect(body.messages[1]?.payload).toMatchObject({ voiceId: "en-US-female" });
                 // ARCHITECT: карточки и usage — те же данные, что ушли событием done: история отдаёт их как payload.
-                expect(body.messages[2]?.payload.cards).toMatchObject({ quiz: { type: "choice" } });
-                expect(body.messages[2]?.payload.usage).toMatchObject({
+                expect(body.messages[1]?.payload.cards).toMatchObject({ quiz: { type: "choice" } });
+                expect(body.messages[1]?.payload.usage).toMatchObject({
                     model: MODEL_ALLOWLIST[0],
                 });
-                expect(Date.parse(body.messages[1]?.createdAt ?? "")).toBeLessThanOrEqual(
-                    Date.parse(body.messages[2]?.createdAt ?? "")
-                );
             });
         }, 30_000);
 
@@ -907,7 +937,7 @@ describe("POST /api/chat", () => {
     });
 
     describe("план урока и ход из двух частей", () => {
-        it("19: разбор и следующая активность сохраняются отдельными сообщениями и приходят в done", async () => {
+        it("19: вторая часть хода отложена, пока задача-викторина открыта", async () => {
             await withApp(async (app) => {
                 const me = await userWithSession(app.baseUrl);
                 openRouterReply = () =>
@@ -919,6 +949,8 @@ describe("POST /api/chat", () => {
                 const payload = events.find((entry) => entry.event === "done")?.data as {
                     readonly reply: string;
                     readonly followUp: string | null;
+                    readonly messageId: string;
+                    readonly pending: { readonly kind: string; readonly messageId: string } | null;
                     readonly plan: {
                         readonly rule: string;
                         readonly step: number;
@@ -928,7 +960,11 @@ describe("POST /api/chat", () => {
                 };
 
                 expect(payload.reply).toBe(ANSWER_TEXT);
-                expect(payload.followUp).toBe(FOLLOW_UP);
+                // ARCHITECT: ход с ошибкой выдаёт карточку-задание: вторая часть хода (следующее задание)
+                // отложена и не уходит клиенту, пока на викторину не ответили (§спец. 1, 2).
+                expect(payload.followUp).toBeNull();
+                expect(payload.pending).toMatchObject({ kind: "quiz" });
+                expect(payload.pending?.messageId).toBe(payload.messageId);
                 // ARCHITECT: план урока уходит вместе с ответом: карточка цели и прогресс без отдельного запроса.
                 expect(payload.plan.total).toBe(6);
                 expect(payload.plan.wordsTotal).toBe(5);
@@ -937,12 +973,20 @@ describe("POST /api/chat", () => {
                 // ARCHITECT: целевых слов в DTO нет по конструкции: наружу уходят только счётчики (§16.6).
                 expect(Object.keys(payload.plan)).not.toContain("targetWords");
 
-                // ARCHITECT: приветствие + реплика ученика + разбор + вторая часть: обе части хода — свои строки,
-                // поэтому после перезагрузки ленты они стоят в том же порядке.
+                // ARCHITECT: отложенная часть живёт в payload своего сообщения: её отпустит ответ на викторину,
+                // поэтому в ленте второй части пока нет.
                 const rows = await dbMessages(me.sessionId);
+                const reply = answerPayloads(rows)[0] as
+                    | {
+                          readonly held?: unknown;
+                          readonly words?: unknown;
+                          readonly cards?: { readonly quiz?: unknown };
+                      }
+                    | undefined;
 
-                expect(rows).toHaveLength(4);
-                expect(rows.map((row) => row.content)).toContain(FOLLOW_UP);
+                expect(rows).toHaveLength(2);
+                expect(reply?.held).toBe(FOLLOW_UP);
+                expect(reply?.cards?.quiz).toMatchObject({ type: "choice" });
 
                 const response = await getJson(app.baseUrl, chatHistoryPath(me.sessionId), me.jar);
                 const body = (await response.json()) as {
@@ -951,10 +995,8 @@ describe("POST /api/chat", () => {
                 };
 
                 expect(body.messages.map((message) => message.content)).toEqual([
-                    expect.stringContaining("Мия"),
                     MESSAGE,
                     ANSWER_TEXT,
-                    FOLLOW_UP,
                 ]);
                 expect(body.plan?.step).toBe(1);
             });
@@ -973,6 +1015,11 @@ describe("POST /api/chat", () => {
                 expect(system).toContain("Цель урока:");
                 expect(system).toContain("Правило урока:");
                 expect(system).toContain("Текущая активность:");
+                // ARCHITECT: правила машины хода описаны модели: одно задание за раз, задание живёт в карточке
+                // или в явном вопросе, а пропуск в прозе запрещён (§спец. 1, 2, 6).
+                expect(system).toContain("Активной задачи нет");
+                expect(system).toContain("Никогда не повторяй в тексте задание");
+                expect(system).toContain("первый ход урока");
                 // ARCHITECT: основа ответа — английский, объяснения ограничены одним-двумя предложениями.
                 expect(system).toContain("одного-двух предложений");
                 expect(system).toContain("многословные разборы запрещены");
@@ -1185,17 +1232,27 @@ describe("POST /api/chat", () => {
                         }),
                     ]);
 
-                let quiz: unknown = null;
+                const quizzes: unknown[] = [];
+                const pending: unknown[] = [];
 
-                for (let turn = 0; turn < 4; turn += 1)
-                    quiz = donePayload(
-                        parseSse(await (await sendMessage(app, me.jar, me.sessionId)).text())
-                    ).quiz;
+                for (let turn = 0; turn < 2; turn += 1) {
+                    const payload = doneOf(
+                        await (await sendMessage(app, me.jar, me.sessionId)).text()
+                    );
 
-                expect(quiz).not.toBeNull();
+                    quizzes.push(payload.quiz);
+                    pending.push(payload.pending);
+                }
+
+                // ARCHITECT: карточку собрал сервер: тип задан движком, верный ответ остался на сервере.
+                expect(quizzes[0]).not.toBeNull();
                 expect(["choice", "gap-fill", "word-order"]).toContain(
-                    (quiz as { readonly type: string }).type
+                    (quizzes[0] as { readonly type: string }).type
                 );
+                // ARCHITECT: ход выдал задачу, поэтому следующий ход её не подменяет: пока задача открыта,
+                // новой карточки нет (§спец. 1).
+                expect(pending[0]).toMatchObject({ kind: "quiz" });
+                expect(quizzes[1]).toBeNull();
             });
         }, 60_000);
 
@@ -1218,7 +1275,9 @@ describe("POST /api/chat", () => {
 
                 const rows = await dbMessages(me.sessionId);
 
-                expect(rows.filter((row) => row.content.includes("Мия"))).toHaveLength(1);
+                // ARCHITECT: canned-приветствие заменено модельным и при возврате в урок не повторяется:
+                // строки с именем репетитора в ленте больше нет (§спец. 7).
+                expect(rows.filter((row) => row.content.includes("Мия"))).toHaveLength(0);
             });
         }, 60_000);
 
@@ -1241,11 +1300,362 @@ describe("POST /api/chat", () => {
                 expect(words).toHaveLength(5);
                 expect(words[0]).toEqual({ word: "deadline", meaning: "срок", status: "hidden" });
 
+                // ARCHITECT: блок слов сохраняется рядом с карточками: после перезагрузки ленты итог урока
+                // остаётся читаемым (§спец. 10).
+                const rows = await dbMessages(me.sessionId);
+                const reply = answerPayloads(rows)[0] as
+                    { readonly words?: readonly unknown[] } | undefined;
+
+                expect(reply?.words).toHaveLength(5);
+
                 const state = await dbLessonState(me.sessionId);
 
                 expect(state?.stage).toBe("S6");
                 expect(state?.pacing_mode).toBe("LAST");
             });
         }, 30_000);
+
+        describe("машина хода", () => {
+            it("30: вторая часть уходит только после верного ответа на викторину", async () => {
+                await withApp(async (app) => {
+                    const me = await userWithSession(app.baseUrl);
+                    openRouterReply = () =>
+                        sseResponse([
+                            rawReply(ANSWER_TEXT, { ...VALID_CARDS, followUp: FOLLOW_UP }),
+                        ]);
+
+                    const first = doneOf(
+                        await (await sendMessage(app, me.jar, me.sessionId)).text()
+                    );
+
+                    // ARCHITECT: пока задача-викторина открыта, следующее задание не уходит (§спец. 2).
+                    expect(first.followUp).toBeNull();
+                    expect(first.pending).toMatchObject({ kind: "quiz" });
+
+                    const answered = await answerQuiz(app, me.jar, first.messageId, "b");
+                    const payload = (await answered.json()) as {
+                        readonly correct: boolean;
+                        readonly released: string | null;
+                    };
+
+                    expect(answered.status).toBe(200);
+                    expect(payload.correct).toBe(true);
+                    // ARCHITECT: верный ответ отпускает отложенную вторую часть (§спец. 3).
+                    expect(payload.released).toBe(FOLLOW_UP);
+                    // ARCHITECT: ответ на викторину не расходует сообщение: ход уже оплачен (§спец. 3).
+                    expect((await dbUsage(me.id)).messages_used).toBe(1);
+
+                    // отпущенная часть сохраняется сообщением: лента показывает её после перезагрузки
+                    const rows = await dbMessages(me.sessionId);
+
+                    expect(rows.map((row) => row.content)).toContain(FOLLOW_UP);
+
+                    const history = await getJson(
+                        app.baseUrl,
+                        chatHistoryPath(me.sessionId),
+                        me.jar
+                    );
+                    const body = (await history.json()) as {
+                        readonly messages: readonly {
+                            readonly payload: {
+                                readonly quizState?: { readonly answered?: boolean };
+                            };
+                        }[];
+                    };
+
+                    expect(
+                        body.messages.some((row) => row.payload.quizState?.answered === true)
+                    ).toBe(true);
+                });
+            }, 60_000);
+
+            it("31: неверный ответ упрощает викторину, вторая ошибка раскрывает верный ответ", async () => {
+                await withApp(async (app) => {
+                    const me = await userWithSession(app.baseUrl);
+                    openRouterReply = () =>
+                        sseResponse([
+                            rawReply(ANSWER_TEXT, { ...VALID_CARDS, followUp: FOLLOW_UP }),
+                        ]);
+
+                    const first = doneOf(
+                        await (await sendMessage(app, me.jar, me.sessionId)).text()
+                    );
+                    const wrong = (await (
+                        await answerQuiz(app, me.jar, first.messageId, "a")
+                    ).json()) as {
+                        readonly correct: boolean;
+                        readonly quiz: {
+                            readonly type: string;
+                            readonly options?: readonly unknown[];
+                        } | null;
+                        readonly reveal: string | null;
+                    };
+
+                    expect(wrong.correct).toBe(false);
+                    // ARCHITECT: упрощённый повтор — выбор из двух вариантов (§спец. 3).
+                    expect(wrong.quiz?.type).toBe("choice");
+                    expect(wrong.quiz?.options).toHaveLength(2);
+                    expect(wrong.reveal).toBeNull();
+
+                    const last = (await (
+                        await answerQuiz(app, me.jar, first.messageId, "a")
+                    ).json()) as {
+                        readonly reveal: string | null;
+                        readonly released: string | null;
+                    };
+
+                    // ARCHITECT: попытки исчерпаны: сервер раскрывает верный ответ и отпускает отложенную часть.
+                    expect(last.reveal).toBe("went");
+                    expect(last.released).toBe(FOLLOW_UP);
+                });
+            }, 60_000);
+
+            it("32: русский текст не даёт карточку исправления и не выдаёт задание", async () => {
+                await withApp(async (app) => {
+                    const me = await userWithSession(app.baseUrl);
+                    openRouterReply = () =>
+                        sseResponse([
+                            rawReply(ANSWER_TEXT, { ...VALID_CARDS, followUp: FOLLOW_UP }),
+                        ]);
+
+                    const first = doneOf(
+                        await (
+                            await sendMessage(
+                                app,
+                                me.jar,
+                                me.sessionId,
+                                "Как правильно сказать про вчера?"
+                            )
+                        ).text()
+                    );
+
+                    // ARCHITECT: ошибки в русском тексте не разбираем: карточек правки и викторины нет (§спец. 5).
+                    expect(first.corrections).toEqual([]);
+                    expect(first.quiz).toBeNull();
+                    expect(first.pending).toMatchObject({ kind: "open" });
+
+                    const second = doneOf(
+                        await (
+                            await sendMessage(app, me.jar, me.sessionId, "Не понимаю, что писать")
+                        ).text()
+                    );
+
+                    // ARCHITECT: задача остаётся той же, а счётчик попыток растёт: новое задание не выдаётся.
+                    expect(second.pending?.messageId).toBe(first.pending?.messageId);
+                    expect(second.pending).toMatchObject({ kind: "open" });
+                    expect(second.corrections).toEqual([]);
+                });
+            }, 60_000);
+
+            it("33: открытая задача блокирует новое задание и закрывается после третьей попытки", async () => {
+                await withApp(async (app) => {
+                    const me = await userWithSession(app.baseUrl);
+                    // Чистый первый ход: ошибки нет, викторина не обязательна — задачей становится вопрос M2.
+                    openRouterReply = () =>
+                        sseResponse([
+                            rawReply(ANSWER_TEXT, { ...CLEAN_CARDS, followUp: FOLLOW_UP }),
+                        ]);
+
+                    const first = doneOf(
+                        await (
+                            await sendMessage(
+                                app,
+                                me.jar,
+                                me.sessionId,
+                                "I usually walk to work in the morning."
+                            )
+                        ).text()
+                    );
+
+                    expect(first.followUp).toBe(FOLLOW_UP);
+                    expect(first.pending).toMatchObject({ kind: "open" });
+
+                    const followUps: (string | null)[] = [];
+                    const taskIds: (string | undefined)[] = [];
+                    const kinds: (string | undefined)[] = [];
+
+                    for (let attempt = 0; attempt < 3; attempt += 1) {
+                        const payload = doneOf(
+                            await (await sendMessage(app, me.jar, me.sessionId, "ok")).text()
+                        );
+
+                        followUps.push(payload.followUp);
+                        taskIds.push(payload.pending?.messageId);
+                        kinds.push(payload.pending?.kind);
+                    }
+
+                    // ARCHITECT: пока задача открыта, вторая часть не уходит и задача та же самая; три сообщения
+                    // не по сути закрывают её, и ход выдаёт следующее задание (§спец. 4).
+                    expect(followUps.slice(0, 2)).toEqual([null, null]);
+                    expect(kinds.slice(0, 2)).toEqual(["open", "open"]);
+                    expect(taskIds[0]).toBe(first.pending?.messageId);
+                    expect(taskIds[1]).toBe(first.pending?.messageId);
+                    expect(taskIds[2]).not.toBe(first.pending?.messageId);
+                    expect(kinds[2]).not.toBeUndefined();
+                });
+            }, 90_000);
+
+            it("34: задание с пропуском в прозе превращается в карточку gap-fill", async () => {
+                await withApp(async (app) => {
+                    const me = await userWithSession(app.baseUrl);
+                    const prose = "Complete the sentence: I ___ home early.";
+                    openRouterReply = () =>
+                        sseResponse([rawReply(ANSWER_TEXT, { ...CLEAN_CARDS, followUp: prose })]);
+
+                    const first = doneOf(
+                        await (
+                            await sendMessage(
+                                app,
+                                me.jar,
+                                me.sessionId,
+                                "I usually walk to work in the morning."
+                            )
+                        ).text()
+                    );
+
+                    // ARCHITECT: пропуск живёт только в карточке: сервер собрал gap-fill, а задание из прозы убрал
+                    // (текст второй части не ушёл вовсе).
+                    expect(first.quiz?.type).toBe("gap-fill");
+                    expect(first.quiz?.prompt).toContain("___");
+                    expect(first.followUp).toBeNull();
+                    expect(first.pending).toMatchObject({ kind: "quiz", quizType: "gap-fill" });
+                });
+            }, 60_000);
+
+            it("35: состояние викторины переживает перезагрузку, повтор невозможен", async () => {
+                await withApp(async (app) => {
+                    const me = await userWithSession(app.baseUrl);
+                    openRouterReply = () =>
+                        sseResponse([
+                            rawReply(ANSWER_TEXT, { ...VALID_CARDS, followUp: FOLLOW_UP }),
+                        ]);
+
+                    const first = doneOf(
+                        await (await sendMessage(app, me.jar, me.sessionId)).text()
+                    );
+
+                    await (await answerQuiz(app, me.jar, first.messageId, "a")).text();
+
+                    const history = await getJson(
+                        app.baseUrl,
+                        chatHistoryPath(me.sessionId),
+                        me.jar
+                    );
+                    const body = (await history.json()) as {
+                        readonly messages: readonly {
+                            readonly payload: {
+                                readonly quizState?: {
+                                    readonly attempts?: number;
+                                    readonly answered?: boolean;
+                                };
+                                readonly cards?: {
+                                    readonly quiz?: {
+                                        readonly type: string;
+                                        readonly options?: readonly unknown[];
+                                    };
+                                };
+                            };
+                        }[];
+                    };
+                    const quizMessage = body.messages.find(
+                        (row) => row.payload.quizState !== undefined
+                    );
+
+                    expect(quizMessage?.payload.quizState).toMatchObject({
+                        answered: false,
+                        attempts: 1,
+                    });
+                    // ARCHITECT: упрощённый повтор лежит в той же карточке: после перезагрузки ленты он виден.
+                    expect(quizMessage?.payload.cards?.quiz?.type).toBe("choice");
+                    expect(quizMessage?.payload.cards?.quiz?.options).toHaveLength(2);
+
+                    // Верный ответ закрывает задачу, а третья попытка по той же карточке отсекается.
+                    const correct = await answerQuiz(app, me.jar, first.messageId, "b");
+
+                    expect(correct.status).toBe(200);
+
+                    const repeat = await answerQuiz(app, me.jar, first.messageId, "b");
+
+                    expect(repeat.status).toBe(400);
+                });
+            }, 60_000);
+
+            it("37: тип викторины задаёт сервер: выбор не реже каждого третьего задания", async () => {
+                await withApp(async (app) => {
+                    const me = await userWithSession(app.baseUrl);
+                    // Модель не даёт ни карточки, ни второй части: задание целиком собирает сервер.
+                    openRouterReply = () =>
+                        sseResponse([
+                            rawReply(ANSWER_TEXT, {
+                                corrections: VALID_CARDS.corrections,
+                                quiz: null,
+                                vocabWord: null,
+                            }),
+                        ]);
+
+                    const types: string[] = [];
+                    let answer = "";
+
+                    for (let turn = 0; turn < 4; turn += 1) {
+                        const payload = doneOf(
+                            await (
+                                await sendMessage(app, me.jar, me.sessionId, MESSAGE, {
+                                    quizAnswer: answer === "" ? undefined : answer,
+                                })
+                            ).text()
+                        );
+                        const quiz = payload.quiz;
+
+                        types.push(quiz?.type ?? "none");
+                        answer =
+                            quiz?.type === "choice" ? (quiz.answerId ?? "") : (quiz?.answer ?? "");
+                    }
+
+                    expect(types).toHaveLength(4);
+                    // ARCHITECT: выбор обязателен не реже каждого третьего задания (§спец. 8).
+                    for (let start = 0; start + 3 <= types.length; start += 1)
+                        expect(types.slice(start, start + 3)).toContain("choice");
+
+                    // Один тип не идёт три задания подряд.
+                    for (let start = 0; start + 3 <= types.length; start += 1)
+                        expect(new Set(types.slice(start, start + 3)).size).toBeGreaterThan(1);
+                });
+            }, 90_000);
+
+            it("38: чужую викторину не проверяет никто, кроме владельца", async () => {
+                await withApp(async (app) => {
+                    const owner = await userWithSession(app.baseUrl);
+                    openRouterReply = () =>
+                        sseResponse([
+                            rawReply(ANSWER_TEXT, { ...VALID_CARDS, followUp: FOLLOW_UP }),
+                        ]);
+
+                    const card = doneOf(
+                        await (await sendMessage(app, owner.jar, owner.sessionId)).text()
+                    );
+                    const stranger = await userWithSession(app.baseUrl);
+
+                    // ARCHITECT: чужая и несуществующая карточка отвечают одинаково: существование чужих
+                    // сообщений не подтверждается (§16.4).
+                    expect((await answerQuiz(app, stranger.jar, card.messageId, "b")).status).toBe(
+                        404
+                    );
+                    expect(
+                        (
+                            await answerQuiz(
+                                app,
+                                stranger.jar,
+                                "00000000-0000-4000-8000-000000000000",
+                                "b"
+                            )
+                        ).status
+                    ).toBe(404);
+                    // Владелец по той же карточке получает вердикт от сервера.
+                    expect((await answerQuiz(app, owner.jar, card.messageId, "b")).status).toBe(
+                        200
+                    );
+                });
+            }, 60_000);
+        });
     });
 });

@@ -48,6 +48,8 @@ function message(role: "user" | "assistant", content: string, live: boolean): Ch
         voiceId: null,
         createdAt: AT,
         words: [],
+        serverId: `${role}-${content}`,
+        quizState: null,
         live,
     };
 }
@@ -134,5 +136,19 @@ describe("RealChatFeed", () => {
         expect(screen.getByLabelText("Репетитор печатает")).toBeInTheDocument();
         expect(screen.getByText("Остановить")).toBeInTheDocument();
         expect(container.querySelectorAll("div[aria-hidden='true']")).toHaveLength(0);
+    });
+
+    it("6.5 прокрутка живёт только в ленте: у страницы своей прокрутки нет", () => {
+        const { container } = renderWithProviders(
+            <RealChatFeed {...BASE} messages={[message("assistant", "Привет", true)]} />
+        );
+        const scrollers = container.querySelectorAll(".overflow-y-auto");
+
+        // ARCHITECT: единственная прокручиваемая область — сама лента (§спец. 1).
+        expect(scrollers).toHaveLength(1);
+        // ARCHITECT: min-h-0 не даёт флекс-строке вырасти по контенту: без него расти начала бы страница, а
+        // шапка и поле ввода уезжали бы вверх.
+        expect(scrollers[0]?.className).toContain("min-h-0");
+        expect(scrollers[0]?.className).toContain("flex-1");
     });
 });

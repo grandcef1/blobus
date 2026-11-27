@@ -83,7 +83,7 @@ interface GroupEntryProps {
     readonly animate: boolean;
     readonly streaming: boolean;
     readonly isLast: boolean;
-    readonly onQuizAnswered: (answer: string) => void;
+    readonly onQuizAnswered: (serverId: string, answer: string) => void;
 }
 
 /** Одна реплика группы: пузырь, карточки ответа, блок слов итогового хода и время у последней. */
@@ -101,6 +101,9 @@ function GroupEntry({
     const { message, prev, next, position } = entry;
     const corrections = next?.cards?.corrections ?? [];
     const isUser = message.role === "user";
+    // ARCHITECT: ответ на задание уходит по id сохранённого сообщения: у реплики из истории он свой, у живой —
+    // из события done (§спец. 3). Без id карточка остаётся только для чтения.
+    const serverId = message.serverId;
     const polish = isUser
         ? corrections.filter((correction) => correction.kind === "polish").map((c) => c.rule)
         : NO_TEXT;
@@ -140,7 +143,15 @@ function GroupEntry({
                         source={prev?.content ?? null}
                         level={level}
                     />
-                    <QuizRow quiz={message.cards.quiz} onAnswer={onQuizAnswered} />
+                    <QuizRow
+                        quiz={message.cards.quiz}
+                        state={message.quizState}
+                        onAnswer={
+                            serverId === null
+                                ? undefined
+                                : (answer) => onQuizAnswered(serverId, answer)
+                        }
+                    />
                     <VocabRow word={message.cards.vocabWord} />
                 </div>
             )}
@@ -170,7 +181,7 @@ interface MessageGroupProps {
     readonly animateLast: boolean;
     /** Последняя реплика ленты ещё печатается: кнопки озвучки у неё нет. */
     readonly streamingLast: boolean;
-    readonly onQuizAnswered: (answer: string) => void;
+    readonly onQuizAnswered: (serverId: string, answer: string) => void;
 }
 
 /** Группа реплик одного отправителя: внутри группы тесно, между группами лента даёт паузу. */

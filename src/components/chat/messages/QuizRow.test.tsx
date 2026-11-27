@@ -46,4 +46,58 @@ describe("QuizRow", () => {
         expect(onAnswer).toHaveBeenCalledWith("is");
         expect(screen.getAllByText(/Неверно/)).toHaveLength(1);
     });
+
+    it("6.3 заголовок карточки — «Задание»", () => {
+        renderWithProviders(<QuizRow quiz={CHOICE} />);
+
+        expect(screen.getByText("Задание")).toBeInTheDocument();
+        expect(screen.queryByText("Викторина")).toBeNull();
+    });
+
+    it("6.4 закрытое задание показывает выбранный и верный вариант, кнопок нет", () => {
+        renderWithProviders(
+            <QuizRow
+                quiz={CHOICE}
+                state={{ answered: true, selected: "a", correct: false, revealed: true }}
+            />
+        );
+
+        // ARCHITECT: в payload у выбора лежит id опции, а в карточке показывается сам вариант.
+        expect(screen.getByText("Ваш ответ")).toBeInTheDocument();
+        expect(screen.getByText("go")).toBeInTheDocument();
+        expect(screen.getByText("Верный ответ")).toBeInTheDocument();
+        expect(screen.getByText("went")).toBeInTheDocument();
+        // ARCHITECT: повторное прохождение невозможно: у закрытого задания нет ни одной кнопки (§спец. 9).
+        expect(screen.queryAllByRole("button")).toHaveLength(0);
+    });
+
+    it("6.5 верный ответ не дублируется двумя одинаковыми строками", () => {
+        renderWithProviders(
+            <QuizRow
+                quiz={CHOICE}
+                state={{ answered: true, selected: "b", correct: true, revealed: false }}
+            />
+        );
+
+        expect(screen.queryByText("Ваш ответ")).toBeNull();
+        expect(screen.getByText("Верный ответ")).toBeInTheDocument();
+        expect(screen.getByText("went")).toBeInTheDocument();
+    });
+
+    it("6.6 незакрытое задание остаётся проходимым: состояние ответа не блокирует карточку", async () => {
+        const onAnswer = vi.fn();
+        const user = userEvent.setup();
+
+        renderWithProviders(
+            <QuizRow
+                quiz={CHOICE}
+                state={{ answered: false, selected: "a", correct: false, revealed: false }}
+                onAnswer={onAnswer}
+            />
+        );
+
+        await user.click(screen.getByRole("button", { name: /went/ }));
+
+        expect(onAnswer).toHaveBeenCalledWith("b");
+    });
 });

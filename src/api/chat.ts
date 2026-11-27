@@ -62,14 +62,56 @@ export const WORD_STATUSES = ["hidden", "introduced", "recognized", "produced"] 
 
 export type WordStatus = (typeof WORD_STATUSES)[number];
 
-/**
- * Слово урока из блока WRAP: значение и статус. Список раскрывает сервер только в итоговом ходу, поэтому
+/** Слово урока из блока WRAP: значение и статус. Список раскрывает сервер только в итоговом ходу, поэтому
  * раньше этих данных у клиента нет вовсе (§16.6).
  */
 export interface ChatWordView {
     readonly word: string;
     readonly meaning: string;
     readonly status: WordStatus;
+}
+
+/** Активная задача хода: одна за раз. Пока она открыта, следующее задание сервер не выдаёт (§спец. 1). */
+export interface ChatPending {
+    readonly kind: "quiz" | "open";
+    readonly quizType: string | null;
+    /** id сообщения с карточкой: по нему уходит ответ викторины отдельным вызовом. */
+    readonly messageId: string;
+}
+
+/** Тело запроса ответа на викторину: id карточки и выбранный вариант (§спец. 3). */
+export interface ChatQuizAnswerInput {
+    readonly messageId: string;
+    readonly answer: string;
+}
+
+/** Ответ сервера на попытку: верность, упрощённый повтор, отпущенное задание и раскрытый верный ответ. */
+export interface ChatQuizAnswerResult {
+    readonly correct: boolean;
+    /** Упрощённый повтор: выбор из двух вариантов, пока попытки не исчерпаны. */
+    readonly quiz: ChatQuiz | null;
+    /** Отложенная вторая часть хода: приходит после верного ответа или раскрытия. */
+    readonly released: string | null;
+    /** Верный ответ: раскрывается после исчерпания попыток. */
+    readonly reveal: string | null;
+}
+
+/**
+ * Ответ на викторину: отдельный вызов, который не расходует сообщение — ход уже оплачен (§спец. 3).
+ * Верность ответа решает сервер, поэтому клиент присылает только выбор ученика и id карточки.
+ */
+export async function sendQuizAnswer(input: ChatQuizAnswerInput): Promise<ChatQuizAnswerResult> {
+    const raw = await apiFetch<unknown>("/chat/quiz-answer", { method: "POST", body: input });
+    const record = asRecord(raw);
+
+    if (record === null || typeof record.correct !== "boolean") throw streamFailure();
+
+    return {
+        correct: record.correct,
+        quiz: record.quiz === null || record.quiz === undefined ? null : readQuiz(record.quiz),
+        released: readOptionalString(record.released, 600) || null,
+        reveal: readOptionalString(record.reveal, 300) || null,
+    };
 }
 
 /** Токены, модель и остаток дневной квоты: остаток считает сервер, клиент его не выводит. */
@@ -90,6 +132,12 @@ export interface ChatReply {
     readonly vocabWord: ChatVocabWord | null;
     /** План урока: null — сервер его не прислал (старая запись) или форма не разобралась. */
     readonly plan: ChatLessonPlan | null;
+    /** id сохранённого ответа: по нему уходит ответ викторины отдельным вызовом (§спец. 3). */
+    readonly messageId: string | null;
+    /** Активная задача: null — задание закрыто, следующее придёт очередным ходом. */
+    readonly pending: ChatPending | null;
+    /** Верный ответ, раскрытый после исчерпания попыток викторины; иначе null. */
+    readonly reveal: string | null;
     /** Блок слов итогового хода: пусто — урок ещё идёт, список слов не раскрыт. */
     readonly words: readonly ChatWordView[];
     /** Профиль голоса репетитора: null — сервер его не прислал, озвучки не будет. */
@@ -112,13 +160,23 @@ export interface ChatLessonPlan {
     readonly completed: boolean;
 }
 
+// ARCHITECT: ответ на задание уходит отдельным вызовом (/chat/quiz-answer), а не вместе со следующим
+// сообщением: так вторая часть хода приходит сразу после ответа, а не после новой реплики (§спец. 3).
 /** Тело запроса: два поля контракта POST /api/chat — userId, уровень и квота не отправляются (§16.2). */
 export interface ChatRequestInput {
     readonly sessionId: string;
     readonly message: string;
-    // ARCHITECT: выбранный вариант викторины уходит вместе со следующим сообщением, а верность сверяет сервер
-    // по сохранённому ответу: клиент присылает выбор ученика, а не решение о том, верно ли он ответил (§16.2).
-    readonly quizAnswer?: string;
+}
+
+/**
+ * Состояние задания из payload сообщения: после перезагрузки ленты видно, что ответ уже дан, и повторное
+ * прохождение невозможно. Счётчик попыток на клиенте не нужен — показывать его нечем (§спец. 9).
+ */
+export interface ChatQuizState {
+    readonly answered: boolean;
+    readonly selected: string | null;
+    readonly correct: boolean;
+    readonly revealed: boolean;
 }
 
 export interface ChatStreamHandlers {
@@ -359,6 +417,18 @@ function readPlan(value: unknown): ChatLessonPlan | null {
     return { goal, rule, step, total, wordsDone, wordsTotal, completed: record.completed === true };
 }
 
+// ARCHITECT: задача хода — данные сервера: чужая форма значит «задачи нет», а не битый ответ (§16.8).
+function readPending(value: unknown): ChatPending | null {
+    const record = asRecord(value);
+    if (record === null) return null;
+
+    const kind = record.kind === "quiz" || record.kind === "open" ? record.kind : null;
+    const messageId = readString(record.messageId, 64);
+    const quizType = readOptionalString(record.quizType, 32) || null;
+
+    return kind === null || messageId === null ? null : { kind, quizType, messageId };
+}
+
 /** Разбор события done: чужая форма — null, то есть битый ответ, а не карточки для рендера. */
 function readReply(value: unknown): ChatReply | null {
     const record = asRecord(value);
@@ -393,6 +463,11 @@ function readReply(value: unknown): ChatReply | null {
         quiz,
         vocabWord,
         plan: record.plan === undefined ? null : readPlan(record.plan),
+        // ARCHITECT: id ответа и задача — данные сервера: их форма проверяется, а чужая значит «нет данных»,
+        // поэтому текст репетитора и карточки остаются читаемыми (§16.8).
+        messageId: readString(record.messageId, 64),
+        pending: record.pending === undefined ? null : readPending(record.pending),
+        reveal: readOptionalString(record.reveal, 300) || null,
         // ARCHITECT: блок слов итогового хода — данные сервера, но форма проверяется: чужая форма значит
         // «блока нет», а не битый ответ: подводка репетитора остаётся читаемой (§16.8).
         words: readWords(record.words) ?? [],
@@ -420,6 +495,8 @@ export interface ChatHistoryMessage {
     readonly createdAt: number;
     /** Блок слов итогового хода: пусто — урок ещё идёт. */
     readonly words: readonly ChatWordView[];
+    /** Состояние задания: null — задания в сообщении не было или ответа ещё нет. */
+    readonly quizState: ChatQuizState | null;
 }
 
 // ARCHITECT: payload строки писал наш роутер, но источник карточек — модель, то есть недоверенный вывод (§16.8):
@@ -461,6 +538,24 @@ function readStoredWords(payload: unknown): ChatWordView[] {
     return record === null ? [] : (readWords(record.words) ?? []);
 }
 
+// ARCHITECT: состояние задания читается из payload теми же полями, что пишет сервер, но без счётчика попыток:
+// битая форма значит «ответа не было», и карточка остаётся проходимой (§16.8).
+function readStoredQuizState(payload: unknown): ChatQuizState | null {
+    const record = asRecord(payload);
+    const state = record === null ? null : asRecord(record.quizState);
+
+    if (state === null || typeof state.answered !== "boolean") return null;
+
+    const selected = readOptionalString(state.selected, 300);
+
+    return {
+        answered: state.answered,
+        selected: selected === "" ? null : selected,
+        correct: state.correct === true,
+        revealed: state.revealed === true,
+    };
+}
+
 /** Строка конверта истории: форма недоверенная, поэтому каждое поле читается отдельно. */
 function readHistoryMessage(value: unknown): ChatHistoryMessage | null {
     const record = asRecord(value);
@@ -482,6 +577,8 @@ function readHistoryMessage(value: unknown): ChatHistoryMessage | null {
         // ARCHITECT: время сохраняется для группировки: по нему лента решает, где кончается группа (§спец. 1).
         createdAt: readTimestamp(record.createdAt),
         words: role === "assistant" ? readStoredWords(record.payload) : [],
+        // ARCHITECT: состояние задания переживает перезагрузку: по нему карточка запирается (§спец. 9).
+        quizState: role === "assistant" ? readStoredQuizState(record.payload) : null,
     };
 }
 

@@ -16,6 +16,7 @@ vi.mock("@/api/client", async (importOriginal) => {
 });
 
 const SESSION_ID = "5b1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a11";
+const MESSAGE_ID = "7c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a22";
 const encoder = new TextEncoder();
 
 /** Ответ с потоком: чанки режутся как сеть — по границам, а не по кадрам. */
@@ -105,32 +106,41 @@ describe("streamChatReply", () => {
         });
     });
 
-    it("2.1.1 передаёт выбор викторины в теле запроса", async () => {
-        apiStreamMock.mockResolvedValue(
-            streamResponse([
-                frame("done", {
-                    reply: "Hi",
-                    corrections: [],
-                    quiz: null,
-                    vocabWord: null,
-                    usage: USAGE,
-                }),
-            ])
-        );
-
-        const { streamChatReply } = await import("@/api/chat");
-
-        await streamChatReply(
-            { sessionId: SESSION_ID, message: "Hi", quizAnswer: "b" },
-            { signal: new AbortController().signal, onDelta: () => undefined }
-        );
-
-        // ARCHITECT: выбор викторины уходит полем тела: верность сверяет сервер по своей карточке (§16.2).
-        expect(apiStreamMock).toHaveBeenCalledWith("/chat", {
-            method: "POST",
-            body: { sessionId: SESSION_ID, message: "Hi", quizAnswer: "b" },
-            signal: expect.anything(),
+    it("2.1.1 ответ на задание уходит отдельным вызовом, а не вместе с сообщением", async () => {
+        apiFetchMock.mockResolvedValue({
+            correct: false,
+            quiz: null,
+            released: null,
+            reveal: "went",
         });
+
+        const { sendQuizAnswer } = await import("@/api/chat");
+        const result = await sendQuizAnswer({ messageId: MESSAGE_ID, answer: "go" });
+
+        expect(apiFetchMock).toHaveBeenCalledWith("/chat/quiz-answer", {
+            method: "POST",
+            body: { messageId: MESSAGE_ID, answer: "go" },
+        });
+        // ARCHITECT: верность и раскрытый вариант приходят с сервера: клиент их не решает, а только показывает.
+        expect(result).toEqual({ correct: false, quiz: null, released: null, reveal: "went" });
+    });
+
+    it("2.1.2 у закрытой задачи приходит текст второй части хода, а карточки нет", async () => {
+        apiFetchMock.mockResolvedValue({
+            correct: true,
+            quiz: null,
+            released: "Now say it about yesterday.",
+            reveal: null,
+        });
+
+        const { sendQuizAnswer } = await import("@/api/chat");
+        const result = await sendQuizAnswer({ messageId: MESSAGE_ID, answer: "b" });
+
+        expect(result.correct).toBe(true);
+        expect(result.released).toBe("Now say it about yesterday.");
+        // ARCHITECT: упрощённая карточка приходит только пока задача открыта: у закрытой её нет.
+        expect(result.quiz).toBeNull();
+        expect(result.reveal).toBeNull();
     });
 
     it("2.2 держит кадр, разрезанный на два чанка", async () => {

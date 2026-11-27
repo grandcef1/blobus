@@ -128,9 +128,11 @@
     }
   },
   "quiz": {
-    "title": "Quiz",
+    "title": "Task",
     "optionsLabel": "Answer options",
     "incorrect": "Not quite. Try again.",
+    "yourAnswer": "Your answer",
+    "rightAnswer": "Right answer",
     "correctAnswer": "The right answer is “{{answer}}”. {{explanation}}",
     "letters": {
       "a": "A",

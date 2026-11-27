@@ -7,7 +7,7 @@
 // ARCHITECT: Escape отменяет запись на уровне документа: пользователь не должен целиться в кнопку, чтобы уйти.
 
 import { useEffect, useRef, useState } from "react";
-import { motion, useReducedMotion } from "framer-motion";
+import { useReducedMotion } from "framer-motion";
 import { Send, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import {
@@ -24,6 +24,7 @@ import type {
     DictationSession,
 } from "@/lib/dictation";
 import { cn } from "@/lib/utils";
+import { VoiceLevels } from "./VoiceLevels";
 
 interface VoiceRecorderProps {
     /** Отправка расшифровки: пустой текст не отправляется. */
@@ -31,9 +32,6 @@ interface VoiceRecorderProps {
     /** Отмена: текст не отправляется, состояние записи снимается. */
     readonly onCancel: () => void;
 }
-
-// ARCHITECT: полосы одинаковой толщины и разной высоты: это индикатор, а не график — палитра монохромная.
-const LEVEL_BARS = [0.45, 0.85, 1, 0.6, 0.75];
 
 const RECORD_BUTTON =
     "flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]";
@@ -46,14 +44,6 @@ const SEND_BUTTON = cn(
     "bg-[#f0f0f5] text-black hover:bg-[#f0f0f5]/90 disabled:cursor-not-allowed disabled:bg-white/[0.06] disabled:text-[#f0f0f5]/20"
 );
 
-/** Длительность записи: минуты и секунды, как в мессенджерах. */
-function formatDuration(seconds: number): string {
-    const minutes = Math.floor(seconds / 60);
-    const rest = seconds % 60;
-
-    return `${String(minutes).padStart(2, "0")}:${String(rest).padStart(2, "0")}`;
-}
-
 export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
     const { t } = useTranslation("chat");
     const reducedMotion = useReducedMotion() ?? false;
@@ -62,7 +52,9 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
     const [seconds, setSeconds] = useState(0);
     const [failure, setFailure] = useState<DictationErrorCode | null>(null);
     // ARCHITECT: сессия распознавания живёт в ref: она создаётся один раз, а обработчики снимаются при выходе.
+    // Рядом лежит признак «запись больше не поднимать»: по нему сессия не перезапускается после отказа и выхода.
     const sessionRef = useRef<DictationSession | null>(null);
+    const closedRef = useRef(false);
     const transcript = `${fixed}${interim}`.trim();
     // ARCHITECT: после фатального отказа запись не продолжается: индикаторы замирают, а причина показывается
     // словами — молчаливый таймер пользователь читает как «ничего не происходит».
@@ -75,6 +67,17 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
         if (session === null) return;
 
         sessionRef.current = session;
+
+        // ARCHITECT: повторный start() по уже запущенной сессии бросает InvalidStateError: запись идёт, и это не
+        // отказ — ждём результата, а панель не закрываем.
+        const start = (): void => {
+            try {
+                session.start();
+            } catch {
+                return;
+            }
+        };
+
         session.onresult = (event: DictationEvent) => {
             const confirmed = finalTranscript(event);
 
@@ -92,12 +95,23 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
             setFailure(code);
 
             // ARCHITECT: продолжать нечем — распознавание останавливаем, панель замирает с объяснением причины.
-            if (isFatalDictationError(code)) session.stop();
+            if (isFatalDictationError(code)) {
+                closedRef.current = true;
+                session.stop();
+            }
         };
-        session.onend = () => setInterim("");
-        session.start();
+        // ARCHITECT: браузер закрывает сессию распознавания сам — по тишине и по таймауту своей службы. Без
+        // перезапуска панель остаётся «слушающей», а микрофон молчит: кнопка выглядит рабочей, но текст не идёт
+        // (§спец. 7). Повтор не поднимаем только после отказа и выхода со страницы.
+        session.onend = () => {
+            setInterim("");
+
+            if (!closedRef.current) start();
+        };
+        start();
 
         return () => {
+            closedRef.current = true;
             session.onresult = null;
             session.onerror = null;
             session.onend = null;
@@ -149,47 +163,7 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 
     return (
         <div className="flex items-center gap-2 rounded-2xl border border-white/25 bg-white/[0.06] px-2 py-1.5">
-            <span className="flex size-11 shrink-0 items-center justify-center" aria-hidden="true">
-                <motion.span
-                    className="size-2.5 rounded-full bg-[#f0f0f5]"
-                    animate={motionOff ? { opacity: 1 } : { opacity: [1, 0.35, 1] }}
-                    transition={
-                        motionOff
-                            ? { duration: 0 }
-                            : { duration: 1.4, repeat: Infinity, ease: "easeInOut" }
-                    }
-                />
-            </span>
-
-            <span
-                className="shrink-0 text-xs tabular-nums text-[#f0f0f5]/60"
-                aria-label={t("input.record.duration")}
-            >
-                {formatDuration(seconds)}
-            </span>
-
-            <div className="flex h-8 shrink-0 items-end gap-0.5" aria-hidden="true">
-                {LEVEL_BARS.map((level, index) => (
-                    <motion.span
-                        key={index}
-                        className="w-0.5 rounded-full bg-[#f0f0f5]/50"
-                        initial={{ height: 8 }}
-                        animate={
-                            motionOff ? { height: 24 * level } : { height: [6, 26 * level, 10] }
-                        }
-                        transition={
-                            motionOff
-                                ? { duration: 0 }
-                                : {
-                                      duration: 0.9,
-                                      repeat: Infinity,
-                                      repeatType: "mirror",
-                                      delay: index * 0.12,
-                                  }
-                        }
-                    />
-                ))}
-            </div>
+            <VoiceLevels seconds={seconds} motionOff={motionOff} />
 
             <p className="min-w-0 flex-1 truncate text-sm text-[#f0f0f5]/80" aria-live="polite">
                 {failure !== null ? (

@@ -8,8 +8,8 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
-import { fetchChatHistory, sendMessage, streamChatReply } from "@/api/chat";
-import type { ChatCards, ChatHistory, ChatLessonPlan, ChatWordView } from "@/api/chat";
+import { fetchChatHistory, sendMessage, sendQuizAnswer, streamChatReply } from "@/api/chat";
+import type { ChatCards, ChatHistory, ChatLessonPlan, ChatQuizState, ChatWordView } from "@/api/chat";
 import { fetchSessionById } from "@/api/sessions";
 import { useAuthExpiry } from "@/hooks/useAuthExpiry";
 import { useMockQuery } from "@/hooks/useMockQuery";
@@ -29,6 +29,13 @@ export interface ChatFeedMessage {
     readonly createdAt: number;
     /** Блок слов итогового хода: пусто — урок ещё идёт, список слов не раскрыт. */
     readonly words: readonly ChatWordView[];
+    /**
+     * id сохранённого сообщения: по нему уходит ответ на задание отдельным вызовом. null — задания в реплике
+     * нет (реплика ученика или карточек сервер не прислал).
+     */
+    readonly serverId: string | null;
+    /** Состояние задания: null — задания нет; ответ дан — карточка заблокирована (§спец. 9). */
+    readonly quizState: ChatQuizState | null;
     /** Реплика пришла в этой сессии из потока, а не из истории: её печатают и озвучивают по-живому. */
     readonly live: boolean;
 }
@@ -40,9 +47,12 @@ interface ChatCommon {
     readonly isStreaming: boolean;
     readonly error: ChatErrorKind | null;
     readonly messagesRemaining: number | null;
-    // ARCHITECT: выбранный вариант викторины передаётся со следующим сообщением: сервер сверяет его с
-    // сохранённым верным ответом, а клиент остаётся только транспортом (§16.2).
-    readonly send: (text: string, quizAnswer?: string) => void;
+    readonly send: (text: string) => void;
+    /**
+     * Ответ на задание: отдельный вызов /chat/quiz-answer. Верность считает сервер, а полученная вторая часть
+     * хода встаёт в ленту — новых заданий до ответа не появляется (§спец. 2, 3).
+     */
+    readonly answerQuiz: (serverId: string, answer: string) => void;
     /** Повтор последнего сообщения: доступен после обрыва, ошибки потока и лимита. */
     readonly retry: () => void;
     /** Остановка генерации: прерванный ответ не сохраняется, тот же текст остаётся доступен для повтора. */
@@ -129,6 +139,8 @@ function useMockChat(sessionId: string): MockChatResult {
         messagesRemaining: null,
         session,
         send,
+        // ARCHITECT: в мок-ленте задание проверяется на месте (QuizCard): отдельного вызова у неё нет.
+        answerQuiz: NOOP,
         retry: NOOP,
         stop: NOOP,
         applySession: setPatch,
@@ -185,11 +197,8 @@ function useRealChat(sessionId: string): RealChatResult {
     const [expired, setExpired] = useState<unknown>(null);
     const abortRef = useRef<AbortController | null>(null);
     // ARCHITECT: последний отправленный текст живёт в ref: после обрыва повтор отправляет именно его, а не
-    // то, что пользователь успел набрать в поле заново. Вместе с текстом хранится выбор викторины: сервер
-    // должен получить тот же ответ, иначе метрики урока посчитаются по другому ходу.
-    const pendingRef = useRef<{ readonly content: string; readonly quizAnswer?: string } | null>(
-        null
-    );
+    // то, что пользователь успел набрать в поле заново.
+    const pendingRef = useRef<{ readonly content: string } | null>(null);
 
     // ARCHITECT: 401 терминальный (apiStream уже пробовал refresh) уходит в общий хук: тост и редирект — его.
     useAuthExpiry(expired, expired === null);
@@ -206,6 +215,10 @@ function useRealChat(sessionId: string): RealChatResult {
                     voiceId: message.voiceId,
                     createdAt: message.createdAt,
                     words: message.words,
+                    // ARCHITECT: у записи истории клиентский id совпадает с серверным: по нему уходит ответ
+                    // на задание, не пережившее перезагрузку (§спец. 9).
+                    serverId: message.id,
+                    quizState: message.quizState,
                     live: false,
                 })),
                 plan: history.plan,
@@ -264,10 +277,10 @@ function useRealChat(sessionId: string): RealChatResult {
     }, [applyHistory, applyHistoryFailure, sessionId]);
 
     const run = useCallback(
-        async (content: string, appendUser: boolean, quizAnswer?: string): Promise<void> => {
+        async (content: string, appendUser: boolean): Promise<void> => {
             const controller = new AbortController();
             abortRef.current = controller;
-            pendingRef.current = quizAnswer === undefined ? { content } : { content, quizAnswer };
+            pendingRef.current = { content };
 
             const assistantId = crypto.randomUUID();
             const placeholder: ChatFeedMessage = {
@@ -278,6 +291,8 @@ function useRealChat(sessionId: string): RealChatResult {
                 voiceId: null,
                 createdAt: Date.now(),
                 words: [],
+                serverId: null,
+                quizState: null,
                 live: true,
             };
 
@@ -291,6 +306,8 @@ function useRealChat(sessionId: string): RealChatResult {
                     voiceId: null,
                     createdAt: Date.now(),
                     words: [],
+                    serverId: null,
+                    quizState: null,
                     live: true,
                 };
 
@@ -306,9 +323,7 @@ function useRealChat(sessionId: string): RealChatResult {
 
             try {
                 const reply = await streamChatReply(
-                    quizAnswer === undefined
-                        ? { sessionId, message: content }
-                        : { sessionId, message: content, quizAnswer },
+                    { sessionId, message: content },
                     {
                         signal: controller.signal,
                         onDelta: (text) =>
@@ -338,6 +353,10 @@ function useRealChat(sessionId: string): RealChatResult {
                                   voiceId: reply.voiceId,
                                   // ARCHITECT: блок слов приходит только в итоговом ходу: он живёт под репликой.
                                   words: reply.words,
+                                  // ARCHITECT: id сохранённого ответа нужен, чтобы отправить ответ на задание
+                                  // отдельным вызовом: задание лежит в этом же сообщении (§спец. 3).
+                                  serverId: reply.messageId,
+                                  quizState: null,
                               }
                             : message
                     ),
@@ -371,6 +390,8 @@ function useRealChat(sessionId: string): RealChatResult {
                                     voiceId: reply.voiceId,
                                     createdAt: Date.now(),
                                     words: [],
+                                    serverId: null,
+                                    quizState: null,
                                     live: true,
                                 },
                             ],
@@ -410,12 +431,100 @@ function useRealChat(sessionId: string): RealChatResult {
         [sessionId, t]
     );
 
+    // ARCHITECT: ответ на задание — отдельный вызов /chat/quiz-answer: верность сверяет сервер, а отпущенная
+    // вторая часть хода встаёт в ленту отдельным сообщением. До ответа новых заданий нет: сервер её придерживает
+    // и отдаёт вместе с результатом (§спец. 2, 3).
+    const runAnswer = useCallback(
+        async (serverId: string, answer: string): Promise<void> => {
+            const controller = new AbortController();
+            abortRef.current = controller;
+
+            try {
+                const result = await sendQuizAnswer({ messageId: serverId, answer });
+                // ARCHITECT: задача закрыта, когда ответ верный или попытки исчерпаны и сервер раскрыл верный
+                // вариант: карточка запирается ровно теми фактами, что лежат в payload (§спец. 9).
+                const quizState: ChatQuizState = {
+                    answered: result.correct || result.reveal !== null,
+                    selected: answer,
+                    correct: result.correct,
+                    revealed: result.reveal !== null,
+                };
+
+                setState((previous) => ({
+                    ...previous,
+                    messages: previous.messages.map((message) =>
+                        message.serverId === serverId ? { ...message, quizState } : message
+                    ),
+                }));
+
+                const released = result.released;
+
+                // ARCHITECT: ход из одной части (задание закрыто без второй части) сообщений не добавляет.
+                if (released === null) return;
+
+                setState((previous) => ({ ...previous, awaitingFollowUp: true }));
+                await pause(FOLLOW_UP_PAUSE_MS, controller.signal);
+
+                // ARCHITECT: обрыв паузы не отменяет ответ: вторая часть уже сохранена сервером и придёт из
+                // истории при перезагрузке ленты.
+                if (controller.signal.aborted) return;
+
+                setState((previous) => ({
+                    ...previous,
+                    awaitingFollowUp: false,
+                    messages: [
+                        ...previous.messages,
+                        {
+                            id: crypto.randomUUID(),
+                            role: "assistant",
+                            content: released,
+                            cards: null,
+                            // ARCHITECT: голос берётся у реплики с заданием: вторая часть хода принадлежит тому
+                            // же репетитору.
+                            voiceId:
+                                previous.messages.find((message) => message.serverId === serverId)
+                                    ?.voiceId ?? null,
+                            createdAt: Date.now(),
+                            words: [],
+                            serverId: null,
+                            quizState: null,
+                            live: true,
+                        },
+                    ],
+                }));
+            } catch (failure) {
+                // ARCHITECT: отмена (уход со страницы) — не ошибка: ни тоста, ни сброса состояния сверх нужного.
+                if (controller.signal.aborted) return;
+
+                if (failure instanceof ApiError && failure.statusCode === 401) {
+                    setExpired(failure);
+                    return;
+                }
+
+                toast.error(t("feed.error"));
+            } finally {
+                abortRef.current = null;
+                setState((previous) => ({ ...previous, awaitingFollowUp: false }));
+            }
+        },
+        [t]
+    );
+
+    const answerQuiz = useCallback(
+        (serverId: string, answer: string) => {
+            if (USE_MOCKS || abortRef.current !== null) return;
+
+            void runAnswer(serverId, answer);
+        },
+        [runAnswer]
+    );
+
     const send = useCallback(
-        (text: string, quizAnswer?: string) => {
+        (text: string) => {
             const content = text.trim();
             if (USE_MOCKS || content === "" || abortRef.current !== null) return;
 
-            void run(content, true, quizAnswer);
+            void run(content, true);
         },
         [run]
     );
@@ -432,7 +541,7 @@ function useRealChat(sessionId: string): RealChatResult {
             return;
         }
 
-        void run(pending.content, false, pending.quizAnswer);
+        void run(pending.content, false);
     }, [reloadHistory, run]);
 
     // ARCHITECT: остановка по кнопке — тот же обрыв, что и уход со страницы: сервер возвращает резерв квоты,
@@ -461,6 +570,7 @@ function useRealChat(sessionId: string): RealChatResult {
         plan: live.plan,
         messages: live.messages,
         send,
+        answerQuiz,
         retry,
         stop,
         reload: () => void reloadHistory(),

@@ -16,6 +16,7 @@ const {
     streamChatReplyMock,
     fetchChatHistoryMock,
     sendMessageMock,
+    sendQuizAnswerMock,
     fetchSessionByIdMock,
     toastErrorMock,
     navigateMock,
@@ -24,6 +25,7 @@ const {
     streamChatReplyMock: vi.fn(),
     fetchChatHistoryMock: vi.fn(),
     sendMessageMock: vi.fn(),
+    sendQuizAnswerMock: vi.fn(),
     fetchSessionByIdMock: vi.fn(),
     toastErrorMock: vi.fn(),
     navigateMock: vi.fn(),
@@ -36,6 +38,7 @@ vi.mock("@/api/chat", async (importOriginal) => {
         ...actual,
         fetchChatHistory: fetchChatHistoryMock,
         sendMessage: sendMessageMock,
+        sendQuizAnswer: sendQuizAnswerMock,
         streamChatReply: streamChatReplyMock,
     };
 });
@@ -61,6 +64,7 @@ vi.mock("react-i18next", async (importOriginal) => {
 });
 
 const SESSION_ID = "5b1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a11";
+const MESSAGE_ID = "7c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a22";
 
 /** План урока из ответа сервера: карточка цели. Целевых слов в контракте нет по конструкции. */
 const PLAN = {
@@ -78,6 +82,10 @@ const REPLY: ChatReply = {
     // ARCHITECT: по умолчанию ход из одной части: вторая появляется только когда её прислал сервер.
     followUp: null,
     plan: null,
+    // ARCHITECT: id ответа, задача и раскрытый ответ приходят только когда сервер их прислал.
+    messageId: null,
+    pending: null,
+    reveal: null,
     // ARCHITECT: блок слов приходит только в итоговом ходу: в обычном ответе он пуст.
     words: [],
     corrections: [
@@ -146,6 +154,7 @@ afterEach(() => {
     streamChatReplyMock.mockReset();
     fetchChatHistoryMock.mockReset();
     sendMessageMock.mockReset();
+    sendQuizAnswerMock.mockReset();
     fetchSessionByIdMock.mockReset();
     toastErrorMock.mockReset();
     navigateMock.mockReset();
@@ -258,41 +267,124 @@ describe("useChat", () => {
         expect(toastErrorMock).not.toHaveBeenCalled();
     });
 
-    it("1.1.1 real: выбор викторины уходит со следующим сообщением и сохраняется при повторе", async () => {
+    it("1.1.1 real: ответ на задание уходит отдельным вызовом, а вторая часть хода встаёт в ленту", async () => {
         vi.stubEnv("VITE_USE_MOCKS", "false");
-        const { useChat, ApiError } = await loadHook();
+        const { useChat } = await loadHook();
 
-        streamChatReplyMock.mockRejectedValueOnce(new ApiError(500, "CHAT_STREAM_FAILED"));
-        streamChatReplyMock.mockResolvedValueOnce(REPLY);
+        streamChatReplyMock.mockResolvedValue({ ...REPLY, messageId: MESSAGE_ID });
+        sendQuizAnswerMock.mockResolvedValue({
+            correct: true,
+            quiz: null,
+            released: "Now make it a question.",
+            reveal: null,
+        });
+        vi.useFakeTimers();
 
+        try {
+            const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(0);
+            });
+
+            act(() => {
+                realOf(result.current).send("Yesterday I went home.");
+            });
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(0);
+            });
+
+            // ARCHITECT: id сохранённого ответа пришёл событием done: по нему уходит ответ на задание.
+            expect(realOf(result.current).messages[1]?.serverId).toBe(MESSAGE_ID);
+            // ARCHITECT: пока задание не отвечено, второй части хода в ленте нет: её придерживает сервер.
+            expect(realOf(result.current).messages).toHaveLength(2);
+
+            act(() => {
+                realOf(result.current).answerQuiz(MESSAGE_ID, "b");
+            });
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(0);
+            });
+
+            expect(sendQuizAnswerMock).toHaveBeenCalledWith({
+                messageId: MESSAGE_ID,
+                answer: "b",
+            });
+            // ARCHITECT: состояние задания пришло ответом сервера: карточка закрыта и после перезагрузки.
+            expect(realOf(result.current).messages[1]?.quizState).toEqual({
+                answered: true,
+                selected: "b",
+                correct: true,
+                revealed: false,
+            });
+
+            const { FOLLOW_UP_PAUSE_MS } = await import("@/hooks/useChat");
+
+            // ARCHITECT: вторая часть хода встаёт в ленту после той же паузы, что и вторая часть обычного хода.
+            expect(realOf(result.current).isAwaitingFollowUp).toBe(true);
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(FOLLOW_UP_PAUSE_MS);
+            });
+
+            const chat = realOf(result.current);
+
+            expect(chat.messages).toHaveLength(3);
+            expect(chat.messages[2]?.role).toBe("assistant");
+            expect(chat.messages[2]?.content).toBe("Now make it a question.");
+            expect(chat.messages[2]?.voiceId).toBe("en-US-female");
+            expect(chat.isAwaitingFollowUp).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("1.1.2 real: закрытое задание остаётся закрытым после перезагрузки ленты", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        fetchChatHistoryMock.mockResolvedValue({
+            messages: [
+                {
+                    id: MESSAGE_ID,
+                    role: "assistant",
+                    content: "Pick one.",
+                    cards: {
+                        corrections: [],
+                        quiz: {
+                            type: "choice",
+                            prompt: "Pick:",
+                            options: [
+                                { id: "a", text: "go" },
+                                { id: "b", text: "went" },
+                            ],
+                            answerId: "b",
+                        },
+                        vocabWord: null,
+                    },
+                    voiceId: null,
+                    createdAt: 0,
+                    words: [],
+                    // ARCHITECT: состояние задания лежит в payload: после перезагрузки карточка запирается (§спец. 9).
+                    quizState: { answered: true, selected: "a", correct: false, revealed: true },
+                },
+            ],
+            plan: null,
+        });
+        const { useChat } = await loadHook();
         const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
 
         await waitFor(() => expect(realOf(result.current).isLoading).toBe(false));
 
-        act(() => {
-            realOf(result.current).send("I went home yesterday.", "b");
+        const message = realOf(result.current).messages[0];
+
+        expect(message?.serverId).toBe(MESSAGE_ID);
+        expect(message?.quizState).toEqual({
+            answered: true,
+            selected: "a",
+            correct: false,
+            revealed: true,
         });
-
-        await waitFor(() => expect(realOf(result.current).error).toBe("stream"));
-
-        act(() => {
-            realOf(result.current).retry();
-        });
-
-        await waitFor(() => expect(realOf(result.current).messages).toHaveLength(2));
-
-        // ARCHITECT: выбор викторины — часть хода: повтор после обрыва отправляет его же, иначе сервер посчитал
-        // бы метрики урока по другому ответу.
-        expect(streamChatReplyMock).toHaveBeenNthCalledWith(
-            1,
-            { sessionId: SESSION_ID, message: "I went home yesterday.", quizAnswer: "b" },
-            expect.anything()
-        );
-        expect(streamChatReplyMock).toHaveBeenNthCalledWith(
-            2,
-            { sessionId: SESSION_ID, message: "I went home yesterday.", quizAnswer: "b" },
-            expect.anything()
-        );
     });
 
     it("1.2 обрыв: частичный ответ удаляется, повтор не дублирует реплику", async () => {

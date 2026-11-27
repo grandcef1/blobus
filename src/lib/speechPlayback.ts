@@ -1,13 +1,12 @@
 // ARCHITECT: озвучка репетитора в браузере: голос выбирается по профилю voiceId из каталога, а не по имени
 // голоса провайдера. Подходящего голоса нет — реплика остаётся текстом, ошибки нет.
-// ARCHITECT: текст читается сегментами по письменности: кириллица идёт русским голосом, латиница — голосом
-// профиля. Пол репетитора сохраняется на всех языках. Языка нет в браузере — сегмент пропускается молча.
+// ARCHITECT: озвучиваются только латинские сегменты: русские объяснения репетитора и переводы пропускаются
+// молча, а подчёркивания пропусков и markdown-символы из текста убираются до синтеза — «underscore» в речи
+// ученик слышать не должен (§спец. 6).
 // ARCHITECT: воспроизведение одно на страницу, поэтому состояние живёт в модуле, а компонент подписывается на
 // него через useSyncExternalStore: соседняя кнопка не показывает «играет» и не гасит чужой звук.
 
 const SPEECH_RATE = 0.95;
-/** Язык кириллических сегментов: объяснения репетитора перемешаны с английскими фразами одной репликой. */
-const CYRILLIC_LANGUAGE = "ru-RU";
 
 /** Профиль голоса на клиенте: язык и пол — то же, что объявляет каталог (server/tutorCatalog.ts). */
 interface BrowserVoiceProfile {
@@ -189,9 +188,21 @@ export function splitIntoSpeechSegments(text: string): SpeechSegment[] {
     return segments;
 }
 
-/** Язык сегмента: кириллица читается русским голосом, латиница и цифры — голосом профиля. */
-function languageFor(script: SpeechScript, profile: BrowserVoiceProfile): string {
-    return script === "cyrillic" ? CYRILLIC_LANGUAGE : profile.language;
+// ARCHITECT: подчёркивания пропусков (___), markdown-символы и лишние пробелы в речь не идут: синтезатор читает
+// «underscore» вслух, а звёздочки и решётки превращает в паузы. Пропуск становится паузой, остальные символы
+// убираются без пробела — иначе точка отрывается от слова. Чистка идёт до сегментации (§спец. 6).
+const GAP = /_{2,}/g;
+const MARKDOWN = /[*#`_]/g;
+const WHITESPACE = /\s+/g;
+
+/** Текст для синтеза: пропуски, markdown-символы и лишние пробелы убраны. */
+export function cleanForSpeech(text: string): string {
+    return text.replace(GAP, " ").replace(MARKDOWN, "").replace(WHITESPACE, " ").trim();
+}
+
+/** Язык сегмента: латиница и цифры читаются голосом профиля. */
+function languageFor(profile: BrowserVoiceProfile): string {
+    return profile.language;
 }
 
 interface ScheduledUtterance {
@@ -199,7 +210,10 @@ interface ScheduledUtterance {
     readonly voice: SpeechSynthesisVoice;
 }
 
-/** Очередь озвучки: сегменты в порядке текста; язык без голоса в браузере — пропуск молча. */
+/**
+ * Очередь озвучки: сегменты в порядке текста. Читаются только латинские: кириллица и знаки с цифрами без букв
+ * пропускаются молча, а языка без голоса в браузере просто нет в очереди (§спец. 6).
+ */
 function buildQueue(
     text: string,
     voices: readonly SpeechSynthesisVoice[],
@@ -207,8 +221,10 @@ function buildQueue(
 ): ScheduledUtterance[] {
     const queue: ScheduledUtterance[] = [];
 
-    for (const segment of splitIntoSpeechSegments(text)) {
-        const voice = pickVoice(voices, languageFor(segment.script, profile), profile.gender);
+    for (const segment of splitIntoSpeechSegments(cleanForSpeech(text))) {
+        if (segment.script !== "latin") continue;
+
+        const voice = pickVoice(voices, languageFor(profile), profile.gender);
 
         if (voice === null) continue;
 

@@ -19,9 +19,12 @@ class RecogniserStub {
     started = false;
     aborted = false;
     stopped = false;
+    /** Сколько раз запись стартовала: перезапуск после конца сессии виден по счётчику. */
+    starts = 0;
 
     start = (): void => {
         this.started = true;
+        this.starts += 1;
         track(this);
     };
     stop = (): void => {
@@ -42,6 +45,11 @@ class RecogniserStub {
     /** Отказ распознавания: браузер присылает код в поле error. */
     emitError(code: string): void {
         this.onerror?.({ error: code });
+    }
+
+    /** Конец сессии распознавания: браузер закрывает её сам по тишине или таймауту службы. */
+    emitEnd(): void {
+        this.onend?.();
     }
 }
 
@@ -162,5 +170,52 @@ describe("ChatInput", () => {
         expect(active?.stopped).toBe(true);
         expect(screen.getByRole("button", { name: "Отправить запись" })).toBeDisabled();
         expect(screen.queryByText("Слушаю…")).toBeNull();
+    });
+
+    it("7.6 конец сессии распознавания поднимает запись снова: микрофон не молчит под видом работы", async () => {
+        installRecogniser();
+        const user = userEvent.setup();
+
+        renderWithProviders(<ChatInput onSend={vi.fn()} />);
+
+        await user.click(screen.getByRole("button", { name: "Начать запись" }));
+
+        expect(active?.starts).toBe(1);
+
+        // ARCHITECT: браузер закрывает сессию распознавания сам (тишина, таймаут службы). Без перезапуска
+        // панель остаётся «слушающей», а текст не идёт: именно так выглядел неработающий микрофон (§спец. 7).
+        await act(async () => {
+            active?.emitEnd();
+        });
+
+        expect(active?.starts).toBe(2);
+        expect(screen.getByText("Слушаю…")).toBeInTheDocument();
+
+        await act(async () => {
+            active?.emit("Hello world", true);
+        });
+
+        expect(screen.getByText("Hello world")).toBeInTheDocument();
+    });
+
+    it("7.7 после отказа запись больше не поднимается", async () => {
+        installRecogniser();
+        const user = userEvent.setup();
+
+        renderWithProviders(<ChatInput onSend={vi.fn()} />);
+
+        await user.click(screen.getByRole("button", { name: "Начать запись" }));
+
+        await act(async () => {
+            active?.emitError("not-allowed");
+        });
+
+        await act(async () => {
+            active?.emitEnd();
+        });
+
+        // Архит.: повторный запуск в цикле отказов только мигал бы микрофоном — после отказа запись стоит.
+        expect(active?.starts).toBe(1);
+        expect(active?.stopped).toBe(true);
     });
 });

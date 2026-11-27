@@ -3,6 +3,7 @@
 // messages.payload. Клиент не присылает ни userId, ни уровень, ни план, ни персонажа (§16.2).
 // ARCHITECT: вывод модели недоверенный: JSON карточек проверяется схемой (chat/contract.ts) и никогда не
 // исполняется; при битом ответе квота возвращается, а сообщения не сохраняются (§16.8, §16.14).
+import { randomUUID } from "node:crypto";
 import { Router } from "express";
 import type { Request, Response } from "express";
 import { z } from "zod";
@@ -13,10 +14,18 @@ import { createInMemoryTokenCache, verifyAccessToken } from "../auth.ts";
 import {
     ChatCardsSchema,
     ChatRequestSchema,
+    QuizAnswerRequestSchema,
     resolveCards,
     stripCardsMarker,
 } from "../chat/contract.ts";
-import type { ChatCards, ChatDonePayload, Quiz, VocabWord } from "../chat/contract.ts";
+import type {
+    ChatCards,
+    ChatDonePayload,
+    PendingTaskView,
+    Quiz,
+    QuizAnswerPayload,
+    VocabWord,
+} from "../chat/contract.ts";
 import {
     activityAt,
     advancePlan,
@@ -29,8 +38,10 @@ import type { LessonLevel, LessonPlan, PlanLocale } from "../chat/lessonPlan.ts"
 import {
     applyTurn,
     buildLessonState,
+    closeTask,
     fallbackQuiz,
     fallbackWordCard,
+    nextQuizType,
     producedWordIn,
     quizWordIn,
     readLessonDocument,
@@ -38,10 +49,24 @@ import {
     turnDirectives,
     turnsLeftFor,
     verifyQuizAnswer,
+    withPendingTask,
 } from "../chat/lessonState.ts";
-import type { LessonState } from "../chat/lessonState.ts";
+import type { LessonState, LessonWordView, PendingTask } from "../chat/lessonState.ts";
 import { HISTORY_LIMIT, buildSystemPrompt, selectHistory } from "../chat/prompt.ts";
 import type { ChatHistoryMessage, ExplanationLocale } from "../chat/prompt.ts";
+import {
+    MAX_OPEN_ATTEMPTS,
+    gapFillFromProse,
+    isMostlyCyrillic,
+    isOffTopic,
+    judgeQuiz,
+    openTask,
+    proseGap,
+    quizTask,
+    readQuizState,
+    withAttempt,
+} from "../chat/turnMachine.ts";
+import type { QuizState } from "../chat/turnMachine.ts";
 import { COOKIE_NAMES, getCookie } from "../cookies.ts";
 import { validateCsrf } from "../csrf.ts";
 import { errorEnvelope } from "../http.ts";
@@ -85,11 +110,12 @@ const PreferencesSchema = z.object({
 const LessonRowSchema = z.strictObject({ id: z.uuid(), plan: z.unknown() });
 
 const MessageRowSchema = z.strictObject({
+    id: z.uuid(),
     role: z.enum(["user", "assistant"]),
     content: z.string().min(1).max(4000),
     created_at: z.string().min(1),
-    // ARCHITECT: payload читается ради викторины прошлого хода: по ней проверяется ответ ученика, поэтому
-    // верный ответ не дублируется в состоянии урока (§16.2).
+    // ARCHITECT: payload читается ради викторины прошлого хода и canned-приветствия: по карточке сервер проверяет
+    // ответ ученика, а по пустому payload узнаёт, что первое сообщение сессии — приветствие C-6 (§16.2).
     payload: z.unknown(),
 });
 
@@ -207,6 +233,25 @@ interface ChatHistory {
     readonly messages: ChatHistoryMessage[];
     /** Викторина последнего ответа: с ней сверяется ответ, который клиент прислал со следующим ходом. */
     readonly lastQuiz: Quiz | null;
+    /** Canned-приветствие C-6, если оно ещё первое в ленте: на первом ходу его заменяет модельное (§спец. 7). */
+    readonly greetingId: string | null;
+}
+
+/** Приветствие C-6: профиль голоса есть, карточек и расхода нет. */
+function isCannedGreeting(payload: unknown): boolean {
+    if (typeof payload !== "object" || payload === null) return false;
+
+    const record = payload as {
+        readonly voiceId?: unknown;
+        readonly cards?: unknown;
+        readonly usage?: unknown;
+    };
+
+    return (
+        typeof record.voiceId === "string" &&
+        record.cards === undefined &&
+        record.usage === undefined
+    );
 }
 
 /** Предыдущая реплика ученика: она нужна, чтобы «верно по правилу» считалось только в другом предложении. */
@@ -239,11 +284,11 @@ async function readHistory(
 
     const lessonIds = (lessons.data ?? []).map((row) => row.id);
 
-    if (lessonIds.length === 0) return { messages: [], lastQuiz: null };
+    if (lessonIds.length === 0) return { messages: [], lastQuiz: null, greetingId: null };
 
     const messages = await client
         .from("messages")
-        .select("role, content, created_at, payload")
+        .select("id, role, content, created_at, payload")
         .in("lesson_id", lessonIds)
         .order("created_at", { ascending: false })
         .order("id", { ascending: false })
@@ -267,9 +312,15 @@ async function readHistory(
         if (quiz !== null) lastQuiz = quiz;
     }
 
+    const first = ordered[0];
+
     return {
         messages: ordered.map((row) => ({ role: row.role, content: row.content })),
         lastQuiz,
+        greetingId:
+            first !== undefined && first.role === "assistant" && isCannedGreeting(first.payload)
+                ? first.id
+                : null,
     };
 }
 
@@ -288,6 +339,91 @@ async function persistLesson(
     if (updated.error !== null) throw updated.error;
 
     return state;
+}
+
+/** Строка сообщения-задачи вместе с владельцем сессии: своё окно викторины есть только у своих сессий. */
+interface TaskMessageRow {
+    readonly lesson_id: string;
+    readonly payload: unknown;
+    readonly lessons: {
+        readonly session_id: string;
+        readonly sessions: { readonly user_id: string; readonly tutor_id: string };
+    };
+}
+
+/** Отпущенная вторая часть хода сохраняется сообщением: лента показывает её после перезагрузки (§спец. 3). */
+async function saveFollowUp(
+    client: ServiceClient,
+    lessonId: string,
+    text: string | null,
+    voiceId: string | null
+): Promise<void> {
+    if (text === null) return;
+
+    const saved = await client.from("messages").insert({
+        id: randomUUID(),
+        lesson_id: lessonId,
+        role: "assistant",
+        content: text.slice(0, MESSAGE_MAX_CHARS),
+        payload: voiceId === null ? { followUp: true } : { voiceId, followUp: true },
+    });
+
+    if (saved.error !== null) throw saved.error;
+}
+
+/** Задача для клиента: вид, тип викторины и id сообщения, по которому уходит ответ (§спец. 1). */
+function pendingView(task: PendingTask | null): PendingTaskView | null {
+    return task === null
+        ? null
+        : { kind: task.kind, quizType: task.quizType, messageId: task.messageId };
+}
+
+/** Сообщение задачи: payload нужен и для состояния викторины, и для отложенной второй части (§спец. 9). */
+async function readTaskMessage(
+    client: ServiceClient,
+    messageId: string
+): Promise<{ readonly payload: Record<string, unknown>; readonly held: string | null } | null> {
+    const row = await client.from("messages").select("payload").eq("id", messageId).maybeSingle();
+
+    if (row.error !== null) throw row.error;
+
+    const payload = row.data?.payload;
+
+    if (typeof payload !== "object" || payload === null) return null;
+
+    const record = payload as Record<string, unknown>;
+    const held = record.held;
+
+    return { payload: record, held: typeof held === "string" && held !== "" ? held : null };
+}
+
+// ARCHITECT: удержанную часть убираем из payload в тот же момент, когда отпускаем: отпустить её дважды
+// нельзя, а повтор запроса на ответ викторины отсекается состоянием quizState (§спец. 9).
+function withoutHeld(payload: Record<string, unknown>): Record<string, unknown> {
+    const rest = { ...payload };
+
+    delete rest.held;
+
+    return rest;
+}
+
+/** Состояние викторины пишется в payload её сообщения: повтор невозможен, упрощённый повтор виден после перезагрузки. */
+async function writeQuizPayload(
+    client: ServiceClient,
+    messageId: string,
+    payload: Record<string, unknown>,
+    quizState: QuizState,
+    quiz: Quiz | null
+): Promise<void> {
+    const cards = payload.cards;
+
+    const next =
+        quiz === null || typeof cards !== "object" || cards === null
+            ? { ...payload, quizState }
+            : { ...payload, quizState, cards: { ...(cards as Record<string, unknown>), quiz } };
+    const updated = await client.from("messages").update({ payload: next }).eq("id", messageId);
+
+    if (updated.error !== null) throw updated.error;
 }
 
 /** Расход токенов за текущий месяц: месячного лимита в БД нет, бюджет задаёт движок (lessonState.ts). */
@@ -581,6 +717,14 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
         max: READ_MAX,
         scope: "chat:history",
     });
+    // ARCHITECT: ответ на викторину не расходует сообщение, но лимитируется своим окном: иначе карточку можно
+    // было бы перебирать сколько угодно раз (§16.7).
+    const quizLimiter = createRateLimiter({
+        store,
+        windowMs: CHAT_WINDOW_MS,
+        max: CHAT_MAX,
+        scope: "chat:quiz",
+    });
     // ARCHITECT: кэш проверки токена — на экземпляр роутера: verifyAccessToken сам ограничивает срок записи
     // min от ttl кэша и exp токена.
     const tokenCache = createInMemoryTokenCache();
@@ -850,6 +994,13 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
             recent: state.recent_contexts,
         });
         const directives = turnDirectives(state, turnsLeft);
+        // ARCHITECT: русский текст не разбираем: карточка исправления не создаётся, а счётчик попыток растёт
+        // (§спец. 5).
+        const cyrillic = isMostlyCyrillic(message);
+        // ARCHITECT: первый ход урока — тот, где ученик ещё не писал: по нему модель приветствует в характере и
+        // задаёт первый вопрос с выбором, а canned-приветствие C-6 заменяется модельным (§спец. 7).
+        const startOfSession =
+            state.turn_index === 0 && !history.messages.some((row) => row.role === "user");
         const systemPrompt = buildSystemPrompt({
             tutor,
             mode: sessionRow.data.mode,
@@ -863,6 +1014,12 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
             // ARCHITECT: фишку выбирает сервер по состоянию плана, а не модель: за ход их не больше одной.
             perk: perkFor(lesson.plan),
             lesson: directives,
+            turn: {
+                phase: state.phase,
+                task: state.pendingTask,
+                cyrillic,
+                start: startOfSession,
+            },
         });
         const promptHistory = selectHistory(history.messages);
 
@@ -924,14 +1081,15 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
 
             // ARCHITECT: ответ викторины сверяет сервер с верным ответом сохранённой карточки: клиенту
             // верность не доверяем, метрики правила и статусы слов двигает только это сравнение (§16.2).
+            // Русский текст ответом на викторину не считается (§спец. 5).
             const quizCorrect =
-                parsed.data.quizAnswer === undefined
+                cyrillic || parsed.data.quizAnswer === undefined
                     ? null
                     : verifyQuizAnswer(history.lastQuiz, parsed.data.quizAnswer);
+            // ARCHITECT: правки по русскому тексту не разбираем: карточка исправления в ходу не создаётся.
+            const corrections = cyrillic ? [] : cards === null ? [] : cards.corrections;
             const errorCorrection =
-                cards === null
-                    ? null
-                    : (cards.corrections.find((correction) => correction.kind === "error") ?? null);
+                corrections.find((correction) => correction.kind === "error") ?? null;
             const hasError = errorCorrection !== null;
             // ARCHITECT: на ходу с ошибкой по правилу слово не вводится: исключение — FINAL, где переносить
             // слово уже некуда (§спец. 5).
@@ -945,79 +1103,201 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
                 !wordAllowed || lessonWord === null
                     ? null
                     : (cards?.vocabWord ?? fallbackWordCard(lessonWord));
-            // ARCHITECT: обязательную викторину так же собирает сервер, если модель её не отдала: проверка
-            // должна состояться, а верный ответ остаётся на сервере.
+            // ARCHITECT: обязательную викторину так же собирает сервер, если модель её не отдала: проверка должна
+            // состояться, а верный ответ остаётся на сервере (§спец. 8).
             const quizWord =
                 lessonWord ??
                 state.words.find((word) => word.status !== "hidden") ??
                 state.words[0];
-            const shownQuiz: Quiz | null =
-                cards?.quiz ??
-                (directives.quizRequired
-                    ? fallbackQuiz(state, quizWord, directives.quizType)
-                    : null);
+            const errorType = errorCorrection === null ? null : errorCorrection.errorType;
+            const modelQuiz = cards === null ? null : cards.quiz;
+            const requiredQuizType = nextQuizType(state, errorType);
+            // ARCHITECT: карточка модели важнее серверной: свой вопрос сервер собирает только когда карточки нет
+            // или ход её требует, а модель промолчала (§спец. 8). Тип сервер задаёт для собранных им карточек:
+            // карточка из его примеров выдала бы целевое слово урока, которое до WRAP наружу не уходит (§16.6).
+            const quizWanted = !cyrillic && (directives.quizRequired || hasError);
+            const requiredCard: Quiz | null = cyrillic
+                ? null
+                : (modelQuiz ??
+                  (quizWanted ? fallbackQuiz(state, quizWord, requiredQuizType) : null));
             // ARCHITECT: слово попадает в словарь в тот же момент, что и карточка: иначе карточка обещала бы
             // сохранение, которого не было. Частота карточек — расписание движка, а не шаг плана.
             const addedVocabWord =
                 shownWord !== null ? await addVocabWord(service, payload.userId, shownWord) : false;
-            const payloadCards: ChatCards = {
-                corrections: cards === null ? [] : cards.corrections,
-                quiz: shownQuiz,
-                vocabWord: addedVocabWord ? shownWord : null,
-                followUp: cards === null ? null : cards.followUp,
-            };
+
+            // ARCHITECT: одна задача за раз: пока выданная задача не закрыта, новое задание не создаётся, а
+            // вторая часть хода держится отложенной (§спец. 1, 2).
+            const taskBefore = state.pendingTask;
+            const attempt =
+                taskBefore !== null &&
+                taskBefore.kind === "quiz" &&
+                quizCorrect !== null &&
+                !cyrillic
+                    ? judgeQuiz(
+                          history.lastQuiz,
+                          parsed.data.quizAnswer ?? "",
+                          taskBefore.attempts,
+                          state.words
+                      )
+                    : null;
+            const quizClosed = attempt !== null && attempt.done;
+            const offTopic = isOffTopic(message);
+            // ARCHITECT: открытая задача закрывается сама, если ученик три сообщения подряд отвечает не по сути
+            // (§спец. 4), и закрывается ответом по сути.
+            const openGaveUp =
+                taskBefore !== null &&
+                taskBefore.kind === "open" &&
+                offTopic &&
+                taskBefore.attempts + 1 >= MAX_OPEN_ATTEMPTS;
+            const openSatisfied =
+                taskBefore !== null && taskBefore.kind === "open" && !offTopic && !cyrillic;
+            const closed = quizClosed || openGaveUp || openSatisfied;
+            const blocked = taskBefore !== null && !closed;
+            // ARCHITECT: отложенная часть задачи лежит в её сообщении: ответ на викторину отпускает её клиенту.
+            const taskPayload =
+                taskBefore === null || attempt === null
+                    ? null
+                    : await readTaskMessage(service, taskBefore.messageId);
+            const released = closed ? (taskPayload?.held ?? null) : null;
+            const freshFollowUp = cards === null ? null : cards.followUp;
+            // ARCHITECT: prose-задание не уходит клиенту никогда — ни сейчас, ни отложенным: пропуск живёт только
+            // в карточке gap-fill, поэтому предложение с ним убирается из текста один раз (§спец. 6).
+            const gap = !cyrillic && freshFollowUp !== null ? proseGap(freshFollowUp) : null;
+            const cleanedFollowUp =
+                gap === null ? freshFollowUp : gap.cleaned === "" ? null : gap.cleaned;
+            let followUpText = blocked ? null : (released ?? cleanedFollowUp);
+            const proseQuiz: Quiz | null =
+                requiredCard === null && gap !== null
+                    ? gapFillFromProse(gap.sentence, state.words)
+                    : null;
+            // ARCHITECT: упрощённый повтор — это та же задача: карточка проще, а задача остаётся открытой.
+            // Отпущенная вторая часть уже сама по себе новое задание, поэтому карточку в этом ходу не выдаём.
+            const shownQuiz: Quiz | null =
+                released !== null
+                    ? null
+                    : (attempt?.simplified ?? (blocked ? null : (requiredCard ?? proseQuiz)));
+            // ARCHITECT: задача-викторина откладывает вторую часть хода: следующее задание уйдёт после ответа
+            // (§спец. 2).
+            const held =
+                blocked || shownQuiz !== null
+                    ? (cleanedFollowUp ?? taskPayload?.held ?? null)
+                    : null;
+
+            if (held !== null) followUpText = null;
+            const replyId = randomUUID();
+            const followUpId = followUpText === null ? null : randomUUID();
 
             // ARCHITECT: состояние урока двигает сервер: метрики правила, статусы слов, этап и расписание
             // следующего слова считаются по фактам хода, поэтому их не подделать ответом (§16.8).
             const nextPlan = advancePlan(lesson.plan, { studentMessage: message, hasError });
+            const advanced = applyTurn(state, {
+                message,
+                previousMessage: previousMessageOf(history.messages),
+                hasError,
+                errorType,
+                quizCorrect,
+                introducedWord: wordAllowed ? (lessonWord?.word ?? null) : null,
+                recognizedWord:
+                    quizCorrect === true ? quizWordIn(state.words, history.lastQuiz) : null,
+                producedWord: producedWordIn(state.words, message),
+                pattern: errorCorrection === null ? null : errorCorrection.rule,
+                tokens,
+                turnsLeft: turnsLeftFor({
+                    messagesRemaining: Math.max(0, reserve.data.messages_remaining - 1),
+                    tokensMonth: tokensMonth + tokens,
+                    recent: [...state.recent_contexts, { text: message, tokens }],
+                }),
+            });
+            // ARCHITECT: задача следующего хода: продолжение открытой задачи, викторина из карточки или открытый
+            // вопрос второй части. Задача живёт в состоянии, поэтому её переживает перезагрузка страницы (§спец. 1).
+            const nextTask: PendingTask | null = blocked
+                ? taskBefore === null
+                    ? null
+                    : shownQuiz === null
+                      ? withAttempt(taskBefore)
+                      : quizTask(shownQuiz, replyId)
+                : shownQuiz !== null
+                  ? quizTask(shownQuiz, replyId)
+                  : followUpText !== null && followUpId !== null
+                    ? openTask(followUpId, followUpText)
+                    : null;
             const nextState = await persistLesson(
                 service,
                 lesson.id,
                 nextPlan,
-                applyTurn(state, {
-                    message,
-                    previousMessage: previousMessageOf(history.messages),
-                    hasError,
-                    errorType: errorCorrection === null ? null : errorCorrection.errorType,
-                    quizCorrect,
-                    introducedWord: wordAllowed ? (lessonWord?.word ?? null) : null,
-                    recognizedWord:
-                        quizCorrect === true ? quizWordIn(state.words, history.lastQuiz) : null,
-                    producedWord: producedWordIn(state.words, message),
-                    pattern: errorCorrection === null ? null : errorCorrection.rule,
-                    tokens,
-                    turnsLeft: turnsLeftFor({
-                        messagesRemaining: Math.max(0, reserve.data.messages_remaining - 1),
-                        tokensMonth: tokensMonth + tokens,
-                        recent: [...state.recent_contexts, { text: message, tokens }],
-                    }),
-                })
+                nextTask === null ? closeTask(advanced) : withPendingTask(advanced, nextTask)
             );
-            const followUp = payloadCards.followUp;
+            // ARCHITECT: состояние викторины пишется в payload её сообщения: повторное прохождение после ответа
+            // невозможно, а после перезагрузки ленты видно, что ответ уже дан (§спец. 9).
+            if (attempt !== null && taskBefore !== null && taskPayload !== null)
+                await writeQuizPayload(
+                    service,
+                    taskBefore.messageId,
+                    taskPayload.payload,
+                    {
+                        answered: attempt.done,
+                        selected: parsed.data.quizAnswer ?? null,
+                        correct: attempt.correct,
+                        attempts: attempt.attempts,
+                        revealed: attempt.reveal !== null,
+                    },
+                    null
+                );
+
+            const payloadCards: ChatCards = {
+                corrections,
+                quiz: shownQuiz,
+                vocabWord: addedVocabWord ? shownWord : null,
+                followUp: followUpText,
+            };
+            const wrappedWords = directives.wrap ? toWordViews(nextState) : [];
+            // ARCHITECT: состав payload собирается заранее: jsonb принимает только объект Json, а условные поля
+            // внутри литерала дают optional-типы, которые в Json не входят (§16.13).
+            const replyPayload: {
+                cards: ChatCards;
+                usage: typeof usage;
+                voiceId: string;
+                words?: LessonWordView[];
+                held?: string;
+            } = { cards: payloadCards, usage, voiceId: tutor.voiceId };
+
+            if (wrappedWords.length > 0) replyPayload.words = wrappedWords;
+
+            if (held !== null) replyPayload.held = held;
 
             const saved = await service.from("messages").insert([
                 // ARCHITECT: payload у сообщения ученика задан явно: в пакетной вставке PostgREST колонка
                 // одна на все строки, поэтому дефолт не подставился бы и NOT NULL отклонил бы строку.
-                { lesson_id: lesson.id, role: "user", content: message, payload: {} },
                 {
+                    id: randomUUID(),
+                    lesson_id: lesson.id,
+                    role: "user",
+                    content: message,
+                    payload: {},
+                },
+                {
+                    // ARCHITECT: id ответа задаёт сервер: он уходит клиенту в событии done, и по нему клиент
+                    // отправляет ответ викторины отдельным вызовом (§спец. 3).
+                    id: replyId,
                     lesson_id: lesson.id,
                     role: "assistant",
                     content: reply.text.slice(0, MESSAGE_MAX_CHARS),
                     // ARCHITECT: профиль голоса сохраняется вместе с карточками: после перезагрузки ленты
                     // кнопка озвучки восстанавливается по тому же значению каталога. Карточки — уже итоговые:
                     // в них входят собранные сервером слово и викторина.
-                    payload: { cards: payloadCards, usage, voiceId: tutor.voiceId },
+                    payload: replyPayload,
                 },
                 // ARCHITECT: вторая часть хода — отдельное сообщение: после перезагрузки ленты она стоит там
                 // же, где её увидели в потоке, а не склеена с разбором. Отличить её от ответа с карточками
                 // можно по payload: поля usage у неё нет, поэтому расход и квота считаются один раз.
-                ...(followUp === null
+                ...(followUpText === null || followUpId === null
                     ? []
                     : [
                           {
+                              id: followUpId,
                               lesson_id: lesson.id,
                               role: "assistant",
-                              content: followUp.slice(0, MESSAGE_MAX_CHARS),
+                              content: followUpText.slice(0, MESSAGE_MAX_CHARS),
                               payload: { voiceId: tutor.voiceId, followUp: true },
                           },
                       ]),
@@ -1025,18 +1305,34 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
 
             if (saved.error !== null) throw saved.error;
 
+            // ARCHITECT: на первом ходу canned-приветствие C-6 заменяется модельным: строка удаляется только
+            // после успешного ответа, поэтому при отказе модели приветствие остаётся как fallback (§спец. 7).
+            if (startOfSession && history.greetingId !== null) {
+                const removed = await service
+                    .from("messages")
+                    .delete()
+                    .eq("id", history.greetingId);
+
+                if (removed.error !== null) throw removed.error;
+            }
+
             const done: ChatDonePayload = {
                 reply: reply.text,
                 // ARCHITECT: вторая часть необязательна: без неё ход остаётся одним сообщением (§16.8).
-                followUp,
+                followUp: followUpText,
                 // ARCHITECT: ответ без карточек отдаётся пустыми блоками: клиент рисует текст, а не ошибку.
                 corrections: payloadCards.corrections,
                 quiz: payloadCards.quiz,
                 vocabWord: payloadCards.vocabWord,
                 plan: toLessonPlanDto(nextPlan),
+                // ARCHITECT: id ответа нужен клиенту, чтобы отправить ответ викторины отдельным вызовом.
+                messageId: replyId,
+                pending: pendingView(nextState.pendingTask),
+                // ARCHITECT: раскрытый верный ответ приходит только после исчерпания попыток (§спец. 3).
+                reveal: attempt === null ? null : attempt.reveal,
                 // ARCHITECT: блок слов итогового хода: слово, значение и статус. До WRAP целевые слова наружу
                 // не уходят — в этом и единственный момент, когда список раскрывается (§16.6).
-                words: directives.wrap ? toWordViews(nextState) : [],
+                words: wrappedWords,
                 voiceId: tutor.voiceId,
                 usage: { ...usage, messagesRemaining: reserve.data.messages_remaining },
             };
@@ -1056,6 +1352,146 @@ export function createChatRouter(options: { readonly env: ChatEnv }): Router {
             finished = true;
             res.end();
         }
+    });
+
+    // ARCHITECT: ответ на викторину — отдельный вызов: сообщение он не расходует (ход уже оплачен), но порядок
+    // тот же, что у отправки: лимитер, CSRF, проверка владения, сверка с сохранённым ответом (§16.2, §16.7).
+    router.post("/quiz-answer", quizLimiter, validateCsrf, async (req: Request, res: Response) => {
+        const accessToken = getCookie(req, COOKIE_NAMES.accessToken);
+
+        if (accessToken === undefined) {
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        let payload;
+
+        try {
+            payload = await verifyAccessToken(env, accessToken, tokenCache);
+        } catch {
+            // ARCHITECT: просроченный, поддельный и чужой токен отвечают одинаково, без деталей (§16.4).
+            res.status(401).json(errorEnvelope("UNAUTHORIZED", res));
+            return;
+        }
+
+        const parsed = QuizAnswerRequestSchema.safeParse(req.body);
+
+        if (!parsed.success) {
+            res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+            return;
+        }
+
+        const service = createServiceClient(env);
+        // ARCHITECT: сообщение читается вместе с владельцем сессии: чужая и несуществующая строка отвечают
+        // одинаково, поэтому существование чужих викторин не подтверждается (§16.4).
+        const row = await service
+            .from("messages")
+            .select(
+                "lesson_id, payload, lessons!inner(session_id, sessions!inner(user_id, tutor_id))"
+            )
+            .eq("id", parsed.data.messageId)
+            .maybeSingle();
+
+        if (row.error !== null) throw row.error;
+
+        const record = row.data as TaskMessageRow | null;
+
+        if (record === null || record.lessons.sessions.user_id !== payload.userId) {
+            res.status(404).json(errorEnvelope("NOT_FOUND", res));
+            return;
+        }
+
+        const raw = record.payload;
+        const cards = ChatCardsSchema.safeParse(
+            typeof raw === "object" && raw !== null
+                ? (raw as { readonly cards?: unknown }).cards
+                : undefined
+        );
+        const quiz = cards.success ? cards.data.quiz : null;
+        const quizState = readQuizState(raw);
+
+        // ARCHITECT: повторное прохождение невозможно: ответ уже дан или карточки в сообщении нет (§спец. 9).
+        if (quiz === null || (quizState !== null && quizState.answered)) {
+            res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+            return;
+        }
+
+        const lessonRow = await service
+            .from("lessons")
+            .select("plan")
+            .eq("id", record.lesson_id)
+            .maybeSingle();
+
+        if (lessonRow.error !== null) throw lessonRow.error;
+
+        const document = readLessonDocument(lessonRow.data?.plan);
+
+        if (document === null || document.state === null) {
+            res.status(400).json(errorEnvelope("BAD_REQUEST", res));
+            return;
+        }
+
+        const result = judgeQuiz(
+            quiz,
+            parsed.data.answer,
+            quizState?.attempts ?? 0,
+            document.state.words
+        );
+        const taskPayload = await readTaskMessage(service, parsed.data.messageId);
+        const released = result.done ? (taskPayload?.held ?? null) : null;
+        // ARCHITECT: состояние пишется до ответа клиенту: иначе повтор запроса выглядел бы новой попыткой, а
+        // удержанная часть могла бы уйти дважды (§спец. 3, 9).
+        await writeQuizPayload(
+            service,
+            parsed.data.messageId,
+            released === null
+                ? (taskPayload?.payload ?? {})
+                : withoutHeld(taskPayload?.payload ?? {}),
+            {
+                answered: result.done,
+                selected: parsed.data.answer,
+                correct: result.correct,
+                attempts: result.attempts,
+                revealed: result.reveal !== null,
+            },
+            result.simplified
+        );
+
+        if (result.done) {
+            // ARCHITECT: задача закрыта: следующее задание выдаст очередной ход, а отложенная часть уходит
+            // клиенту и сохраняется сообщением — иначе лента потеряла бы её после перезагрузки (§спец. 3).
+            await persistLesson(
+                service,
+                record.lesson_id,
+                document.plan,
+                closeTask(document.state)
+            );
+            await saveFollowUp(
+                service,
+                record.lesson_id,
+                released,
+                getTutorById(record.lessons.sessions.tutor_id)?.voiceId ?? null
+            );
+        } else if (document.state.pendingTask !== null)
+            // ARCHITECT: попытка не последняя: задача остаётся открытой, а счётчик попыток растёт в состоянии.
+            await persistLesson(
+                service,
+                record.lesson_id,
+                document.plan,
+                withPendingTask(document.state, {
+                    ...document.state.pendingTask,
+                    attempts: result.attempts,
+                })
+            );
+
+        const answer: QuizAnswerPayload = {
+            correct: result.correct,
+            quiz: result.simplified,
+            released,
+            reveal: result.reveal,
+        };
+
+        res.status(200).json(answer);
     });
 
     return router;

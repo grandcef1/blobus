@@ -86,6 +86,29 @@ describe("CorrectionsRow", () => {
         expect(container.firstChild).toBeNull();
     });
 
+    it("4.6 фрагменты помечены фоном, а разделы стоят отдельными подложками", () => {
+        const { container } = renderWithProviders(
+            <CorrectionsRow corrections={[CORRECTION]} source={SOURCE} level="B1" />
+        );
+
+        // ARCHITECT: красный фон-маркер низкой альфы лежит поверх неверного фрагмента, зелёный — на верном;
+        // начертание дублирует цвет, поэтому карточка читается и без него (§спец. 3).
+        const wrongFragment = screen.getByText("I go to");
+
+        expect(wrongFragment.className).toContain("bg-red-500/20");
+        expect(wrongFragment.className).toContain("line-through");
+        expect(screen.getAllByText("went")[0]?.className).toContain("bg-emerald-500/20");
+
+        // ARCHITECT: «как было», «как верно» и правило — три подложки светлее базовой поверхности.
+        const sections = [...container.querySelectorAll("section")];
+
+        expect(sections).toHaveLength(3);
+        for (const section of sections) expect(section.className).toContain("bg-[#1a1a1c]");
+
+        // ARCHITECT: разделы разделены вертикальным отступом, а не только подложкой.
+        expect(container.querySelector("li")?.className).toContain("gap-2");
+    });
+
     it("4.5 подсветка исправления не выдумывает текст и режет перевод по тире", () => {
         expect(highlightFixed("I go home", "I went home")).toEqual([
             { text: "I ", fixed: false },

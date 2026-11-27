@@ -3,15 +3,13 @@
 // ARCHITECT: поверхность холодная индиго и базовый фон опции как у обычного сообщения (решения
 // владельца): викторина не путается с золотистой карточкой исправления, а опции читаются как
 // элементы управления, а не как часть тонированного фона.
-// ARCHITECT: поздравление показывается здесь же, внутри карточки, и только по свежему верному
-// ответу: состояние стартует false и ставится в обработчике выбора, поэтому повторный вход в чат
-// анимацию не запускает.
+// ARCHITECT: поздравление показывается здесь же, внутри карточки, и только по свежему верному ответу:
+// показом распоряжается useCelebration по верному выбору, поэтому повторный вход в чат анимацию не запускает.
 // ARCHITECT: верный вариант открывается после двух промахов подряд: с первого промаха пользователь
 // пробует сам, а не читает ответ. «Заново» промахи не отменяет — иначе второй промах снова был бы
 // первым, и ответ не открылся бы никогда.
 
-import { useEffect, useState } from "react";
-import { useReducedMotion } from "framer-motion";
+import { useState } from "react";
 import { useTranslation } from "react-i18next";
 import type { EnhancedChatSession, QuizContent, QuizOption } from "@/types/session";
 import { getBlobatarById } from "@/api/mocks/blobatars";
@@ -19,9 +17,11 @@ import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
 import { CorrectAnswerCelebration } from "@/components/shared/CorrectAnswerCelebration";
 import { QuizOptionButton } from "@/components/shared/QuizOptionButton";
 import type { QuizOptionState } from "@/components/shared/QuizOptionButton";
+import { useCelebration } from "@/hooks/useCelebration";
+import { playSound } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 import { QuizFeedback } from "./QuizFeedback";
-import { AUTHOR_NAME, CELEBRATION_MS, CELEBRATION_REDUCED_MS, LETTERS_KEYS, REVEAL_AFTER_WRONG } from "./quizConstants";
+import { AUTHOR_NAME, LETTERS_KEYS, REVEAL_AFTER_WRONG } from "./quizConstants";
 
 interface QuizCardProps {
     quiz?: QuizContent;
@@ -32,28 +32,17 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
     const { t } = useTranslation("chat");
     const [selectedOptionId, setSelectedOptionId] = useState<string | null>(null);
     const [wrongAttempts, setWrongAttempts] = useState(0);
-    const [isCelebrating, setIsCelebrating] = useState(false);
-    const shouldReduceMotion = useReducedMotion();
     const repetitor = getBlobatarById(session.repetitorId);
 
-    // ARCHITECT: поздравление снимает таймер, а не анимация: он чистится вместе с размонтированием
-    // карточки, поэтому уход из чата не оставляет за собой живой таймер.
-    useEffect(() => {
-        if (!isCelebrating) return;
-
-        const timer = window.setTimeout(
-            () => setIsCelebrating(false),
-            shouldReduceMotion ? CELEBRATION_REDUCED_MS : CELEBRATION_MS
-        );
-
-        return () => window.clearTimeout(timer);
-    }, [isCelebrating, shouldReduceMotion]);
+    // ARCHITECT: хук стоит до раннего выхода — порядок хуков не зависит от того, пришла ли викторина, а
+    // поздравление это производное от выбора, а не отдельное состояние карточки.
+    const correctOption = quiz?.options.find((option) => option.isCorrect);
+    const isCorrect = selectedOptionId !== null && correctOption?.id === selectedOptionId;
+    const isCelebrating = useCelebration(isCorrect);
 
     if (!quiz) return null;
 
-    const correctOption = quiz.options.find((option) => option.isCorrect);
     const isSolved = selectedOptionId !== null;
-    const isCorrect = isSolved && correctOption?.id === selectedOptionId;
     const isRevealed = isSolved && !isCorrect && wrongAttempts >= REVEAL_AFTER_WRONG;
     // ARCHITECT: после открытия ответа повторная попытка теряет смысл: верный вариант уже подсвечен,
     // а «Заново» снимало бы подсветку и начинало бы викторину заново.
@@ -65,7 +54,10 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
         if (!isSolved) return "";
         if (isCorrect) return correctOption?.explanation ?? "";
         if (isRevealed) {
-            return t("quiz.correctAnswer", { answer: correctOption?.text ?? "", explanation: correctOption?.explanation ?? "" }).trim();
+            return t("quiz.correctAnswer", {
+                answer: correctOption?.text ?? "",
+                explanation: correctOption?.explanation ?? "",
+            }).trim();
         }
 
         return t("quiz.incorrect");
@@ -75,13 +67,11 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
         if (isSolved) return;
 
         setSelectedOptionId(optionId);
+        playSound(correctOption?.id === optionId ? "correct" : "wrong");
 
-        if (correctOption?.id === optionId) {
-            setIsCelebrating(true);
-            return;
-        }
-
-        setWrongAttempts((previous) => previous + 1);
+        // ARCHITECT: поздравление поднимает сам хук по верному выбору, поэтому здесь растёт только счётчик
+        // промахов — по нему открывается верный вариант.
+        if (correctOption?.id !== optionId) setWrongAttempts((previous) => previous + 1);
     };
 
     const stateFor = (option: QuizOption): QuizOptionState => {
@@ -116,7 +106,11 @@ export function QuizCard({ quiz, session }: QuizCardProps) {
                             {quiz.question}
                         </p>
 
-                        <div className="mt-4 flex flex-col gap-2" role="group" aria-label={t("quiz.optionsLabel")}>
+                        <div
+                            className="mt-4 flex flex-col gap-2"
+                            role="group"
+                            aria-label={t("quiz.optionsLabel")}
+                        >
                             {quiz.options.map((option, index) => {
                                 const letterKey = LETTERS_KEYS[index];
                                 return (

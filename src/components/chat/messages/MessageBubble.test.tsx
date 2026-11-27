@@ -1,4 +1,4 @@
-// ARCHITECT: пузырь проверяется на трёх решениях: точная подсветка ошибки, зелёная строка мелкой правки и
+// ARCHITECT: пузырь проверяется на трёх решениях: красная пометка ошибки, зелёная строка мелкой правки и
 // посимвольная печать ответа. Сеть и озвучка здесь не поднимаются.
 
 import { act, screen } from "@testing-library/react";
@@ -29,7 +29,7 @@ afterEach(() => {
 });
 
 describe("MessageBubble", () => {
-    it("4.1 подчёркивает только фрагмент ошибки", () => {
+    it("4.1 помечает красным только фрагмент ошибки", () => {
         const { container } = renderWithProviders(
             <MessageBubble
                 message={message("user", "Yesterday I go to the cinema.")}
@@ -41,6 +41,7 @@ describe("MessageBubble", () => {
 
         expect(marked).toHaveLength(1);
         expect(marked[0]?.textContent).toBe("I go to");
+        expect(marked[0]?.className).toContain("red");
         expect(container.textContent).toContain("Yesterday I go to the cinema.");
     });
 
@@ -56,6 +57,8 @@ describe("MessageBubble", () => {
         expect(container.textContent).toContain("точнее");
         expect(container.textContent).toContain("I'm going");
         expect(container.querySelector("li")?.className).toContain("emerald");
+        // ARCHITECT: у полировки неверный вариант не показывают: красного в реплике быть не должно.
+        expect(container.querySelector("li")?.className).not.toContain("red");
     });
 
     it("4.3 ответ печатается посимвольно и доходит до конца", () => {

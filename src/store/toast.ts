@@ -4,6 +4,7 @@
 // лишь её отображает.
 
 import { create } from "zustand";
+import { playSound } from "@/lib/sounds";
 
 export type ToastVariant = "success" | "error" | "info";
 
@@ -46,6 +47,9 @@ function pushToast(
     action?: ToastAction
 ): void {
     useToastStore.getState().push({ variant, title, description, action });
+    // ARCHITECT: сигнал живёт здесь, а не в Toaster: сообщение поднимают и вне React (api-слой), и такие
+    // вызовы остались бы беззвучными, если бы звук зависел от разметки.
+    playSound("alert");
 }
 
 export const toast = {

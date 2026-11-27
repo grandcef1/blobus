@@ -11,6 +11,7 @@ import { ApiError } from "@/api/client";
 import { addVocabularyEntry } from "@/api/progress";
 import type { AddVocabularyInput } from "@/api/progress";
 import { Dialog, DialogContent, DialogFooter, DialogTitle } from "@/components/ui/dialog";
+import { playSound } from "@/lib/sounds";
 import { FOCUS_RING, INPUT_SURFACE } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 import { toast } from "@/store/toast";
@@ -104,6 +105,9 @@ export function AddWordDialog({ open, onOpenChange }: AddWordDialogProps) {
         // тестов, которым нужен только чтение, не обязаны объявлять функцию добавления.
         mutationFn: (input: AddVocabularyInput) => addVocabularyEntry(input),
         onSuccess: async () => {
+            // ARCHITECT: сигнал «слово сохранено» играется до инвалидации: список обновится сам, а звук
+            // уже подтвердил, что запись прошла.
+            playSound("word");
             await queryClient.invalidateQueries({ queryKey: ["vocabulary"] });
             onOpenChange(false);
         },

@@ -1,8 +1,12 @@
 // ARCHITECT: викторина «собери предложение»: слова перемешаны, ученик набирает их в верхнюю строку нажатиями,
 // а нажатие по слову в строке возвращает его назад. Проверка — по собранной строке на клиенте.
+// ARCHITECT: исход проверки подтверждают поздравление и мягкий сигнал: верный — вверх, промах — вниз.
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CorrectAnswerCelebration } from "@/components/shared/CorrectAnswerCelebration";
+import { useCelebration } from "@/hooks/useCelebration";
+import { playSound } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 import { QuizFeedback } from "./QuizFeedback";
 import { normalizeAnswer } from "./quizCheck";
@@ -54,6 +58,7 @@ export function QuizWordOrder({ words, answer }: QuizWordOrderProps) {
     const [picked, setPicked] = useState<Token[]>([]);
     const [result, setResult] = useState<WordOrderResult>(null);
     const isSolved = result === "correct";
+    const isCelebrating = useCelebration(isSolved);
 
     const pick = (token: Token): void => {
         if (isSolved) return;
@@ -73,11 +78,14 @@ export function QuizWordOrder({ words, answer }: QuizWordOrderProps) {
         if (picked.length === 0 || isSolved) return;
 
         const sentence = picked.map((token) => token.text).join(" ");
-        setResult(normalizeAnswer(sentence) === normalizeAnswer(answer) ? "correct" : "wrong");
+        const outcome = normalizeAnswer(sentence) === normalizeAnswer(answer) ? "correct" : "wrong";
+
+        setResult(outcome);
+        playSound(outcome);
     };
 
     return (
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="relative mt-4 flex flex-col gap-2">
             <div className={BUILD_LINE} aria-label={t("card.orderLabel")}>
                 {picked.length === 0 ? (
                     <span className="text-xs text-[#f0f0f5]/25">{t("card.orderHint")}</span>
@@ -129,6 +137,8 @@ export function QuizWordOrder({ words, answer }: QuizWordOrderProps) {
                 }
                 onRetry={result === "wrong" ? () => setResult(null) : undefined}
             />
+
+            <CorrectAnswerCelebration show={isCelebrating} />
         </div>
     );
 }

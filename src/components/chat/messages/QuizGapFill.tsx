@@ -1,8 +1,12 @@
 // ARCHITECT: викторина с пропуском: ответ вводится в поле и проверяется кнопкой, Enter нажимает её же.
 // После верного ответа поле запирается — повторять проверку незачем; после неверного доступен повтор.
+// ARCHITECT: исход проверки подтверждают поздравление и мягкий сигнал: верный — вверх, промах — вниз.
 
 import { useId, useState } from "react";
 import { useTranslation } from "react-i18next";
+import { CorrectAnswerCelebration } from "@/components/shared/CorrectAnswerCelebration";
+import { useCelebration } from "@/hooks/useCelebration";
+import { playSound } from "@/lib/sounds";
 import { cn } from "@/lib/utils";
 import { QuizFeedback } from "./QuizFeedback";
 import { normalizeAnswer } from "./quizCheck";
@@ -23,15 +27,19 @@ export function QuizGapFill({ answer }: QuizGapFillProps) {
     const fieldId = useId();
     const [value, setValue] = useState("");
     const [result, setResult] = useState<GapFillResult>(null);
+    const isCelebrating = useCelebration(result === "correct");
 
     const check = (): void => {
         if (value.trim() === "" || result === "correct") return;
 
-        setResult(normalizeAnswer(value) === normalizeAnswer(answer) ? "correct" : "wrong");
+        const outcome = normalizeAnswer(value) === normalizeAnswer(answer) ? "correct" : "wrong";
+
+        setResult(outcome);
+        playSound(outcome);
     };
 
     return (
-        <div className="mt-4 flex flex-col gap-2">
+        <div className="relative mt-4 flex flex-col gap-2">
             <div className="flex items-center gap-2">
                 <label htmlFor={fieldId} className="sr-only">
                     {t("card.answerLabel")}
@@ -70,6 +78,8 @@ export function QuizGapFill({ answer }: QuizGapFillProps) {
                 }
                 onRetry={result === "wrong" ? () => setResult(null) : undefined}
             />
+
+            <CorrectAnswerCelebration show={isCelebrating} />
         </div>
     );
 }

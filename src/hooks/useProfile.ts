@@ -25,6 +25,11 @@ export interface ProfileQueryResult {
     readonly refetch: () => Promise<void>;
 }
 
+export interface ProfileQueryOptions {
+    /** Тихий режим: фоновая карточка пользователя не поднимает тост об ошибке — его покажет страница. */
+    readonly silent?: boolean;
+}
+
 /** Метка даты регистрации: формат локале-зависимый («месяц год»), первая буква — заглавная. */
 function formatMemberSince(iso: string, language: string): string {
     const label = new Intl.DateTimeFormat(language, { month: "long", year: "numeric" }).format(
@@ -34,7 +39,7 @@ function formatMemberSince(iso: string, language: string): string {
     return label.charAt(0).toUpperCase() + label.slice(1);
 }
 
-export function useProfile(): ProfileQueryResult {
+export function useProfile(options: ProfileQueryOptions = {}): ProfileQueryResult {
     const { t, i18n } = useTranslation();
     const userId = useAuthStore((state) => state.user?.id ?? null);
 
@@ -57,12 +62,12 @@ export function useProfile(): ProfileQueryResult {
     useAuthExpiry(error, isSuccess);
 
     // ARCHITECT: прочая ошибка — один тост на переход в error (гард по ссылке error), без навигации;
-    // длительности — дефолты тостера.
+    // длительности — дефолты тостера. Тихий режим (карточка сайдбара на каждом экране) тост не поднимает.
     useEffect(() => {
-        if (error === null || error === undefined || sessionExpired) return;
+        if (options.silent || error === null || error === undefined || sessionExpired) return;
 
         toast.error(t("states.error.title"));
-    }, [error, sessionExpired, t]);
+    }, [error, options.silent, sessionExpired, t]);
 
     return {
         profile: query.data,

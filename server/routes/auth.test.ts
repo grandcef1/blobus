@@ -35,6 +35,8 @@ type Jar = Record<string, string>;
 
 const EMAIL_PREFIX = `routes-${randomUUID()}`;
 const PASSWORD = `Routes-${randomUUID()}-1`;
+// ARCHITECT: имя регистрации стало обязательным полем: строка profiles берёт его из метаданных GoTrue.
+const NAME = "Марта Ковалёва";
 const CSRF_HEADER = "x-csrf-token";
 const SESSION_COOKIES = [COOKIE_NAMES.accessToken, COOKIE_NAMES.refreshToken];
 // ARCHITECT: формат CSRF-токена задан тестом независимо от csrf.ts: 24 байта base64url = 32 символа —
@@ -246,6 +248,26 @@ async function dbOnboardingFlag(id: string): Promise<string | null> {
     return data === null ? null : data.onboarding_completed_at;
 }
 
+/** Id пользователя по адресу: нужен, чтобы сверить строку профиля с источником правды (§16.5). */
+async function userIdByEmail(email: string): Promise<string | null> {
+    const { data } = await createAdminClient().auth.admin.listUsers({ page: 1, perPage: 200 });
+
+    return (data?.users ?? []).find((user) => user.email === email)?.id ?? null;
+}
+
+/** Имя из строки профиля сервисным клиентом: проверяем БД, а не ответ маршрута (§16.5). */
+async function dbDisplayName(id: string): Promise<string | null> {
+    const { data, error } = await createAdminClient()
+        .from("profiles")
+        .select("display_name")
+        .eq("id", id)
+        .maybeSingle();
+
+    if (error !== null) throw error;
+
+    return data === null ? null : data.display_name;
+}
+
 /** Свежий аккаунт (триггер оставляет флаг null) и его сессия: каждый тест изолирован своим юзером. */
 async function freshSession(
     baseUrl: string
@@ -319,14 +341,14 @@ describe("POST /api/auth/signup", () => {
             const first = await postJson(
                 app.baseUrl,
                 "/api/auth/signup",
-                { email, password: PASSWORD },
+                { name: NAME, email, password: PASSWORD },
                 headers
             );
             const firstBody = await first.text();
             const second = await postJson(
                 app.baseUrl,
                 "/api/auth/signup",
-                { email, password: PASSWORD },
+                { name: NAME, email, password: PASSWORD },
                 headers
             );
             const secondBody = await second.text();
@@ -352,13 +374,13 @@ describe("POST /api/auth/signup", () => {
             const short = await postJson(
                 app.baseUrl,
                 "/api/auth/signup",
-                { email: shortEmail, password: "Short1" },
+                { name: NAME, email: shortEmail, password: "Short1" },
                 headers
             );
             const extra = await postJson(
                 app.baseUrl,
                 "/api/auth/signup",
-                { email: extraEmail, password: PASSWORD, role: "pro" },
+                { name: NAME, email: extraEmail, password: PASSWORD, role: "pro" },
                 headers
             );
 
@@ -381,13 +403,13 @@ describe("POST /api/auth/signup", () => {
             const longEmail = await postJson(
                 app.baseUrl,
                 "/api/auth/signup",
-                { email: `${"a".repeat(250)}@example.test`, password: PASSWORD },
+                { name: NAME, email: `${"a".repeat(250)}@example.test`, password: PASSWORD },
                 headers
             );
             const longPassword = await postJson(
                 app.baseUrl,
                 "/api/auth/signup",
-                { email: longPasswordEmail, password: `Aa1${"x".repeat(80)}` },
+                { name: NAME, email: longPasswordEmail, password: `Aa1${"x".repeat(80)}` },
                 headers
             );
 
@@ -403,7 +425,7 @@ describe("POST /api/auth/signup", () => {
             const response = await postJson(
                 app.baseUrl,
                 "/api/auth/signup",
-                { email, password: PASSWORD },
+                { name: NAME, email, password: PASSWORD },
                 { origin: app.baseUrl }
             );
 
@@ -423,7 +445,7 @@ describe("POST /api/auth/signup", () => {
                 const response = await postJson(
                     app.baseUrl,
                     "/api/auth/signup",
-                    { email: "not-an-email", password: "x" },
+                    { name: NAME, email: "not-an-email", password: "x" },
                     headers
                 );
 
@@ -433,7 +455,7 @@ describe("POST /api/auth/signup", () => {
             const limited = await postJson(
                 app.baseUrl,
                 "/api/auth/signup",
-                { email: "not-an-email", password: "x" },
+                { name: NAME, email: "not-an-email", password: "x" },
                 headers
             );
 
@@ -443,6 +465,57 @@ describe("POST /api/auth/signup", () => {
             expect(limited.status).toBe(429);
             expect(errorBody(await limited.json()).error.code).toBe("RATE_LIMITED");
             expect(limited.headers.get("retry-after")).toBeTruthy();
+        });
+    }, 30_000);
+
+    it("имя регистрации попадает в display_name профиля через метаданные", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const email = `${EMAIL_PREFIX}-named-${randomUUID()}@example.test`;
+            const response = await postJson(
+                app.baseUrl,
+                "/api/auth/signup",
+                { name: NAME, email, password: PASSWORD },
+                mutationHeaders(pair, app.baseUrl)
+            );
+
+            expect(response.status).toBe(200);
+
+            const id = await userIdByEmail(email);
+
+            if (id === null) throw new Error("аккаунт регистрации не найден");
+
+            // ARCHITECT: строку profiles заводит триггер handle_new_user, поэтому имя обязано прийти из
+            // метаданных регистрации, а не остаться пустым: иначе пользователь видит заглушку «Ученик».
+            expect(await dbDisplayName(id)).toBe(NAME);
+        });
+    }, 30_000);
+
+    it("отклоняет пустое и слишком длинное имя, не создавая аккаунт", async () => {
+        await withAuthApp(async (app) => {
+            const pair = await fetchCsrfPair(app.baseUrl);
+            const headers = mutationHeaders(pair, app.baseUrl);
+            const emptyEmail = `${EMAIL_PREFIX}-noname-${randomUUID()}@example.test`;
+            const longEmail = `${EMAIL_PREFIX}-longname-${randomUUID()}@example.test`;
+
+            const empty = await postJson(
+                app.baseUrl,
+                "/api/auth/signup",
+                { name: "   ", email: emptyEmail, password: PASSWORD },
+                headers
+            );
+            const long = await postJson(
+                app.baseUrl,
+                "/api/auth/signup",
+                { name: "И".repeat(81), email: longEmail, password: PASSWORD },
+                headers
+            );
+
+            // ARCHITECT: граница 80 совпадает с CHECK-ограничением char_length(display_name) в схеме (§16.6).
+            expect(empty.status).toBe(400);
+            expect(long.status).toBe(400);
+            expect(await userExists(emptyEmail)).toBe(false);
+            expect(await userExists(longEmail)).toBe(false);
         });
     }, 30_000);
 });
@@ -1012,7 +1085,7 @@ describe("POST /api/auth/onboarding-complete", () => {
             const signup = await postJson(
                 app.baseUrl,
                 "/api/auth/signup",
-                { email, password: PASSWORD, onboardingCompleted: true },
+                { name: NAME, email, password: PASSWORD, onboardingCompleted: true },
                 headers
             );
 

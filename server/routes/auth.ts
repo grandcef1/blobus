@@ -25,7 +25,14 @@ const PasswordSchema = z
     .regex(/\p{Ll}/u)
     .regex(/\p{Nd}/u);
 
-const SignupSchema = z.strictObject({ email: z.email().max(254), password: PasswordSchema });
+// ARCHITECT: имя регистрации едет в метаданные GoTrue (options.data.full_name) и оттуда попадает в профиль
+// через триггер handle_new_user: display_name одинаково заполняется у парольных и у OAuth-аккаунтов, а сам
+// профиль остаётся единственным источником имени для интерфейса (§16.6).
+const SignupSchema = z.strictObject({
+    name: z.string().trim().min(1).max(80),
+    email: z.email().max(254),
+    password: PasswordSchema,
+});
 const LoginSchema = z.strictObject({
     email: z.email().max(254),
     password: z.string().min(1).max(72),
@@ -193,7 +200,13 @@ export function createAuthRouter(options: AuthRouterOptions): Router {
             return;
         }
 
-        const { error } = await createAnonClient(env).auth.signUp(parsed.data);
+        const { error } = await createAnonClient(env).auth.signUp({
+            email: parsed.data.email,
+            password: parsed.data.password,
+            // ARCHITECT: имя уходит метаданными, а не отдельным письмом в профиль: строку profiles заводит
+            // триггер handle_new_user, и чужая запись в неё невозможна (§16.5).
+            options: { data: { full_name: parsed.data.name } },
+        });
 
         // ARCHITECT: занятый e-mail получает тот же код, тело и набор кук, что свободный, иначе регистрация
         // становится проверкой существования аккаунта (§16.4); сессию выдаёт только логин, поэтому

@@ -1,6 +1,6 @@
 // ARCHITECT: страница проверяется на моке useSessions — сервер здесь не нужен, контракт чтения уже
 // покрыт server/routes/sessions.test.ts. Негативные проверки обязательны: пустой real-список без
-// действия, ошибка с повтором и отсутствие моковых полей в реальной карточке.
+// действия, ошибка с повтором, отсутствие моковых полей и ссылка на чат в реальной строке.
 
 import { cleanup, screen } from "@testing-library/react";
 import userEvent from "@testing-library/user-event";
@@ -18,9 +18,11 @@ vi.mock("@/hooks/useSessions", () => ({ useSessions: useSessionsMock }));
 
 const refetchMock = vi.fn(async () => undefined);
 
+const SUMMARY_ID = "a1b2c3d4-0001-4000-8000-000000000001";
+
 const SUMMARIES: SessionSummaryDto[] = [
     {
-        id: "a1b2c3d4-0001-4000-8000-000000000001",
+        id: SUMMARY_ID,
         tutorId: "miya",
         mode: "speaking",
         createdAt: "2026-11-18T09:00:00.000Z",
@@ -90,10 +92,14 @@ describe("SessionsPage на реальных сводках", () => {
         expect(screen.queryByRole("link")).not.toBeInTheDocument();
     });
 
-    it("6.2 real list: карточка с именем блобатара и меткой режима, без моковых полей", () => {
+    it("6.2 real list: строка — ссылка на /app/chat/:id с именем блобатара, без моковых полей", () => {
         useSessionsMock.mockReturnValue(realResult({ sessions: SUMMARIES }));
         renderWithProviders(<SessionsPage />);
 
+        const link = screen.getByRole("link", { name: /Мия · Разговор/ });
+
+        // ARCHITECT: реальная сессия открывает чат так же, как мок-карточка: раздел «Сессии» — вход в тему.
+        expect(link).toHaveAttribute("href", `/app/chat/${SUMMARY_ID}`);
         expect(screen.getByRole("heading", { name: "Мия · Разговор" })).toBeInTheDocument();
         expect(screen.queryByText("Завершена")).not.toBeInTheDocument();
         expect(screen.queryByText("В процессе")).not.toBeInTheDocument();

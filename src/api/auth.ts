@@ -165,12 +165,11 @@ export async function signUp(name: string, email: string, password: string): Pro
     }
 
     // ARCHITECT: сервер регистрацию не логинит — ответ неотличим для нового и занятого адреса
-    // (анти-энумерация), поэтому сразу входим тем же паролем. Имя серверный контракт не принимает:
-    // показывается имя из адреса, как в моке при обычном входе.
-    void name;
+    // (анти-энумерация), поэтому сразу входим тем же паролем. Имя уходит в метаданные регистрации:
+    // серверный триггер кладёт его в display_name профиля, поэтому имя не выводится из адреса.
     await apiFetch<{ status: string }>("/auth/signup", {
         method: "POST",
-        body: { email, password },
+        body: { name: name.trim(), email, password },
     });
 
     return signIn(email, password);

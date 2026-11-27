@@ -1,6 +1,8 @@
 // ARCHITECT: карточка профиля внизу сайдбара — ссылка на /app/profile с аватаром, именем и
 // тарифом. Выход — отдельная кнопка-сестра, а не вложенная в ссылку: интерактивный элемент
 // внутри ссылки ломает семантику и порядок обхода клавиатурой.
+// ARCHITECT: имя и аватар берутся из профиля (useProfile) — того же источника, что у страницы профиля:
+// мок-имя и блобатар ушли, поэтому загруженное фото встаёт здесь сразу после инвалидации ["profile"].
 // ARCHITECT: выход очищает auth-store и возвращает на лендинг: раньше кнопка была мёртвой.
 // ARCHITECT: в сложенном виде остаётся центрированный аватар со ссылкой и title «Профиль».
 
@@ -8,7 +10,8 @@ import { Link, useNavigate } from "react-router-dom";
 import { LogOut } from "lucide-react";
 import { useTranslation } from "react-i18next";
 import { MOCK_PROFILE_USER } from "@/api/mocks/profile";
-import { BlobatarAvatar } from "@/components/shared/BlobatarAvatar";
+import { UserAvatar } from "@/components/shared/UserAvatar";
+import { useProfile } from "@/hooks/useProfile";
 import { useAuthStore } from "@/store/auth";
 import { cn } from "@/lib/utils";
 import { SIDEBAR_FOCUS_RING } from "./navigation";
@@ -19,13 +22,16 @@ interface SidebarProfileCardProps {
 
 export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
     const { t } = useTranslation("dashboard");
+    const { t: tCommon } = useTranslation("common");
     const navigate = useNavigate();
     const signOut = useAuthStore((state) => state.signOut);
     const user = useAuthStore((state) => state.user);
+    // ARCHITECT: тихий режим: карточка висит на каждом экране приложения, тост об ошибке поднимает страница.
+    const { profile } = useProfile({ silent: true });
 
-    // ARCHITECT: имя из стора у вошедшего, заглушка у гостя; аватар пока из мока — свяжем с профилем,
-    // когда появится серверная часть.
-    const displayName = user === null ? MOCK_PROFILE_USER.name : user.name;
+    // ARCHITECT: имя профиля — основное; имя из store и общая заглушка остаются на случай пустой строки
+    // (аккаунт без метаданных) и на время первой загрузки профиля.
+    const displayName = profile?.displayName || user?.name || tCommon("profile.fallbackName");
 
     const handleSignOut = () => {
         signOut();
@@ -33,7 +39,12 @@ export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
     };
 
     const avatar = (
-        <BlobatarAvatar id={MOCK_PROFILE_USER.blobatarId} className="size-8 bg-white/5" />
+        <UserAvatar
+            avatarUrl={profile?.avatarUrl ?? null}
+            providerAvatarUrl={profile?.providerAvatarUrl ?? null}
+            displayName={displayName}
+            className="size-8 bg-white/5"
+        />
     );
 
     if (isCollapsed) {
@@ -43,7 +54,10 @@ export function SidebarProfileCard({ isCollapsed }: SidebarProfileCardProps) {
                     to="/app/profile"
                     title={t("shell.profile")}
                     aria-label={t("shell.profile")}
-                    className={cn("flex size-10 items-center justify-center rounded-full transition-colors hover:bg-[#141416]", SIDEBAR_FOCUS_RING)}
+                    className={cn(
+                        "flex size-10 items-center justify-center rounded-full transition-colors hover:bg-[#141416]",
+                        SIDEBAR_FOCUS_RING
+                    )}
                 >
                     {avatar}
                 </Link>

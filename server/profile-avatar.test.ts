@@ -1,6 +1,7 @@
-// ARCHITECT: миграция аватара проверяется на реальном стеке Supabase: колонка, гранты и приватный бакет —
-// это схема, а не маршрут, поэтому HTTP-приложение здесь не поднимается. Негативы обязательны: authenticated
-// не пишет avatar_path и не грузит объекты в avatars; service_role пишет и выдаёт signed URL.
+// ARCHITECT: миграция профиля проверяется на реальном стеке Supabase: колонка, гранты, приватный бакет и
+// имя из метаданных провайдера — это схема, а не маршрут, поэтому HTTP-приложение здесь не поднимается.
+// Негативы обязательны: authenticated не пишет avatar_path и не грузит объекты в avatars; без метаданных
+// имя остаётся пустым; service_role пишет и выдаёт signed URL.
 
 import { randomUUID } from "node:crypto";
 import { afterAll, beforeAll, describe, expect, it } from "vitest";
@@ -177,5 +178,43 @@ describe("схема аватара profiles и бакет avatars", () => {
         const removed = await admin.storage.from(BUCKET).remove([path]);
 
         expect(removed.error).toBeNull();
+    }, 30_000);
+
+    it("4.7 провайдерская регистрация: display_name берётся из метаданных пользователя", async () => {
+        const email = `${EMAIL_PREFIX}-oauth@example.test`;
+        const created = await createAdminClient().auth.admin.createUser({
+            email,
+            password: PASSWORD,
+            email_confirm: true,
+            user_metadata: { name: "Sokolova Eva", full_name: "Ева Соколова" },
+        });
+
+        const id = created.data.user?.id ?? null;
+
+        expect(id).not.toBeNull();
+
+        if (id === null) throw new Error("аккаунт провайдера не создан");
+
+        // ARCHITECT: триггер предпочитает full_name и только потом name: у Google заполнены оба поля, а
+        // показывать нужно человеческое имя — иначе пользователь видит заглушку «Ученик» (находка 10).
+        expect((await profileRow(id)).displayName).toBe("Ева Соколова");
+    }, 30_000);
+
+    it("4.8 без метаданных имя остаётся пустым: заглушку показывает интерфейс", async () => {
+        const email = `${EMAIL_PREFIX}-plain@example.test`;
+        const created = await createAdminClient().auth.admin.createUser({
+            email,
+            password: PASSWORD,
+            email_confirm: true,
+        });
+
+        const id = created.data.user?.id ?? null;
+
+        expect(id).not.toBeNull();
+
+        if (id === null) throw new Error("аккаунт без метаданных не создан");
+
+        // ARCHITECT: имя из адреса не выводится: придуманные данные в профиле хуже честной заглушки.
+        expect((await profileRow(id)).displayName).toBe("");
     }, 30_000);
 });

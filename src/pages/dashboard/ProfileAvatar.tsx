@@ -1,11 +1,14 @@
-// ARCHITECT: аватар профиля: своя картинка → картинка Google → иконка User. Signed URL приходит только
-// из GET профиля, поэтому после upload/delete инвалидируется ["profile"], а ответ мутации для показа не
-// используется. Логика правки переехала в AvatarEditDialog: карточка держит показ и открытие модалки.
+// ARCHITECT: аватар профиля: своя картинка → картинка Google → иконка User. Саму цепочку и замену битого
+// источника держит общий UserAvatar: тот же вид у рельсы и мобильной шапки, поэтому «где какой аватар»
+// решается в одном месте. Signed URL приходит только из GET профиля, поэтому после upload/delete
+// инвалидируется ["profile"], а ответ мутации для показа не используется. Логика правки живёт в
+// AvatarEditDialog: карточка держит показ и открытие модалки.
 
 import { useState } from "react";
 import { useTranslation } from "react-i18next";
-import { Pencil, User } from "lucide-react";
+import { Pencil } from "lucide-react";
 
+import { UserAvatar } from "@/components/shared/UserAvatar";
 import { FOCUS_RING } from "@/lib/surfaces";
 import { cn } from "@/lib/utils";
 import { AvatarEditDialog } from "./AvatarEditDialog";
@@ -31,31 +34,20 @@ const OVERLAY_ICON =
 export function ProfileAvatar({ avatarUrl, providerAvatarUrl, displayName }: ProfileAvatarProps) {
     const { t } = useTranslation("dashboard");
     const [open, setOpen] = useState(false);
-    const [brokenSource, setBrokenSource] = useState<string | null>(null);
 
+    // ARCHITECT: превью диалога показывает ровно ту же ссылку, что карточка: цепочка одна.
     const source = avatarUrl ?? providerAvatarUrl;
-    const showImage = source !== null && source !== brokenSource;
 
     return (
         <>
             <div className={AVATAR_BOX}>
-                {showImage && source !== null ? (
-                    <img
-                        src={source}
-                        alt={t("profile.avatar.alt")}
-                        title={displayName}
-                        onError={() => setBrokenSource(source)}
-                        className="size-full object-cover"
-                    />
-                ) : (
-                    <span className="flex size-full items-center justify-center">
-                        <User
-                            className="size-8 text-[#f0f0f5]/40 md:size-10"
-                            strokeWidth={1.5}
-                            aria-hidden="true"
-                        />
-                    </span>
-                )}
+                <UserAvatar
+                    avatarUrl={avatarUrl}
+                    providerAvatarUrl={providerAvatarUrl}
+                    displayName={displayName}
+                    className="size-full"
+                    iconClassName="size-8 md:size-10"
+                />
 
                 <button
                     type="button"

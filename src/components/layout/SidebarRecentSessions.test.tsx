@@ -1,6 +1,6 @@
-// ARCHITECT: сайдбар — тихая вторичная навигация, поэтому тест держит два обязательства: реальные
-// элементы не интерактивны и строят заголовок из сводки, а секция исчезает при загрузке, ошибке и
-// пустом списке. useSessions мокается — сервер и QueryClient здесь не нужны.
+// ARCHITECT: сайдбар — тихая вторичная навигация, поэтому тест держит два обязательства: строки недавних
+// сессий открывают тему ссылкой на /app/chat/:id (и в мок-ветке, и в real), а секция исчезает при загрузке,
+// ошибке и пустом списке. useSessions мокается — сервер и QueryClient здесь не нужны.
 
 import { screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
@@ -17,9 +17,11 @@ vi.mock("@/hooks/useSessions", () => ({ useSessions: useSessionsMock }));
 
 const refetchMock = vi.fn(async () => undefined);
 
+const SUMMARY_ID = "a1b2c3d4-0001-4000-8000-000000000001";
+
 const SUMMARIES: SessionSummaryDto[] = [
     {
-        id: "a1b2c3d4-0001-4000-8000-000000000001",
+        id: SUMMARY_ID,
         tutorId: "miya",
         mode: "speaking",
         createdAt: "2026-11-18T09:00:00.000Z",
@@ -73,13 +75,15 @@ afterEach(() => {
 });
 
 describe("SidebarRecentSessions", () => {
-    it("6.1 real-список: элементы не ссылки, заголовок производный, аватар на месте", () => {
+    it("6.1 real-список: строка — ссылка на /app/chat/:id, заголовок производный, аватар на месте", () => {
         useSessionsMock.mockReturnValue(realResult({ sessions: SUMMARIES }));
         const { container } = renderWithProviders(<SidebarRecentSessions isCollapsed={false} />);
 
-        expect(screen.getByText("Мия · Разговор")).toBeInTheDocument();
-        expect(screen.queryAllByRole("link")).toHaveLength(0);
-        expect(container.querySelector("a")).toBeNull();
+        const link = screen.getByRole("link", { name: /Мия · Разговор/ });
+
+        // ARCHITECT: запись открывает тему так же, как в мок-ветке: строка — не декорация.
+        expect(link).toHaveAttribute("href", `/app/chat/${SUMMARY_ID}`);
+        expect(screen.queryAllByRole("link")).toHaveLength(1);
         // ARCHITECT: валидный tutorId даёт отрисованного блобатара; неизвестный id оставил бы пустой плейсхолдер.
         expect(container.querySelector('[aria-hidden="true"] svg')).not.toBeNull();
     });

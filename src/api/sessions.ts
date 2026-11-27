@@ -205,8 +205,8 @@ export async function fetchSessionById(sessionId: string): Promise<EnhancedChatS
 /** Сводка своей сессии: контракт GET /api/sessions (server/routes/sessions.ts), без user_id. */
 export interface SessionSummaryDto {
     id: string;
-    /** Название, которое задал пользователь: null — показывается производный заголовок «репетитор · режим». */
-    title: string | null;
+    /** Название, которое задал пользователь: null или отсутствие — показывается производный заголовок «репетитор · режим». */
+    title?: string | null;
     tutorId: string;
     mode: string;
     createdAt: string;

@@ -10,8 +10,19 @@ import { useEffect, useRef, useState } from "react";
 import { motion, useReducedMotion } from "framer-motion";
 import { Send, X } from "lucide-react";
 import { useTranslation } from "react-i18next";
-import { createDictation, finalTranscript, interimTranscript } from "@/lib/dictation";
-import type { DictationEvent, DictationSession } from "@/lib/dictation";
+import {
+    createDictation,
+    finalTranscript,
+    interimTranscript,
+    isFatalDictationError,
+    toDictationErrorCode,
+} from "@/lib/dictation";
+import type {
+    DictationErrorCode,
+    DictationErrorEvent,
+    DictationEvent,
+    DictationSession,
+} from "@/lib/dictation";
 import { cn } from "@/lib/utils";
 
 interface VoiceRecorderProps {
@@ -26,7 +37,10 @@ const LEVEL_BARS = [0.45, 0.85, 1, 0.6, 0.75];
 
 const RECORD_BUTTON =
     "flex size-11 shrink-0 items-center justify-center rounded-xl transition-colors focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5]";
-const CANCEL_BUTTON = cn(RECORD_BUTTON, "text-[#f0f0f5]/60 hover:bg-white/[0.06] hover:text-[#f0f0f5]");
+const CANCEL_BUTTON = cn(
+    RECORD_BUTTON,
+    "text-[#f0f0f5]/60 hover:bg-white/[0.06] hover:text-[#f0f0f5]"
+);
 const SEND_BUTTON = cn(
     RECORD_BUTTON,
     "bg-[#f0f0f5] text-black hover:bg-[#f0f0f5]/90 disabled:cursor-not-allowed disabled:bg-white/[0.06] disabled:text-[#f0f0f5]/20"
@@ -46,9 +60,14 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
     const [fixed, setFixed] = useState("");
     const [interim, setInterim] = useState("");
     const [seconds, setSeconds] = useState(0);
+    const [failure, setFailure] = useState<DictationErrorCode | null>(null);
     // ARCHITECT: сессия распознавания живёт в ref: она создаётся один раз, а обработчики снимаются при выходе.
     const sessionRef = useRef<DictationSession | null>(null);
     const transcript = `${fixed}${interim}`.trim();
+    // ARCHITECT: после фатального отказа запись не продолжается: индикаторы замирают, а причина показывается
+    // словами — молчаливый таймер пользователь читает как «ничего не происходит».
+    const stopped = failure !== null && isFatalDictationError(failure);
+    const motionOff = reducedMotion || stopped;
 
     useEffect(() => {
         const session = createDictation();
@@ -63,8 +82,18 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
 
             setInterim(interimTranscript(event));
         };
-        // ARCHITECT: ошибка распознавания запись не закрывает: пользователь сам решает — отправить или отменить.
-        session.onerror = () => setInterim("");
+        session.onerror = (event: DictationErrorEvent) => {
+            const code = toDictationErrorCode(event.error);
+
+            // ARCHITECT: наша собственная отмена — не отказ: сообщение о ней только пугало бы пользователя.
+            if (code === "aborted") return;
+
+            setInterim("");
+            setFailure(code);
+
+            // ARCHITECT: продолжать нечем — распознавание останавливаем, панель замирает с объяснением причины.
+            if (isFatalDictationError(code)) session.stop();
+        };
         session.onend = () => setInterim("");
         session.start();
 
@@ -78,10 +107,12 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
     }, []);
 
     useEffect(() => {
+        if (stopped) return;
+
         const timer = window.setInterval(() => setSeconds((value) => value + 1), 1000);
 
         return () => window.clearInterval(timer);
-    }, []);
+    }, [stopped]);
 
     useEffect(() => {
         const onKeyDown = (event: KeyboardEvent): void => {
@@ -99,14 +130,31 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
         onSend(transcript);
     };
 
+    // ARCHITECT: причина отказа объясняется словами: молчащий микрофон пользователь читает как поломку сервиса.
+    // ARCHITECT: switch, а не карта ключей: t() типизирован по ключам словаря, и юнион строк из карты
+    // оверлоады не принимают — каждая ветка вызывает t() со своим литералом.
+    const failureMessage = (code: DictationErrorCode): string => {
+        switch (code) {
+            case "not-allowed":
+            case "service-not-allowed":
+                return t("input.record.errors.permission");
+            case "audio-capture":
+                return t("input.record.errors.unsupported");
+            case "no-speech":
+                return t("input.record.errors.noSpeech");
+            default:
+                return t("input.record.errors.failed");
+        }
+    };
+
     return (
         <div className="flex items-center gap-2 rounded-2xl border border-white/25 bg-white/[0.06] px-2 py-1.5">
             <span className="flex size-11 shrink-0 items-center justify-center" aria-hidden="true">
                 <motion.span
                     className="size-2.5 rounded-full bg-[#f0f0f5]"
-                    animate={reducedMotion ? { opacity: 1 } : { opacity: [1, 0.35, 1] }}
+                    animate={motionOff ? { opacity: 1 } : { opacity: [1, 0.35, 1] }}
                     transition={
-                        reducedMotion
+                        motionOff
                             ? { duration: 0 }
                             : { duration: 1.4, repeat: Infinity, ease: "easeInOut" }
                     }
@@ -126,9 +174,11 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
                         key={index}
                         className="w-0.5 rounded-full bg-[#f0f0f5]/50"
                         initial={{ height: 8 }}
-                        animate={reducedMotion ? { height: 24 * level } : { height: [6, 26 * level, 10] }}
+                        animate={
+                            motionOff ? { height: 24 * level } : { height: [6, 26 * level, 10] }
+                        }
                         transition={
-                            reducedMotion
+                            motionOff
                                 ? { duration: 0 }
                                 : {
                                       duration: 0.9,
@@ -142,7 +192,9 @@ export function VoiceRecorder({ onSend, onCancel }: VoiceRecorderProps) {
             </div>
 
             <p className="min-w-0 flex-1 truncate text-sm text-[#f0f0f5]/80" aria-live="polite">
-                {transcript === "" ? (
+                {failure !== null ? (
+                    <span className="text-[#f0f0f5]/70">{failureMessage(failure)}</span>
+                ) : transcript === "" ? (
                     <span className="text-[#f0f0f5]/40">{t("input.record.listening")}</span>
                 ) : (
                     transcript

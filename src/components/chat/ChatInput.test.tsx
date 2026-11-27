@@ -14,16 +14,19 @@ class RecogniserStub {
     continuous = false;
     interimResults = false;
     onresult: ((event: unknown) => void) | null = null;
-    onerror: (() => void) | null = null;
+    onerror: ((event: unknown) => void) | null = null;
     onend: (() => void) | null = null;
     started = false;
     aborted = false;
+    stopped = false;
 
     start = (): void => {
         this.started = true;
         track(this);
     };
-    stop = (): void => undefined;
+    stop = (): void => {
+        this.stopped = true;
+    };
     abort = (): void => {
         this.aborted = true;
     };
@@ -34,6 +37,11 @@ class RecogniserStub {
             resultIndex: 0,
             results: { 0: { isFinal, 0: { transcript: text } }, length: 1 },
         });
+    }
+
+    /** Отказ распознавания: браузер присылает код в поле error. */
+    emitError(code: string): void {
+        this.onerror?.({ error: code });
     }
 }
 
@@ -47,7 +55,10 @@ function track(session: RecogniserStub): void {
 
 function installRecogniser(): void {
     active = undefined;
-    Object.defineProperty(window, "SpeechRecognition", { value: RecogniserStub, configurable: true });
+    Object.defineProperty(window, "SpeechRecognition", {
+        value: RecogniserStub,
+        configurable: true,
+    });
 }
 
 afterEach(() => {
@@ -128,5 +139,28 @@ describe("ChatInput", () => {
         expect(screen.queryByRole("button", { name: "Отправить запись" })).toBeNull();
         expect(active?.aborted).toBe(true);
         expect(screen.getByLabelText("Поле ввода сообщения")).toHaveValue("");
+    });
+
+    it("7.5 отказ распознавания объясняется словами, а не молчанием", async () => {
+        installRecogniser();
+        const user = userEvent.setup();
+
+        renderWithProviders(<ChatInput onSend={vi.fn()} />);
+
+        await user.click(screen.getByRole("button", { name: "Начать запись" }));
+
+        await act(async () => {
+            active?.emitError("not-allowed");
+        });
+
+        expect(
+            screen.getByText(
+                "Нет доступа к микрофону. Разрешите его в настройках браузера и попробуйте снова."
+            )
+        ).toBeInTheDocument();
+        // продолжать нечем: распознавание остановлено, пустую расшифровку отправить нельзя
+        expect(active?.stopped).toBe(true);
+        expect(screen.getByRole("button", { name: "Отправить запись" })).toBeDisabled();
+        expect(screen.queryByText("Слушаю…")).toBeNull();
     });
 });

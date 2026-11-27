@@ -72,6 +72,88 @@ export const MOCK_PROGRESS: ProgressDto = {
     ],
 };
 
+// ARCHITECT: граница доверия к ответу API. 200-ответ может нести частичный payload (старый API не знает части
+// полей), поэтому форма приводится к полной один раз здесь: Array.isArray и typeof вместо доверия типу DTO.
+// Это не прячет сбои: 5xx остаётся ошибкой запроса (useProgress), а нормализуется только состав полученного JSON.
+const DTO_LEVELS: readonly EnglishLevel[] = ["A1", "A2", "B1", "B2", "C1", "C2"];
+
+function asRecord(value: unknown): Readonly<Record<string, unknown>> | null {
+    return typeof value === "object" && value !== null
+        ? (value as Readonly<Record<string, unknown>>)
+        : null;
+}
+
+function asCount(value: unknown): number {
+    return typeof value === "number" && Number.isFinite(value) ? value : 0;
+}
+
+function asLevel(value: unknown): EnglishLevel | null {
+    return typeof value === "string" && (DTO_LEVELS as readonly string[]).includes(value)
+        ? (value as EnglishLevel)
+        : null;
+}
+
+/** Неделя: строка без даты не рисуется, поэтому мусорные элементы отбрасываются, а не превращаются в NaN. */
+function asWeek(value: unknown): ProgressDayDto[] {
+    if (!Array.isArray(value)) return [];
+
+    const days: ProgressDayDto[] = [];
+
+    for (const item of value) {
+        const row = asRecord(item);
+
+        if (row === null || typeof row.date !== "string") continue;
+
+        days.push({ date: row.date, messages: asCount(row.messages) });
+    }
+
+    return days;
+}
+
+/** Сводки сессий: title необязателен — заголовок соберёт getSessionTitle; запись без id бесполезна. */
+function asSessions(value: unknown): SessionSummaryDto[] {
+    if (!Array.isArray(value)) return [];
+
+    const sessions: SessionSummaryDto[] = [];
+
+    for (const item of value) {
+        const row = asRecord(item);
+
+        if (row === null || typeof row.id !== "string" || typeof row.tutorId !== "string") continue;
+
+        sessions.push({
+            id: row.id,
+            title: typeof row.title === "string" ? row.title : null,
+            tutorId: row.tutorId,
+            mode: typeof row.mode === "string" ? row.mode : "",
+            createdAt: typeof row.createdAt === "string" ? row.createdAt : "",
+            updatedAt: typeof row.updatedAt === "string" ? row.updatedAt : "",
+        });
+    }
+
+    return sessions;
+}
+
+/** Полная сводка прогресса из ответа API; null — ответ не объект: это нарушение контракта, а не пустой прогресс. */
+export function normalizeProgressDto(raw: unknown): ProgressDto | null {
+    const source = asRecord(raw);
+
+    if (source === null) return null;
+
+    return {
+        level: asLevel(source.level),
+        score:
+            typeof source.score === "number" && Number.isFinite(source.score) ? source.score : null,
+        sessionsTotal: asCount(source.sessionsTotal),
+        messagesTotal: asCount(source.messagesTotal),
+        wordsTotal: asCount(source.wordsTotal),
+        wordsDueToday: asCount(source.wordsDueToday),
+        streakDays: asCount(source.streakDays),
+        weeklyActivity: asWeek(source.weeklyActivity),
+        recentSessions: asSessions(source.recentSessions),
+    };
+}
+
 // ARCHITECT: реальный транспорт — apiFetch (cookie-сессия + 401→refresh), не apiClient: чтение аутентифицировано
 // кукой. Конверт { progress } распаковывается здесь, наружу уходит DTO.
 export async function fetchProgressDto(): Promise<ProgressDto> {
@@ -81,9 +163,14 @@ export async function fetchProgressDto(): Promise<ProgressDto> {
         return MOCK_PROGRESS;
     }
 
-    const { progress } = await apiFetch<{ readonly progress: ProgressDto }>("/progress");
+    const { progress } = await apiFetch<{ readonly progress: unknown }>("/progress");
+    const normalized = normalizeProgressDto(progress);
 
-    return progress;
+    // ARCHITECT: подставить пустую сводку вместо нечитаемого ответа значило бы спрятать поломку контракта:
+    // запрос падает, а «Обзор» показывает состояние ошибки с повтором.
+    if (normalized === null) throw new Error("progress: payload is not an object");
+
+    return normalized;
 }
 
 export async function fetchVocabulary(): Promise<VocabularyWord[]> {

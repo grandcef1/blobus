@@ -3,7 +3,14 @@
 
 import { afterEach, describe, expect, it } from "vitest";
 
-import { createDictation, finalTranscript, interimTranscript, isDictationSupported } from "@/lib/dictation";
+import {
+    createDictation,
+    finalTranscript,
+    interimTranscript,
+    isDictationSupported,
+    isFatalDictationError,
+    toDictationErrorCode,
+} from "@/lib/dictation";
 import type { DictationEvent } from "@/lib/dictation";
 
 class SessionStub {
@@ -73,5 +80,23 @@ describe("dictation", () => {
         // resultIndex отсекает уже зафиксированное: иначе окончательный текст задваивался бы в поле
         expect(finalTranscript(event)).toBe("Hello ");
         expect(interimTranscript(event)).toBe("wor");
+    });
+
+    it("6.4 код отказа читается из события, неизвестный сводится к unknown", () => {
+        expect(toDictationErrorCode("not-allowed")).toBe("not-allowed");
+        expect(toDictationErrorCode("audio-capture")).toBe("audio-capture");
+        expect(toDictationErrorCode("no-speech")).toBe("no-speech");
+        expect(toDictationErrorCode("новый код браузера")).toBe("unknown");
+        expect(toDictationErrorCode(undefined)).toBe("unknown");
+    });
+
+    it("6.5 продолжать запись нечем при любом отказе, кроме собственной отмены", () => {
+        expect(isFatalDictationError("not-allowed")).toBe(true);
+        expect(isFatalDictationError("service-not-allowed")).toBe(true);
+        expect(isFatalDictationError("audio-capture")).toBe(true);
+        expect(isFatalDictationError("network")).toBe(true);
+        expect(isFatalDictationError("no-speech")).toBe(true);
+        expect(isFatalDictationError("unknown")).toBe(true);
+        expect(isFatalDictationError("aborted")).toBe(false);
     });
 });

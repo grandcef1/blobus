@@ -33,8 +33,10 @@ export function getSessionTitle(
     summary: SessionSummaryDto,
     t: (key: SessionTitleKey) => string
 ): string {
-    // ARCHITECT: название задаёт пользователь: пустое или отсутствующее значит «показывать производный заголовок».
-    if (summary.title !== null && summary.title.trim() !== "") return summary.title;
+    // ARCHITECT: название задаёт пользователь: пустое, из пробелов или отсутствующее значит «показывать
+    // производный заголовок». Проверка типа обязательна: более старый API не отдаёт title, и без неё
+    // рассинхрон фронта и бэкенда ронял страницу (RouteErrorBoundary) вместо мягкого фолбэка.
+    if (typeof summary.title === "string" && summary.title.trim() !== "") return summary.title;
 
     const name = getBlobatarById(summary.tutorId)?.name ?? t("sessions.card.tutorFallback");
     const modeKey = getModeLabelKey(summary.mode);

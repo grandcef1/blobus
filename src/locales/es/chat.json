@@ -81,7 +81,13 @@
       "cancel": "Cancelar la grabación",
       "send": "Enviar la grabación",
       "duration": "Duración de la grabación",
-      "escapeHint": "Esc — cancelar la grabación"
+      "escapeHint": "Esc — cancelar la grabación",
+      "errors": {
+        "permission": "Sin acceso al micrófono. Permítelo en el navegador y vuelve a intentarlo.",
+        "unsupported": "El micrófono no está disponible: comprueba que esté conectado y libre.",
+        "failed": "El reconocimiento se interrumpió. Comprueba la conexión y vuelve a intentarlo.",
+        "noSpeech": "No se reconoció la voz. Inténtalo de nuevo."
+      }
     },
     "quickPrompts": {
       "rule": "Explícame esta regla",

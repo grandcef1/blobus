@@ -24,7 +24,7 @@ export interface DictationSession {
     continuous: boolean;
     interimResults: boolean;
     onresult: ((event: DictationEvent) => void) | null;
-    onerror: (() => void) | null;
+    onerror: ((event: DictationErrorEvent) => void) | null;
     onend: (() => void) | null;
     start: () => void;
     stop: () => void;
@@ -82,6 +82,45 @@ export function finalTranscript(event: DictationEvent): string {
     }
 
     return text;
+}
+
+/** Событие отказа распознавания: браузер присылает код в поле error. */
+export interface DictationErrorEvent {
+    readonly error?: unknown;
+}
+
+/** Код отказа распознавания: значения совпадают с кодами Web Speech API. */
+export type DictationErrorCode =
+    | "not-allowed"
+    | "service-not-allowed"
+    | "audio-capture"
+    | "network"
+    | "no-speech"
+    | "aborted"
+    | "unknown";
+
+const KNOWN_ERRORS: readonly DictationErrorCode[] = [
+    "not-allowed",
+    "service-not-allowed",
+    "audio-capture",
+    "network",
+    "no-speech",
+    "aborted",
+];
+
+/** Код отказа из события браузера: неизвестная строка сводится к "unknown", а не теряется. */
+export function toDictationErrorCode(raw: unknown): DictationErrorCode {
+    return typeof raw === "string" && (KNOWN_ERRORS as readonly string[]).includes(raw)
+        ? (raw as DictationErrorCode)
+        : "unknown";
+}
+
+/**
+ * Продолжать запись нечем: отказ в доступе к микрофону, нет устройства, недоступна сеть распознавания или
+ * распознавание уже завершилось по тишине. Не фатальна только наша собственная отмена — о ней молчим.
+ */
+export function isFatalDictationError(code: DictationErrorCode): boolean {
+    return code !== "aborted";
 }
 
 /** Промежуточные части: показываются пользователю, но в отправку не попадают до фиксации. */

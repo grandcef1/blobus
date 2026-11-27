@@ -81,7 +81,13 @@
       "cancel": "Cancel recording",
       "send": "Send recording",
       "duration": "Recording duration",
-      "escapeHint": "Esc — cancel recording"
+      "escapeHint": "Esc — cancel recording",
+      "errors": {
+        "permission": "No microphone access. Allow it in your browser settings and try again.",
+        "unsupported": "The microphone is unavailable: check that it is connected and not used by another app.",
+        "failed": "Speech recognition stopped. Check your connection and try again.",
+        "noSpeech": "No speech recognised. Please try again."
+      }
     },
     "quickPrompts": {
       "rule": "Explain this rule",

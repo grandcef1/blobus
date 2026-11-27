@@ -50,7 +50,11 @@ export function SessionSummaryCard({ summary, actions }: SessionSummaryCardProps
             </Link>
 
             {actions !== undefined && (
-                <SessionRowMenu title={summary.title} tutorId={summary.tutorId} actions={actions} />
+                <SessionRowMenu
+                    title={summary.title ?? null}
+                    tutorId={summary.tutorId}
+                    actions={actions}
+                />
             )}
         </article>
     );

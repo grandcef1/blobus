@@ -66,4 +66,10 @@ describe("getSessionTitle", () => {
 
         expect(title).toBe("Мия · modes.speaking");
     });
+
+    it("3.7 отсутствующее название (старый API) не роняет заголовок, а даёт производный", () => {
+        const legacy = { ...summary(), title: undefined } as unknown as SessionSummaryDto;
+
+        expect(getSessionTitle(legacy, translator)).toBe("Мия · modes.speaking");
+    });
 });

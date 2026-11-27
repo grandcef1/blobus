@@ -10,6 +10,7 @@ import {
     fetchVocabulary,
     fetchVocabularyEntries,
     markWordReviewed,
+    normalizeProgressDto,
 } from "@/api/progress";
 import type { VocabularyEntryDto } from "@/api/progress";
 import { MOCK_VOCABULARY } from "@/api/mocks/progress";
@@ -140,7 +141,8 @@ describe("мок-режим: fetchReviewQueue собирает задания и
         expect(apiFetchMock).not.toHaveBeenCalled();
         expect(queue.length).toBeGreaterThan(0);
 
-        if (first === undefined || first.task.type !== "choice") throw new Error("ожидалось задание выбора");
+        if (first === undefined || first.task.type !== "choice")
+            throw new Error("ожидалось задание выбора");
 
         const task = first.task;
         const correct = task.options.find((option) => option.id === task.answerId);
@@ -162,7 +164,11 @@ describe("real-режим: fetchReviewQueue читает готовые зада
     const ITEM = {
         id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a11",
         stage: 2,
-        task: { type: "gap-fill", prompt: "We need to ___ on this project.", answer: "collaborate" },
+        task: {
+            type: "gap-fill",
+            prompt: "We need to ___ on this project.",
+            answer: "collaborate",
+        },
     } as const;
 
     beforeEach(() => {
@@ -310,5 +316,59 @@ describe("real-режим: markWordReviewed пишет исход через д�
         await expect(progress.markWordReviewed(reviewed.id, "forgotten")).rejects.toMatchObject({
             statusCode: 404,
         });
+    });
+});
+
+describe("normalizeProgressDto: частичный payload старого API", () => {
+    it("8.1 сохраняет пришедшие поля и добивает отсутствующие фолбэками", () => {
+        const normalized = normalizeProgressDto({
+            level: "B1",
+            score: 71,
+            sessionsTotal: 3,
+            recentSessions: [
+                { id: "a1b2c3d4-0001-4000-8000-000000000001", tutorId: "miya", mode: "speaking" },
+            ],
+        });
+
+        expect(normalized).not.toBeNull();
+        expect(normalized?.level).toBe("B1");
+        expect(normalized?.score).toBe(71);
+        expect(normalized?.sessionsTotal).toBe(3);
+        // отсутствующие поля получают фолбэк, а не undefined: рендер не падает и не показывает «undefined»
+        expect(normalized?.messagesTotal).toBe(0);
+        expect(normalized?.wordsTotal).toBe(0);
+        expect(normalized?.wordsDueToday).toBe(0);
+        expect(normalized?.streakDays).toBe(0);
+        expect(normalized?.weeklyActivity).toEqual([]);
+        // сессия без title сохраняется: заголовок соберёт getSessionTitle
+        expect(normalized?.recentSessions).toHaveLength(1);
+        expect(normalized?.recentSessions[0]?.title).toBeNull();
+    });
+
+    it("8.2 мусор в полях не проходит: уровни, числа и элементы массивов проверяются", () => {
+        const normalized = normalizeProgressDto({
+            level: "Z9",
+            score: "71",
+            sessionsTotal: Number.NaN,
+            weeklyActivity: [{ date: "2026-11-18", messages: 4 }, { messages: 9 }, "мусор"],
+            recentSessions: [
+                { tutorId: "miya" },
+                { id: "a1b2c3d4-0002-4000-8000-000000000002", tutorId: "nova" },
+            ],
+        });
+
+        expect(normalized?.level).toBeNull();
+        expect(normalized?.score).toBeNull();
+        expect(normalized?.sessionsTotal).toBe(0);
+        // день без даты и строка без id отбрасываются, а не превращаются в NaN или битую ссылку
+        expect(normalized?.weeklyActivity).toEqual([{ date: "2026-11-18", messages: 4 }]);
+        expect(normalized?.recentSessions).toHaveLength(1);
+        expect(normalized?.recentSessions[0]?.id).toBe("a1b2c3d4-0002-4000-8000-000000000002");
+    });
+
+    it("8.3 не-объект даёт null: экран покажет ошибку с повтором, а не пустой прогресс", () => {
+        expect(normalizeProgressDto(null)).toBeNull();
+        expect(normalizeProgressDto("progress")).toBeNull();
+        expect(normalizeProgressDto(42)).toBeNull();
     });
 });

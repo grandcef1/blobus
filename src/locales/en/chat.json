@@ -3,7 +3,8 @@
     "title": "Lesson goal",
     "rule": "Rule: {{rule}}",
     "step": "Step {{current}} of {{total}}",
-    "words": "Lesson words: {{done}} of {{total}}"
+    "words": "Lesson words: {{done}} of {{total}}",
+    "completed": "Lesson complete"
   },
   "actions": {
     "moreLabel": "More actions",
@@ -53,6 +54,9 @@
     "typing": "The tutor is typing",
     "error": "Could not get a reply",
     "limit": "You are out of messages for today",
+    "you": "You",
+    "resume": "Continuing the lesson",
+    "dateLabel": "Date",
     "retry": "Try again",
     "remaining": "Messages left: {{count}}",
     "stop": "Stop"
@@ -102,6 +106,7 @@
     "examples": "Examples",
     "similar": "Similar:",
     "context": "Used in the lesson",
+    "added": "Added to vocabulary",
     "save": "Save to vocabulary",
     "remove": "Remove from vocabulary",
     "pos": {
@@ -110,6 +115,16 @@
       "adjective": "adjective",
       "adverb": "adverb",
       "preposition": "preposition"
+    }
+  },
+  "wrap": {
+    "title": "Lesson words",
+    "dictionary": "Every lesson word is already in your vocabulary",
+    "status": {
+      "hidden": "not shown",
+      "introduced": "shown",
+      "recognized": "recognised",
+      "produced": "used"
     }
   },
   "quiz": {

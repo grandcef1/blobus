@@ -1,12 +1,11 @@
-// ARCHITECT: лента реального чата: реплики рисует MessageBubble (одна разметка пузыря на весь продукт), а
-// карточки ответа идут под репликой репетитора. Отступ pl-11 выравнивает карточки по тексту пузыря: аватар
-// size-8 (2rem) плюс gap-3 (0.75rem) — колонка совпадает без пустого блока-заполнителя.
-// ARCHITECT: aria-live="polite" на постоянном контейнере объявляет растущий ответ: текст приходит дельт-ами,
-// и без live-региона скринридер прочитал бы только кадр по уходу фокуса (как в строке разбора викторины).
+// ARCHITECT: лента реального чата собирает реплики в группы (MessageGroup): карточки ответа идут под репликой
+// репетитора, отступ pl-11 выравнивает их по тексту (аватар size-8 плюс gap-3).
+// ARCHITECT: aria-live="polite" на постоянном контейнере объявляет растущий ответ: текст приходит дельтами,
+// и без live-региона скринридер прочитал бы только кадр по уходу фокуса.
 // ARCHITECT: пока ответ печатается, рядом с подписью встаёт кнопка остановки: прерванная генерация не
 // сохраняется, а повтор доступен из той же ленты (server/routes/chat.ts возвращает резерв квоты, §16.7).
 
-import { useEffect, useRef } from "react";
+import { Fragment, useEffect, useRef } from "react";
 import { useReducedMotion } from "framer-motion";
 import { useTranslation } from "react-i18next";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -14,8 +13,10 @@ import type { ChatErrorKind, ChatFeedMessage } from "@/hooks/useChat";
 import type { ChatLessonPlan } from "@/api/chat";
 import { stopPlayback } from "@/lib/speechPlayback";
 import type { EnhancedChatSession } from "@/types/session";
+import type { EnglishLevel } from "@/types/onboarding";
 import { LessonGoalCard } from "./LessonGoalCard";
-import { RealChatItem } from "./RealChatItem";
+import { withDateDividers, groupMessages } from "./messages/grouping";
+import { ChatDateDivider, MessageGroup } from "./messages/MessageGroup";
 import { TypingIndicator } from "./TypingIndicator";
 
 interface RealChatFeedProps {
@@ -26,14 +27,20 @@ interface RealChatFeedProps {
     /** История сессии в пути: лента показывает скелетон, а не пустой экран. */
     readonly isLoading: boolean;
     readonly isStreaming: boolean;
+    /** Вторая часть хода в пути: индикатор набора встаёт в группу репетитора без аватара. */
+    readonly isAwaitingFollowUp: boolean;
     readonly error: ChatErrorKind | null;
     readonly messagesRemaining: number | null;
     /** Настройка voiceEnabled: выключена — кнопки озвучки в ленте нет. */
     readonly voiceEnabled: boolean;
     /** Тариф из entitlements: pro озвучивает провайдер, остальные читают браузерным синтезом. */
     readonly proPlan: boolean;
+    /** Уровень ученика: на A1-A2 под примерами правок показывается перевод. */
+    readonly level: EnglishLevel | null;
     readonly onRetry: () => void;
     readonly onStop: () => void;
+    /** Выбранный ответ викторины: уходит со следующим сообщением на проверку сервером. */
+    readonly onQuizAnswered: (answer: string) => void;
 }
 
 const RETRY_BUTTON =
@@ -72,22 +79,33 @@ export function RealChatFeed({
     plan,
     isLoading,
     isStreaming,
+    isAwaitingFollowUp,
     error,
     messagesRemaining,
     voiceEnabled,
     proPlan,
+    level,
     onRetry,
     onStop,
+    onQuizAnswered,
 }: RealChatFeedProps) {
     const { t } = useTranslation("chat");
     const shouldReduceMotion = useReducedMotion();
     const bottomRef = useRef<HTMLDivElement>(null);
     // ARCHITECT: три точки показываются только до первого текста: с первым символом встаёт пузырь, и ожидание
-    // заменяется печатью ответа (§3.8).
+    // заменяется печатью ответа (§3.8). Второй случай — пауза перед второй частью хода.
     const lastMessage = messages[messages.length - 1];
     const isAwaitingFirstText =
         lastMessage === undefined ||
         (lastMessage.role === "assistant" && lastMessage.content === "");
+    const groups = withDateDividers(groupMessages(messages));
+    // ARCHITECT: «возвращение» видно только у незавершённого урока из истории: как только ученик написал сам
+    // (в ленте появилась живая реплика), подсказка уходит — урок уже идёт (§спец. 7).
+    const isResuming =
+        plan !== null &&
+        !plan.completed &&
+        messages.length > 0 &&
+        messages.every((message) => !message.live);
 
     // ARCHITECT: автоскролл ленты — это движение; при reduced motion прокрутка мгновенная (как в мок-ленте).
     useEffect(() => {
@@ -99,41 +117,38 @@ export function RealChatFeed({
         if (isStreaming) stopPlayback();
     }, [isStreaming]);
 
+    // ARCHITECT: разделитель даты решается заранее: сборкой групп занимается grouping.ts, а отрисовка ничего
+    // не меняет — мутация переменной во время рендера запрещена правилом react-hooks/immutability.
     return (
         <div
             className="flex-1 overflow-y-auto px-3 py-6 md:px-6"
             aria-live="polite"
             aria-busy={isStreaming}
         >
-            <div className="mx-auto flex max-w-3xl flex-col gap-5">
+            <div className="mx-auto flex max-w-3xl flex-col gap-4">
                 {plan !== null && <LessonGoalCard plan={plan} />}
+                {isResuming && <p className="text-xs text-[#f0f0f5]/40">{t("feed.resume")}</p>}
                 {isLoading && messages.length === 0 && <FeedSkeleton />}
-                {messages.map((message, index) => {
-                    // ARCHITECT: пустого пузыря нет: ожидание первого текста рисует индикатор ниже.
-                    if (message.role === "assistant" && message.content === "") return null;
 
-                    const next = messages[index + 1];
-                    const isLast = index === messages.length - 1;
-
-                    return (
-                        <RealChatItem
-                            key={message.id}
-                            message={message}
-                            next={next}
+                {groups.map(({ group, at, showDate }, index) => (
+                    <Fragment key={group.key}>
+                        {showDate && <ChatDateDivider at={at} />}
+                        <MessageGroup
+                            group={group}
                             session={session}
+                            level={level}
                             voiceEnabled={voiceEnabled}
                             proPlan={proPlan}
-                            // ARCHITECT: печать и автозапуск голоса — только у реплики этой сессии: история
-                            // показывается целиком и молча.
-                            animate={isLast && message.live}
-                            streaming={isStreaming && isLast}
+                            animateLast={index === groups.length - 1}
+                            streamingLast={isStreaming && index === groups.length - 1}
+                            onQuizAnswered={onQuizAnswered}
                         />
-                    );
-                })}
+                    </Fragment>
+                ))}
 
                 {isStreaming && (
                     <div className="flex items-center gap-3 pl-11">
-                        {isAwaitingFirstText && <TypingIndicator />}
+                        {(isAwaitingFirstText || isAwaitingFollowUp) && <TypingIndicator />}
                         <button type="button" onClick={onStop} className={RETRY_BUTTON}>
                             {t("feed.stop")}
                         </button>

@@ -9,7 +9,7 @@ import { useTranslation } from "react-i18next";
 
 import { ApiError } from "@/api/client";
 import { fetchChatHistory, sendMessage, streamChatReply } from "@/api/chat";
-import type { ChatCards, ChatHistory, ChatLessonPlan } from "@/api/chat";
+import type { ChatCards, ChatHistory, ChatLessonPlan, ChatWordView } from "@/api/chat";
 import { fetchSessionById } from "@/api/sessions";
 import { useAuthExpiry } from "@/hooks/useAuthExpiry";
 import { useMockQuery } from "@/hooks/useMockQuery";
@@ -25,6 +25,10 @@ export interface ChatFeedMessage {
     readonly cards: ChatCards | null;
     /** Профиль голоса из ответа модели: null — озвучки нет (старая запись или реплика ученика). */
     readonly voiceId: string | null;
+    /** Время сообщения: лента собирает группы по отправителю и паузе до двух минут (§спец. 1). */
+    readonly createdAt: number;
+    /** Блок слов итогового хода: пусто — урок ещё идёт, список слов не раскрыт. */
+    readonly words: readonly ChatWordView[];
     /** Реплика пришла в этой сессии из потока, а не из истории: её печатают и озвучивают по-живому. */
     readonly live: boolean;
 }
@@ -58,6 +62,8 @@ export interface RealChatResult extends ChatCommon {
     readonly messages: readonly ChatFeedMessage[];
     /** План урока: цель, правило и счётчики — карточка цели над лентой; null — плана ещё нет. */
     readonly plan: ChatLessonPlan | null;
+    /** Вторая часть хода в пути: индикатор набора встаёт в группу репетитора без аватара. */
+    readonly isAwaitingFollowUp: boolean;
     /** true, пока история сессии в пути: ленте нужен скелетон, а не пустой экран. */
     readonly isLoading: boolean;
     /** Перечитать историю сессии: нужно после сброса, когда сервер вернул её к стартовому приветствию. */
@@ -69,9 +75,11 @@ export type ChatResult = MockChatResult | RealChatResult;
 const NOOP = (): void => undefined;
 const EMPTY_SESSION = null;
 
-// ARCHITECT: пауза между двумя частями хода: разбор и следующая активность не должны появляться одним кадром —
-// человек читает их по очереди. Ожидание прерывается тем же сигналом, что и поток (§16.7).
-const FOLLOW_UP_PAUSE_MS = 700;
+// ARCHITECT: пауза между двумя частями хода: разбор и следующая активность не должны появляться одним
+// кадром — человек читает их по очереди. Ожидание прерывается тем же сигналом, что и поток (§16.7).
+// ARCHITECT: 700 мс лежит в диапазоне 500-900 мс из спецификации, а потолок в 1.5 с не достигается никогда:
+// длиннее пауза выглядела бы зависанием, и её проверяет тест.
+export const FOLLOW_UP_PAUSE_MS = 700;
 
 function pause(ms: number, signal: AbortSignal): Promise<void> {
     return new Promise((resolve) => {
@@ -133,6 +141,8 @@ interface LiveChatState {
     /** План урока приходит из истории и из каждого ответа: карточка цели живёт вне сообщений. */
     readonly plan: ChatLessonPlan | null;
     readonly isStreaming: boolean;
+    /** Вторая часть хода в пути: индикатор набора встаёт в группу репетитора, но без аватара и имени. */
+    readonly awaitingFollowUp: boolean;
     readonly error: ChatErrorKind | null;
     readonly messagesRemaining: number | null;
     /** false до завершения загрузки истории: лента показывает скелетон, пока сообщения в пути. */
@@ -149,6 +159,7 @@ function withSession(previous: LiveChatState, sessionId: string): LiveChatState 
               messages: [],
               plan: null,
               isStreaming: false,
+              awaitingFollowUp: false,
               error: null,
               messagesRemaining: null,
               historyLoaded: false,
@@ -161,6 +172,7 @@ function idleState(sessionId: string): LiveChatState {
         messages: [],
         plan: null,
         isStreaming: false,
+        awaitingFollowUp: false,
         error: null,
         messagesRemaining: null,
         historyLoaded: false,
@@ -192,6 +204,8 @@ function useRealChat(sessionId: string): RealChatResult {
                     content: message.content,
                     cards: message.cards,
                     voiceId: message.voiceId,
+                    createdAt: message.createdAt,
+                    words: message.words,
                     live: false,
                 })),
                 plan: history.plan,
@@ -262,6 +276,8 @@ function useRealChat(sessionId: string): RealChatResult {
                 content: "",
                 cards: null,
                 voiceId: null,
+                createdAt: Date.now(),
+                words: [],
                 live: true,
             };
 
@@ -273,6 +289,8 @@ function useRealChat(sessionId: string): RealChatResult {
                     content,
                     cards: null,
                     voiceId: null,
+                    createdAt: Date.now(),
+                    words: [],
                     live: true,
                 };
 
@@ -318,6 +336,8 @@ function useRealChat(sessionId: string): RealChatResult {
                                       vocabWord: reply.vocabWord,
                                   },
                                   voiceId: reply.voiceId,
+                                  // ARCHITECT: блок слов приходит только в итоговом ходу: он живёт под репликой.
+                                  words: reply.words,
                               }
                             : message
                     ),
@@ -332,11 +352,15 @@ function useRealChat(sessionId: string): RealChatResult {
                 const followUpText = reply.followUp;
 
                 if (followUpText !== null) {
+                    // ARCHITECT: индикатор набора встаёт на паузе до второй части: он принадлежит группе
+                    // репетитора и рисуется без аватара и имени (§спец. 1).
+                    setState((previous) => ({ ...previous, awaitingFollowUp: true }));
                     await pause(FOLLOW_UP_PAUSE_MS, controller.signal);
 
                     if (!controller.signal.aborted)
                         setState((previous) => ({
                             ...previous,
+                            awaitingFollowUp: false,
                             messages: [
                                 ...previous.messages,
                                 {
@@ -345,6 +369,8 @@ function useRealChat(sessionId: string): RealChatResult {
                                     content: followUpText,
                                     cards: null,
                                     voiceId: reply.voiceId,
+                                    createdAt: Date.now(),
+                                    words: [],
                                     live: true,
                                 },
                             ],
@@ -374,7 +400,11 @@ function useRealChat(sessionId: string): RealChatResult {
                 toast.error(kind === "limit" ? t("feed.limit") : t("feed.error"));
             } finally {
                 abortRef.current = null;
-                setState((previous) => ({ ...previous, isStreaming: false }));
+                setState((previous) => ({
+                    ...previous,
+                    isStreaming: false,
+                    awaitingFollowUp: false,
+                }));
             }
         },
         [sessionId, t]
@@ -425,6 +455,7 @@ function useRealChat(sessionId: string): RealChatResult {
         kind: "real",
         isLoading: !live.historyLoaded,
         isStreaming: live.isStreaming,
+        isAwaitingFollowUp: live.awaitingFollowUp,
         error: live.error,
         messagesRemaining: live.messagesRemaining,
         plan: live.plan,

@@ -3,7 +3,8 @@
     "title": "Objetivo de la lección",
     "rule": "Regla: {{rule}}",
     "step": "Paso {{current}} de {{total}}",
-    "words": "Palabras: {{done}} de {{total}}"
+    "words": "Palabras: {{done}} de {{total}}",
+    "completed": "Lección terminada"
   },
   "actions": {
     "moreLabel": "Más acciones",
@@ -53,6 +54,9 @@
     "typing": "El tutor está escribiendo",
     "error": "No se pudo obtener respuesta",
     "limit": "Ya no te quedan mensajes por hoy",
+    "you": "Tú",
+    "resume": "Seguimos con la lección",
+    "dateLabel": "Fecha",
     "retry": "Reintentar",
     "remaining": "Mensajes restantes: {{count}}",
     "stop": "Detener"
@@ -102,6 +106,7 @@
     "examples": "Ejemplos",
     "similar": "Similares:",
     "context": "Ejemplo de la lección",
+    "added": "Añadida al vocabulario",
     "save": "Guardar en el vocabulario",
     "remove": "Quitar del vocabulario",
     "pos": {
@@ -110,6 +115,16 @@
       "adjective": "adjetivo",
       "adverb": "adverbio",
       "preposition": "preposición"
+    }
+  },
+  "wrap": {
+    "title": "Palabras de la lección",
+    "dictionary": "Todas las palabras de la lección ya están en tu vocabulario",
+    "status": {
+      "hidden": "sin mostrar",
+      "introduced": "mostrada",
+      "recognized": "reconocida",
+      "produced": "usada"
     }
   },
   "quiz": {

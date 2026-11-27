@@ -13,6 +13,8 @@ import { useTypedText } from "@/hooks/useTypedText";
 import { highlightFragments } from "@/lib/highlightFragments";
 import { cn } from "@/lib/utils";
 import { useTranslation } from "react-i18next";
+import { bubbleShape } from "./messageShape";
+import type { MessagePosition } from "./messageShape";
 
 /** Озвучка реплики: undefined — кнопки нет (мок-лента, выключенная настройка, незавершённый ответ). */
 interface MessageVoice {
@@ -35,6 +37,8 @@ interface MessageBubbleProps {
     voice?: MessageVoice;
     /** Печатать текст посимвольно: так выглядит ответ, пришедший в этой сессии. */
     animate?: boolean;
+    /** Место в группе: аватар и имя несёт только первая реплика, у остальных остаётся их колонка. */
+    position?: MessagePosition;
 }
 
 const BODY_TEXT = "text-[15px] leading-[1.6] text-[#f0f0f5]/90 md:text-base";
@@ -54,23 +58,30 @@ export function MessageBubble({
     polish = [],
     voice,
     animate = false,
+    position = "single",
 }: MessageBubbleProps) {
-    const { t } = useTranslation("common");
+    const { t } = useTranslation(["common", "chat"]);
     const isUser = message.role === "user";
     const repetitor = getBlobatarById(session.repetitorId);
     // ARCHITECT: печатается только ответ репетитора: реплики ученика и история показываются целиком.
     const visible = useTypedText(message.content, !isUser && animate);
+    // ARCHITECT: имя звучит на каждой реплике группы: у первых его видно, у остальных оно есть только для
+    // скринридера — иначе группа читалась бы как реплики без автора.
+    const author = isUser ? t("chat:feed.you") : (repetitor?.name ?? "");
+    const showAuthor = position === "first" || position === "single";
 
     if (isUser) {
         return (
             <div className="flex flex-col items-end gap-1.5">
                 <div
                     className={cn(
-                        "max-w-[min(80%,70ch)] rounded-2xl rounded-tr-md bg-[#141416] px-4 py-3",
+                        "max-w-[min(80%,70ch)] bg-[#141416] px-4 py-3",
+                        bubbleShape(position, "user"),
                         BODY_TEXT
                     )}
                 >
                     <p className="whitespace-pre-wrap">
+                        <span className="sr-only">{author}: </span>
                         {highlightFragments(message.content, highlights).map((segment, index) => (
                             <span key={index} className={segment.marked ? MARKED_TEXT : undefined}>
                                 {segment.text}
@@ -95,16 +106,30 @@ export function MessageBubble({
 
     return (
         <div className="flex items-start gap-3">
-            <BlobatarAvatar id={session.repetitorId} className="mt-0.5 size-8 p-0.5" />
+            {showAuthor ? (
+                <BlobatarAvatar id={session.repetitorId} className="mt-0.5 size-8 p-0.5" />
+            ) : (
+                // ARCHITECT: место под аватар остаётся пустым: без него текст следующих реплик группы сдвинулся
+                // бы влево и лента «прыгала» бы на каждом сообщении.
+                <div className="mt-0.5 size-8 shrink-0" aria-hidden="true" />
+            )}
             <div className="min-w-0 flex-1">
-                {repetitor && <p className={AUTHOR_NAME}>{repetitor.name}</p>}
+                {showAuthor && repetitor && (
+                    <p className={AUTHOR_NAME} aria-hidden="true">
+                        {repetitor.name}
+                    </p>
+                )}
                 <div
                     className={cn(
-                        "max-w-[min(85%,70ch)] rounded-2xl rounded-tl-md bg-[#111113] px-4 py-3",
+                        "max-w-[min(85%,70ch)] bg-[#111113] px-4 py-3",
+                        bubbleShape(position, "assistant"),
                         BODY_TEXT
                     )}
                 >
-                    <p className="whitespace-pre-wrap">{visible}</p>
+                    <p className="whitespace-pre-wrap">
+                        <span className="sr-only">{author}: </span>
+                        {visible}
+                    </p>
 
                     {voice !== undefined && <VoiceButton {...voice} />}
                 </div>

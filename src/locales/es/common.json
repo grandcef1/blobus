@@ -220,6 +220,8 @@
   "correction": {
     "title": "Corrección",
     "polish": "más precisamente",
+    "original": "Como estaba",
+    "improved": "Como es correcto",
     "severity": {
       "minor": "corrección leve",
       "moderate": "corrección moderada",

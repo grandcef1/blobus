@@ -29,6 +29,17 @@ describe("LessonGoalCard", () => {
         render(<LessonGoalCard plan={{ ...PLAN, step: 6, wordsDone: 3, completed: true }} />);
 
         expect(screen.getByText("Этап 6 из 6 · Слова урока: 3 из 5")).toBeInTheDocument();
+        // ARCHITECT: завершённый урок подписывается словом: числа уже показаны счётчиком.
+        expect(screen.getByText("Урок завершён")).toBeInTheDocument();
+    });
+
+    it("счётчик слов показан без раскрытия списка", () => {
+        render(<LessonGoalCard plan={{ ...PLAN, step: 4, wordsDone: 2 }} />);
+
+        expect(screen.getByText("Этап 5 из 6 · Слова урока: 2 из 5")).toBeInTheDocument();
+        // ARCHITECT: в карточке нет ни одного слова урока: список раскрывает только итоговый блок ленты (§16.6).
+        expect(screen.queryByText("deadline")).not.toBeInTheDocument();
+        expect(screen.queryByText(/^\d+\. /)).not.toBeInTheDocument();
     });
 
     it("целевых слов урока в карточке нет: контракт их не содержит", () => {

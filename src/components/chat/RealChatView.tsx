@@ -4,6 +4,7 @@
 // ARCHITECT: в шапке есть меню сессии: переименование и смена репетитора идут в PATCH /api/sessions/:id, сброс —
 // в POST /api/sessions/:id/reset, удаление — в DELETE. Прогресс не показывается: его нет в сводке сессии.
 
+import { useCallback, useRef } from "react";
 import { useQuery } from "@tanstack/react-query";
 import { useTranslation } from "react-i18next";
 import { useNavigate, useParams } from "react-router-dom";
@@ -18,6 +19,7 @@ import { RealChatFeed } from "@/components/chat/RealChatFeed";
 import { ChatSkeleton } from "@/components/dashboard/skeletons/ChatSkeleton";
 import { useAuthExpiry } from "@/hooks/useAuthExpiry";
 import { useChat } from "@/hooks/useChat";
+import { useProgress } from "@/hooks/useProgress";
 import { useSessionActions } from "@/hooks/useSessionActions";
 import { getModeLabelKey } from "@/lib/sessionTitle";
 import { cn } from "@/lib/utils";
@@ -57,6 +59,26 @@ export function RealChatView() {
     });
 
     const chat = useChat(sessionId);
+    // ARCHITECT: уровень нужен карточке исправления: на A1-A2 под примерами показывается перевод. Он берётся из
+    // той же сводки прогресса, что и на других экранах — отдельного запроса чат не делает.
+    const { progress } = useProgress();
+    // ARCHITECT: выбранный ответ викторины живёт до следующего сообщения: ученик отвечает и пишет фразу, а
+    // сервер сверяет ответ со своей карточкой (§16.2). После отправки ответ сбрасывается.
+    const quizAnswerRef = useRef<string | null>(null);
+    const onQuizAnswered = useCallback((answer: string) => {
+        quizAnswerRef.current = answer;
+    }, []);
+    const send = useCallback(
+        (text: string) => {
+            const answer = quizAnswerRef.current;
+
+            quizAnswerRef.current = null;
+
+            if (answer === null) chat.send(text);
+            else chat.send(text, answer);
+        },
+        [chat]
+    );
     // ARCHITECT: действия сессии — реальные: PATCH/DELETE/reset с оптимистичным кэшем и инвалидацией. Сброс
     // перечитывает историю (в ней уже новое приветствие), удаление уводит в список сессий.
     const actions = useSessionActions(sessionId, {
@@ -100,15 +122,18 @@ export function RealChatView() {
                 session={session}
                 plan={chat.plan}
                 isStreaming={chat.isStreaming}
+                isAwaitingFollowUp={chat.isAwaitingFollowUp}
                 error={chat.error}
                 messagesRemaining={chat.messagesRemaining}
                 isLoading={chat.isLoading}
                 voiceEnabled={settings?.preferences.voiceEnabled ?? false}
                 proPlan={settings?.plan === "pro"}
+                level={progress?.level ?? null}
                 onRetry={chat.retry}
                 onStop={chat.stop}
+                onQuizAnswered={onQuizAnswered}
             />
-            <ChatInput disabled={chat.isStreaming} onSend={chat.send} />
+            <ChatInput disabled={chat.isStreaming} onSend={send} />
         </div>
     );
 }

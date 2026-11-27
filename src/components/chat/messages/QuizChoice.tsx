@@ -19,9 +19,11 @@ interface QuizChoiceProps {
     readonly answerId: string;
     /** Исход первой проверки: повторение словаря по нему двигает шаг Лейтнера. */
     readonly onOutcome?: (correct: boolean) => void;
+    /** Выбранный вариант: уходит со следующим сообщением, верность сверяет сервер. */
+    readonly onAnswer?: (answer: string) => void;
 }
 
-export function QuizChoice({ options, answerId, onOutcome }: QuizChoiceProps) {
+export function QuizChoice({ options, answerId, onOutcome, onAnswer }: QuizChoiceProps) {
     const { t } = useTranslation("chat");
     const [selectedId, setSelectedId] = useState<string | null>(null);
     const isAnswered = selectedId !== null;
@@ -34,6 +36,9 @@ export function QuizChoice({ options, answerId, onOutcome }: QuizChoiceProps) {
         setSelectedId(optionId);
         playSound(optionId === answerId ? "correct" : "wrong");
         onOutcome?.(optionId === answerId);
+        // ARCHITECT: выбор передаётся наверх всегда — повторная попытка после промаха заменит ответ, и сервер
+        // сверит последний, а не первый (§16.2).
+        onAnswer?.(optionId);
     };
 
     const stateFor = (option: ChatQuizOption): QuizOptionState => {

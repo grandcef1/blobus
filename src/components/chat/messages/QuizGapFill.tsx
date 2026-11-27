@@ -15,6 +15,8 @@ interface QuizGapFillProps {
     readonly answer: string;
     /** Исход первой проверки: повторение словаря по нему двигает шаг Лейтнера. */
     readonly onOutcome?: (correct: boolean) => void;
+    /** Введённый ответ: уходит со следующим сообщением, верность сверяет сервер. */
+    readonly onAnswer?: (answer: string) => void;
 }
 
 type GapFillResult = "correct" | "wrong" | null;
@@ -24,7 +26,7 @@ const FIELD =
 const CHECK_BUTTON =
     "flex min-h-11 shrink-0 items-center rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs text-[#f0f0f5]/70 transition-colors hover:border-white/25 hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] disabled:opacity-40";
 
-export function QuizGapFill({ answer, onOutcome }: QuizGapFillProps) {
+export function QuizGapFill({ answer, onOutcome, onAnswer }: QuizGapFillProps) {
     const { t } = useTranslation("chat");
     const fieldId = useId();
     const [value, setValue] = useState("");
@@ -37,9 +39,10 @@ export function QuizGapFill({ answer, onOutcome }: QuizGapFillProps) {
         const outcome = normalizeAnswer(value) === normalizeAnswer(answer) ? "correct" : "wrong";
 
         // ARCHITECT: исход сообщается только по первой проверке: повторный ввод после промаха — это уже попытка
-        // выучить ответ, а не чистый результат повторения.
+        // выучить ответ, а не чистый результат повторения. Серверу уходит последний введённый вариант (§16.2).
         if (result === null) onOutcome?.(outcome === "correct");
 
+        onAnswer?.(value);
         setResult(outcome);
         playSound(outcome);
     };

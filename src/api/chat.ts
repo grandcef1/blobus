@@ -57,6 +57,21 @@ export interface ChatVocabWord {
     readonly context: string;
 }
 
+/** Статус слова урока в итоговом блоке: сколько из них ученик уже узнаёт и употребляет. */
+export const WORD_STATUSES = ["hidden", "introduced", "recognized", "produced"] as const;
+
+export type WordStatus = (typeof WORD_STATUSES)[number];
+
+/**
+ * Слово урока из блока WRAP: значение и статус. Список раскрывает сервер только в итоговом ходу, поэтому
+ * раньше этих данных у клиента нет вовсе (§16.6).
+ */
+export interface ChatWordView {
+    readonly word: string;
+    readonly meaning: string;
+    readonly status: WordStatus;
+}
+
 /** Токены, модель и остаток дневной квоты: остаток считает сервер, клиент его не выводит. */
 export interface ChatUsage {
     readonly promptTokens: number;
@@ -75,6 +90,8 @@ export interface ChatReply {
     readonly vocabWord: ChatVocabWord | null;
     /** План урока: null — сервер его не прислал (старая запись) или форма не разобралась. */
     readonly plan: ChatLessonPlan | null;
+    /** Блок слов итогового хода: пусто — урок ещё идёт, список слов не раскрыт. */
+    readonly words: readonly ChatWordView[];
     /** Профиль голоса репетитора: null — сервер его не прислал, озвучки не будет. */
     readonly voiceId: string | null;
     readonly usage: ChatUsage;
@@ -255,6 +272,42 @@ function readVocabWord(value: unknown): ChatVocabWord | null {
     return { term, translation, context };
 }
 
+// ARCHITECT: статус слова — недоверенная строка: неизвестное значение считает слово только что показанным,
+// поэтому итоговый блок не соврёт о прогрессе (§16.8).
+function readWordStatus(value: unknown): WordStatus {
+    return WORD_STATUSES.find((status) => status === value) ?? "introduced";
+}
+
+/** Блок слов итогового хода: null — форма чужая, тогда блока нет вовсе. */
+function readWords(value: unknown): ChatWordView[] | null {
+    if (value === undefined || value === null) return [];
+
+    if (!Array.isArray(value) || value.length > WORD_STATUSES.length + 2) return null;
+
+    const words: ChatWordView[] = [];
+
+    for (const item of value) {
+        const record = asRecord(item);
+        const word = record === null ? null : readString(record.word, 64);
+        const meaning = record === null ? null : readOptionalString(record.meaning, 240);
+
+        if (word === null || meaning === null) return null;
+
+        words.push({ word, meaning, status: readWordStatus(record?.status) });
+    }
+
+    return words;
+}
+
+/** Время сообщения: сервер присылает ISO-строку, лента сравнивает метки числом. */
+function readTimestamp(value: unknown): number {
+    if (typeof value !== "string") return 0;
+
+    const parsed = Date.parse(value);
+
+    return Number.isFinite(parsed) ? parsed : 0;
+}
+
 function readUsage(value: unknown): ChatUsage | null {
     const record = asRecord(value);
     if (record === null) return null;
@@ -340,6 +393,9 @@ function readReply(value: unknown): ChatReply | null {
         quiz,
         vocabWord,
         plan: record.plan === undefined ? null : readPlan(record.plan),
+        // ARCHITECT: блок слов итогового хода — данные сервера, но форма проверяется: чужая форма значит
+        // «блока нет», а не битый ответ: подводка репетитора остаётся читаемой (§16.8).
+        words: readWords(record.words) ?? [],
         voiceId: voiceId === "" ? null : voiceId,
         usage,
     };
@@ -360,6 +416,10 @@ export interface ChatHistoryMessage {
     readonly cards: ChatCards | null;
     /** Профиль голоса из payload ответа: null — запись без него (сохранена до появления озвучки). */
     readonly voiceId: string | null;
+    /** Время сообщения: по нему лента собирает группы (§спец. 1). */
+    readonly createdAt: number;
+    /** Блок слов итогового хода: пусто — урок ещё идёт. */
+    readonly words: readonly ChatWordView[];
 }
 
 // ARCHITECT: payload строки писал наш роутер, но источник карточек — модель, то есть недоверенный вывод (§16.8):
@@ -393,6 +453,14 @@ function readStoredVoiceId(payload: unknown): string | null {
     return voiceId === null || voiceId === "" ? null : voiceId;
 }
 
+// ARCHITECT: блок слов итогового хода сохраняется рядом с карточками: после перезагрузки ленты итог урока
+// остаётся читаемым, а не пропадает вместе с живым потоком.
+function readStoredWords(payload: unknown): ChatWordView[] {
+    const record = asRecord(payload);
+
+    return record === null ? [] : (readWords(record.words) ?? []);
+}
+
 /** Строка конверта истории: форма недоверенная, поэтому каждое поле читается отдельно. */
 function readHistoryMessage(value: unknown): ChatHistoryMessage | null {
     const record = asRecord(value);
@@ -411,6 +479,9 @@ function readHistoryMessage(value: unknown): ChatHistoryMessage | null {
         content,
         cards: role === "assistant" ? readStoredCards(record.payload) : null,
         voiceId: role === "assistant" ? readStoredVoiceId(record.payload) : null,
+        // ARCHITECT: время сохраняется для группировки: по нему лента решает, где кончается группа (§спец. 1).
+        createdAt: readTimestamp(record.createdAt),
+        words: role === "assistant" ? readStoredWords(record.payload) : [],
     };
 }
 

@@ -78,6 +78,8 @@ const REPLY: ChatReply = {
     // ARCHITECT: по умолчанию ход из одной части: вторая появляется только когда её прислал сервер.
     followUp: null,
     plan: null,
+    // ARCHITECT: блок слов приходит только в итоговом ходу: в обычном ответе он пуст.
+    words: [],
     corrections: [
         {
             fragment: "I agree with you.",
@@ -154,6 +156,66 @@ afterEach(() => {
 });
 
 describe("useChat", () => {
+    it("1.12 real: блок слов итогового хода приходит с ответом, а вторая часть ждёт паузы", async () => {
+        vi.stubEnv("VITE_USE_MOCKS", "false");
+        const { useChat } = await loadHook();
+
+        streamChatReplyMock.mockResolvedValue({
+            ...REPLY,
+            followUp: "Now say the same about your week.",
+            words: [
+                { word: "deadline", meaning: "срок", status: "introduced" },
+                { word: "improve", meaning: "улучшать", status: "hidden" },
+            ],
+        });
+        vi.useFakeTimers();
+
+        try {
+            const { result } = renderHook(() => useChat(SESSION_ID), { wrapper: Wrapper });
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(0);
+            });
+
+            act(() => {
+                realOf(result.current).send("Yesterday I went home.");
+            });
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(0);
+            });
+
+            // ARCHITECT: пока идёт пауза перед второй частью, хук держит признак ожидания: по нему лента рисует
+            // индикатор набора в группе репетитора без аватара (§спец. 1).
+            const chat = realOf(result.current);
+
+            expect(chat.isAwaitingFollowUp).toBe(true);
+            expect(chat.messages[1]?.words).toHaveLength(2);
+            expect(chat.messages[1]?.words[0]?.status).toBe("introduced");
+            // Время реплики нужно группировке: у живого сообщения оно своё, а не нулевое.
+            expect(chat.messages[1]?.createdAt).toBeGreaterThan(0);
+
+            const { FOLLOW_UP_PAUSE_MS } = await import("@/hooks/useChat");
+
+            await act(async () => {
+                await vi.advanceTimersByTimeAsync(FOLLOW_UP_PAUSE_MS);
+            });
+
+            expect(realOf(result.current).isAwaitingFollowUp).toBe(false);
+        } finally {
+            vi.useRealTimers();
+        }
+    });
+
+    it("1.13 пауза второй части лежит в окне спецификации", async () => {
+        // ARCHITECT: 500-900 мс — окно из спецификации; пауза длиннее 1.5 с выглядела бы зависанием.
+        const { FOLLOW_UP_PAUSE_MS } = await import("@/hooks/useChat");
+
+        expect(FOLLOW_UP_PAUSE_MS).toBeGreaterThanOrEqual(500);
+        expect(FOLLOW_UP_PAUSE_MS).toBeLessThanOrEqual(900);
+        expect(FOLLOW_UP_PAUSE_MS).toBeLessThan(1500);
+    });
+
     it("1.1 real: дельты собираются, done даёт карточки и остаток квоты", async () => {
         vi.stubEnv("VITE_USE_MOCKS", "false");
         streamChatReplyMock.mockImplementation(
@@ -394,6 +456,8 @@ describe("useChat", () => {
                     role: "user",
                     content: "Yesterday I go to the cinema.",
                     cards: null,
+                    createdAt: 0,
+                    words: [],
                 },
                 {
                     id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a02",
@@ -404,6 +468,8 @@ describe("useChat", () => {
                         quiz: REPLY.quiz,
                         vocabWord: REPLY.vocabWord,
                     },
+                    createdAt: 0,
+                    words: [],
                 },
             ],
             plan: PLAN,
@@ -444,6 +510,8 @@ describe("useChat", () => {
                     role: "user",
                     content: "Hello",
                     cards: null,
+                    createdAt: 0,
+                    words: [],
                 },
             ],
             plan: null,

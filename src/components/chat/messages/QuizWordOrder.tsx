@@ -16,6 +16,8 @@ interface QuizWordOrderProps {
     readonly answer: string;
     /** Исход первой проверки: повторение словаря по нему двигает шаг Лейтнера. */
     readonly onOutcome?: (correct: boolean) => void;
+    /** Собранное предложение: уходит со следующим сообщением, верность сверяет сервер. */
+    readonly onAnswer?: (answer: string) => void;
 }
 
 /** Слово с постоянным id: одинаковые слова не склеиваются, а порядок нажатий читается однозначно. */
@@ -52,7 +54,7 @@ const BUILD_LINE =
 const CHECK_BUTTON =
     "flex min-h-11 w-fit items-center rounded-xl border border-white/10 bg-white/[0.04] px-3 text-xs text-[#f0f0f5]/70 transition-colors hover:border-white/25 hover:text-[#f0f0f5] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[#f0f0f5] disabled:opacity-40";
 
-export function QuizWordOrder({ words, answer, onOutcome }: QuizWordOrderProps) {
+export function QuizWordOrder({ words, answer, onOutcome, onAnswer }: QuizWordOrderProps) {
     const { t } = useTranslation("chat");
     const [pool, setPool] = useState<Token[]>(() =>
         shuffle(words.map((text, id) => ({ id, text })))
@@ -83,9 +85,10 @@ export function QuizWordOrder({ words, answer, onOutcome }: QuizWordOrderProps) 
         const outcome = normalizeAnswer(sentence) === normalizeAnswer(answer) ? "correct" : "wrong";
 
         // ARCHITECT: исход сообщается только по первой проверке: повторная сборка после промаха — это уже
-        // попытка выучить ответ, а не чистый результат повторения.
+        // попытка выучить ответ, а не чистый результат повторения. Серверу уходит последняя сборка (§16.2).
         if (result === null) onOutcome?.(outcome === "correct");
 
+        onAnswer?.(sentence);
         setResult(outcome);
         playSound(outcome);
     };

@@ -289,6 +289,34 @@ describe("streamChatReply", () => {
         expect(plan).toBeNull();
     });
 
+    it("2.6.1 читает время сообщений и блок слов итогового хода из истории", async () => {
+        apiFetchMock.mockResolvedValue({
+            messages: [
+                {
+                    id: "5c1f8d42-1a3e-4b7c-9f2a-6d0e3b8c4a02",
+                    role: "assistant",
+                    content: "Итог урока",
+                    createdAt: "2026-11-27T10:00:00.000Z",
+                    payload: {
+                        words: [
+                            { word: "deadline", meaning: "срок", status: "produced" },
+                            { word: "improve", meaning: "улучшать", status: "чужой статус" },
+                        ],
+                    },
+                },
+            ],
+        });
+
+        const { fetchChatHistory } = await import("@/api/chat");
+        const { messages } = await fetchChatHistory(SESSION_ID);
+
+        // ARCHITECT: время нужно группировке ленты (§спец. 1), а блок слов — итоговому ходу после перезагрузки.
+        expect(messages[0]?.createdAt).toBe(Date.parse("2026-11-27T10:00:00.000Z"));
+        expect(messages[0]?.words).toHaveLength(2);
+        // Неизвестный статус считается «показано»: блок не соврёт о прогрессе вверх (§16.8).
+        expect(messages[0]?.words[1]?.status).toBe("introduced");
+    });
+
     it("2.7 чужая роль отбрасывается, битые карточки не мешают тексту реплики", async () => {
         apiFetchMock.mockResolvedValue({
             messages: [
